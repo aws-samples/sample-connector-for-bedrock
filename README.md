@@ -52,7 +52,7 @@ Make sure to replace the value of access key, secret key, region to be right one
 And, important! replace the value of ADMIN_API_KEY to be a complex key instead of using the simple one in the sample.
 
 ```shell
-docker run --name BRConnector \
+docker run --name brconnector \
  --restart always \
  -p 8866:8866 \
  -e AWS_ACCESS_KEY_ID=xxxx \
@@ -409,11 +409,11 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ## Disclaimer
 
-BRConnector is an open-source software aimed at providing proxy services for using Bedrock Claude. We make our best efforts to ensure the security and legality of the software, but we are not responsible for the users' behavior.
+This connector is an open-source software aimed at providing proxy services for using Bedrock services. We make our best efforts to ensure the security and legality of the software, but we are not responsible for the users' behavior.
 
-BRConnector is intended solely for personal learning and research purposes. Users shall not use BRConnector for any illegal activities, including but not limited to hacking, spreading illegal information, etc. Otherwise, users shall bear the corresponding legal responsibilities themselves. Users are responsible for complying with the laws and regulations in their respective jurisdictions and shall not use BRConnector for any illegal or non-compliant purposes. The developers and maintainers of this software shall not be liable for any disputes, losses, or legal liabilities arising from the use of BRConnector.
+The connector is intended solely for personal learning and research purposes. Users shall not use it for any illegal activities, including but not limited to hacking, spreading illegal information, etc. Otherwise, users shall bear the corresponding legal responsibilities themselves. Users are responsible for complying with the laws and regulations in their respective jurisdictions and shall not use the connector for any illegal or non-compliant purposes. The developers and maintainers of this software shall not be liable for any disputes, losses, or legal liabilities arising from the use of this connector.
 
-We reserve the right to modify or terminate the BRConnector service at any time without further notice. Users are expected to understand and comply with the relevant local laws and regulations.
+We reserve the right to modify or terminate the connector's code at any time without further notice. Users are expected to understand and comply with the relevant local laws and regulations.
 
 If you have any questions regarding this disclaimer, please feel free to contact us through the open-source channels.
 
