@@ -1,0 +1,79 @@
+{
+  "name": "eiai-proxy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Cloudbeer <cloudbeer@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx ts-node -T src/index.ts",
+    "dev": "nodemon src/index.ts && vue-cli-service serve",
+    "dev-ui": "vue-cli-service serve",
+    "build": "rm -rf ./dist/server && tsc --project ./tsconfig.json --outDir ./dist/server && vue-cli-service build",
+    "build-server": "rm -rf ./dist/server && tsc --project ./tsconfig.json --outDir ./dist/server",
+    "build-ui": "vue-cli-service build",
+    "run": "node dist/server/index.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.554.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.535.0",
+    "@koa/bodyparser": "^5.0.0",
+    "@koa/cors": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "koa": "^2.15.1",
+    "koa-router": "^12.0.1",
+    "koa-static-server": "^1.5.2",
+    "pg": "^8.11.3",
+    "winston": "^3.13.0"
+  },
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@types/koa": "^2.15.0",
+    "@types/koa-router": "^7.4.8",
+    "@types/koa__cors": "^5.0.0",
+    "@types/pg": "^8.11.4",
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "core-js": "^3.8.3",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3",
+    "kui-vue": "^3.3.9",
+    "less": "^4.2.0",
+    "less-loader": "^11.1.4",
+    "nodemon": "^3.1.0",
+    "path-browserify": "^1.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2",
+    "vue": "^2.7.16",
+    "vue-clipboard2": "^0.3.3",
+    "vue-i18n": "^8.28.2",
+    "vue-router": "^3.6.5",
+    "vue-template-compiler": "^2.6.14",
+    "vuex": "^3.6.2"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
