@@ -239,11 +239,8 @@ The content of the Dockerfile:
 FROM node:20
 
 COPY ./dist /app
-
-COPY ./src/scripts/create.sql ./src/scripts/create.sql
-
 WORKDIR /app
-
+COPY ./src/scripts/create.sql ./src/scripts/create.sql
 COPY ./package.json .
 
 RUN npm install --omit=dev
