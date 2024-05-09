@@ -417,15 +417,6 @@ We reserve the right to modify or terminate the BRConnector service at any time 
 
 If you have any questions regarding this disclaimer, please feel free to contact us through the open-source channels.
 
-## My Project
-
-TODO: Fill this README out!
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
-
 ## Security
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
