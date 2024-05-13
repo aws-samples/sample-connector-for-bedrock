@@ -276,12 +276,12 @@ CMD ["node", "server/index.js"]
 Then execute the following command:
 
 ```shell
-docker build -t <same-tag> .
+docker build -t <registry-repo-tag> .
 ```
 
 ## API Specification
 
-### Chat API
+### LLM API
 
 ```text
 POST /v1/chat/completions
@@ -300,6 +300,11 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   "temperature": 1,
   "max_tokens": 4096
 }
+```
+
+```text
+GET /v1/models
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ### Admin API
@@ -344,7 +349,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
   "id": 2,
-  "name": "张三",
+  "name": "jack",
   "month_quota": 10.00
 }
 ```
@@ -364,10 +369,9 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 recharge history
 
-```
+```text
 GET /admin/payment/list?key_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
 ```
 
 List api keys
