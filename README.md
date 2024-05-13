@@ -4,7 +4,24 @@ This is a bedrock API forwarding tool sample that can issue virtual keys, log ch
 
 It is compatible with any OPENAI client that can define Host and API Key.
 
-## Deploying
+## Key Features
+
+### Models Support
+
+- Claude 3 (including sonnet, haiku, and opus)
+- LLama 3
+
+### API Key and Cost Management
+
+- Create API Keys. Can be created for regular users and administrators. Regular users can chat, while administrators can manage API Keys and costs.
+- Record the cost of each call and use it as the basis for cost control.
+- Cost Control. You can set a monthly quota and account balance for each API Key. When the monthly quota or account balance is insufficient, it cannot be used.
+- Calculate the overall cost.
+
+> [!IMPORTANT]  
+> The cost calculation of this project cannot serve as the billing basis for AWS. Please refer to the AWS bill for actual charges.
+
+## Deployment
 
 Although this project is in rapic iterating, we still provide a relative easy way to deploy.
 
