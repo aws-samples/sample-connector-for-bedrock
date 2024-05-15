@@ -6,6 +6,7 @@ class ModelController extends AbstractController {
 
     routers(router: any): void {
         router.post("/admin/model/save-kb-model", this.saveKnowledgeBaseModel);
+        router.post("/admin/model/delete", this.delete);
         router.get("/admin/model/list", this.list);
         router.get("/admin/model/detail/:id", async (ctx: any) => {
             return this.detail(ctx, "eiai_model");
@@ -14,14 +15,9 @@ class ModelController extends AbstractController {
 
     async saveKnowledgeBaseModel(ctx: any) {
         const data = ctx.request.body;
-        let { id, name, provider, object, multiple, owned_by, knowledgeBaseId, summaryModel, region } = data;
-
+        let { id, name, object, knowledgeBaseId, summaryModel, region } = data;
         if (!name) {
             throw new Error("name is required");
-        }
-
-        if (!provider) {
-            throw new Error("provider is required, now supported providers include: bedrock-knowledge-base");
         }
 
         if (!knowledgeBaseId) {
@@ -30,9 +26,17 @@ class ModelController extends AbstractController {
         if (!summaryModel) {
             throw new Error("summaryModel is required");
         }
-        if (!region) {
-            region = "us-east-1";
-        }
+
+        const provider = "bedrock-knowledge-base";
+        const multiple = false;
+        const owned_by = "aws-bedrock"
+        object = object || "rag";
+        region = region || "us-east-1";
+
+        // if (!provider) {
+        //     throw new Error("provider is required, now supported providers include: bedrock-knowledge-base");
+        // }
+
 
         if (["claude-3-sonnet", "claude-3-haiku", "claude-3-opus",].indexOf(summaryModel) === -1) {
             throw new Error("summaryModel must be one of the followings: claude-3-sonnet, claude-3-haiku or claude-3-opus");
@@ -55,6 +59,15 @@ class ModelController extends AbstractController {
                 config
             });
         }
+        return super.ok(ctx, result);
+    }
+    async delete(ctx: any) {
+        const data = ctx.request.body;
+        const { id } = data;
+        if (!(~~id)) {
+            throw new Error("id is required");
+        }
+        const result = await service.delete(ctx.db, id);
         return super.ok(ctx, result);
     }
     async list(ctx: any) {

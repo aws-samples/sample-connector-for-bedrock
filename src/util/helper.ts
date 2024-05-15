@@ -1,9 +1,9 @@
 
 import { ChatRequest } from "../entity/chat_request";
+import modelService from "../service/model"
 import config from '../config';
 
-
-export default {
+const helper = {
     genApiKey() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let key = '';
@@ -38,7 +38,8 @@ export default {
         }
         return null;
     },
-    refineModelParameters: (chatRequest: ChatRequest) => {
+    refineModelParameters: async (chatRequest: ChatRequest, ctx: any) => {
+        const region = chatRequest.config?.region || config.bedrock.region;
         switch (chatRequest.model) {
             case 'claude-3-sonnet':
                 chatRequest.model_id = "anthropic.claude-3-sonnet-20240229-v1:0";
@@ -67,13 +68,13 @@ export default {
             case 'mistral-7b':
                 chatRequest.model_id = "mistral.mistral-7b-instruct-v0:2";
                 chatRequest.provider = "bedrock-mistral";
-                if (config.bedrock.region.indexOf("us-") >= 0) {
+                if (region.indexOf("us-") >= 0) {
                     chatRequest.price_in = 0.00015 / 1000;
                     chatRequest.price_out = 0.0002 / 1000;
-                } else if (config.bedrock.region.indexOf("eu-west-3") >= 0) { // Paris pricing
+                } else if (region.indexOf("eu-west-3") >= 0) { // Paris pricing
                     chatRequest.price_in = 0.0002 / 1000;
                     chatRequest.price_out = 0.00026 / 1000;
-                } else if (config.bedrock.region.indexOf("ap-southeast-2") >= 0) { // Paris pricing
+                } else if (region.indexOf("ap-southeast-2") >= 0) { // Paris pricing
                     chatRequest.price_in = 0.0002 / 1000;
                     chatRequest.price_out = 0.00026 / 1000;
                 } else {
@@ -85,13 +86,13 @@ export default {
             case 'mistral-8x7b':
                 chatRequest.model_id = "mistral.mistral-8x7b-instruct-v0:1";
                 chatRequest.provider = "bedrock-mistral";
-                if (config.bedrock.region.indexOf("us-") >= 0) {
+                if (region.indexOf("us-") >= 0) {
                     chatRequest.price_in = 0.00045 / 1000;
                     chatRequest.price_out = 0.0007 / 1000;
-                } else if (config.bedrock.region.indexOf("eu-west-3") >= 0) { // Paris pricing
+                } else if (region.indexOf("eu-west-3") >= 0) { // Paris pricing
                     chatRequest.price_in = 0.00059 / 1000;
                     chatRequest.price_out = 0.00091 / 1000;
-                } else if (config.bedrock.region.indexOf("ap-southeast-2") >= 0) { // Paris pricing
+                } else if (region.indexOf("ap-southeast-2") >= 0) { // Paris pricing
                     chatRequest.price_in = 0.00059 / 1000;
                     chatRequest.price_out = 0.00091 / 1000;
                 } else {
@@ -103,13 +104,13 @@ export default {
             case 'mistral-large':
                 chatRequest.model_id = "mistral.mistral-large-2402-v1:0";
                 chatRequest.provider = "bedrock-mistral";
-                if (config.bedrock.region.indexOf("us-") >= 0) {
+                if (region.indexOf("us-") >= 0) {
                     chatRequest.price_in = 0.008 / 1000;
                     chatRequest.price_out = 0.024 / 1000;
-                } else if (config.bedrock.region.indexOf("eu-west-3") >= 0) { // Paris pricing
+                } else if (region.indexOf("eu-west-3") >= 0) { // Paris pricing
                     chatRequest.price_in = 0.0104 / 1000;
                     chatRequest.price_out = 0.0312 / 1000;
-                } else if (config.bedrock.region.indexOf("ap-southeast-2") >= 0) { // Sydney pricing
+                } else if (region.indexOf("ap-southeast-2") >= 0) { // Sydney pricing
                     chatRequest.price_in = 0.0104 / 1000;
                     chatRequest.price_out = 0.0312 / 1000;
                 } else {
@@ -139,6 +140,23 @@ export default {
                 // chatRequest.price_out = 0.0035 / 1000;
                 // chatRequest.currency = "USD";
                 // return chatRequest;
+                // const modelCustom = await modelService.loadByName(ctx.db, "s3-kb");
+                const modelCustom = await modelService.loadByName(ctx.db, chatRequest.model);
+                if (modelCustom) {
+                    chatRequest.config = modelCustom.config;
+                    chatRequest.provider = modelCustom.config.provider;
+                    if (modelCustom.config.provider === "bedrock-knowledge-base") {
+                        const { price_in, price_out, currency } = await helper.refineModelParameters({
+                            model: modelCustom.config.summaryModel,
+                            config: modelCustom.config,
+                            messages: []
+                        }, ctx);
+                        chatRequest.price_in = price_in;
+                        chatRequest.price_out = price_out;
+                        chatRequest.currency = currency;
+                    }
+                    return chatRequest;
+                }
 
                 chatRequest.model_id = "anthropic.claude-3-sonnet-20240229-v1:0";
                 chatRequest.anthropic_version = "bedrock-2023-05-31";
@@ -147,8 +165,11 @@ export default {
                 chatRequest.price_out = 15.00 / 1000000;
                 chatRequest.currency = "USD";
                 return chatRequest;
+
         }
     },
+
+
 
     sleep: (ms: number) => {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -156,3 +177,5 @@ export default {
 
 
 }
+
+export default helper;

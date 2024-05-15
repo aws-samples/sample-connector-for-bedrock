@@ -8,6 +8,7 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models Support
 
+- Bedrock Knowledge base. [How to support, refer to this instructions](docs/bedrock-knowledge-base.md)
 - Claude 3 (including sonnet, haiku, and opus)
 - LLama 3
 
@@ -283,6 +284,8 @@ docker build -t <registry-repo-tag> .
 
 ### LLM API
 
+Completions
+
 ```text
 POST /v1/chat/completions
 Content-Type: application/json
@@ -301,6 +304,8 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   "max_tokens": 4096
 }
 ```
+
+List supported models
 
 ```text
 GET /v1/models
@@ -340,7 +345,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-Update api key's info
+Update and api key's info
 
 ```text
 POST /admin/api-key/update
@@ -354,7 +359,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-recharge up an  API key
+Recharge up an API key
 
 ```text
 POST /admin/api-key/recharge

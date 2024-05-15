@@ -28,9 +28,9 @@ export default class PGClient {
     return null;
   }
 
-  public async query(sql: string, params: any): Promise<any[]> {
+  public async query(sql: string, params: any): Promise<any> {
     if (!this.pool) {
-      return []
+      return {}
     }
     if (this.debug) {
       console.log("------------", new Date(), "----------------------------");
@@ -39,8 +39,7 @@ export default class PGClient {
       console.log("----------------------------------------");
     }
     const result = await this.pool.query(sql, params);
-
-    return result.rows;
+    return { rows: result.rows, rowCount: result.rowCount };
   }
 
   public async load(table: string, conditions: any): Promise<any> {
@@ -56,13 +55,12 @@ export default class PGClient {
 
     // table = "'" + table + "'";
     var sql = `select ${conditions.cols} from ${table} where ${conditions.where} ${conditions.orderBy} limit ${conditions.limit}`;
-    var rows = await this.query(sql, conditions.params);
+    var { rows } = await this.query(sql, conditions.params);
     if (rows.length > 0) {
       return rows[0];
     }
     return null;
   }
-
 
   public loadByKV(table: string, key: string, value: any) {
     return this.load(table, {
@@ -91,8 +89,8 @@ export default class PGClient {
 
     const sql = `INSERT into ${table} (${keys.join(", ")}) values (${placeholders.join(", ")}) RETURNING ${returning.join(",")}`;
 
-    const result = await this.query(sql, params);
-    return result[0];
+    const { rows } = await this.query(sql, params);
+    return rows[0];
   }
 
   public async update(table: string, data: any, returning?: string[]): Promise<any> {
@@ -119,8 +117,8 @@ export default class PGClient {
       `UPDATE ${table} SET (${keys.join(", ")}) = (${placeholders.join(", ")}) WHERE id=${data.id} RETURNING ${returning.join(",")}` :
       `UPDATE ${table} SET ${keys.join(", ")} = ${placeholders.join(", ")} WHERE id=${data.id} RETURNING ${returning.join(",")}`;
 
-    const result = await this.query(sql, params);
-    return result[0];
+    const { rows } = await this.query(sql, params);
+    return rows[0];
 
   }
 
@@ -132,7 +130,7 @@ export default class PGClient {
     }
   }
 
-  public list(table: string, conditions: any): Promise<any> {
+  public async list(table: string, conditions: any): Promise<any> {
     conditions = conditions || {};
     if (!conditions.cols) {
       conditions.cols = '*';
@@ -153,7 +151,8 @@ export default class PGClient {
     }
     // table = "`" + table + "`";
     var sql = `select ${conditions.cols} from ${table} where ${conditions.where} ${conditions.orderBy} limit ${conditions.limit} offset ${conditions.offset}`;
-    return this.query(sql, conditions.params);
+    const { rows } = await this.query(sql, conditions.params);
+    return rows;
   }
 
   public async count(table: string, conditions: any): Promise<number> {
@@ -161,7 +160,7 @@ export default class PGClient {
     conditions.where = conditions.where || "1=1";
     // table = "`" + table + "`";
     var sql = `select count(*) as ct from ${table} where ${conditions.where} `;
-    var rows = await this.query(sql, conditions.params);
+    var { rows } = await this.query(sql, conditions.params);
     if (rows.length > 0) {
       return rows[0].ct;
     }
@@ -173,11 +172,17 @@ export default class PGClient {
     conditions = conditions || {};
     conditions.where = conditions.where || "1=1";
     var sql = `select sum(${col}) as ct from ${table} where ${conditions.where} `;
-    var rows = await this.query(sql, conditions.params);
+    var { rows } = await this.query(sql, conditions.params);
     if (rows.length > 0) {
       return rows[0].ct;
     }
     return 0;
+  }
+
+  public async delete(table: string, id: any) {
+    var sql = `delete from ${table} where id=$1`;
+    var { rowCount } = await this.query(sql, [id]);
+    return rowCount > 0;
   }
 
 }

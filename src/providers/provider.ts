@@ -5,13 +5,15 @@ import AbstractProvider from "./abstract_provider";
 // Providers
 import BedrockClaude from "./bedrock_claude";
 import BedrockMixtral from "./bedrock_mixtral";
-import BedrockLlama3 from "./bedrock_llama3"
+import BedrockLlama3 from "./bedrock_llama3";
+import BedrockKnowledgeBase from "./bedrock_knowledge_base";
 
 class Provider {
     constructor() {
         this["bedrock-claude3"] = new BedrockClaude();
         this["bedrock-mistral"] = new BedrockMixtral();
         this["bedrock-llama3"] = new BedrockLlama3();
+        this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
     }
     async chat(ctx: any) {
         const keyData = await api_key.loadById(ctx.db, ctx.user.id);
@@ -21,7 +23,7 @@ class Provider {
         }
         const chatRequest: ChatRequest = ctx.request.body;
         const session_id = ctx.headers["session-id"];
-        helper.refineModelParameters(chatRequest);
+        await helper.refineModelParameters(chatRequest, ctx);
         const provider: AbstractProvider = this[chatRequest.provider];
         provider.setkeyData(keyData);
         try {

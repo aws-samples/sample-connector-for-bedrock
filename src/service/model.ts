@@ -2,6 +2,9 @@ export default {
     loadById: async (db: any, id: number) => {
         return await db.loadById("eiai_model", ~~id);
     },
+    loadByName: async (db: any, name: string) => {
+        return await db.loadByKV("eiai_model", "name", name);
+    },
 
     list: async (db: any, options: any) => {
         const limit = ~~(options.limit) || 20;
@@ -74,6 +77,10 @@ export default {
         config && (updateData.config = config);
         updateData.updated_at = new Date();
         return await db.update("eiai_model", updateData, ["id", "name", "config", "updated_at"]);
+    },
+
+    async delete(db: any, id: any) {
+        return await db.delete("eiai_model", id);
     },
 
 

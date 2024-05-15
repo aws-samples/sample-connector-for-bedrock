@@ -144,3 +144,4 @@ package-lock.json
 
 Dockerfile
 lambda.Dockerfile
+api-test/
