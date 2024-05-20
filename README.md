@@ -8,9 +8,21 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models Support
 
-- Bedrock Knowledge base. [How to support, refer to this instructions](docs/bedrock-knowledge-base.md)
-- Claude 3 (including sonnet, haiku, and opus)
-- LLama 3
+- Bedrock Knowledge base. You can use [Instructions](docs/bedrock-knowledge-base.md)
+
+- Mistral, model name options:
+  - mistral-7b
+  - mistral-large
+  - mistral-8x7b
+
+- Claude 3, model name options:
+  - claude-3-sonnet (this is the default model)
+  - claude-3-haiku
+  - claude-3-opus
+
+- LLama 3, model name options:
+  - llama3-8b
+  - llama3-70b
 
 ### API Key and Cost Management
 
@@ -81,7 +93,7 @@ docker run --name brconnector \
  -e PGSQL_USER=postgres \
  -e PGSQL_PASSWORD=mysecretpassword \
  -e ADMIN_API_KEY=br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
- -d cloudbeer/sample-connector-for-bedrock:0.0.1
+ -d cloudbeer/sample-connector-for-bedrock:0.0.2
 ```
 
 ### 4. Test the connector server

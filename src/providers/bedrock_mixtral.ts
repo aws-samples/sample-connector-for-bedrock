@@ -64,43 +64,35 @@ export default class BedrockMixtral extends AbstractProvider {
             const command = new InvokeModelWithResponseStreamCommand(input);
             const response = await this.client.send(command);
 
-
-
             if (response.body) {
                 const streamResponse: AsyncIterable<ResponseStream> = response.body;
                 let responseText = "";
-                // const streams = response.body.options.messageStream;
-                console.log("response.body", streamResponse);
                 for await (const item of streamResponse) {
 
-                }
-
-                // const x = await response.body;
-                // console.log("response.x", x.options);
-                // for await (const item of response.body) {
-
-                // }
-
-                /*
-                for await (const item of response.body) {
-                    console.log("item", item);
                     if (item.chunk?.bytes) {
                         const decodedResponseBody = new TextDecoder().decode(
                             item.chunk.bytes,
                         );
                         const responseBody = JSON.parse(decodedResponseBody);
 
-                        if (responseBody.delta?.type === "text_delta") {
+                        const { outputs } = responseBody;
+
+                        // const x = outputs && outputs.length > 0 && outputs[0]
+                        // console.log("extracted", x);
+
+                        const { text, stop_reason } = outputs && outputs.length > 0 && outputs[0];
+
+                        if (!stop_reason) {
                             i++;
-                            responseText += responseBody.delta.text;
+                            responseText += text;
                             ctx.res.write("id: " + i + "\n");
                             ctx.res.write("event: message\n");
                             ctx.res.write("data: " + JSON.stringify({
                                 choices: [
-                                    { delta: { content: responseBody.delta.text } }
+                                    { delta: { content: text } }
                                 ]
                             }) + "\n\n");
-                        } else if (responseBody.type === "message_stop") {
+                        } else if (stop_reason === "stop") {
                             const {
                                 inputTokenCount, outputTokenCount,
                                 invocationLatency, firstByteLatency
@@ -113,12 +105,12 @@ export default class BedrockMixtral extends AbstractProvider {
                                 invocation_latency: invocationLatency,
                                 first_byte_latency: firstByteLatency
                             }
-
                             await this.saveThread(ctx, session_id, chatRequest, response);
                         }
                     }
+
+
                 }
-                */
             } else {
                 ctx.res.write("id: " + (i + 1) + "\n");
                 ctx.res.write("event: message\n");
@@ -145,20 +137,19 @@ export default class BedrockMixtral extends AbstractProvider {
         ctx.res.end();
     }
 
+    // TODO: Mistral model sync invoke not contains tokens quantity.
     async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+
         try {
             const command = new InvokeModelCommand(input);
             const apiResponse = await this.client.send(command);
-
             const decodedResponseBody = new TextDecoder().decode(apiResponse.body);
-
             const responseBody = JSON.parse(decodedResponseBody);
 
-
             const response: ResponseData = {
-                text: responseBody.content[0].text,
-                input_tokens: responseBody.usage.input_tokens,
-                output_tokens: responseBody.usage.output_tokens,
+                text: responseBody.outputs[0].text,
+                input_tokens: 0, // Api response does not contain tokens
+                output_tokens: 0,
                 invocation_latency: 0,
                 first_byte_latency: 0
             }
@@ -167,7 +158,7 @@ export default class BedrockMixtral extends AbstractProvider {
 
 
             // return responseBody;
-            const choices = responseBody.content.map((c: any) => {
+            const choices = responseBody.outputs.map((c: any) => {
                 return {
                     message: {
                         content: c.text,
@@ -177,13 +168,14 @@ export default class BedrockMixtral extends AbstractProvider {
             });
             return {
                 choices, usage: {
-                    completion_tokens: responseBody.usage.output_tokens,
-                    prompt_tokens: responseBody.usage.input_tokens,
-                    total_tokens: responseBody.usage.input_tokens + responseBody.usage.output_tokens,
+                    completion_tokens: 0,
+                    prompt_tokens: 0,
+                    total_tokens: 0,
                 }
             };
         } catch (e: any) {
-            return WebResponse.error(e.message);
+            throw e;
+            // return WebResponse.error(e.message);
         }
 
     }

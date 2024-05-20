@@ -14,8 +14,8 @@ export default abstract class AbstractProvider {
     // save session to db
     async saveThread(ctx: any, session_id: string, chatRequest: ChatRequest, response: ResponseData) {
 
-        // 如果没有配置数据库，或者不是会话模式，暂时未存盘
-        if (!ctx.db) {
+        // If db not set or use default admin user, will not save info.
+        if (!ctx.db || ctx.user.id == -1) {
             return null;
         }
         const input_tokens = response.input_tokens;

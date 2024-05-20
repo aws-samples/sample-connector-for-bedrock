@@ -84,7 +84,8 @@ const helper = {
                 chatRequest.currency = "USD";
                 return chatRequest;
             case 'mistral-8x7b':
-                chatRequest.model_id = "mistral.mistral-8x7b-instruct-v0:1";
+                // chatRequest.model_id = "mistral.mistral-8x7b-instruct-v0:1";
+                chatRequest.model_id = "mistral.mixtral-8x7b-instruct-v0:1";
                 chatRequest.provider = "bedrock-mistral";
                 if (region.indexOf("us-") >= 0) {
                     chatRequest.price_in = 0.00045 / 1000;

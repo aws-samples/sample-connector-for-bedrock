@@ -39,7 +39,6 @@ export default class ChatMessageConverter {
         return contentItem;
     }
 
-    //TODO: Change playload, I need more information.
     async toClaude3Payload(chatRequest: ChatRequest): Promise<any> {
 
         const messages = chatRequest.messages;
@@ -103,7 +102,9 @@ export default class ChatMessageConverter {
         const systemPrompt = systemMessages.reduce((acc, message) => {
             return acc + message.content;
         }, "");
-        prompts.push(`<s>[INST]${systemPrompt}[/INST]</s>`)
+        if (systemPrompt) {
+            prompts.push(`<s>[INST]${systemPrompt}[/INST]</s>`)
+        }
 
         prompts.push(`<s>`)
         for (const message of qaMessages) {
