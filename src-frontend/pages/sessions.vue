@@ -28,9 +28,9 @@ export default {
         { key: 'total_in_tokens', title: this.$t('sessions.col_total_in_tokens'), sorter:true },
         { key: 'total_out_tokens', title: this.$t('sessions.col_total_out_tokens'), sorter:true },
         { key: 'total_fee', title: this.$t('sessions.col_total_fee'), sorter:true },
-        { key: 'created_at', title: this.$t('sessions.col_created_at'), sorter:true },
-        { key: 'updated_at', title: this.$t('sessions.col_updated_at'), sorter:true },
-        // { key: 'action', title: this.$t('sessions.col_action') },
+        { key: 'created_at', title: this.$t('common.created_at'), sorter:true },
+        { key: 'updated_at', title: this.$t('common.updated_at'), sorter:true },
+        { key: 'action', title: this.$t('common.action') },
       ],
       form: { name: '', email: '', role: 'user', month_quota: '', balance: 0 },
       rules: {

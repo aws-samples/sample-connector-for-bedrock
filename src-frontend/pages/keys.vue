@@ -36,7 +36,7 @@
             <Option value="admin" :label="$t('keys.op_admin')" />
           </Select>
         </FormItem>
-        <FormItem :label="this.$t('keys.col_balance')" prop="balance" v-if="action == 'recharge'">
+        <FormItem :label="this.$t('keys.btn_recharge')" prop="balance" v-if="action == 'recharge'">
           <Input placeholder="Balance" />
         </FormItem>
         <FormItem :label="this.$t('keys.col_month_quota')" prop="month_quota" v-if="action != 'recharge'">
@@ -120,13 +120,14 @@ export default {
       })
     },
     edit(row) {
-      this.form = row
+      this.form = {...row}
       this.title = this.$t('keys.btn_edit')
       this.action = 'edit'
       this.show = true
     },
     recharge(row) {
-      this.form = row
+      this.form = {...row}
+      this.form.balance = 0
       this.title = this.$t('keys.btn_recharge')
       this.action = 'recharge'
       this.show = true
@@ -150,6 +151,7 @@ export default {
             this.$http.post('/admin/api-key/recharge', { id, balance }).then(res => {
               this.show = false
               this.$Message.success("Save successfuly.")
+              this.get_data()
             }).finally(() => {
               this.saving = false
             })

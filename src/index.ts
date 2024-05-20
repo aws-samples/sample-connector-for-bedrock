@@ -16,6 +16,20 @@ install();
 
 const app = new Koa();
 
+// disable auth for the statis files
+if (!config.disableUI) {
+    app.use(serve({
+        rootDir: './public',
+        rootPath: '/manager',
+        index: 'index.html'
+    }));
+    app.use(serve({
+        rootDir: './brclient',
+        rootPath: '/brclient',
+        index: 'index.html'
+    }));
+}
+
 app.use(loggerHandler);
 
 app.use(errorHandler);
@@ -29,14 +43,6 @@ app.use(databaseHandler);
 app.use(authHandler);
 
 app.use(router.routes());
-
-if (!config.disableUI) {
-    app.use(serve({
-        rootDir: './public',
-        rootPath: '/webui',
-        index: 'index.html'
-    }));
-}
 
 const port = 8866;
 

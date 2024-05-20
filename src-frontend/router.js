@@ -17,7 +17,7 @@ const router = new VueRouter({
       path: '/login',
       meta: { title: 'Login', icon: '' },
       component: () => import(/*webpackChunkName:'login'*/'./pages/login'),
-      hidden: true,
+      hidden: true
     },
     {
       path: '/',
@@ -35,8 +35,14 @@ const router = new VueRouter({
     {
       path: '/user',
       component: Layout,
-      meta: { title: '我的话题', icon: Person },
+      meta: { title: '我的', icon: Person },
       children: [
+        {
+          path: '/user/kbs',
+          name: 'userKnowledgeBases',
+          meta: { title: '知识库', icon: DocumentText },
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
+        },
         {
           path: '/user/sessions',
           name: 'userSessions',
@@ -72,7 +78,7 @@ const router = new VueRouter({
           meta: { title: '话题列表', icon: Menu },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
           // hidden: localStorage.getItem('role') != 'admin',
-          hidden: true,
+          // hidden: true,
         },
         {
           path: '/admin/sessions/:session_id/threads',

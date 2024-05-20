@@ -1,4 +1,11 @@
 export default {
+  common: {
+    created_at: 'Created At',
+    updated_at: 'Updated At',
+    action: 'Action',
+    edit: 'Edit',
+    new: 'New'
+  },
   login: {
     title: 'Sign in to BRConnector',
     btn: 'Sign in'
@@ -27,9 +34,6 @@ export default {
     col_total_in_tokens: 'Tokens In',
     col_total_out_tokens: 'Tokens Out',
     col_total_fee: 'Total Fee',
-    col_created_at: 'Created At',
-    col_updated_at: 'Updated At',
-    col_action: 'Action',
     btn_thread: 'Threads',
     btn_refresh: 'Refresh'
   },
@@ -62,5 +66,12 @@ export default {
     col_month_fee: 'Month Fee',
     col_month_quota: 'Month Quota',
     col_action: 'Action',
+  },
+  knowledgebases: {
+    name: "Name",
+    knowledge_base_id: "KnowledgeBaseId",
+    summary_model: "SummaryModel",
+    region: "Region"
+    
   }
 }

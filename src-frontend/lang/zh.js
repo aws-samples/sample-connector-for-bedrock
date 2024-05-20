@@ -1,10 +1,17 @@
 export default {
+  common: {
+    created_at: '创建时间',
+    updated_at: '更新时间',
+    action: '操作',
+    edit: '修改',
+    new: '新增'
+  },
   login: {
     title: '登录 BRConnector',
     btn: '登录'
   },
   menu: {
-    dashboard: '我的',
+    dashboard: '首页',
     key: '接口密钥'
   },
   home: {
@@ -25,9 +32,6 @@ export default {
     col_total_in_tokens: '输入Tokens',
     col_total_out_tokens: '输出Tokens',
     col_total_fee: '总费用',
-    col_created_at: '创建时间',
-    col_updated_at: '更新时间',
-    col_action: '操作',
     btn_thread: '对话',
     btn_refresh: '刷新'
   },
@@ -60,5 +64,12 @@ export default {
     col_month_fee: '月消费',
     col_month_quota: '月额度',
     col_action: '操作',
+  },
+  knowledgebases: {
+    name: "名称",
+    knowledge_base_id: "知识库ID",
+    summary_model: "模型",
+    region: "区域"
+    
   }
 }

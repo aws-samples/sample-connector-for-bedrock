@@ -86,8 +86,10 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       key: an["location"]["s3Location"]["uri"],
       score: an["score"]
     }));
-    // console.log("原始输出：")
-    // console.log(JSON.stringify(kb_content, null, 2))
+    if (sysConfig.debugMode) {
+      console.log("原始输出：")
+      console.log(JSON.stringify(kb_content, null, 2))
+    }
     return kb_content;
   }
 
@@ -112,6 +114,11 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
         accept: "application/json",
         modelId: chatRequest.model_id,
       };
+
+      if (sysConfig.debugMode) {
+        console.log("Summary Input：")
+        console.log(JSON.stringify(input, null, 2))
+      }
       const command = new InvokeModelWithResponseStreamCommand(input);
       const response = await this.client.send(command);
 
