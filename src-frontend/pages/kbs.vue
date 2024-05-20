@@ -19,7 +19,8 @@
     <Page :current="page" :total="total" @change="change" :page-size="size" />
     <Modal :title="title" v-model="show" @ok="save" :loading="saving" class="my-knowledge-bases-model">
       <div>
-      <Form :model="form" :rules="rules" layout="horizontal" ref="form" theme="light">
+      <Form :model="form" :rules="rules" layout="horizontal" ref="form" theme="light" :labelCol="{span:8}" :wrapperCol="{span:13}"
+>
         <FormItem :label="this.$t('knowledgebases.name')" prop="name">
           <Input placeholder="Name" :readonly="action == 'edit'" />
         </FormItem>

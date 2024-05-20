@@ -8,7 +8,7 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models Support
 
-- Bedrock Knowledge base. You can use [Instructions](docs/bedrock-knowledge-base.md)
+- Bedrock Knowledge base. See [Instruction](docs/bedrock-knowledge-base.md).
 
 - Mistral, model name options:
   - mistral-7b
