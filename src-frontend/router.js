@@ -62,20 +62,20 @@ const router = new VueRouter({
         {
           path: '/admin/keys',
           name: 'AdminKeys',
-          meta: { title: i18n.t("menu.key"), icon: Key },
+          meta: { title: i18n.t("menu.key") },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/keys'),
           // hidden: localStorage.getItem('role') != 'admin'
         },
         {
           path: '/admin/kbs',
           name: 'userKnowledgeBases',
-          meta: { title: i18n.t("menu.bedrock_kb"), icon: DocumentText },
+          meta: { title: i18n.t("menu.bedrock_kb") },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
         },
         {
           path: '/admin/sessions',
           name: 'adminSessions',
-          meta: { title: '话题列表', icon: Menu },
+          meta: { title: '话题列表' },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
           // hidden: localStorage.getItem('role') != 'admin',
           // hidden: true,
@@ -83,7 +83,7 @@ const router = new VueRouter({
         {
           path: '/admin/sessions/:session_id/threads',
           name: 'adminThreads',
-          meta: { title: '对话列表', icon: Reader },
+          meta: { title: '对话列表' },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
           hidden: true
         }
