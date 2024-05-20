@@ -12,7 +12,9 @@ export default {
   },
   menu: {
     dashboard: '首页',
-    key: '接口密钥'
+    custom_model: '自定义模型',
+    key: '接口密钥',
+    bedrock_kb: 'Bedrock 知识库'
   },
   home: {
     title: '我的',
@@ -70,6 +72,6 @@ export default {
     knowledge_base_id: "知识库ID",
     summary_model: "模型",
     region: "区域"
-    
+
   }
 }

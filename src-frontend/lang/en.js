@@ -12,7 +12,10 @@ export default {
   },
   menu: {
     dashboard: 'Dashboard',
-    key: 'API Keys'
+    custom_model: 'Custom models',
+    key: 'API Keys',
+    bedrock_kb: 'Bedrock Knowledge base'
+
   },
   home: {
     title: 'Mine',
@@ -72,6 +75,6 @@ export default {
     knowledge_base_id: "KnowledgeBaseId",
     summary_model: "SummaryModel",
     region: "Region"
-    
+
   }
 }

@@ -28,9 +28,9 @@
         </FormItem>
         <FormItem :label="this.$t('knowledgebases.summary_model')" prop="summaryModel">
           <Select :width="200" placeholder="SummaryModel">
-            <Option label="Haiku" value="claude-3-haiku" />
-            <Option label="Sonnet" value="claude-3-sonnet" />
-            <Option label="Opus" value="claude-3-opus" />
+            <Option label="Claude3 Haiku" value="claude-3-haiku" />
+            <Option label="Claude3 Sonnet" value="claude-3-sonnet" />
+            <Option label="Claude3 Opus" value="claude-3-opus" />
           </Select>
         </FormItem>
         <FormItem :label="this.$t('knowledgebases.region')" prop="region">

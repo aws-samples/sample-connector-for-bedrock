@@ -141,7 +141,7 @@ You will get some response like the following:
 
 Record the new api_key for the new user,
 this api_key can be used to config your client to chat.
-and this api_key can be used to login the connector's WebUI to manage other api_key.
+and this api_key can be used to login the connector's manager WebUI to manage other api_key.
 
 ### 6. Config client to connect to the connector server
 
@@ -163,7 +163,7 @@ If every thing goes well, you can start to chat.
 
 ### 7. The connector's WebUI
 
-If you have not set the environment variable DISABLE_UI, you can now access the BRConnector WebUI via <https://your-endpoint/webui>.
+If you have not set the environment variable DISABLE_UI, you can now access the BRConnector WebUI via <https://your-endpoint/manager>.
 
 You can log in and manage it using the API key you just generated. Enter <https://your-endpoint> as the Host.
 

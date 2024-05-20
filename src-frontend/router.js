@@ -38,12 +38,6 @@ const router = new VueRouter({
       meta: { title: '我的', icon: Person },
       children: [
         {
-          path: '/user/kbs',
-          name: 'userKnowledgeBases',
-          meta: { title: '知识库', icon: DocumentText },
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
-        },
-        {
           path: '/user/sessions',
           name: 'userSessions',
           meta: { title: '话题列表', icon: Menu },
@@ -71,6 +65,12 @@ const router = new VueRouter({
           meta: { title: i18n.t("menu.key"), icon: Key },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/keys'),
           // hidden: localStorage.getItem('role') != 'admin'
+        },
+        {
+          path: '/admin/kbs',
+          name: 'userKnowledgeBases',
+          meta: { title: i18n.t("menu.bedrock_kb"), icon: DocumentText },
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
         },
         {
           path: '/admin/sessions',
