@@ -24,16 +24,19 @@ export default class BedrockMixtral extends AbstractProvider {
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-
         const payload = await this.chatMessageConverter.toMistralPayload(chatRequest);
-
+        let max_tokens = chatRequest.max_tokens || 8192;
+        if (chatRequest.model == "mistral-8x7b") {
+            if (max_tokens > 4096 || max_tokens <= 0) max_tokens = 4096
+        } else {
+            if (max_tokens > 8192 || max_tokens <= 0) max_tokens = 8192
+        }
         const body: any = {
-            "max_tokens": chatRequest.max_tokens || 32000,
+            "max_tokens": max_tokens,
             "prompt": payload,
             "temperature": chatRequest.temperature || 1.0,
         };
-
-        ctx.logger.debug(body);
+        // ctx.logger.debug(body);
 
         const input = {
             body: JSON.stringify(body),
@@ -121,14 +124,15 @@ export default class BedrockMixtral extends AbstractProvider {
                 }) + "\n\n");
             }
         } catch (e: any) {
-            console.error(e);
-            ctx.res.write("id: " + (i + 1) + "\n");
-            ctx.res.write("event: message\n");
-            ctx.res.write("data: " + JSON.stringify({
-                choices: [
-                    { delta: { content: "Error invoking model" } }
-                ]
-            }) + "\n\n");
+            throw e;
+            // ctx.logger.error(e);
+            // ctx.res.write("id: " + (i + 1) + "\n");
+            // ctx.res.write("event: message\n");
+            // ctx.res.write("data: " + JSON.stringify({
+            //     choices: [
+            //         { delta: { content: "Error invoking model" } }
+            //     ]
+            // }) + "\n\n");
         }
 
         ctx.res.write("id: " + (i + 1) + "\n");
