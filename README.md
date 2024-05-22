@@ -198,7 +198,7 @@ The connector supports the following environment variables:
 | Key      | Required     | Default value | Description |
 | ------------- | ------------- | ------------- | ------------- |
 | ADMIN_API_KEY | yes  | | You need to set this value to generate the first API key. |
-| PGSQL_HOST | no | | The address of the PostgreSQL. |
+| PGSQL_HOST | no | | The address of the PostgreSQL. If the database is not configured, then the connector is just a pure proxy.|
 | PGSQL_PORT | no | 5432 | The port of the PostgreSQL. |
 | PGSQL_DATABASE | no | | The name of the PostgreSQL database. |
 | PGSQL_USER | no | | The login user for the PostgreSQL. |

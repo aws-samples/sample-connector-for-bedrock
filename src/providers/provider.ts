@@ -16,15 +16,19 @@ class Provider {
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
     }
     async chat(ctx: any) {
-        const keyData = await api_key.loadById(ctx.db, ctx.user.id);
-        // 如果没有启用数据库和 api key 则不验证。
-        if (keyData) {
-            await this.checkFee(ctx, keyData);
+        let keyData = null;
+        if (ctx.db) {
+            keyData = await api_key.loadById(ctx.db, ctx.user.id);
+            // 如果没有启用数据库和 api key 则不验证。
+            if (keyData) {
+                await this.checkFee(ctx, keyData);
+            }
         }
         const chatRequest: ChatRequest = ctx.request.body;
         const session_id = ctx.headers["session-id"];
         await helper.refineModelParameters(chatRequest, ctx);
         const provider: AbstractProvider = this[chatRequest.provider];
+
         provider.setkeyData(keyData);
         try {
             return provider.chat(chatRequest, session_id, ctx);

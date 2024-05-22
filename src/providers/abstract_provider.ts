@@ -15,7 +15,7 @@ export default abstract class AbstractProvider {
     async saveThread(ctx: any, session_id: string, chatRequest: ChatRequest, response: ResponseData) {
 
         // If db not set or use default admin user, will not save info.
-        if (!ctx.db || ctx.user.id == -1) {
+        if (!this.keyData || ctx.user.id == -1) {
             return null;
         }
         const input_tokens = response.input_tokens;
