@@ -251,7 +251,7 @@ The above command will compile the frontend and backend applications into the di
 
 After a successful compilation, navigate to the dist directory and execute `node server/index.js`.
 
-If you have not disabled the WebUI, <http://localhost:8866/webui> will be bound to the WebUI.
+If you have not disabled the WebUI, <http://localhost:8866/manager> will be bound to the WebUI.
 
 ### Build back-end (Option)
 
