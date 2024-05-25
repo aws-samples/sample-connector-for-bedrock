@@ -1,8 +1,6 @@
 import helper from "../util/helper";
 
 export default {
-
-
     loadById: async (db: any, id: number) => {
         return await db.loadById("eiai_key", ~~id);
     },
@@ -73,16 +71,24 @@ export default {
             }
         }
 
-        return await db.insert("eiai_key", {
+        const email = options.email;
+        const result = await db.insert("eiai_key", {
             name: options.name,
             api_key: apiKey,
             group_id: options.group_id || 0,
             role: options.role || "user",
-            email: options.email,
+            email,
             month_quota: options.month_quota || 0,
             balance: options.balance || 0,
         }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
 
+        if (email) {
+            const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+            if (emailRegex.test(email)) {
+                helper.sendMailApiKey(email, apiKey);
+            }
+        }
+        return result;
     },
 
     async rebillMonthly(db: any, id: number) {

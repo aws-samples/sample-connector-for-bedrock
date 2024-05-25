@@ -7,12 +7,17 @@ import { createLogger, format, transports } from 'winston';
 
 const authHandler = async (ctx: any, next: any) => {
 
-    const pathName = ctx.path;
+    let pathName = ctx.path;
     if (pathName == "/") {
         ctx.body = "ok";
         return;
     }
-    if (pathName.indexOf("/webui") >= 0) {
+    pathName = pathName.toLowerCase();
+    if (pathName.indexOf("/brclient") === 0) {
+        await next();
+        return;
+    }
+    if (pathName.indexOf("/manager") === 0) {
         await next();
         return;
     }
@@ -34,7 +39,7 @@ const authHandler = async (ctx: any, next: any) => {
             role: "admin"
         };
     } else if (ctx.db) {
-        //TODO: refactor this to your cache service if too many access.
+        //TODO: refactor this to your cache service if too many accesses.
         const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
 
         if (!key) {

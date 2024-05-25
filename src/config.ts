@@ -17,5 +17,12 @@ export default {
     admin_api_key: process.env.ADMIN_API_KEY,
     debugMode: process.env.DEBUG_MODE || false, // set DEBUG_MODE=<empty> to disable
     disableUI: process.env.DISABLE_UI || false,
+    smpt: {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+        from: process.env.SMPT_FROM
+    }
 
 }

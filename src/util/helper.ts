@@ -2,6 +2,7 @@
 import { ChatRequest } from "../entity/chat_request";
 import modelService from "../service/model"
 import config from '../config';
+import nodemailer from 'nodemailer';
 
 const helper = {
     genApiKey() {
@@ -142,21 +143,25 @@ const helper = {
                 // chatRequest.currency = "USD";
                 // return chatRequest;
                 // const modelCustom = await modelService.loadByName(ctx.db, "s3-kb");
-                const modelCustom = await modelService.loadByName(ctx.db, chatRequest.model);
-                if (modelCustom) {
-                    chatRequest.config = modelCustom.config;
-                    chatRequest.provider = modelCustom.config.provider;
-                    if (modelCustom.config.provider === "bedrock-knowledge-base") {
-                        const { price_in, price_out, currency } = await helper.refineModelParameters({
-                            model: modelCustom.config.summaryModel,
-                            config: modelCustom.config,
-                            messages: []
-                        }, ctx);
-                        chatRequest.price_in = price_in;
-                        chatRequest.price_out = price_out;
-                        chatRequest.currency = currency;
+
+                console.log(ctx.db);
+                if (ctx.db) {
+                    const modelCustom = await modelService.loadByName(ctx.db, chatRequest.model);
+                    if (modelCustom) {
+                        chatRequest.config = modelCustom.config;
+                        chatRequest.provider = modelCustom.config.provider;
+                        if (modelCustom.config.provider === "bedrock-knowledge-base") {
+                            const { price_in, price_out, currency } = await helper.refineModelParameters({
+                                model: modelCustom.config.summaryModel,
+                                config: modelCustom.config,
+                                messages: []
+                            }, ctx);
+                            chatRequest.price_in = price_in;
+                            chatRequest.price_out = price_out;
+                            chatRequest.currency = currency;
+                        }
+                        return chatRequest;
                     }
-                    return chatRequest;
                 }
 
                 chatRequest.model_id = "anthropic.claude-3-sonnet-20240229-v1:0";
@@ -174,9 +179,30 @@ const helper = {
 
     sleep: (ms: number) => {
         return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    sendMailApiKey: async (email: string, api_key: string) => {
+        if (config.smpt && config.smpt.host) {
+            const transporter = nodemailer.createTransport({
+                host: config.smpt.host,
+                port: ~~config.smpt.port,
+                // secure: true, // Use `true` for port 465, `false` for all other ports
+                auth: {
+                    user: config.smpt.user,
+                    pass: config.smpt.pass,
+                },
+            });
+
+            const info = await transporter.sendMail({
+                from: config.smpt.from,
+                to: email,
+                subject: "[BRConnector]Bedrock Connector Api Key",
+                html: "Your Bedrock Connector's API keys is: <div style='margin:10px;padding:20px 0px;border:1px solid #ccc;width:400px;text-align:center'>" + api_key + "</div>",
+            });
+
+            console.log("Message sent: %s", info.messageId);
+        }
     }
-
-
 }
 
 export default helper;
