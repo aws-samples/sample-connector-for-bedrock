@@ -14,6 +14,7 @@ It is compatible with any OPENAI client that can define Host and API Key.
   - mistral-7b
   - mistral-large
   - mistral-8x7b
+  - mistral-small (region: us-east-1)
 
 - Claude 3, model name options:
   - claude-3-sonnet (this is the default model)
@@ -33,6 +34,8 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 > [!IMPORTANT]  
 > The cost calculation of this project cannot serve as the billing basis for AWS. Please refer to the AWS bill for actual charges.
+
+## Change Logs
 
 ## Deployment
 
@@ -93,7 +96,7 @@ docker run --name brconnector \
  -e PGSQL_USER=postgres \
  -e PGSQL_PASSWORD=mysecretpassword \
  -e ADMIN_API_KEY=br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
- -d cloudbeer/sample-connector-for-bedrock:0.0.2
+ -d cloudbeer/sample-connector-for-bedrock:0.0.4
 ```
 
 ### 4. Test the connector server
@@ -210,6 +213,11 @@ The connector supports the following environment variables:
 | AWS_DEFAULT_REGION | no | 'us-east-1' | |
 | DEBUG_MODE | no |  false | If you set this parameter, it will print out a lot of debugging information in the console. |
 | DISABLE_UI | no | false | Setting this value will not publish the front-end UI.|
+| SMTP_HOST | no |  | SMTP server host address. Setting up an SMTP Server allows you to send your API key directly to the user's email inbox. |
+| SMTP_PORT | no | 465 | SMTP server port number |
+| SMTP_USER | no |  | SMTP server username |
+| SMTP_PASS | no |  |  SMTP server password |
+| SMPT_FROM | no |  | SMTP sender email address, your SMTP server maybe verify this |
 
 ### Run backend
 

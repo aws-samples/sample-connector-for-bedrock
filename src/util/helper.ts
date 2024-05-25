@@ -75,7 +75,7 @@ const helper = {
                 } else if (region.indexOf("eu-west-3") >= 0) { // Paris pricing
                     chatRequest.price_in = 0.0002 / 1000;
                     chatRequest.price_out = 0.00026 / 1000;
-                } else if (region.indexOf("ap-southeast-2") >= 0) { // Paris pricing
+                } else if (region.indexOf("ap-southeast-2") >= 0) { // 
                     chatRequest.price_in = 0.0002 / 1000;
                     chatRequest.price_out = 0.00026 / 1000;
                 } else {
@@ -118,6 +118,19 @@ const helper = {
                 } else {
                     chatRequest.price_in = 0.0104 / 1000;
                     chatRequest.price_out = 0.0312 / 1000;
+                }
+                chatRequest.currency = "USD";
+                return chatRequest;
+            case 'mistral-small':
+                console.log("small...")
+                chatRequest.model_id = "mistral.mistral-small-2402-v1:0";
+                chatRequest.provider = "bedrock-mistral";
+                if (region.indexOf("us-") >= 0) {
+                    chatRequest.price_in = 0.001 / 1000;
+                    chatRequest.price_out = 0.003 / 1000;
+                } else {
+                    chatRequest.price_in = 0.001 / 1000;
+                    chatRequest.price_out = 0.003 / 1000;
                 }
                 chatRequest.currency = "USD";
                 return chatRequest;
