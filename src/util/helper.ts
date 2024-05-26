@@ -40,7 +40,7 @@ const helper = {
         return null;
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any) => {
-        const region = chatRequest.config?.region || config.bedrock.region;
+        const region = chatRequest.config?.region || helper.selectRandomRegion(config.bedrock.region);
         switch (chatRequest.model) {
             case 'claude-3-sonnet':
                 chatRequest.model_id = "anthropic.claude-3-sonnet-20240229-v1:0";
@@ -215,7 +215,24 @@ const helper = {
 
             console.log("Message sent: %s", info.messageId);
         }
-    }
+    },
+    
+    selectRandomRegion: (regionString: string) => {
+        const regions = regionString.split(',').map(region => region.trim());
+        let selectRegion = ""
+        if (regions.length === 1) {
+            selectRegion = regions[0]
+        }
+        const randomIndex = Math.floor(Math.random() * regions.length);
+        selectRegion= regions[randomIndex]
+        
+        if (config.debugMode){
+            console.log(`[selectRandomRegion]: isMultipleRegion: ${regions.length >1}, ${selectRegion}`)
+        }
+
+        return selectRegion; 
+        
+      }
 }
 
 export default helper;

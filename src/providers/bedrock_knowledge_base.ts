@@ -30,8 +30,8 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
     // console.log(chatRequest);
     const { messages, stream, config } = chatRequest;
     if (!this.client) {
-      this.client = new BedrockRuntimeClient({ region: config.region || sysConfig.bedrock.region });
-      this.clientAgent = new BedrockAgentRuntimeClient({ region: config.region || sysConfig.bedrock.region });
+      this.client = new BedrockRuntimeClient({ region: config.region || helper.selectRandomRegion(sysConfig.bedrock.region) });
+      this.clientAgent = new BedrockAgentRuntimeClient({ region: config.region || helper.selectRandomRegion(sysConfig.bedrock.region)});
     }
 
     const lastMsg = messages.pop();
