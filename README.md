@@ -420,6 +420,31 @@ GET /admin/thread/list?q=&limit=10&offset=&key_id=&session_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+
+
+Update Config Region
+
+```text
+POST /admin/config/region
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+	"region":"us-east-1,us-west-2"
+}
+```
+
+List Config Region
+
+```text
+GET /admin/config/region
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+
+
+
+
 ### User API
 
 My sessions
