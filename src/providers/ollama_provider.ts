@@ -63,11 +63,15 @@ export default class OllamaAProvider extends AbstractProvider {
                 options
             })
 
-            //TODO: I can't found how to get ollama streaming input_tokens and output_tokens 
+            //TODO: I can't found how to get ollama streaming input_tokens  , part.prompt_eval_count always undefined
             let input_tokens=0
             let output_tokens=0
-            
+
             for await (const part of chatResponse) {
+
+                if (part.eval_count){
+                    output_tokens=part.eval_count
+                }
                 ctx.res.write("id: " + i + "\n");
                 ctx.res.write("event: message\n");
                 ctx.res.write("data: " + JSON.stringify({
@@ -86,6 +90,8 @@ export default class OllamaAProvider extends AbstractProvider {
                 invocation_latency: 0,
                 first_byte_latency: 0
             }
+
+            
 
             await this.saveThread(ctx, session_id, chatRequest, response);
          
