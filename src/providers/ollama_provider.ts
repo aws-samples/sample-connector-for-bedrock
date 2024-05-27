@@ -63,9 +63,11 @@ export default class OllamaAProvider extends AbstractProvider {
                 options
             })
 
+            //TODO: I can't found how to get ollama streaming input_tokens and output_tokens 
+            let input_tokens=0
+            let output_tokens=0
+            
             for await (const part of chatResponse) {
-                process.stdout.write(part.message.content)
-
                 ctx.res.write("id: " + i + "\n");
                 ctx.res.write("event: message\n");
                 ctx.res.write("data: " + JSON.stringify({
@@ -76,10 +78,11 @@ export default class OllamaAProvider extends AbstractProvider {
 
               }
 
+              
               const response: ResponseData = {
                 text: "",
-                input_tokens: 0,
-                output_tokens: 0,
+                input_tokens,
+                output_tokens,
                 invocation_latency: 0,
                 first_byte_latency: 0
             }
@@ -114,10 +117,11 @@ export default class OllamaAProvider extends AbstractProvider {
                 
             })
 
+            
             const response: ResponseData = {
                 text: JSON.stringify(chatResponse.message),
-                input_tokens: 0,
-                output_tokens: 0,
+                input_tokens: chatResponse.prompt_eval_count,
+                output_tokens: chatResponse.eval_count,
                 invocation_latency: 0,
                 first_byte_latency: 0
             }
@@ -127,9 +131,9 @@ export default class OllamaAProvider extends AbstractProvider {
             await this.saveThread(ctx, session_id, chatRequest, response);
             return {
                 choices:chatResponse.message, usage: {
-                    completion_tokens: 0,
-                    prompt_tokens: 0,
-                    total_tokens: 0,
+                    completion_tokens: chatResponse.eval_count,
+                    prompt_tokens: chatResponse.prompt_eval_count,
+                    total_tokens: chatResponse.eval_count+chatResponse.prompt_eval_count,
                 }
             };
         } catch (e: any) {
