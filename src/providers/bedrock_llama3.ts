@@ -96,8 +96,8 @@ export default class BedrockLlama3 extends AbstractProvider {
 
                             i++;
                             if (i > 3) { // first three chunk is tag
-                                ctx.res.write("id: " + i + "\n");
-                                ctx.res.write("event: message\n");
+                                // ctx.res.write("id: " + i + "\n");
+                                // ctx.res.write("event: message\n");
 
                                 ctx.res.write("data: " + JSON.stringify({
                                     choices: [
@@ -131,8 +131,8 @@ export default class BedrockLlama3 extends AbstractProvider {
             }) + "\n\n");
         }
 
-        ctx.res.write("id: " + (i + 1) + "\n");
-        ctx.res.write("event: message\n");
+        // ctx.res.write("id: " + (i + 1) + "\n");
+        // ctx.res.write("event: message\n");
         ctx.res.write("data: [DONE]\n\n")
         ctx.res.end();
     }

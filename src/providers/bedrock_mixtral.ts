@@ -88,8 +88,8 @@ export default class BedrockMixtral extends AbstractProvider {
                         if (!stop_reason) {
                             i++;
                             responseText += text;
-                            ctx.res.write("id: " + i + "\n");
-                            ctx.res.write("event: message\n");
+                            // ctx.res.write("id: " + i + "\n");
+                            // ctx.res.write("event: message\n");
                             ctx.res.write("data: " + JSON.stringify({
                                 choices: [
                                     { delta: { content: text } }
@@ -115,8 +115,8 @@ export default class BedrockMixtral extends AbstractProvider {
 
                 }
             } else {
-                ctx.res.write("id: " + (i + 1) + "\n");
-                ctx.res.write("event: message\n");
+                // ctx.res.write("id: " + (i + 1) + "\n");
+                // ctx.res.write("event: message\n");
                 ctx.res.write("data: " + JSON.stringify({
                     choices: [
                         { delta: { content: "Error invoking model" } }
@@ -135,8 +135,8 @@ export default class BedrockMixtral extends AbstractProvider {
             // }) + "\n\n");
         }
 
-        ctx.res.write("id: " + (i + 1) + "\n");
-        ctx.res.write("event: message\n");
+        // ctx.res.write("id: " + (i + 1) + "\n");
+        // ctx.res.write("event: message\n");
         ctx.res.write("data: [DONE]\n\n")
         ctx.res.end();
     }

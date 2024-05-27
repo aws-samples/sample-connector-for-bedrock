@@ -8,6 +8,7 @@ import config from '../config';
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import ChatMessageConverter from './chat_message'
+import { stream } from "winston";
 
 
 export default class BedrockClaude extends AbstractProvider {
@@ -65,26 +66,51 @@ export default class BedrockClaude extends AbstractProvider {
             const command = new InvokeModelWithResponseStreamCommand(input);
             const response = await this.client.send(command);
 
-
             if (response.body) {
                 let responseText = "";
+                let model: any, content: any, finish_reason: any, completion_tokens: number, prompt_tokens: number;
                 for await (const item of response.body) {
                     if (item.chunk?.bytes) {
                         const decodedResponseBody = new TextDecoder().decode(
                             item.chunk.bytes,
                         );
+                        i++;
                         const responseBody = JSON.parse(decodedResponseBody);
+                        // console.log(responseBody);
 
-                        if (responseBody.delta?.type === "text_delta") {
-                            i++;
-                            responseText += responseBody.delta.text;
-                            ctx.res.write("id: " + i + "\n");
-                            ctx.res.write("event: message\n");
-                            ctx.res.write("data: " + JSON.stringify({
-                                choices: [
-                                    { delta: { content: responseBody.delta.text } }
-                                ]
-                            }) + "\n\n");
+                        if (responseBody.type === "message_start") {
+                            model = responseBody.message.model;
+                            content = null;
+                            finish_reason = responseBody.message.stop_reason;
+                            completion_tokens = responseBody.message.output_tokens;
+                            prompt_tokens = responseBody.message.input_tokens;
+                        } else if (responseBody.type === "content_block_start") {
+                            finish_reason = null;
+                            content = responseBody.content_block?.text;
+                            content && (responseText += content);
+                            completion_tokens = 0;
+                            prompt_tokens = 0;
+                        } else if (responseBody.type === "content_block_delta") {
+                            content = responseBody.delta?.text;
+                            content && (responseText += content);
+                            completion_tokens = 0;
+                            prompt_tokens = 0;
+                            finish_reason = null;
+                            // ctx.res.write(WebResponse.wrap());
+                            // ctx.res.write(`{"id":"chatcmpl-${i}","object":"chat.completion.chunk","created":1694268190,"model":"", "system_fingerprint": "fp_44709d6fcb", "choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}
+                            // `)
+                            // ctx.res.write("id: " + i + "\n");
+                            // ctx.res.write("event: message\n");
+                            // ctx.res.write("data: " + JSON.stringify({
+                            //     choices: [
+                            //         { delta: { content: responseBody.delta.text } }
+                            //     ]
+                            // }) + "\n\n");
+                        } else if (responseBody.type === "message_delta") {
+                            content = null;
+                            completion_tokens = responseBody.usage?.output_tokens;
+                            prompt_tokens = 0;
+                            finish_reason = responseBody.delta?.stop_reason;
                         } else if (responseBody.type === "message_stop") {
                             const {
                                 inputTokenCount, outputTokenCount,
@@ -101,17 +127,21 @@ export default class BedrockClaude extends AbstractProvider {
 
                             await this.saveThread(ctx, session_id, chatRequest, response);
                         }
+                        ctx.res.write("data:" + WebResponse.wrap(i, model, content, finish_reason) + "\n\n");
                     }
                 }
             } else {
-                ctx.res.write("id: " + (i + 1) + "\n");
-                ctx.res.write("event: message\n");
                 ctx.res.write("data: " + JSON.stringify({
+                    index: i,
                     choices: [
                         { delta: { content: "Error invoking model" } }
                     ]
                 }) + "\n\n");
             }
+
+            ctx.res.write("data: [DONE]\n\n")
+            ctx.res.end();
+
         } catch (e: any) {
             console.error(e);
             ctx.res.write("id: " + (i + 1) + "\n");
@@ -121,12 +151,9 @@ export default class BedrockClaude extends AbstractProvider {
                     { delta: { content: "Error invoking model" } }
                 ]
             }) + "\n\n");
+            ctx.res.write("data: [DONE]\n\n")
+            ctx.res.end();
         }
-
-        ctx.res.write("id: " + (i + 1) + "\n");
-        ctx.res.write("event: message\n");
-        ctx.res.write("data: [DONE]\n\n")
-        ctx.res.end();
     }
 
     async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
