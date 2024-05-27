@@ -72,8 +72,8 @@ export default class OllamaAProvider extends AbstractProvider {
                 if (part.eval_count){
                     output_tokens=part.eval_count
                 }
-                ctx.res.write("id: " + i + "\n");
-                ctx.res.write("event: message\n");
+                //ctx.res.write("id: " + i + "\n");
+                //ctx.res.write("event: message\n");
                 ctx.res.write("data: " + JSON.stringify({
                     choices: [
                         { delta: { content: part.message.content } }
@@ -98,8 +98,8 @@ export default class OllamaAProvider extends AbstractProvider {
 
         } catch (e: any) {
             console.error(e);
-            ctx.res.write("id: " + (i + 1) + "\n");
-            ctx.res.write("event: message\n");
+            //ctx.res.write("id: " + (i + 1) + "\n");
+            //ctx.res.write("event: message\n");
             ctx.res.write("data: " + JSON.stringify({
                 choices: [
                     { delta: { content: "Error invoking model" } }
@@ -107,8 +107,8 @@ export default class OllamaAProvider extends AbstractProvider {
             }) + "\n\n");
         }
 
-        ctx.res.write("id: " + (i + 1) + "\n");
-        ctx.res.write("event: message\n");
+        //ctx.res.write("id: " + (i + 1) + "\n");
+        //ctx.res.write("event: message\n");
         ctx.res.write("data: [DONE]\n\n")
         ctx.res.end();
     }
