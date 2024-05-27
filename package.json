@@ -24,6 +24,7 @@
     "koa-router": "^12.0.1",
     "koa-static-server": "^1.5.2",
     "nodemailer": "^6.9.13",
+    "ollama": "^0.5.1",
     "pg": "^8.11.3",
     "winston": "^3.13.0"
   },

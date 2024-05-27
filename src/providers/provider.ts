@@ -7,6 +7,7 @@ import BedrockClaude from "./bedrock_claude";
 import BedrockMixtral from "./bedrock_mixtral";
 import BedrockLlama3 from "./bedrock_llama3";
 import BedrockKnowledgeBase from "./bedrock_knowledge_base";
+import OllamaAProvider from "./ollama_provider";
 
 class Provider {
     constructor() {
@@ -14,6 +15,7 @@ class Provider {
         this["bedrock-mistral"] = new BedrockMixtral();
         this["bedrock-llama3"] = new BedrockLlama3();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
+        this["ollama"]=new OllamaAProvider();
     }
     async chat(ctx: any) {
         let keyData = null;
