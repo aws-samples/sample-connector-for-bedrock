@@ -5,6 +5,7 @@ import {
     InvokeModelWithResponseStreamCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 import config from '../config';
+import helper from "../util/helper";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import ChatMessageConverter from './chat_message'
@@ -17,7 +18,7 @@ export default class BedrockClaude extends AbstractProvider {
     chatMessageConverter: ChatMessageConverter;
     constructor() {
         super();
-        this.client = new BedrockRuntimeClient({ region: config.bedrock.region });
+        this.client = new BedrockRuntimeClient({ region: helper.selectRandomRegion(config.bedrock.region) });
         this.chatMessageConverter = new ChatMessageConverter();
     }
 

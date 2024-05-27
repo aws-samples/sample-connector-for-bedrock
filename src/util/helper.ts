@@ -40,7 +40,23 @@ const helper = {
         return null;
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any) => {
-        const region = chatRequest.config?.region || config.bedrock.region;
+        const region = chatRequest.config?.region || helper.selectRandomRegion(config.bedrock.region);
+        
+        //check ollama model prefix , etc ollama:mistral:v0.3
+        if (config.debugMode){
+            console.log("chatRequest.model", chatRequest.model,chatRequest.model.startsWith("ollama:"))
+        }
+        if (chatRequest.model.startsWith("ollama:")){
+            if (chatRequest.model.split("ollama:").length>1){
+                chatRequest.model_id =chatRequest.model.split("ollama:")[1];
+                chatRequest.provider = "ollama";
+                chatRequest.price_in = 0;
+                chatRequest.price_out = 0;
+                chatRequest.currency = "USD";
+                return chatRequest;
+            }
+        }
+
         switch (chatRequest.model) {
             case 'claude-3-sonnet':
                 chatRequest.model_id = "anthropic.claude-3-sonnet-20240229-v1:0";
@@ -215,7 +231,24 @@ const helper = {
 
             console.log("Message sent: %s", info.messageId);
         }
-    }
+    },
+    
+    selectRandomRegion: (regionString: string) => {
+        const regions = regionString.split(',').map(region => region.trim());
+        let selectRegion = ""
+        if (regions.length === 1) {
+            selectRegion = regions[0]
+        }
+        const randomIndex = Math.floor(Math.random() * regions.length);
+        selectRegion= regions[randomIndex]
+        
+        if (config.debugMode){
+            console.log(`[selectRandomRegion]: isMultipleRegion: ${regions.length >1}, ${selectRegion}`)
+        }
+
+        return selectRegion; 
+        
+      }
 }
 
 export default helper;
