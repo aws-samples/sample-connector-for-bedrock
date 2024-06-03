@@ -278,7 +278,7 @@ FROM node:20
 
 COPY ./dist /app
 WORKDIR /app
-COPY ./src/scripts/create.sql ./src/scripts/create.sql
+COPY ./src/scripts/* ./src/scripts/
 COPY ./package.json .
 
 RUN npm install --omit=dev
@@ -420,8 +420,6 @@ GET /admin/thread/list?q=&limit=10&offset=&key_id=&session_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-
-
 Update Config Region
 
 ```text
@@ -430,7 +428,7 @@ Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
-	"region":"us-east-1,us-west-2"
+ "region":"us-east-1,us-west-2"
 }
 ```
 
@@ -440,10 +438,6 @@ List Config Region
 GET /admin/config/region
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
-
-
-
-
 
 ### User API
 
