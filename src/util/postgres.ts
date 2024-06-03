@@ -168,6 +168,17 @@ export default class PGClient {
 
   }
 
+
+  public async exists(table: string, conditions: any): Promise<boolean> {
+    conditions = conditions || {};
+    conditions.where = conditions.where || "1=1";
+    var sql = `select count(*) as ct from ${table} where ${conditions.where} `;
+    var { rows } = await this.query(sql, conditions.params);
+    return rows.length > 0 && rows[0].ct > 0;
+  }
+
+
+
   public async sum(table: string, col: string, conditions: any): Promise<number> {
     conditions = conditions || {};
     conditions.where = conditions.where || "1=1";
@@ -182,6 +193,14 @@ export default class PGClient {
   public async delete(table: string, id: any) {
     var sql = `delete from ${table} where id=$1`;
     var { rowCount } = await this.query(sql, [id]);
+    return rowCount > 0;
+  }
+
+  public async deleteMulti(table: string, conditions: any) {
+    conditions = conditions || {};
+    conditions.where = conditions.where;
+    var sql = `delete from ${table} where ${conditions.where} `;
+    var { rowCount } = await this.query(sql, conditions.params);
     return rowCount > 0;
   }
 

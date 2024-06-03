@@ -51,7 +51,7 @@ export default {
         conditions.where = where;
         conditions.params = params;
         const items = await db.list("eiai_key", conditions);
-        const total = await db.count("eiai_key", conditions);
+        const total = ~~await db.count("eiai_key", conditions);
 
         return { items, total, limit, offset };
     },
@@ -111,7 +111,7 @@ export default {
         data.name && (updateData.name = data.name);
         data.month_quota != undefined && (updateData.month_quota = data.month_quota);
         updateData.updated_at = new Date()
-        return await db.update("eiai_key", updateData, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
+        return await db.update("eiai_key", updateData, ["id", "name", "email", "api_key", "group_id", "role", "month_quota", "balance"]);
     },
 
     recharge: async (db: any, options: any) => {
@@ -141,6 +141,82 @@ export default {
             balance: 1.0 * key.balance + 1.0 * options.balance,
             updated_at: new Date()
         }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
+    },
+
+    // If bound then remove, otherwise bind
+    async bindModel(db: any, data: any) {
+        const { key_id, model_id } = data;
+
+        const existsDB = await db.exists("eiai_key_model", {
+            where: "key_id=$1 and model_id=$2",
+            params: [key_id, model_id]
+        });
+        console.log(existsDB);
+
+        if (existsDB) {
+            await db.deleteMulti("eiai_key_model", {
+                where: "key_id=$1 and model_id=$2",
+                params: [key_id, model_id]
+            });
+            return "deleted";
+        } else {
+            await db.insert("eiai_key_model", {
+                key_id,
+                model_id
+            });
+            return "created";
+        }
+    },
+
+    async listModels(db: any, options: any) {
+
+        const limit = ~~(options.limit) || 20;
+        const offset = ~~(options.offset) || 0;
+
+        let where = "1=1";
+        let params = [];
+
+        let keys = [];
+        if (options.q) {
+            keys.push("q");
+        }
+        if (options.key_id) {
+            keys.push("key_id");
+        }
+        if (options.model_id) {
+            keys.push("model_id");
+        }
+
+        const conditions: any = {
+            limit: limit,
+            offset: offset,
+            orderBy: "id"
+        }
+
+        for (const key of keys) {
+            const keyIndex = keys.indexOf(key);
+            if (key === "q") {
+                params.push(`%${options.q}%`);
+                where += ` and (key_name like $${keyIndex + 1} or model_name like $${keyIndex + 1})`;
+            }
+            if (key === "key_id") {
+                params.push(options.key_id);
+                where += ` and key_id=$${keyIndex + 1}`;
+            }
+            if (key === "model_id") {
+                params.push(options.model_id);
+                where += ` and model_id=$${keyIndex + 1}`;
+            }
+        }
+
+        conditions.where = where;
+        conditions.params = params;
+        const items = await db.list("eiai_v_key_model", conditions);
+
+        const total = ~~await db.count("eiai_v_key_model", conditions);
+
+        return { items, total, limit, offset };
+
     }
 
 }

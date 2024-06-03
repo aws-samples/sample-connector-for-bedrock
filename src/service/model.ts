@@ -19,7 +19,7 @@ export default {
         }
 
         const conditions: any = {
-            cols: "id, name, config, created_at, updated_at",
+            // cols: "id, name, multiple, provider, config, created_at, updated_at",
             limit: limit,
             offset: offset,
             orderBy: "id desc"
@@ -36,7 +36,7 @@ export default {
         conditions.where = where;
         conditions.params = params;
         const items = await db.list("eiai_model", conditions);
-        const total = await db.count("eiai_model", conditions);
+        const total = ~~await db.count("eiai_model", conditions);
 
         return { items, total, limit, offset };
     },

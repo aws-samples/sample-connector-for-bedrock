@@ -8,7 +8,9 @@ class KeyController extends AbstractController {
         router.post("/admin/api-key/apply", this.apply);
         router.post("/admin/api-key/recharge", this.recharge);
         router.post("/admin/api-key/update", this.update);
+        router.post("/admin/api-key/bind-or-unbind-model", this.bindModel);
         router.get("/admin/api-key/list", this.list);
+        router.get("/admin/api-key/list-model", this.listModels);
         router.get("/admin/api-key/detail/:id", async (ctx: any) => {
             return this.detail(ctx, "eiai_key");
         });
@@ -35,6 +37,18 @@ class KeyController extends AbstractController {
     async recharge(ctx: any) {
         const body = ctx.request.body;
         const result = await service.recharge(ctx.db, body);
+        return super.ok(ctx, result);
+    }
+
+    async bindModel(ctx: any) {
+        const data = ctx.request.body;
+        const result = await service.bindModel(ctx.db, data);
+        return super.ok(ctx, result);
+    }
+
+    async listModels(ctx: any) {
+        const data = ctx.query;
+        const result = await service.listModels(ctx.db, data);
         return super.ok(ctx, result);
     }
 }

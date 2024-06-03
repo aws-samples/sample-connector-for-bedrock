@@ -31,7 +31,7 @@ export default {
         conditions.where = where;
         conditions.params = params;
         const items = await db.list("eiai_payment", conditions);
-        const total = await db.count("eiai_payment", conditions);
+        const total = ~~await db.count("eiai_payment", conditions);
 
         return { items, total, limit, offset };
     }

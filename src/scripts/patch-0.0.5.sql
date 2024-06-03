@@ -50,3 +50,26 @@ INSERT INTO eiai_group (name) VALUES ('group 1');
 
 INSERT INTO eiai_group_model (model_id, group_id) 
 SELECT id, 1 FROM eiai_model ON CONFLICT (model_id, group_id) DO NOTHING;
+
+
+CREATE TABLE IF NOT EXISTS eiai_group_model (
+    id serial PRIMARY KEY,
+    model_id int NOT NULL,
+    group_id int NOT NULL,
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE OR REPLACE VIEW eiai_v_group_model AS
+SELECT gm.*, g.name group_name, m.name model_name, m.multiple, m.price_in, m.price_out, m.provider from eiai_group_model gm 
+LEFT JOIN eiai_group g ON gm.group_id=g.id
+LEFT JOIN eiai_model m ON gm.model_id=m.id;
+
+
+CREATE OR REPLACE VIEW eiai_v_key_model AS
+SELECT km.*, k.name key_name, m.name model_name, m.multiple, m.price_in, m.price_out, m.provider from eiai_key_model km
+LEFT JOIN eiai_key k ON km.key_id=k.id
+LEFT JOIN eiai_model m ON km.model_id=m.id;
+
+

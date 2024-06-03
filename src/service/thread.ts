@@ -61,7 +61,7 @@ export default {
         conditions.where = where;
         conditions.params = params;
         const items = await db.list("eiai_thread", conditions);
-        const total = await db.count("eiai_thread", conditions);
+        const total = ~~await db.count("eiai_thread", conditions);
 
         return { items, total, limit, offset };
     }

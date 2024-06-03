@@ -52,7 +52,7 @@ export default {
         conditions.where = where;
         conditions.params = params;
         const items = await db.list("eiai_session", conditions);
-        const total = await db.count("eiai_session", conditions);
+        const total = ~~await db.count("eiai_session", conditions);
 
         return { items, total, limit, offset };
     }
