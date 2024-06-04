@@ -37,7 +37,6 @@
 
 <script>
 import { NotificationsOutline, Search, Sunny, Moon, Person, Language } from "kui-icons";
-import Status from '../status.vue'
 import Sider from './sider.vue'
 import Tab from './tab.vue'
 import Main from './main.vue'
@@ -58,7 +57,7 @@ function matchMode(e) {
 }
 monitor.addEventListener('change', matchMode)
 // matchMode(monitor)
-import Websocket from "@/utils/websocket";
+// import Websocket from "@/utils/websocket";
 export default {
   name: 'layout',
   data() {
@@ -70,7 +69,7 @@ export default {
       name: localStorage.getItem('name') || '',
     };
   },
-  components: { Status, Tab, Sider, Main },
+  components: { Tab, Sider, Main },
   beforeDestroy() {
   },
   created() {
