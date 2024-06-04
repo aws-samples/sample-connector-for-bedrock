@@ -22,10 +22,12 @@ module.exports = defineConfig({
   chainWebpack: config => {
     config
       .plugin('html')
-      .tap(args => {
+      .tap((args) =>{
         args[0].title = "Bedrock Connector";
-        return args;
-      })
+        // args[0].favicon = path.resolve('./src-frontend/public/favicon.png');
+        args[0].template = path.resolve('./src-frontend/public/index.html');
+        return args
+      } )
   },
   devServer: {
     port: 8080,
