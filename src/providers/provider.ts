@@ -15,36 +15,36 @@ class Provider {
         this["bedrock-mistral"] = new BedrockMixtral();
         this["bedrock-llama3"] = new BedrockLlama3();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
-        this["ollama"]=new OllamaAProvider();
+        this["ollama"] = new OllamaAProvider();
     }
     async chat(ctx: any) {
         let keyData = null;
         if (ctx.db) {
             keyData = await api_key.loadById(ctx.db, ctx.user.id);
-            // 如果没有启用数据库和 api key 则不验证。
             if (keyData) {
                 await this.checkFee(ctx, keyData);
             }
         }
         const chatRequest: ChatRequest = ctx.request.body;
         const session_id = ctx.headers["session-id"];
-        await helper.refineModelParameters(chatRequest, ctx);
-        const provider: AbstractProvider = this[chatRequest.provider];
-
-        provider.setkeyData(keyData);
-        try {
-            return provider.chat(chatRequest, session_id, ctx);
-        } catch (ex: any) {
-            throw new Error(ex.message);
+        const modelData = await helper.refineModelParameters(chatRequest, ctx);
+        chatRequest.currency = modelData.config.currency || "USD";
+        chatRequest.price_in = modelData.price_in || 0;
+        chatRequest.price_out = modelData.price_out || 0;
+        const provider: AbstractProvider = this[modelData.provider];
+        if (!provider) {
+            throw new Error("You need to configure the provider correctly.");
         }
+        provider.setModelData(modelData);
+        provider.setKeyData(keyData);
+
+        return provider.chat(chatRequest, session_id, ctx);
     }
 
     async checkFee(ctx: any, key: any) {
         let month_fee = parseFloat(key.month_fee);
         const month_quota = parseFloat(key.month_quota);
         const balance = parseFloat(key.balance);
-
-        // console.log(key, month_fee);
 
         if (month_fee > 0) {
             // New month set it to 0

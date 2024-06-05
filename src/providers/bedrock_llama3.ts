@@ -9,7 +9,6 @@ import {
     BedrockRuntimeClient,
     InvokeModelCommand,
     InvokeModelWithResponseStreamCommand,
-    ResponseStream,
 } from "@aws-sdk/client-bedrock-runtime";
 
 
@@ -19,11 +18,22 @@ export default class BedrockLlama3 extends AbstractProvider {
     chatMessageConverter: ChatMessageConverter;
     constructor() {
         super();
-        this.client = new BedrockRuntimeClient({ region: helper.selectRandomRegion(config.bedrock.region) });
         this.chatMessageConverter = new ChatMessageConverter();
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
+
+        const model_id = this.modelData.config && this.modelData.config.model_id;
+        if (!model_id) {
+            throw new Error("You must specify the parameters 'model_id' in the backend model configuration.")
+        }
+
+        const regions: [string] = this.modelData.config && this.modelData.config.regions || ["us-east-1"];
+        if (!Array.isArray(regions)) {
+            throw new Error("If you specify regions, please use the array format, such as: [\"us-east-1\", \"us-west-2\"].")
+        }
+
+        this.client = new BedrockRuntimeClient({ region: helper.selectRandomRegion(regions) });
 
         const prompt = await this.chatMessageConverter.toLlama3Payload(chatRequest);
 
@@ -40,7 +50,7 @@ export default class BedrockLlama3 extends AbstractProvider {
             body: JSON.stringify(body),
             contentType: "application/json",
             accept: "application/json",
-            modelId: chatRequest.model_id,
+            modelId: model_id
         };
 
         ctx.status = 200;

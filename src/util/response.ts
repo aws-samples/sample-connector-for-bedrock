@@ -17,7 +17,8 @@ export default {
         prompt_tokens = prompt_tokens || 0;
         content = content || "";
         const data: any = {
-            id, model, created, "object": "chat.completion.chunk",
+            id, created,
+            // "object": "chat.completion.chunk",
             // usage: {
             //     completion_tokens,
             //     prompt_tokens,
@@ -25,9 +26,15 @@ export default {
             // }
         };
 
+
+
         data.choices = [
             { "index": 0, delta: { content } }
         ];
+
+        if (model) {
+            data.model = model;
+        }
 
         if (finish_reason) {
             data.finish_reason = finish_reason;

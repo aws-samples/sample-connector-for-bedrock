@@ -1,23 +1,21 @@
-import { ChatRequest, ResponseData } from "../entity/chat_request"
+import { ChatRequest, ModelData, ResponseData } from "../entity/chat_request"
 import AbstractProvider from "./abstract_provider";
 import helper from '../util/helper';
-import sysConfig from '../config';
-import ChatMessageConverter from './chat_message'
+import ChatMessageConverter from './chat_message';
+import WebResponse from "../util/response";
 import {
   BedrockAgentRuntimeClient,
-  BedrockAgentRuntime,
   RetrieveCommand,
 } from "@aws-sdk/client-bedrock-agent-runtime";
 
 import {
   BedrockRuntimeClient,
-  InvokeModelCommand,
+  // InvokeModelCommand,
   InvokeModelWithResponseStreamCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 
 // In dev-ing
 export default class BedrockKnowledgeBase extends AbstractProvider {
-
   client: BedrockRuntimeClient;
   clientAgent: BedrockAgentRuntimeClient;
   chatMessageConverter: ChatMessageConverter;
@@ -27,35 +25,33 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    // console.log(chatRequest);
-    const { messages, stream, config } = chatRequest;
-    if (!this.client) {
-      this.client = new BedrockRuntimeClient({ region: config.region || helper.selectRandomRegion(sysConfig.bedrock.region) });
-      this.clientAgent = new BedrockAgentRuntimeClient({ region: config.region || helper.selectRandomRegion(sysConfig.bedrock.region)});
+    const { region, summaryModel, knowledgeBaseId } = this.modelData.config;
+    if (!region) {
+      throw new Error("You must specify the parameters 'region' in the backend model configuration.")
+    }
+    if (!knowledgeBaseId) {
+      throw new Error("You must specify the parameters 'knowledgeBaseId' in the backend model configuration.")
+    }
+    if (!summaryModel) {
+      throw new Error("You must specify the parameters 'summaryModel' in the backend model configuration.")
     }
 
+    if (!this.client) {
+      this.client = new BedrockRuntimeClient({ region });
+      this.clientAgent = new BedrockAgentRuntimeClient({ region });
+    }
+    const { messages } = chatRequest;
     const lastMsg = messages.pop();
     const q = lastMsg.content;
     if (!q) {
       throw new Error("Please enter your question.")
     }
-    // console.log(q);
 
-
-    const kbResponse = await this.retrieve(config.knowledgeBaseId, q, 5);
-
+    const kbResponse = await this.retrieve(knowledgeBaseId, q, 5);
     const { prompt, files } = this.assembleSummaryPrompt(q, kbResponse);
-    // console.log(prompt, files)
+    const newModelData: any = await helper.refineModelParameters({ model: summaryModel }, ctx);
 
-    const newChatRequest: any = await helper.refineModelParameters({
-      model: config.summaryModel,
-      messages: [
-        {
-          "role": "user",
-          "content": prompt
-        }
-      ]
-    }, ctx);
+    // console.log(">>>>>>>>>>>", newModelData)
 
     ctx.status = 200;
     ctx.set({
@@ -63,7 +59,18 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       'Cache-Control': 'no-cache',
       'Content-Type': 'text/event-stream',
     });
-    await this.chatStream(ctx, newChatRequest, files);
+    await this.chatStream(ctx, {
+      model: summaryModel,
+      messages: [
+        {
+          "role": "user",
+          "content": prompt
+        }
+      ],
+      price_in: chatRequest.price_in,
+      price_out: chatRequest.price_out,
+      currency: chatRequest.currency,
+    }, newModelData, files);
   }
 
   async retrieve(knowledgeBaseId: string, text: string, numberOfResults: any) {
@@ -86,131 +93,97 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       key: an["location"]["s3Location"]["uri"],
       score: an["score"]
     }));
-    if (sysConfig.debugMode) {
-      console.log("原始输出：")
-      console.log(JSON.stringify(kb_content, null, 2))
-    }
+    // if (sysConfig.debugMode) {
+    //   console.log("原始输出：")
+    //   console.log(JSON.stringify(kb_content, null, 2))
+    // }
     return kb_content;
   }
 
 
-  async chatStream(ctx: any, chatRequest: ChatRequest, files: any) {
+  async chatStream(ctx: any, chatRequest: ChatRequest, newModelData: ModelData, files: any) {
     let i = 0;
-    try {
-      const payload = await this.chatMessageConverter.toClaude3Payload(chatRequest);
-      const body: any = {
-        "anthropic_version": chatRequest["anthropic_version"],
-        "max_tokens": chatRequest.max_tokens || 4096,
-        "messages": payload.messages,
-        "temperature": chatRequest.temperature || 1.0,
-        "top_p": chatRequest.top_p || 1,
-        "top_k": chatRequest["top_k"] || 50
-      };
+    const { anthropic_version, model_id } = newModelData.config;
 
+    const payload = await this.chatMessageConverter.toClaude3Payload(chatRequest);
+    const body: any = {
+      anthropic_version,
+      "max_tokens": chatRequest.max_tokens || 4096,
+      "messages": payload.messages,
+      "temperature": chatRequest.temperature || 1.0,
+      "top_p": chatRequest.top_p || 1,
+      "top_k": chatRequest["top_k"] || 50
+    };
 
-      const input = {
-        body: JSON.stringify(body),
-        contentType: "application/json",
-        accept: "application/json",
-        modelId: chatRequest.model_id,
-      };
+    const input = {
+      body: JSON.stringify(body),
+      contentType: "application/json",
+      accept: "application/json",
+      modelId: model_id,
+    };
 
-      if (sysConfig.debugMode) {
-        console.log("Summary Input：")
-        console.log(JSON.stringify(input, null, 2))
-      }
-      const command = new InvokeModelWithResponseStreamCommand(input);
-      const response = await this.client.send(command);
+    // if (sysConfig.debugMode) {
+    //   console.log("Summary Input：")
+    //   console.log(JSON.stringify(input, null, 2))
+    // }
+    const command = new InvokeModelWithResponseStreamCommand(input);
+    const response = await this.client.send(command);
 
-      if (response.body) {
-        let responseText = "";
-        for await (const item of response.body) {
-          if (item.chunk?.bytes) {
-            const decodedResponseBody = new TextDecoder().decode(
-              item.chunk.bytes,
-            );
-            const responseBody = JSON.parse(decodedResponseBody);
+    if (response.body) {
+      let responseText = "";
+      for await (const item of response.body) {
+        if (item.chunk?.bytes) {
+          const decodedResponseBody = new TextDecoder().decode(
+            item.chunk.bytes,
+          );
+          const responseBody = JSON.parse(decodedResponseBody);
 
-            if (responseBody.delta?.type === "text_delta") {
-              i++;
-              responseText += responseBody.delta.text;
-              ctx.res.write("id: " + i + "\n");
-              ctx.res.write("event: message\n");
-              ctx.res.write("data: " + JSON.stringify({
-                choices: [
-                  { delta: { content: responseBody.delta.text } }
-                ]
-              }) + "\n\n");
+          if (responseBody.delta?.type === "text_delta") {
+            i++;
+            responseText += responseBody.delta.text;
+            ctx.res.write("data:" + WebResponse.wrap(i, model_id, responseBody.delta.text, "") + "\n\n");
+            // ctx.res.write("id: " + i + "\n");
+            // ctx.res.write("event: message\n");
+            // ctx.res.write("data: " + JSON.stringify({
+            //   choices: [
+            //     { delta: { content: responseBody.delta.text } }
+            //   ]
+            // }) + "\n\n");
 
-            } else if (responseBody.type === "message_stop") {
-              const {
-                inputTokenCount, outputTokenCount,
-                invocationLatency, firstByteLatency
-              } = responseBody["amazon-bedrock-invocationMetrics"];
+          } else if (responseBody.type === "message_stop") {
+            const {
+              inputTokenCount, outputTokenCount,
+              invocationLatency, firstByteLatency
+            } = responseBody["amazon-bedrock-invocationMetrics"];
 
-              const response: ResponseData = {
-                text: responseText,
-                input_tokens: inputTokenCount,
-                output_tokens: outputTokenCount,
-                invocation_latency: invocationLatency,
-                first_byte_latency: firstByteLatency
-              }
-
-              await this.saveThread(ctx, null, chatRequest, response);
+            const response: ResponseData = {
+              text: responseText,
+              input_tokens: inputTokenCount,
+              output_tokens: outputTokenCount,
+              invocation_latency: invocationLatency,
+              first_byte_latency: firstByteLatency
             }
+
+            await this.saveThread(ctx, null, chatRequest, response);
           }
         }
-      } else {
-        ctx.res.write("id: " + (i + 1) + "\n");
-        ctx.res.write("event: message\n");
-        ctx.res.write("data: " + JSON.stringify({
-          choices: [
-            { delta: { content: "Error invoking model" } }
-          ]
-        }) + "\n\n");
       }
-    } catch (e: any) {
-      // ctx.logger.error(e);
-      ctx.res.write("id: " + (i + 1) + "\n");
-      ctx.res.write("event: message\n");
-      ctx.res.write("data: " + JSON.stringify({
-        choices: [
-          { delta: { content: "Error invoking model" } }
-        ]
-      }) + "\n\n");
+    } else {
+      throw new Error("No response.");
     }
 
-
-    ctx.res.write("id: " + (i + 1) + "\n");
-    ctx.res.write("event: message\n");
-    ctx.res.write("data: " + JSON.stringify({
-      choices: [
-        { delta: { content: "\n\n---\n\n" } }
-      ]
-    }) + "\n\n");
+    ctx.res.write("data:" + WebResponse.wrap(i, null, "\n\n---\n\n", null) + "\n\n");
 
     const citaStrings = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
     for (let j = 0; j < files.length; j++) {
       const citaIndex = j + 1;
       i = i + 1 + citaIndex;
-      ctx.res.write("id: " + (i + 1) + "\n");
-      ctx.res.write("event: message\n");
-      ctx.res.write("data: " + JSON.stringify({
-        choices: [
-          { delta: { content: "\n\n" + citaStrings[j] + " " + files[j] } }
-        ]
-      }) + "\n\n");
+      const citaContent = "\n\n" + citaStrings[j] + " " + files[j];
+      ctx.res.write("data:" + WebResponse.wrap(i, null, citaContent, null) + "\n\n");
     }
-
-
-
-    ctx.res.write("id: " + (i + 2) + "\n");
-    ctx.res.write("event: message\n");
     ctx.res.write("data: [DONE]\n\n")
     ctx.res.end();
   }
-
-
 
   assembleSummaryPrompt(question: string, kb_content: any) {
     const files = [];

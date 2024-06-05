@@ -4,12 +4,11 @@ import {
     InvokeModelCommand,
     InvokeModelWithResponseStreamCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import config from '../config';
 import helper from "../util/helper";
+// import config from "../config";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
-import ChatMessageConverter from './chat_message'
-import { stream } from "winston";
+import ChatMessageConverter from './chat_message';
 
 
 export default class BedrockClaude extends AbstractProvider {
@@ -18,15 +17,23 @@ export default class BedrockClaude extends AbstractProvider {
     chatMessageConverter: ChatMessageConverter;
     constructor() {
         super();
-        this.client = new BedrockRuntimeClient({ region: helper.selectRandomRegion(config.bedrock.region) });
         this.chatMessageConverter = new ChatMessageConverter();
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
+        const anthropic_version = this.modelData.config && this.modelData.config.anthropic_version;
+        const model_id = this.modelData.config && this.modelData.config.model_id;
+        if (!model_id || !anthropic_version) {
+            throw new Error("You must specify the parameters 'model_id' and 'anthropic_version' in the backend model configuration.")
+        }
+
+        let regions: any = this.modelData.config && this.modelData.config.regions;
+        const region = helper.selectRandomRegion(regions);
+        this.client = new BedrockRuntimeClient({ region });
         const payload = await this.chatMessageConverter.toClaude3Payload(chatRequest);
 
         const body: any = {
-            "anthropic_version": chatRequest["anthropic_version"],
+            anthropic_version,
             "max_tokens": chatRequest.max_tokens || 4096,
             "messages": payload.messages,
             "temperature": chatRequest.temperature || 1.0,
@@ -41,7 +48,7 @@ export default class BedrockClaude extends AbstractProvider {
             body: JSON.stringify(body),
             contentType: "application/json",
             accept: "application/json",
-            modelId: chatRequest.model_id,
+            modelId: model_id,
         };
 
         ctx.status = 200;
@@ -63,141 +70,109 @@ export default class BedrockClaude extends AbstractProvider {
 
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         let i = 0;
-        try {
-            const command = new InvokeModelWithResponseStreamCommand(input);
-            const response = await this.client.send(command);
+        const command = new InvokeModelWithResponseStreamCommand(input);
+        const response = await this.client.send(command);
 
-            if (response.body) {
-                let responseText = "";
-                let model: any, content: any, finish_reason: any, completion_tokens: number, prompt_tokens: number;
-                for await (const item of response.body) {
-                    if (item.chunk?.bytes) {
-                        const decodedResponseBody = new TextDecoder().decode(
-                            item.chunk.bytes,
-                        );
-                        i++;
-                        const responseBody = JSON.parse(decodedResponseBody);
-                        // console.log(responseBody);
+        if (response.body) {
+            let responseText = "";
+            let model: any, content: any, finish_reason: any, completion_tokens: number, prompt_tokens: number;
+            for await (const item of response.body) {
+                if (item.chunk?.bytes) {
+                    const decodedResponseBody = new TextDecoder().decode(
+                        item.chunk.bytes,
+                    );
+                    i++;
+                    const responseBody = JSON.parse(decodedResponseBody);
+                    // console.log(responseBody);
 
-                        if (responseBody.type === "message_start") {
-                            model = responseBody.message.model;
-                            content = null;
-                            finish_reason = responseBody.message.stop_reason;
-                            completion_tokens = responseBody.message.output_tokens;
-                            prompt_tokens = responseBody.message.input_tokens;
-                        } else if (responseBody.type === "content_block_start") {
-                            finish_reason = null;
-                            content = responseBody.content_block?.text;
-                            content && (responseText += content);
-                            completion_tokens = 0;
-                            prompt_tokens = 0;
-                        } else if (responseBody.type === "content_block_delta") {
-                            content = responseBody.delta?.text;
-                            content && (responseText += content);
-                            completion_tokens = 0;
-                            prompt_tokens = 0;
-                            finish_reason = null;
-                            // ctx.res.write(WebResponse.wrap());
-                            // ctx.res.write(`{"id":"chatcmpl-${i}","object":"chat.completion.chunk","created":1694268190,"model":"", "system_fingerprint": "fp_44709d6fcb", "choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}
-                            // `)
-                            // ctx.res.write("id: " + i + "\n");
-                            // ctx.res.write("event: message\n");
-                            // ctx.res.write("data: " + JSON.stringify({
-                            //     choices: [
-                            //         { delta: { content: responseBody.delta.text } }
-                            //     ]
-                            // }) + "\n\n");
-                        } else if (responseBody.type === "message_delta") {
-                            content = null;
-                            completion_tokens = responseBody.usage?.output_tokens;
-                            prompt_tokens = 0;
-                            finish_reason = responseBody.delta?.stop_reason;
-                        } else if (responseBody.type === "message_stop") {
-                            const {
-                                inputTokenCount, outputTokenCount,
-                                invocationLatency, firstByteLatency
-                            } = responseBody["amazon-bedrock-invocationMetrics"];
+                    if (responseBody.type === "message_start") {
+                        model = responseBody.message.model;
+                        content = null;
+                        finish_reason = responseBody.message.stop_reason;
+                        completion_tokens = responseBody.message.output_tokens;
+                        prompt_tokens = responseBody.message.input_tokens;
+                    } else if (responseBody.type === "content_block_start") {
+                        finish_reason = null;
+                        content = responseBody.content_block?.text;
+                        content && (responseText += content);
+                        completion_tokens = 0;
+                        prompt_tokens = 0;
+                    } else if (responseBody.type === "content_block_delta") {
+                        content = responseBody.delta?.text;
+                        content && (responseText += content);
+                        completion_tokens = 0;
+                        prompt_tokens = 0;
+                        finish_reason = null;
+                        // ctx.res.write(WebResponse.wrap());
+                        // ctx.res.write(`{"id":"chatcmpl-${i}","object":"chat.completion.chunk","created":1694268190,"model":"", "system_fingerprint": "fp_44709d6fcb", "choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}
+                        // `)
+                        // ctx.res.write("id: " + i + "\n");
+                        // ctx.res.write("event: message\n");
+                        // ctx.res.write("data: " + JSON.stringify({
+                        //     choices: [
+                        //         { delta: { content: responseBody.delta.text } }
+                        //     ]
+                        // }) + "\n\n");
+                    } else if (responseBody.type === "message_delta") {
+                        content = null;
+                        completion_tokens = responseBody.usage?.output_tokens;
+                        prompt_tokens = 0;
+                        finish_reason = responseBody.delta?.stop_reason;
+                    } else if (responseBody.type === "message_stop") {
+                        const {
+                            inputTokenCount, outputTokenCount,
+                            invocationLatency, firstByteLatency
+                        } = responseBody["amazon-bedrock-invocationMetrics"];
 
-                            const response: ResponseData = {
-                                text: responseText,
-                                input_tokens: inputTokenCount,
-                                output_tokens: outputTokenCount,
-                                invocation_latency: invocationLatency,
-                                first_byte_latency: firstByteLatency
-                            }
-
-                            await this.saveThread(ctx, session_id, chatRequest, response);
+                        const response: ResponseData = {
+                            text: responseText,
+                            input_tokens: inputTokenCount,
+                            output_tokens: outputTokenCount,
+                            invocation_latency: invocationLatency,
+                            first_byte_latency: firstByteLatency
                         }
-                        ctx.res.write("data:" + WebResponse.wrap(i, model, content, finish_reason) + "\n\n");
+
+                        await this.saveThread(ctx, session_id, chatRequest, response);
                     }
+                    ctx.res.write("data:" + WebResponse.wrap(i, model, content, finish_reason) + "\n\n");
                 }
-            } else {
-                ctx.res.write("data: " + JSON.stringify({
-                    index: i,
-                    choices: [
-                        { delta: { content: "Error invoking model" } }
-                    ]
-                }) + "\n\n");
             }
-
             ctx.res.write("data: [DONE]\n\n")
             ctx.res.end();
-
-        } catch (e: any) {
-            console.error(e);
-            ctx.res.write("id: " + (i + 1) + "\n");
-            ctx.res.write("event: message\n");
-            ctx.res.write("data: " + JSON.stringify({
-                choices: [
-                    { delta: { content: "Error invoking model" } }
-                ]
-            }) + "\n\n");
-            ctx.res.write("data: [DONE]\n\n")
-            ctx.res.end();
+        } else {
+            throw new Error("No response.");
         }
     }
 
     async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
-        try {
-            const command = new InvokeModelCommand(input);
-            const apiResponse = await this.client.send(command);
 
-            const decodedResponseBody = new TextDecoder().decode(apiResponse.body);
-
-            const responseBody = JSON.parse(decodedResponseBody);
-
-
-            const response: ResponseData = {
-                text: responseBody.content[0].text,
-                input_tokens: responseBody.usage.input_tokens,
-                output_tokens: responseBody.usage.output_tokens,
-                invocation_latency: 0,
-                first_byte_latency: 0
-            }
-
-            await this.saveThread(ctx, session_id, chatRequest, response);
-
-
-            // return responseBody;
-            const choices = responseBody.content.map((c: any) => {
-                return {
-                    message: {
-                        content: c.text,
-                        role: "assistant"
-                    }
-                }
-            });
-            return {
-                choices, usage: {
-                    completion_tokens: responseBody.usage.output_tokens,
-                    prompt_tokens: responseBody.usage.input_tokens,
-                    total_tokens: responseBody.usage.input_tokens + responseBody.usage.output_tokens,
-                }
-            };
-        } catch (e: any) {
-            return WebResponse.error(e.message);
+        const command = new InvokeModelCommand(input);
+        const apiResponse = await this.client.send(command);
+        const decodedResponseBody = new TextDecoder().decode(apiResponse.body);
+        const responseBody = JSON.parse(decodedResponseBody);
+        const response: ResponseData = {
+            text: responseBody.content[0].text,
+            input_tokens: responseBody.usage.input_tokens,
+            output_tokens: responseBody.usage.output_tokens,
+            invocation_latency: 0,
+            first_byte_latency: 0
         }
-
+        await this.saveThread(ctx, session_id, chatRequest, response);
+        const choices = responseBody.content.map((c: any) => {
+            return {
+                message: {
+                    content: c.text,
+                    role: "assistant"
+                }
+            }
+        });
+        return {
+            choices, usage: {
+                completion_tokens: responseBody.usage.output_tokens,
+                prompt_tokens: responseBody.usage.input_tokens,
+                total_tokens: responseBody.usage.input_tokens + responseBody.usage.output_tokens,
+            }
+        };
     }
 
 }

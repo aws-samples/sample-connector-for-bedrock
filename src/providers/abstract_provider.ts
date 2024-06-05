@@ -2,11 +2,16 @@ import { ChatRequest, ResponseData } from "../entity/chat_request";
 
 export default abstract class AbstractProvider {
     keyData: any;
+    modelData: any;
     constructor() {
     }
 
-    setkeyData(value: any) {
+    setKeyData(value: any) {
         this.keyData = value;
+    }
+
+    setModelData(value: any) {
+        this.modelData = value;
     }
 
     abstract chat(chatRequest: ChatRequest, session_id: string, ctx: any): void;
@@ -29,7 +34,7 @@ export default abstract class AbstractProvider {
             const session = await ctx.db.loadByKV("eiai_session", "key", session_id);
             const sessionData: any = {};
             if (!chatRequest.stream) { // in BRClient, no stream means summary session's title.
-                sessionData.title = response.text;
+                sessionData.title = response.text && response.text.slice(0, 30);
             }
 
             sessionData.total_in_tokens = session ? session.total_in_tokens + input_tokens : input_tokens;
