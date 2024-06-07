@@ -18,6 +18,10 @@ export default {
             keys.push("q");
         }
 
+        if (options.provider) {
+            keys.push("provider");
+        }
+
         const conditions: any = {
             // cols: "id, name, multiple, provider, config, created_at, updated_at",
             limit: limit,
@@ -31,6 +35,10 @@ export default {
                 params.push(`%${options.q}%`);
                 where += ` and (name like $${keyIndex + 1}`;
             }
+            if (key === "provider") {
+                params.push(`%${options.provider}%`);
+                where += ` and provider=$${keyIndex + 1}`;
+            }
         }
 
         conditions.where = where;
@@ -42,28 +50,20 @@ export default {
     },
 
     create: async (db: any, data: any) => {
-        const { name, config } = data;
-        if (!name) {
-            throw new Error("name is required");
-        }
+        const { name } = data;
         const existsEntity = await db.loadByKV("eiai_model", "name", name);
         if (existsEntity) {
             throw new Error(name + " already exists");
         }
-
-        return await db.insert("eiai_model", {
-            name,
-            config
-        }, ["id", "name", "config"]);
+        return await db.insert("eiai_model", data, ["id", "name"]);
 
     },
 
     async update(db: any, data: any) {
-        const { id, name, config } = data;
+        const { id, name } = data;
         if (!id) {
             throw new Error("id is required");
         }
-        const updateData: any = { id };
         if (name) {
             const existsEntity = await db.load("eiai_model", {
                 where: "name=$1 and id<>$2",
@@ -72,11 +72,9 @@ export default {
             if (existsEntity) {
                 throw new Error(name + " already exists");
             }
-            updateData.name = name;
         }
-        config && (updateData.config = config);
-        updateData.updated_at = new Date();
-        return await db.update("eiai_model", updateData, ["id", "name", "config", "updated_at"]);
+        data.updated_at = new Date();
+        return await db.update("eiai_model", data, ["id", "name", "config", "updated_at"]);
     },
 
     async delete(db: any, id: any) {

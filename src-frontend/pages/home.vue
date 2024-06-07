@@ -64,7 +64,10 @@ export default {
   created() {
     const host = localStorage.getItem("host");
     const key = localStorage.getItem("key");
-    localStorage.setItem("host", host);
+    const validHost = host && (host.indexOf("http://") ===0 || host.indexOf("https://") ===0);
+    if (!validHost) {
+      return false;
+    }
     this.$http.get(host + '/user/api-key/mine', null, key).then(res => {
       if (res.success) {
         this.my_info = res.data;

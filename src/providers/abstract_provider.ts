@@ -18,15 +18,14 @@ export default abstract class AbstractProvider {
 
     // save session to db
     async saveThread(ctx: any, session_id: string, chatRequest: ChatRequest, response: ResponseData) {
-
         // If db not set or use default admin user, will not save info.
         if (!this.keyData || ctx.user.id == -1) {
             return null;
         }
         const input_tokens = response.input_tokens;
         const output_tokens = response.output_tokens;
-        const fee_in = input_tokens * chatRequest.price_in;
-        const fee_out = output_tokens * chatRequest.price_out;
+        const fee_in = input_tokens * this.modelData.price_in;
+        const fee_out = output_tokens * this.modelData.price_out;
         const fee: number = fee_in + fee_out;
 
         let dbSessionId = 0;
@@ -65,8 +64,8 @@ export default abstract class AbstractProvider {
             session_key: session_id,
             tokens_in: input_tokens,
             tokens_out: output_tokens,
-            price_in: chatRequest.price_in,
-            price_out: chatRequest.price_out,
+            price_in: this.modelData.price_in,
+            price_out: this.modelData.price_out,
             fee,
             currency: chatRequest.currency,
             invocation_latency: response.invocation_latency,
@@ -95,14 +94,14 @@ export default abstract class AbstractProvider {
         } else {
             keyDataUpdate.month_fee = month_fee + fee; // Balance spending does not count as month_fee  
         }
-        await ctx.db.update("eiai_key", keyDataUpdate);
-
+        const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
+        ctx.user = keyDataUpdate;
+        this.keyData = keyResult;
         return {
             session_updated: session_id ? true : false,
             thread_updated: true,
             key_updated: true
         };
     }
-
 }
 

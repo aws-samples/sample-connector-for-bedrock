@@ -86,7 +86,7 @@ export default {
     get_data() {
       this.loading = true
       let { page, size } = this
-      this.$http.get('/admin/model/list', { limit: size, offset: (page - 1) * size }).then(res => {
+      this.$http.get('/admin/model/list', {provider:"bedrock-knowledge-base",  limit: size, offset: (page - 1) * size }).then(res => {
         let items = res.data.items
         items.map(item => {
           item.region = item.config.region

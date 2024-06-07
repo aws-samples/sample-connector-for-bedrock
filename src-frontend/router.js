@@ -40,13 +40,14 @@ const router = new VueRouter({
         {
           path: '/user/sessions',
           name: 'userSessions',
-          meta: { title: '话题列表', icon: Menu },
+          meta: { title: i18n.t("menu.session"), icon: Menu },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
+          hidden: false
         },
         {
           path: '/user/sessions/:session_id/threads',
           name: 'userThreads',
-          meta: { title: '对话列表', icon: Reader },
+          meta: { title: i18n.t("menu.thread"), icon: Reader },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
           hidden: true
         }
@@ -57,7 +58,6 @@ const router = new VueRouter({
       component: Layout,
       meta: { title: 'Admin', icon: Hammer },
       hidden: localStorage.getItem('role') != 'admin',
-      // hidden: (localStorage.getItem('role') == 'admin'),
       children: [
         {
           path: '/admin/keys',
@@ -70,20 +70,32 @@ const router = new VueRouter({
           path: '/admin/kbs',
           name: 'userKnowledgeBases',
           meta: { title: i18n.t("menu.bedrock_kb") },
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs'),
+          hidden: true
+        },
+        {
+          path: '/admin/model',
+          name: 'adminModel111',
+          meta: { title: i18n.t("menu.model") },
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/models')
+        },
+        {
+          path: '/admin/group',
+          name: 'adminGroup',
+          meta: { title: i18n.t("menu.group") },
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/groups')
         },
         {
           path: '/admin/sessions',
           name: 'adminSessions',
-          meta: { title: '话题列表' },
+          meta: { title: i18n.t("menu.session") },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
-          // hidden: localStorage.getItem('role') != 'admin',
-          // hidden: true,
+          hidden: true,
         },
         {
           path: '/admin/sessions/:session_id/threads',
           name: 'adminThreads',
-          meta: { title: '对话列表' },
+          meta: { title: i18n.t("menu.thread") },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
           hidden: true
         }

@@ -9,7 +9,7 @@ class GoupController extends AbstractController {
         router.post("/admin/group/save", this.save);
         router.post("/admin/group/bind-or-unbind-model", this.bindModel);
         router.post("/admin/group/delete", this.delete);
-        router.get("/admin/api-key/detail/:id", async (ctx: any) => {
+        router.get("/admin/group/detail/:id", async (ctx: any) => {
             return this.detail(ctx, "eiai_group");
         });
     }

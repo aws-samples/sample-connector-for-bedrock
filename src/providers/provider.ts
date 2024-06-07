@@ -20,14 +20,19 @@ class Provider {
     async chat(ctx: any) {
         let keyData = null;
         if (ctx.db) {
-            keyData = await api_key.loadById(ctx.db, ctx.user.id);
-            if (keyData) {
-                await this.checkFee(ctx, keyData);
+            if (ctx.user && ctx.user.id > 0) {
+                await this.checkFee(ctx, ctx.user);
             }
         }
         const chatRequest: ChatRequest = ctx.request.body;
         const session_id = ctx.headers["session-id"];
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
+        // console.log("----------", modelData);
+        const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
+        if (!canAccessModel) {
+            throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
+        }
+
         chatRequest.currency = modelData.config.currency || "USD";
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
@@ -36,7 +41,7 @@ class Provider {
             throw new Error("You need to configure the provider correctly.");
         }
         provider.setModelData(modelData);
-        provider.setKeyData(keyData);
+        provider.setKeyData(ctx.user);
 
         return provider.chat(chatRequest, session_id, ctx);
     }
@@ -59,6 +64,29 @@ class Provider {
         if (month_fee >= month_quota && balance <= 0) {
             throw new Error("Please recharge.")
         }
+    }
+
+    async checkModelAccess(ctx: any, key: any, model_id: number): Promise<boolean> {
+        const group_id = key.group_id;
+        const key_id = key.id;
+
+        //Check goup access
+        const existsGroup = await ctx.db.exists("eiai_group_model", {
+            where: "group_id=$1 and model_id=$2",
+            params: [group_id, model_id]
+        });
+
+        if (existsGroup) {
+            return true;
+        }
+
+        //Check personal access
+        const existsPersonal = await ctx.db.exists("eiai_key_model", {
+            where: "key_id=$1 and model_id=$2",
+            params: [key_id, model_id]
+        });
+
+        return existsPersonal;
     }
 }
 

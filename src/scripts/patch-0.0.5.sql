@@ -72,4 +72,8 @@ SELECT km.*, k.name key_name, m.name model_name, m.multiple, m.price_in, m.price
 LEFT JOIN eiai_key k ON km.key_id=k.id
 LEFT JOIN eiai_model m ON km.model_id=m.id;
 
+CREATE OR REPLACE VIEW eiai_v_key_group AS
+SELECT k.*, g.name group_name from eiai_key k
+LEFT JOIN eiai_group g ON k.group_id=g.id;
+
 

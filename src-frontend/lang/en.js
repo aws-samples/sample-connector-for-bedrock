@@ -4,7 +4,9 @@ export default {
     updated_at: 'Updated At',
     action: 'Action',
     edit: 'Edit',
-    new: 'New'
+    new: 'New',
+    detail: "Detail",
+    price_unit: 'M tokens'
   },
   login: {
     title: 'Sign in to BRConnector',
@@ -14,7 +16,11 @@ export default {
     dashboard: 'Dashboard',
     custom_model: 'Custom models',
     key: 'API Keys',
-    bedrock_kb: 'Bedrock Knowledge base'
+    bedrock_kb: 'Bedrock Knowledge base',
+    model: 'Models',
+    session: 'Sessions',
+    thread: 'Threads',
+    group: 'Group',
 
   },
   home: {
@@ -55,6 +61,8 @@ export default {
     btn_import: "Import",
     btn_recharge: "Recharge",
     btn_edit: "Edit",
+    btn_detail: "Detail",
+    btn_models: "Models",
 
     op_normal: 'Normal',
     op_admin: 'Admin',
@@ -68,6 +76,7 @@ export default {
     col_balance: 'Balance',
     col_month_fee: 'Month Fee',
     col_month_quota: 'Month Quota',
+    col_group: 'Group',
     col_action: 'Action',
   },
   knowledgebases: {
@@ -75,6 +84,19 @@ export default {
     knowledge_base_id: "KnowledgeBaseId",
     summary_model: "SummaryModel",
     region: "Region"
-
-  }
+  },
+  model: {
+    name: "Name",
+    multiple: "Multiple",
+    price_in: "Price-In",
+    price_out: "Price-Out",
+    provider: "Provider",
+    config: "Config"
+  },
+  group: {
+    name: "Name",
+    key: "Code",
+    btn_models: "Models",
+    title_set_models: "Set Models",
+  },
 }

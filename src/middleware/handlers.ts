@@ -45,12 +45,7 @@ const authHandler = async (ctx: any, next: any) => {
         if (!key) {
             throw new Error("Unauthorized: api key error");
         }
-        ctx.user = {
-            id: key.id,
-            api_key: key.api_key,
-            name: key.admin,
-            role: key.role
-        };
+        ctx.user = key;
     } else {
         // Anonymous access...
         ctx.logger.info("Fake api key, anonymous access...");

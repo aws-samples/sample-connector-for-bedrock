@@ -1,31 +1,28 @@
 import { Ollama } from 'ollama'
-
-
 import { ChatRequest, ResponseData } from "../entity/chat_request"
-
-import {
-    BedrockRuntimeClient,
-    InvokeModelCommand,
-    InvokeModelWithResponseStreamCommand,
-} from "@aws-sdk/client-bedrock-runtime";
-import config from '../config';
-import helper from "../util/helper";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
-import ChatMessageConverter from './chat_message'
 
 
 export default class OllamaAProvider extends AbstractProvider {
 
     client: Ollama;
-    chatMessageConverter: ChatMessageConverter;
+    // chatMessageConverter: ChatMessageConverter;
     constructor() {
         super();
-        this.client = new Ollama({ host: config.ollama.host});
-        this.chatMessageConverter = new ChatMessageConverter();
+        // this.chatMessageConverter = new ChatMessageConverter();
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
+        // console.log(this.modelData);
+        const { host, model } = this.modelData.config;
+        if (!host || !model) {
+            throw new Error("You must specify the parameters 'host' and 'model' in the backend model configuration.")
+        }
+        if (!this.client) {
+            this.client = new Ollama({ host });
+        }
+        chatRequest.model_id = model;
 
         //we only use chatRequest.messages as ollama  input 
         ctx.status = 200;
@@ -36,115 +33,101 @@ export default class OllamaAProvider extends AbstractProvider {
                 'Cache-Control': 'no-cache',
                 'Content-Type': 'text/event-stream',
             });
-           await this.chatStream(ctx,"", chatRequest, session_id);
-           
+            await this.chatStream(ctx, chatRequest, session_id);
         } else {
             ctx.set({
                 'Content-Type': 'application/json',
             });
-            ctx.body = await this.chatSync(ctx, "", chatRequest, session_id);
+            ctx.body = await this.chatSync(ctx, chatRequest, session_id);
         }
     }
 
-    async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+    async chatStream(ctx: any, chatRequest: ChatRequest, session_id: string) {
+        const options = {
+            "temperature": chatRequest.temperature || 1.0,
+            "top_p": chatRequest.top_p || 1.0,
+        };
+
+        // const messages = JSON.parse(JSON.stringify(chatRequest.messages))
+        const messages = chatRequest.messages;
+        const chatResponse = await this.client.chat({
+            model: chatRequest.model_id,
+            messages: messages,
+            stream: true,
+            options
+        })
+
+        let responseText = "";
         let i = 0;
-        try {
-            
-            const options = {
-                "temperature": chatRequest.temperature || 1.0,
-                "top_p": chatRequest.top_p || 1.0,
-            };
+        for await (const part of chatResponse) {
+            // console.log(part);
+            const content = part.message?.content || '';
+            responseText += content;
+            i++;
+            if (part.done) {
+                const {
+                    total_duration, load_duration,
+                    prompt_eval_count, prompt_eval_duration,
+                    eval_count, eval_duration,
+                } = part;
 
-            const messages = JSON.parse(JSON.stringify(chatRequest.messages))
-            const chatResponse=await this.client.chat({
-                model: chatRequest.model_id,
-                messages:messages,
-                stream: true,
-                options
-            })
-
-            //TODO: I can't found how to get ollama streaming input_tokens  , part.prompt_eval_count always undefined
-            let input_tokens=0
-            let output_tokens=0
-
-            for await (const part of chatResponse) {
-
-                if (part.eval_count){
-                    output_tokens=part.eval_count
+                const response: ResponseData = {
+                    text: responseText,
+                    input_tokens: prompt_eval_count,
+                    output_tokens: eval_count,
+                    invocation_latency: Math.round(total_duration / 1e6) || 0,
+                    first_byte_latency: Math.round(load_duration / 1e6) || 0,
                 }
-                //ctx.res.write("id: " + i + "\n");
-                //ctx.res.write("event: message\n");
-                ctx.res.write("data: " + JSON.stringify({
-                    choices: [
-                        { delta: { content: part.message.content } }
-                    ]
-                }) + "\n\n");
-
-              }
-
-              
-              const response: ResponseData = {
-                text: "",
-                input_tokens,
-                output_tokens,
-                invocation_latency: 0,
-                first_byte_latency: 0
+                await this.saveThread(ctx, session_id, chatRequest, response);
+            } else {
+                ctx.res.write("data:" + WebResponse.wrap(i, chatRequest.model_id, content, null) + "\n\n");
             }
 
-            
-
-            await this.saveThread(ctx, session_id, chatRequest, response);
-         
-
-        } catch (e: any) {
-            console.error(e);
-            //ctx.res.write("id: " + (i + 1) + "\n");
-            //ctx.res.write("event: message\n");
-            ctx.res.write("data: " + JSON.stringify({
-                choices: [
-                    { delta: { content: "Error invoking model" } }
-                ]
-            }) + "\n\n");
         }
-
-        //ctx.res.write("id: " + (i + 1) + "\n");
-        //ctx.res.write("event: message\n");
         ctx.res.write("data: [DONE]\n\n")
         ctx.res.end();
+
     }
 
-    async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
-        try {
+    async chatSync(ctx: any, chatRequest: ChatRequest, session_id: string) {
+        const messages = JSON.parse(JSON.stringify(chatRequest.messages));
+        const chatResponse = await this.client.chat({
+            model: chatRequest.model_id,
+            messages: messages
+        });
+        // console.log("xxxxxxxxxxxxxxx", chatResponse);
 
-            const messages = JSON.parse(JSON.stringify(chatRequest.messages))
-            const chatResponse=await this.client.chat({
-                model: chatRequest.model_id,
-                messages:messages
-                
-            })
+        const {
+            total_duration, load_duration,
+            prompt_eval_count, prompt_eval_duration,
+            eval_count, eval_duration,
+        } = chatResponse;
 
-            
-            const response: ResponseData = {
-                text: JSON.stringify(chatResponse.message),
-                input_tokens: chatResponse.prompt_eval_count,
-                output_tokens: chatResponse.eval_count,
-                invocation_latency: 0,
-                first_byte_latency: 0
-            }
+        // console.log(chatResponse);
 
-        
+        const content = chatResponse.message?.content || "";
 
-            await this.saveThread(ctx, session_id, chatRequest, response);
-            return {
-                choices:chatResponse.message, usage: {
-                    completion_tokens: chatResponse.eval_count,
-                    prompt_tokens: chatResponse.prompt_eval_count,
-                    total_tokens: chatResponse.eval_count+chatResponse.prompt_eval_count,
-                }
-            };
-        } catch (e: any) {
-            return WebResponse.error(e.message);
+        const response: ResponseData = {
+            text: content,
+            input_tokens: prompt_eval_count,
+            output_tokens: eval_count,
+            invocation_latency: Math.round(total_duration / 1e6) || 0,
+            first_byte_latency: Math.round(load_duration / 1e6) || 0,
         }
+
+        await this.saveThread(ctx, session_id, chatRequest, response);
+        return {
+            choices: [{
+                message: {
+                    content,
+                    role: "assistant"
+                }
+            }], usage: {
+                completion_tokens: eval_count,
+                prompt_tokens: prompt_eval_count,
+                total_tokens: eval_count + prompt_eval_count,
+            }
+        };
 
     }
 

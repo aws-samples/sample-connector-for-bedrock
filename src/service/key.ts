@@ -50,8 +50,8 @@ export default {
 
         conditions.where = where;
         conditions.params = params;
-        const items = await db.list("eiai_key", conditions);
-        const total = ~~await db.count("eiai_key", conditions);
+        const items = await db.list("eiai_v_key_group", conditions);
+        const total = ~~await db.count("eiai_v_key_group", conditions);
 
         return { items, total, limit, offset };
     },

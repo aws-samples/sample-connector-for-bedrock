@@ -5,7 +5,7 @@
       <Button @click="add">{{ $t('keys.btn_new') }}</Button>
       <Button @click="imports">{{ $t('keys.btn_import') }}</Button>
     </Space>
-    <Table :data="items" :columns="columns" :loading="loading">
+    <Table :data="items" :columns="columns" :loading="loading" :width="1900">
       <template v-slot:api_key="c, row">
         <Space>
           {{ format_key(row) }}
@@ -18,11 +18,12 @@
         <Space>
           <Button size="small" @click="recharge(row)">{{ $t('keys.btn_recharge') }}</Button>
           <Button size="small" @click="edit(row)">{{ $t('keys.btn_edit') }}</Button>
+          <Button size="small" @click="listModels(row)">{{ $t('keys.btn_models') }}</Button>
         </Space>
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
-    <Modal :title="title" v-model="show" @ok="save" :loading="saving">
+    <Drawer :title="title" v-model="show" @ok="save" :loading="saving">
       <Form :model="form" :rules="rules" layout="vertical" ref="form" theme="light">
         <FormItem :label="this.$t('keys.col_name')" prop="name">
           <Input placeholder="Name" :readonly="action == 'recharge'" />
@@ -36,6 +37,10 @@
             <Option value="admin" :label="$t('keys.op_admin')" />
           </Select>
         </FormItem>
+        <FormItem :label="this.$t('keys.col_group')" prop="group_id" v-if="action != 'recharge'">
+          <Select :width="200" :options="groups" v-model="form.group_id">
+          </Select>
+        </FormItem>
         <FormItem :label="this.$t('keys.btn_recharge')" prop="balance" v-if="action == 'recharge'">
           <Input placeholder="Balance" />
         </FormItem>
@@ -43,7 +48,11 @@
           <Input />
         </FormItem>
       </Form>
-    </Modal>
+    </Drawer>
+    
+    <Drawer :title="title" v-model="modelsShown" @ok="modelsShown=false" :loading="saving">
+      <CheckboxGroup :options="models" v-model="checked_models" @change="setModel"/>
+    </Drawer>
   </div>
 </template>
 <script>
@@ -56,21 +65,23 @@ export default {
       items: [],
       title: '',
       columns: [
-        { key: 'name', title: this.$t('keys.col_name') },
-        { key: 'api_key', title: this.$t('keys.col_key') },
+        { key: 'name', title: this.$t('keys.col_name') ,fixed: "left"  },
+        { key: 'api_key', title: this.$t('keys.col_key'),fixed: "left" },
         { key: 'email', title: this.$t('keys.col_email') },
         { key: 'role', title: this.$t('keys.col_role') },
+        { key: 'group_name', title: this.$t('keys.col_group') },
         { key: 'total_fee', title: this.$t('keys.col_total_fee') },
         { key: 'balance', title: this.$t('keys.col_balance') },
         { key: 'month_fee', title: this.$t('keys.col_month_fee') },
         { key: 'month_quota', title: this.$t('keys.col_month_quota') },
         // { key: 'created_at', title: 'Date' },
-        { key: 'action', title: this.$t('keys.col_action') },
+        { key: 'action', title: this.$t('keys.col_action') ,fixed: "right", width: 200 },
       ],
-      form: { name: '', email: '', role: 'user', month_quota: '', balance: 0 },
+      form: { name: '', email: '', role: 'user', month_quota: 0, balance: 0 , group_id: 0},
       rules: {
         name: [{ required: true, message: 'Please input name...' }],
       },
+      groups:[],
       action: "add",
       show: false,
       page: 1,
@@ -78,6 +89,10 @@ export default {
       total: 0,
       loading: false,
       saving: false,
+      modelsShown: false,
+      models:[],
+      checked_models:[],
+      current_key_id: 0,
     }
   },
   mounted() {
@@ -101,9 +116,28 @@ export default {
       this.page = page
       this.get_data()
     },
+    listModels(row) {
+      this.current_key_id = row.id;
+      this.title = this.$t('group.title_set_models');
+      this.$http.get('/admin/api-key/list-model', {key_id:this.current_key_id,  limit: 1000, offset:0}).then(res => {
+        let items = res.data.items;
+        this.checked_models = items.map(it=>it.model_id);
+        this.modelsShown = true;
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+    setModel(e) {
+      const model_id = e.value;
+      this.$http.post("/admin/api-key/bind-or-unbind-model", {key_id:this.current_key_id, model_id}).then(res => {
+        this.$Message.success("Save successfuly.")
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
     get_data() {
-      this.loading = true
-      let { page, size } = this
+      this.loading = true;
+      let { page, size } = this;
       this.$http.get('/admin/api-key/list', { limit: size, offset: (page - 1) * size }).then(res => {
         let items = res.data.items
         items.map(item => {
@@ -117,7 +151,25 @@ export default {
         this.items = items
       }).finally(() => {
         this.loading = false
-      })
+      });
+      this.$http.get('/admin/model/list', { limit: 1000, offset:0}).then(res => {
+        let items = res.data.items;
+        this.models = items.map(it=>({
+          label: it.name,
+          value: it.id
+        }));
+      }).finally(() => {
+        this.loading = false;
+      });
+      this.$http.get('/admin/group/list', { limit: 1000, offset:0}).then(res => {
+        let items = res.data.items;
+        this.groups = items.map(it=>({
+          label: it.name,
+          value: it.id
+        }));
+      }).finally(() => {
+        this.loading = false;
+      });
     },
     edit(row) {
       this.form = {...row}
@@ -140,7 +192,7 @@ export default {
       this.form.role = 'user'
       this.$nextTick(() => {
         this.$refs.form.reset()
-      })
+      });
     },
     save() {
       this.$refs.form.validate(v => {
@@ -167,7 +219,6 @@ export default {
           })
         }
       })
-
     }
   }
 }

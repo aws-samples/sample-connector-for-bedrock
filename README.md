@@ -1,6 +1,6 @@
 # Sample Connector for Bedrock
 
-This is a bedrock API forwarding tool sample that can issue virtual keys, log chats, and manage costs.
+This is a bedrock API forwarding tool that can issue virtual keys, log chats, and manage costs.
 
 It is compatible with any OPENAI client that can define Host and API Key.
 
@@ -33,9 +33,68 @@ It is compatible with any OPENAI client that can define Host and API Key.
 - Calculate the overall cost.
 
 > [!IMPORTANT]  
+> You can customize the pricing for your model.
 > The cost calculation of this project cannot serve as the billing basis for AWS. Please refer to the AWS bill for actual charges.
 
-## Change Logs
+![api key](docs/screenshots/api-key.png)
+
+### Model Access Control
+
+- Models can be bound to Groups.
+
+- Models can be bound to API keys.
+
+![models bind](docs/screenshots/models-bind.png)
+
+
+## Providers
+
+This connector provides a series of providers for model support, and you can configure them by writing JSON in the admin backend.
+
+![Model config](docs/screenshots/model-config-1.png)
+
+
+### bedrock-claude3
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| model_id  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)|
+| anthropic_version  | string   | Y    |  |  Version  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   If you specify multiple regions, then one of them will be randomly selected for each call.  |
+
+
+
+### bedrock-mistral
+
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| model_id  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   If you specify multiple regions, then one of them will be randomly selected for each call.  |
+
+
+### bedrock-llama3
+
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| model_id  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   If you specify multiple regions, then one of them will be randomly selected for each call.  |
+
+### bedrock-bedrock-knowledge-base
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| knowledgeBaseId  | string   | Y    |  | The Bedrock knowledge base id   |
+| summaryModel  | string   | Y    |  |  choices:   claude-3-sonnet, claude-3-haiku, claude-3-opus   |
+| region  | string   | Y     | |  The region of you Bedrock kb instance. |
+
+### ollama
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| host  | string   | Y    |  |   Ollama's host address  |
+| model | string   | Y    |  |   Model id. See [Ollama doc](https://ollama.com/library) |
 
 ## Deployment
 
