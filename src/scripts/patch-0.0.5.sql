@@ -62,13 +62,13 @@ CREATE TABLE IF NOT EXISTS eiai_group_model (
 
 
 CREATE OR REPLACE VIEW eiai_v_group_model AS
-SELECT gm.*, g.name group_name, m.name model_name, m.multiple, m.price_in, m.price_out, m.provider from eiai_group_model gm 
+SELECT gm.*, g.name group_name, m.name model_name, m.multiple, m.price_in, m.price_out, m.provider, m.config from eiai_group_model gm 
 LEFT JOIN eiai_group g ON gm.group_id=g.id
 LEFT JOIN eiai_model m ON gm.model_id=m.id;
 
 
 CREATE OR REPLACE VIEW eiai_v_key_model AS
-SELECT km.*, k.name key_name, m.name model_name, m.multiple, m.price_in, m.price_out, m.provider from eiai_key_model km
+SELECT km.*, k.name key_name, m.name model_name, m.multiple, m.price_in, m.price_out, m.provider, m.config from eiai_key_model km
 LEFT JOIN eiai_key k ON km.key_id=k.id
 LEFT JOIN eiai_model m ON km.model_id=m.id;
 
