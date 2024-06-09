@@ -2,6 +2,16 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   AWS CloudFormation template for bootstraps ec2 instance and cloudfront
   refer: https://github.com/aws-samples/sample-connector-for-bedrock
+Metadata:
+  LICENSE: MIT-0 License
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Parameters:
+          - VpcId
+          - SubnetId
+          - EC2InstanceType
+          - EC2InstanceAMI
+          - PGPassword
 
 Parameters:
   VpcId:
