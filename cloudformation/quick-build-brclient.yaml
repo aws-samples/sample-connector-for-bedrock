@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  AWS CloudFormation template for bootstraps ec2 instance and cloudfront
+  refer: https://github.com/aws-samples/sample-connector-for-bedrock
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: select VPC which has public subnets
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: select one public subnet
+
+  EC2InstanceType:
+    Description: EC2 instance type
+    Type: String
+    AllowedValues:
+      - t3.small
+      - t3.medium
+      - m5.large
+    ConstraintDescription: Must be a valid instance type
+    Default: t3.medium
+  EC2InstanceAMI:
+    Description: EC2 instance AMI
+    Type: String
+    AllowedValues:
+      - amzn2-ami-hvm-x86_64-gp2
+    Default: amzn2-ami-hvm-x86_64-gp2
+
+  PGPassword:
+    Description: postgress default password
+    Type: String
+    Default: mysecretpassword
+
+Resources:
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      # - arn:aws:iam::aws:policy/AdministratorAccess
+      - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+      - PolicyName: MyInlinePolicy-bedrock
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Sid: InvokeModel
+            Action:
+            - 'bedrock:InvokeModelWithResponseStream'
+            - 'bedrock:InvokeModel'
+            Resource: 'arn:aws:bedrock:*::foundation-model/*'
+          - Effect: Allow
+            Sid: ListFM
+            Action:
+            - 'bedrock:ListFoundationModels'
+            Resource: '*'
+      - PolicyName: MyInlinePolicy-ssm-parameter
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Sid: SSMPutParameter
+            Action:
+            - 'ssm:PutParameter'
+            - 'ssm:GetParameter'
+            - 'ssm:GetParameters'
+            Resource: 'arn:aws:ssm:*:*:parameter/*'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: EC2Role
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP and SSH
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8866
+          ToPort: 8866
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VpcId
+
+  MyEC2Instance:
+    DependsOn: 
+    - MySSMParameterFirstUserKey 
+    - MySSMParameterAdminKey
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: 
+        Ref: EC2InstanceType
+      ImageId: 
+        Fn::Join:
+        - ''
+        - - resolve:ssm:/aws/service/ami-amazon-linux-latest/
+          - Ref: EC2InstanceAMI
+      KeyName: !Ref "AWS::NoValue"
+      IamInstanceProfile: 
+        Ref: EC2InstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref InstanceSecurityGroup
+          SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: !Join ["", ["BRConnectorInstance-", !Ref AWS::StackName]]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # install packages
+          yum install -y aws-cfn-bootstrap docker jq
+          systemctl restart docker
+          systemctl enable docker
+          # save default settings 
+          export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
+          export KEY=$(uuidgen |tee /root/admin-api-key.txt)
+          # start postgress container
+          docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=$PGPWD -p 5432:5432 -d postgres
+          sleep 10; echo "CREATE DATABASE brconnector_db;" |docker exec -i postgres psql -U postgres 
+          # start brconnector container
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=172.17.0.1 -e PGSQL_DATABASE=brconnector_db -e PGSQL_USER=postgres -e PGSQL_PASSWORD=$PGPWD -e ADMIN_API_KEY=$KEY -d cloudbeer/sample-connector-for-bedrock
+          # create first user
+          sleep 10;
+          curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
+          # list users
+          curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
+          USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
+          aws ssm put-parameter --name  /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite --region ${AWS::Region}
+          aws ssm put-parameter --name  /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite --region ${AWS::Region}
+          # add health check script to root's crontab
+          cat >/root/healthcheck.sh <<-EOF
+          #!/bin/bash
+          CURRENT=$(date +%Y%m%d-%H%M%S)
+          STAT=$(curl -sL -w '%{http_code}' -o /dev/null "http://localhost:8866")
+          if [[ $STAT -ne 200 ]]; then
+            docker restart brconnector
+            echo "restart brconnector at $CURRENT"
+          fi
+          EOF
+          chmod a+x /root/healthcheck.sh
+          crontab -e 
+          (/usr/bin/crontab -l && echo "*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1") | /usr/bin/crontab -
+          # /opt/aws/bin/cfn-signal -e $? -v --stack ${AWS::StackId} --resource MyEC2Instance --region ${AWS::Region}
+
+
+  MyCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt MyEC2Instance.PublicDnsName
+            Id: myEC2Origin
+            CustomOriginConfig:
+              HTTPPort: '8866'
+              OriginProtocolPolicy: http-only
+        Enabled: 'true'
+        Comment: CloudFront distribution in front of EC2
+        # ViewerProtocolPolicy: https-only
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
+          TargetOriginId: myEC2Origin
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # Disable caching https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policy-caching-disabled
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3 # Allow all HTTP methods https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer
+          # ForwardedValues:
+          #   QueryString: 'false'
+          #   Cookies:
+          #     Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: 'true'
+
+  MySSMParameterFirstUserKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Join ["", ["/brconnector/first-user-key-", !Ref AWS::StackName]]
+      Type: String
+      Value: Hello World
+      Description: A parameter created by CloudFormation and updated by ec2
+      Tier: Standard
+      DataType: text
+
+  MySSMParameterAdminKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Join ["", ["/brconnector/admin-key-", !Ref AWS::StackName]]
+      Type: String
+      Value: Hello World
+      Description: A parameter created by CloudFormation and updated by ec2
+      Tier: Standard
+      DataType: text
+
+
+Outputs:
+  CloudFrontURL:
+    Description: CloudFront URL
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - MyCloudFrontDistribution
+          - DomainName
+  EC2InstanceId:
+    Description: The ID of the EC2 instance
+    Value: !Ref MyEC2Instance
+  MySSMParameterFirstUserKey:
+    Description: first user key
+    Value: !GetAtt MySSMParameterFirstUserKey.Value
+  MySSMParameterAdminKey:
+    Description: admin key
+    Value: !GetAtt MySSMParameterAdminKey.Value
+
+
