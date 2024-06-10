@@ -89,6 +89,16 @@ Resources:
             - 'ssm:GetParameter'
             - 'ssm:GetParameters'
             Resource: 'arn:aws:ssm:*:*:parameter/*'
+      # - PolicyName: MyInlinePolicy-cfn-signal
+      #   PolicyDocument:
+      #     Version: '2012-10-17'
+      #     Statement:
+      #     - Effect: Allow
+      #       Action: 'cloudformation:SignalResource'
+      #       Resource: '*'
+      #     - Effect: Allow
+      #       Action: 's3:*'
+      #       Resource: '*'
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -134,11 +144,17 @@ Resources:
           GroupSet:
             - !Ref InstanceSecurityGroup
           SubnetId: !Ref SubnetId
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp2
+            DeleteOnTermination: true
       Tags:
         - Key: Name
           Value: !Join ["", ["BRConnectorInstance-", !Ref AWS::StackName]]
       UserData:
-        Fn::Base64: !Sub |
+        Fn::Base64: !Sub |-
           #!/bin/bash -xe
           # install packages
           yum install -y aws-cfn-bootstrap docker jq
@@ -158,8 +174,8 @@ Resources:
           # list users
           curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
           USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
-          aws ssm put-parameter --name  /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite --region ${AWS::Region}
-          aws ssm put-parameter --name  /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite --region ${AWS::Region}
+          aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite --region ${AWS::Region}
+          aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite --region ${AWS::Region}
           # add health check script to root's crontab
           cat >/root/healthcheck.sh <<-EOF
           #!/bin/bash
@@ -171,9 +187,19 @@ Resources:
           fi
           EOF
           chmod a+x /root/healthcheck.sh
-          (/usr/bin/crontab -l && echo "*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1") | /usr/bin/crontab -
-          # /opt/aws/bin/cfn-signal -e $? -v --stack ${AWS::StackId} --resource MyEC2Instance --region ${AWS::Region}
+          echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' | /usr/bin/crontab -
+          /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
+  
+  PrivateWaitHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
 
+  PrivateWaitCondition:
+    DependsOn: MyEC2Instance
+    Type: AWS::CloudFormation::WaitCondition
+    Properties:
+      Handle: !Ref PrivateWaitHandle
+      Timeout: '300'
+      Count: 1
 
   MyCloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
