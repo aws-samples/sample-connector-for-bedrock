@@ -100,7 +100,7 @@ This connector provides a series of providers for model support, and you can con
 
 Although this project is in rapic iterating, we still provide a relative easy way to deploy.
 
-Please follow these steps to deploy:
+Using [Cloudformation template](./cloudformation/README.md) to deploy or follow these steps to deploy:
 
 ### 1. Prepare a server to host the connector
 
@@ -155,7 +155,7 @@ docker run --name brconnector \
  -e PGSQL_USER=postgres \
  -e PGSQL_PASSWORD=mysecretpassword \
  -e ADMIN_API_KEY=br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
- -d cloudbeer/sample-connector-for-bedrock:0.0.4
+ -d cloudbeer/sample-connector-for-bedrock
 ```
 
 ### 4. Test the connector server
