@@ -85,12 +85,21 @@ You can deploy native model with Ollama, This provider can adapt to the API of O
 
 
 
+### bedrock-bedrock-knowledge-base
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| knowledgeBaseId  | string   | Y    |  | The Bedrock knowledge base id   |
+| summaryModel  | string   | Y    |  |  choices:   claude-3-sonnet, claude-3-haiku, claude-3-opus   |
+| region  | string   | Y     | |  The region of you Bedrock kb instance. |
+
+
 
 ### bedrock-claude3
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
-| model_id  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)|
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)|
 | anthropic_version  | string   | N    | bedrock-2023-05-31  |  Version, must be "bedrock-2023-05-31"  |
 | regions  | string[] or string   | N     | ["us-east-1"] |  |
 
@@ -101,8 +110,8 @@ You can deploy native model with Ollama, This provider can adapt to the API of O
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
-| model_id  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
-| regions  | string[] or string   | N     | ["us-east-1"] |   If you specify multiple regions, then one of them will be randomly selected for each call.  |
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |    |
 
 
 ### bedrock-llama3
@@ -110,17 +119,8 @@ You can deploy native model with Ollama, This provider can adapt to the API of O
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
-| model_id  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
-| regions  | string[] or string   | N     | ["us-east-1"] |   If you specify multiple regions, then one of them will be randomly selected for each call.  |
-
-### bedrock-bedrock-knowledge-base
-
-| Key     | Type      | Required     | Default value | Description |
-| ------------- | -------| ------------- | ------------- | ------------- |
-| knowledgeBaseId  | string   | Y    |  | The Bedrock knowledge base id   |
-| summaryModel  | string   | Y    |  |  choices:   claude-3-sonnet, claude-3-haiku, claude-3-opus   |
-| region  | string   | Y     | |  The region of you Bedrock kb instance. |
-
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   |
 
 ## Deployment
 
