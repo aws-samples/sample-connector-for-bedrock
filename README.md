@@ -37,7 +37,8 @@ It is compatible with any OPENAI client that can define Host and API Key.
 - Calculate the overall cost.
 
 > [!IMPORTANT]  
-> You can customize the pricing for your model. [Please refer to the official website for the Bedrock pricing](https://aws.amazon.com/bedrock/pricing)
+> You can customize the pricing for your model. [Please refer to the official website for the Bedrock pricing](https://aws.amazon.com/bedrock/pricing).
+>
 > The cost calculation of this project cannot serve as the billing basis for AWS. Please refer to the AWS bill for actual charges.
 
 ![api key](docs/screenshots/api-key.png)
