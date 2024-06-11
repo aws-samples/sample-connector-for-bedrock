@@ -40,9 +40,28 @@ const helper = {
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any): Promise<ModelData> => {
         if (ctx.db) {
-            return await modelService.loadByName(ctx.db, chatRequest.model);
+            const rtn = await modelService.loadByName(ctx.db, chatRequest.model);
+            if (!rtn) {
+                throw new Error(`The model [${chatRequest.model}] is not found. You may refresh to get new models.`);
+            }
+            return rtn;
         }
         return helper.getModelDataWithoutDB(chatRequest.model);
+    },
+    convertImageExt: (mime?: string) => {
+        if (mime.indexOf('image/jpeg') >= 0 || mime.indexOf('image/jpg') >= 0) {
+            return 'jpeg';
+        }
+        if (mime.indexOf('image/png') >= 0) {
+            return 'png';
+        }
+        if (mime.indexOf('image/gif') >= 0) {
+            return 'gif';
+        }
+        if (mime.indexOf('image/webp') >= 0) {
+            return 'webp';
+        }
+        return 'jpeg';
     },
     getModelDataWithoutDB: (model?: string): ModelData => {
         switch (model) {

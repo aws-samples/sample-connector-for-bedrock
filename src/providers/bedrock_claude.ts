@@ -21,10 +21,10 @@ export default class BedrockClaude extends AbstractProvider {
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-        const anthropic_version = this.modelData.config && this.modelData.config.anthropic_version;
-        const model_id = this.modelData.config && this.modelData.config.model_id;
-        if (!model_id || !anthropic_version) {
-            throw new Error("You must specify the parameters 'model_id' and 'anthropic_version' in the backend model configuration.")
+        const anthropic_version = this.modelData.config?.anthropic_version || "bedrock-2023-05-31";
+        const modelId = this.modelData.config && (this.modelData.config.model_id || this.modelData.config.modelId);
+        if (!modelId) {
+            throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
 
         let regions: any = this.modelData.config && this.modelData.config.regions;
@@ -48,7 +48,7 @@ export default class BedrockClaude extends AbstractProvider {
             body: JSON.stringify(body),
             contentType: "application/json",
             accept: "application/json",
-            modelId: model_id,
+            modelId,
         };
 
         ctx.status = 200;

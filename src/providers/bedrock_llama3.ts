@@ -23,9 +23,9 @@ export default class BedrockLlama3 extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
 
-        const model_id = this.modelData.config && this.modelData.config.model_id;
-        if (!model_id) {
-            throw new Error("You must specify the parameters 'model_id' in the backend model configuration.")
+        const modelId = this.modelData.config && (this.modelData.config.model_id || this.modelData.config.modelId);
+        if (!modelId) {
+            throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
 
         const regions: [string] = this.modelData.config && this.modelData.config.regions || ["us-east-1"];
@@ -36,12 +36,17 @@ export default class BedrockLlama3 extends AbstractProvider {
         this.client = new BedrockRuntimeClient({ region: helper.selectRandomRegion(regions) });
 
         const prompt = await this.chatMessageConverter.toLlama3Payload(chatRequest);
+        let max_gen_len = chatRequest.max_tokens || 2048;
+        if (max_gen_len > 2048) {
+            max_gen_len = 2048;
+        }
+
 
         const body: any = {
-            "max_gen_len": chatRequest.max_tokens || 2048,
+            max_gen_len,
             prompt,
-            "temperature": chatRequest.temperature || 1.0,
-            "top_p": chatRequest.top_p || 1.0,
+            temperature: chatRequest.temperature || 1.0,
+            top_p: chatRequest.top_p || 1.0,
         };
 
         // ctx.logger.debug(body);
@@ -50,7 +55,7 @@ export default class BedrockLlama3 extends AbstractProvider {
             body: JSON.stringify(body),
             contentType: "application/json",
             accept: "application/json",
-            modelId: model_id
+            modelId
         };
 
         ctx.status = 200;

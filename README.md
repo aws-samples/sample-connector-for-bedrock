@@ -6,22 +6,26 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ## Key Features
 
-### Models Support
+### Models/Platform Support
 
-- Bedrock Knowledge base. See [Instruction](docs/bedrock-knowledge-base.md).
+- Amazon Bedrock Converse API [Not released to Docker image yet.]
 
-- Mistral, model name options:
+- Ollama [Since Docker image version 0.0.5]
+
+- Bedrock Knowledge base. See [Instruction](docs/bedrock-knowledge-base.md). [Since Docker image version 0.0.4]
+
+- Mistral, model name options: [Since Docker image version 0.0.2]
   - mistral-7b
   - mistral-large
   - mistral-8x7b
   - mistral-small (region: us-east-1)
 
-- Claude 3, model name options:
+- Claude 3, model name options: [Since Docker image version 0.0.1]
   - claude-3-sonnet (this is the default model)
   - claude-3-haiku
   - claude-3-opus
 
-- LLama 3, model name options:
+- LLama 3, model name options: [Since Docker image version 0.0.1]
   - llama3-8b
   - llama3-70b
 
@@ -33,12 +37,14 @@ It is compatible with any OPENAI client that can define Host and API Key.
 - Calculate the overall cost.
 
 > [!IMPORTANT]  
-> You can customize the pricing for your model.
+> You can customize the pricing for your model. [Please refer to the official website for the Bedrock pricing](https://aws.amazon.com/bedrock/pricing)
 > The cost calculation of this project cannot serve as the billing basis for AWS. Please refer to the AWS bill for actual charges.
 
 ![api key](docs/screenshots/api-key.png)
 
 ### Model Access Control
+
+ [Since Docker image version 0.0.5]
 
 - Models can be bound to Groups.
 
@@ -53,14 +59,40 @@ This connector provides a series of providers for model support, and you can con
 
 ![Model config](docs/screenshots/model-config-1.png)
 
+### bedrock-converse
+
+> Since Docker image version 0.0.6
+
+Invoke model via Amazon Bedrock Converse API. You can config all supported models with this provider. 
+ 
+[This page](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) explains how to use Bedrock Converse API, and what features it supports.
+
+It is recommended to use this provider, which can uniformly configure Bedrock models and support function calling.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
+
+### ollama
+
+You can deploy native model with Ollama, This provider can adapt to the API of Ollama.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| host  | string   | Y    |  |   Ollama's host address  |
+| model | string   | Y    |  |   Model id. See [Ollama doc](https://ollama.com/library) |
+
+
+
 
 ### bedrock-claude3
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
 | model_id  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)|
-| anthropic_version  | string   | Y    |  |  Version  |
-| regions  | string[] or string   | N     | ["us-east-1"] |   If you specify multiple regions, then one of them will be randomly selected for each call.  |
+| anthropic_version  | string   | N    | bedrock-2023-05-31  |  Version, must be "bedrock-2023-05-31"  |
+| regions  | string[] or string   | N     | ["us-east-1"] |  |
 
 
 
@@ -89,12 +121,6 @@ This connector provides a series of providers for model support, and you can con
 | summaryModel  | string   | Y    |  |  choices:   claude-3-sonnet, claude-3-haiku, claude-3-opus   |
 | region  | string   | Y     | |  The region of you Bedrock kb instance. |
 
-### ollama
-
-| Key     | Type      | Required     | Default value | Description |
-| ------------- | -------| ------------- | ------------- | ------------- |
-| host  | string   | Y    |  |   Ollama's host address  |
-| model | string   | Y    |  |   Model id. See [Ollama doc](https://ollama.com/library) |
 
 ## Deployment
 

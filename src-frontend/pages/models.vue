@@ -72,7 +72,7 @@ export default {
         { key: 'price_out', title: this.$t('model.price_out') },
         { key: 'action', title: this.$t('keys.col_action') },
       ],
-      form: { name: '', provider: '', multiple: 0, config: '', price_in: 0, price_out: 0},
+      form: { name: '', provider: '', multiple: 0, config: '', price_in: 0, price_out: 0, id: 0},
       rules: {
         name: [{ required: true }],
         provider: [{ required: true }]
@@ -131,6 +131,7 @@ export default {
       this.action = 'new'
       this.title = this.$t('common.new')
       this.show = true;
+      this.form.id=0;
       setTimeout(() => this.$refs.form.reset(), 10);
     },
     detail(row) {

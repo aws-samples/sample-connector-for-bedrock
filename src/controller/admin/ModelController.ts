@@ -20,7 +20,8 @@ class ModelController extends AbstractController {
             "bedrock-mistral",
             "bedrock-llama3",
             "bedrock-knowledge-base",
-            "ollama"
+            "ollama",
+            "bedrock-converse"
         ];
         return super.ok(ctx, result);
     }
@@ -31,6 +32,8 @@ class ModelController extends AbstractController {
         let { id, name, multiple, config, provider,
             price_in,
             price_out, } = data;
+
+        config = config || {};
 
         if (price_in) {
             price_in = parseFloat(price_in) / 1e6;

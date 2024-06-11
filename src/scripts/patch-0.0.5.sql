@@ -33,17 +33,17 @@ VALUES ('claude-3-haiku', 1, 'bedrock-claude3','{"model_id": "anthropic.claude-3
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
 VALUES ('claude-3-opus', 1, 'bedrock-claude3','{"model_id": "anthropic.claude-3-opus-20240229-v1:0", "anthropic_version":"bedrock-2023-05-31"}', 15e-6, 75e-6 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
-VALUES ('mistral-7b', 1, 'bedrock-mistral', '{"model_id": "mistral.mistral-7b-instruct-v0:2"}', 0.15e-6, 0.2e-6) ON CONFLICT (name) DO NOTHING;
+VALUES ('mistral-7b', 0, 'bedrock-mistral', '{"model_id": "mistral.mistral-7b-instruct-v0:2"}', 0.15e-6, 0.2e-6) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
-VALUES ('mistral-8x7b', 1, 'bedrock-mistral', '{"model_id": "mistral.mixtral-8x7b-instruct-v0:1"}', 0.45e-6, 0.7e-6) ON CONFLICT (name) DO NOTHING;
+VALUES ('mistral-8x7b', 0, 'bedrock-mistral', '{"model_id": "mistral.mixtral-8x7b-instruct-v0:1"}', 0.45e-6, 0.7e-6) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
-VALUES ('mistral-large', 1, 'bedrock-mistral','{"model_id": "mistral.mistral-large-2402-v1:0"}', 8e-6, 24e-6) ON CONFLICT (name) DO NOTHING;
+VALUES ('mistral-large', 0, 'bedrock-mistral','{"model_id": "mistral.mistral-large-2402-v1:0"}', 8e-6, 24e-6) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
-VALUES ('mistral-small', 1, 'bedrock-mistral','{"model_id": "mistral.mistral-small-2402-v1:0"}', 1e-6, 3e-6) ON CONFLICT (name) DO NOTHING;
+VALUES ('mistral-small', 0, 'bedrock-mistral','{"model_id": "mistral.mistral-small-2402-v1:0"}', 1e-6, 3e-6) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
-VALUES ('llama3-8b', 1, 'bedrock-llama3','{"model_id": "meta.llama3-8b-instruct-v1:0"}', 0.4e-6, 0.6e-6) ON CONFLICT (name) DO NOTHING;
+VALUES ('llama3-8b', 0, 'bedrock-llama3','{"model_id": "meta.llama3-8b-instruct-v1:0"}', 0.4e-6, 0.6e-6) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
-VALUES ('llama3-70b', 1, 'bedrock-llama3','{"model_id": "meta.llama3-70b-instruct-v1:0"}', 2.65e-6, 3.5e-6) ON CONFLICT (name) DO NOTHING;
+VALUES ('llama3-70b', 0, 'bedrock-llama3','{"model_id": "meta.llama3-70b-instruct-v1:0"}', 2.65e-6, 3.5e-6) ON CONFLICT (name) DO NOTHING;
 
 
 INSERT INTO eiai_group (name) VALUES ('group 1');

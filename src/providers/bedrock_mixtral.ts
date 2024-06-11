@@ -23,10 +23,11 @@ export default class BedrockMixtral extends AbstractProvider {
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-        const model_id = this.modelData.config && this.modelData.config.model_id;
-        if (!model_id) {
-            throw new Error("You must specify the parameters 'model_id' in the backend model configuration.")
+        const modelId = this.modelData.config && (this.modelData.config.model_id || this.modelData.config.modelId);
+        if (!modelId) {
+            throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
+
 
         const regions: [string] = this.modelData.config && this.modelData.config.regions || ["us-east-1"];
         if (!Array.isArray(regions)) {
@@ -54,7 +55,7 @@ export default class BedrockMixtral extends AbstractProvider {
             body: JSON.stringify(body),
             contentType: "application/json",
             accept: "application/json",
-            modelId: model_id,
+            modelId,
         };
 
         ctx.status = 200;

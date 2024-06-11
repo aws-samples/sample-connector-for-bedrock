@@ -1,12 +1,10 @@
 import models from '../../models_data';
 import service from "../../service/key";
 import serviceGroup from "../../service/group";
-import modelService from '../../service/model';
 
 export default {
     list: async (ctx: any) => {
         if (ctx.db && ctx.user && ctx.user.id > 0) {
-            console.log("Personal");
             const myself = ctx.user;
             const keyModels = await service.listModels(ctx.db, { key_id: myself.id, limit: 1000 });
             const groupModels = await serviceGroup.listModels(ctx.db, { group_id: myself.group_id, limit: 1000 });

@@ -15,8 +15,8 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "^3.554.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.535.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.592.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.592.0",
     "@koa/bodyparser": "^5.0.0",
     "@koa/cors": "^5.0.0",
     "dotenv": "^16.4.5",

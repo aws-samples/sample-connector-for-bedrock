@@ -4,7 +4,6 @@ import { ChatRequest } from "../entity/chat_request";
 
 export default class ChatMessageConverter {
 
-
     async convertContent(content: any): Promise<any[]> {
         if (typeof content === "string") {
             return [{
@@ -21,6 +20,30 @@ export default class ChatMessageConverter {
         return rtn;
     }
 
+    async parseImageUrl(url: string): Promise<any> {
+        if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
+            const imageReq = await fetch(url);
+            const blob = await imageReq.blob();
+            let buffer = Buffer.from(await blob.arrayBuffer());
+
+            return {
+                "type": "base64",
+                "media_type": blob.type,
+                "data": buffer.toString('base64')
+            };
+        } else if (url.indexOf('data:') >= 0) {
+            const media_type = url.substring(5, url.indexOf(';'));
+            const type = url.substring(url.indexOf(';') + 1, url.indexOf(','));
+            const data = url.substring(url.indexOf(',') + 1);
+            return {
+                type,
+                media_type,
+                data
+            }
+        }
+        return null;
+    }
+
     async convertSingleType(contentItem: any): Promise<any> {
         if (contentItem.type === "image_url") {
             const url = contentItem.image_url.url;
@@ -35,9 +58,10 @@ export default class ChatMessageConverter {
                 text: contentItem.text
             }
         }
-
         return contentItem;
     }
+
+
 
     async toClaude3Payload(chatRequest: ChatRequest): Promise<any> {
 
@@ -156,27 +180,4 @@ export default class ChatMessageConverter {
     }
 
 
-    async parseImageUrl(url: string): Promise<any> {
-        if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
-            const imageReq = await fetch(url);
-            const blob = await imageReq.blob();
-            let buffer = Buffer.from(await blob.arrayBuffer());
-
-            return {
-                "type": "base64",
-                "media_type": blob.type,
-                "data": buffer.toString('base64')
-            };
-        } else if (url.indexOf('data:') >= 0) {
-            const media_type = url.substring(5, url.indexOf(';'));
-            const type = url.substring(url.indexOf(';') + 1, url.indexOf(','));
-            const data = url.substring(url.indexOf(',') + 1);
-            return {
-                type,
-                media_type,
-                data
-            }
-        }
-        return null;
-    }
 }
