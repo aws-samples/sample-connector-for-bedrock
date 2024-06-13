@@ -8,9 +8,9 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models/Platform Support
 
-- Amazon Bedrock Converse API [Not released to Docker image yet.]
+- Amazon Bedrock Converse API [Since Docker image version 0.0.6]
 
-- Ollama [Since Docker image version 0.0.5]
+- Ollama [Since Docker image version 0.0.6]
 
 - Bedrock Knowledge base. See [Instruction](docs/bedrock-knowledge-base.md). [Since Docker image version 0.0.4]
 
@@ -45,14 +45,13 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Model Access Control
 
- [Since Docker image version 0.0.5]
+ [Since Docker image version 0.0.6]
 
 - Models can be bound to Groups.
 
 - Models can be bound to API keys.
 
 ![models bind](docs/screenshots/models-bind.png)
-
 
 ## Providers
 
@@ -64,8 +63,8 @@ This connector provides a series of providers for model support, and you can con
 
 > Since Docker image version 0.0.6
 
-Invoke model via Amazon Bedrock Converse API. You can config all supported models with this provider. 
- 
+Invoke model via Amazon Bedrock Converse API. You can config all supported models with this provider.
+
 [This page](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) explains how to use Bedrock Converse API, and what features it supports.
 
 It is recommended to use this provider, which can uniformly configure Bedrock models and support function calling.
@@ -84,17 +83,13 @@ You can deploy native model with Ollama, This provider can adapt to the API of O
 | host  | string   | Y    |  |   Ollama's host address  |
 | model | string   | Y    |  |   Model id. See [Ollama doc](https://ollama.com/library) |
 
-
-
-### bedrock-bedrock-knowledge-base
+### bedrock-knowledge-base
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
 | knowledgeBaseId  | string   | Y    |  | The Bedrock knowledge base id   |
 | summaryModel  | string   | Y    |  |  choices:   claude-3-sonnet, claude-3-haiku, claude-3-opus   |
 | region  | string   | Y     | |  The region of you Bedrock kb instance. |
-
-
 
 ### bedrock-claude3
 
@@ -104,19 +99,14 @@ You can deploy native model with Ollama, This provider can adapt to the API of O
 | anthropic_version  | string   | N    | bedrock-2023-05-31  |  Version, must be "bedrock-2023-05-31"  |
 | regions  | string[] or string   | N     | ["us-east-1"] |  |
 
-
-
 ### bedrock-mistral
-
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
 | modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
 | regions  | string[] or string   | N     | ["us-east-1"] |    |
 
-
 ### bedrock-llama3
-
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
