@@ -6,12 +6,28 @@ Metadata:
   LICENSE: MIT-0 License
   AWS::CloudFormation::Interface:
     ParameterGroups:
+      - Label: 
+          default: Settings for EC2
       - Parameters:
           - VpcId
           - SubnetId
           - EC2InstanceType
           - EC2InstanceAMI
+      - Label: 
+          default: Settings for RDS PostgreSQL
+      - Parameters:
+          - StandaloneDB
           - PGPassword
+
+#Mappings:
+#  TheRegionYouAreDeployingIn:
+#    us-west-2:
+#      IsNotSupportedPleaseUseADifferentRegion: False
+#    us-east-1:
+#      IsNotSupportedPleaseUseADifferentRegion: True
+#Conditions:
+#  RunningInAllowedRegion: !Equals [!FindInMap [TheRegionYouAreDeployingIn, !Ref 'AWS::Region', IsNotSupportedPleaseUseADifferentRegion], True]
+
 
 Parameters:
   VpcId:
@@ -37,10 +53,21 @@ Parameters:
       - amzn2-ami-hvm-x86_64-gp2
     Default: amzn2-ami-hvm-x86_64-gp2
 
+  StandaloneDB:
+    Description: If true, deploy RDS PostgreSQL (db.t3.micro with 10GB storage) instead of PostgreSQL container in EC2
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+
   PGPassword:
-    Description: postgress default password
+    Description: PostgreSQL default password
     Type: String
     Default: mysecretpassword
+    
+Conditions:
+  IsStandaloneDB: !Equals [!Ref StandaloneDB, 'true']
 
 Resources:
   EC2Role:
@@ -122,10 +149,43 @@ Resources:
           CidrIp: 0.0.0.0/0
       VpcId: !Ref VpcId
 
+  MySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref InstanceSecurityGroup
+      IpProtocol: "tcp"
+      FromPort: "5432"
+      ToPort: "5432"
+      SourceSecurityGroupId: !Ref InstanceSecurityGroup
+
+  MyPGParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: "My PostgreSQL Parameter Group"
+      Family: "postgres16"
+      Parameters:
+        rds.force_ssl: "0"
+        
+  MyPG:
+    Condition: IsStandaloneDB
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: '10'
+      DBName: "brconnector_db"
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      EngineVersion: "16.3"
+      MasterUsername: postgres
+      MasterUserPassword: !Ref PGPassword
+      DBParameterGroupName: !Ref MyPGParameterGroup
+      VPCSecurityGroups:
+        - !Ref InstanceSecurityGroup
+
   MyEC2Instance:
     DependsOn: 
     - MySSMParameterFirstUserKey 
     - MySSMParameterAdminKey
+    - MySSMParameterPGDB
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: 
@@ -163,19 +223,23 @@ Resources:
           # save default settings 
           export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
           export KEY=$(uuidgen |tee /root/admin-api-key.txt)
-          # start postgress container
-          docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=$PGPWD -p 5432:5432 -d postgres
-          sleep 10; echo "CREATE DATABASE brconnector_db;" |docker exec -i postgres psql -U postgres 
+          export AWS_DEFAULT_REGION="${AWS::Region}"
+          # start postgress db
+          PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text)
+          if [[ $PGHOST == "172.17.0.1" ]]; then
+            docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=$PGPWD -p 5432:5432 -d postgres
+            sleep 10; echo "CREATE DATABASE brconnector_db;" |docker exec -i postgres psql -U postgres 
+          fi
           # start brconnector container
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=172.17.0.1 -e PGSQL_DATABASE=brconnector_db -e PGSQL_USER=postgres -e PGSQL_PASSWORD=$PGPWD -e ADMIN_API_KEY=$KEY -d cloudbeer/sample-connector-for-bedrock
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=brconnector_db -e PGSQL_USER=postgres -e PGSQL_PASSWORD=$PGPWD -e ADMIN_API_KEY=$KEY -d cloudbeer/sample-connector-for-bedrock
           # create first user
           sleep 10;
           curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
           # list users
           curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
           USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
-          aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite --region ${AWS::Region}
-          aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite --region ${AWS::Region}
+          aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
+          aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite
           # add health check script to root's crontab
           cat >/root/healthcheck.sh <<-EOF
           #!/bin/bash
@@ -254,6 +318,16 @@ Resources:
       Tier: Standard
       DataType: text
 
+  MySSMParameterPGDB:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Join ["", ["/brconnector/pgdb-", !Ref AWS::StackName]]
+      Type: String
+      Value: !If [IsStandaloneDB, !GetAtt MyPG.Endpoint.Address, "172.17.0.1"]
+      Description: A parameter created by CloudFormation and updated by RDS PostgreSQL
+      Tier: Standard
+      DataType: text
+
 
 Outputs:
   CloudFrontURL:
@@ -265,6 +339,10 @@ Outputs:
         - Fn::GetAtt: 
           - MyCloudFrontDistribution
           - DomainName
+  MyPGEndpoint:
+    Condition: IsStandaloneDB
+    Description: The Endpoint of the RDS PostgreSQL
+    Value: !GetAtt MyPG.Endpoint.Address
   EC2InstanceId:
     Description: The ID of the EC2 instance
     Value: !Ref MyEC2Instance
