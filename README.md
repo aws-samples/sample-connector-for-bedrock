@@ -8,6 +8,9 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models/Platform Support
 
+- Sagemaker
+  - Llama3 [Since Docker image version 0.0.7]
+
 - Amazon Bedrock Converse API [Since Docker image version 0.0.6]
 
 - Ollama [Since Docker image version 0.0.6]
@@ -58,6 +61,17 @@ It is compatible with any OPENAI client that can define Host and API Key.
 This connector provides a series of providers for model support, and you can configure them by writing JSON in the admin backend.
 
 ![Model config](docs/screenshots/model-config-1.png)
+
+### Sagemaker Llama3
+
+> Since Docker image version 0.0.7
+
+Please refer to the [deployment of LLama3 on SageMaker](./sagemaker/llm-deploy/meta/llama-3-8b.ipynb).
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| endpointName  | string   | Y    |  |   Sagemaker endpoint name  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
 
 ### bedrock-converse
 

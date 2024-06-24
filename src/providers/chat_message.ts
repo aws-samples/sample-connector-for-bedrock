@@ -161,7 +161,7 @@ export default class ChatMessageConverter {
         const systemPrompt = systemMessages.reduce((acc, message) => {
             return acc + message.content;
         }, "");
-        prompts.push(`<|begin_of_text|><|start_header_id|>system<|end_header_id|>${systemPrompt}<|eot_id|>`)
+        prompts.push(`<|begin_of_text|><|start_header_id|>system<|end_header_id|>${systemPrompt || "You are a helpful assistant."}<|eot_id|>`)
 
         for (const message of qaMessages) {
             const contents = await this.convertContent(message.content);
@@ -176,7 +176,7 @@ export default class ChatMessageConverter {
                 prompts.push(`<|start_header_id|>assistant<|end_header_id|>${contentStr}<|eot_id|>`)
             }
         }
-        return prompts.join("\n");
+        return prompts.join("\n") + "<|start_header_id|>assistant<|end_header_id|>";
     }
 
 

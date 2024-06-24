@@ -84,6 +84,7 @@ export default class BedrockConverse extends AbstractProvider {
             throw new Error("No response.");
         }
         ctx.res.write("data: [DONE]\n\n")
+        ctx.res.end();
     }
 
     async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {

@@ -1,6 +1,7 @@
 
 import service from "../../service/model"
 import AbstractController from "../AbstractController";
+import providers from "../../providers/provider"
 
 class ModelController extends AbstractController {
 
@@ -15,15 +16,16 @@ class ModelController extends AbstractController {
         });
     }
     async listProviders(ctx: any) {
-        const result = [
-            "bedrock-claude3",
-            "bedrock-mistral",
-            "bedrock-llama3",
-            "bedrock-knowledge-base",
-            "ollama",
-            "bedrock-converse"
-        ];
-        return super.ok(ctx, result);
+        // const result = [
+        //     "bedrock-claude3",
+        //     "bedrock-mistral",
+        //     "bedrock-llama3",
+        //     "bedrock-knowledge-base",
+        //     "ollama",
+        //     "bedrock-converse",
+        //     "sagemaker-llama3",
+        // ];
+        return super.ok(ctx, Object.keys(providers));
     }
 
 
