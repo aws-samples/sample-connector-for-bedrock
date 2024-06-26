@@ -1,4 +1,4 @@
-# How to properly deploy a Sagemaker model model
+# How to properly deploy a Sagemaker model
 
 ## Input
 
