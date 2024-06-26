@@ -11,6 +11,7 @@ import {
   InvokeEndpointCommand,
 } from "@aws-sdk/client-sagemaker-runtime";
 
+
 export default class SagemakerLlama3 extends AbstractProvider {
 
   client: SageMakerRuntimeClient;
@@ -152,9 +153,6 @@ export default class SagemakerLlama3 extends AbstractProvider {
 
 
     const decodedResponseBody = new TextDecoder().decode(apiResponse.Body);
-
-    console.log("gen...", decodedResponseBody);
-
 
     const responseBody = JSON.parse(decodedResponseBody);
 

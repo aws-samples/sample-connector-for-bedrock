@@ -1,13 +1,12 @@
 {
-  "name": "eiai-proxy",
-  "version": "1.0.0",
+  "name": "sample-connector-for-bedrock",
+  "version": "0.0.7",
   "main": "index.js",
-  "author": "Cloudbeer <cloudbeer@gmail.com>",
   "license": "MIT",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx ts-node -T src/index.ts",
-    "dev": "nodemon src/index.ts && vue-cli-service serve",
+    "dev": "nodemon src/index.ts",
     "dev-ui": "vue-cli-service serve",
     "build": "rm -rf ./dist/server && tsc --project ./tsconfig.json --outDir ./dist/server && vue-cli-service build",
     "build-server": "rm -rf ./dist/server && tsc --project ./tsconfig.json --outDir ./dist/server",
