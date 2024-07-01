@@ -95,7 +95,7 @@ export default class SagemakerLMI extends AbstractProvider {
                     let chunk = new TextDecoder().decode(
                         item.PayloadPart.Bytes,
                     );
-                    console.log(chunk);
+                    // console.log(chunk);
                     chunk = chunk.trim();
                     if (chunk) {
                         lineText += chunk;
@@ -213,7 +213,6 @@ export default class SagemakerLMI extends AbstractProvider {
      */
     isQwen2Prefix(content: string, i: number) {
         if (i > 3) return false;
-        console.log(content, i);
         return (content.indexOf("Assistant") >= 0 && i < 3) ||
             (content.indexOf(":") >= 0 && i < 3)
     }
