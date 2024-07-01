@@ -8,8 +8,7 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models/Platform Support
 
-- Sagemaker
-  - Llama3 [Since Docker image version 0.0.7]
+- Sagemaker LMI [Since Docker image version 0.0.8]
 
 - Amazon Bedrock Converse API [Since Docker image version 0.0.6]
 
@@ -46,9 +45,11 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ![api key](docs/screenshots/api-key.png)
 
-### Model Access Control
+### Model management
 
- [Since Docker image version 0.0.6]
+Models and their parameters can be defined from the backend.
+
+Model Access Control [Since Docker image version 0.0.6]
 
 - Models can be bound to Groups.
 
@@ -58,15 +59,15 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ## Providers
 
-This connector provides a series of providers for model support, and you can configure them by writing JSON in the admin backend.
+This connector provides a series of providers for model support, and you can configure them by writing JSON from the backend.
 
 ![Model config](docs/screenshots/model-config-1.png)
 
-### Sagemaker Llama3
+### sagemaker-lmi
 
-> Since Docker image version 0.0.7
+> Since Docker image version 0.0.8
 
-Please refer to the [deployment of LLama3 on SageMaker](./sagemaker/llm-deploy/meta/llama-3-8b.ipynb).
+Please see [Deploy models on SageMaker](./notebook/sagemaker/hf-models.ipynb).
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |

@@ -9,8 +9,7 @@ import BedrockLlama3 from "./bedrock_llama3";
 import BedrockKnowledgeBase from "./bedrock_knowledge_base";
 import OllamaAProvider from "./ollama_provider";
 import BedrockConverse from "./bedrock_converse";
-import SagemakerLlama3 from "./sagemaker/llama3";
-import SagemakerOpenAI from "./sagemaker/openai";
+import SagemakerLMI from "./sagemaker_lmi"
 
 class Provider {
     constructor() {
@@ -20,8 +19,7 @@ class Provider {
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
         this["ollama"] = new OllamaAProvider();
         this["bedrock-converse"] = new BedrockConverse();
-        this["sagemaker-llama3"] = new SagemakerLlama3();
-        this["sagemaker-openai"] = new SagemakerOpenAI();
+        this["sagemaker-lmi"] = new SagemakerLMI();
     }
 
     async chat(ctx: any) {
