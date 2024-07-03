@@ -345,14 +345,9 @@ Resources:
           dnf update
           dnf install -y nodejs
           
-          # clone from pr branch
-          git clone https://github.com/panlm/sample-connector-for-bedrock.git
-          cd sample-connector-for-bedrock
-          git checkout cfn
-          
           # clone from main branch
-          #git clone https://github.com/aws-samples/sample-connector-for-bedrock.git
-          #cd sample-connector-for-bedrock
+          git clone https://github.com/aws-samples/sample-connector-for-bedrock.git
+          cd sample-connector-for-bedrock
           npm install
           npm run build
 
