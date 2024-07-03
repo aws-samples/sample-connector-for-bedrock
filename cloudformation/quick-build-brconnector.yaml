@@ -52,7 +52,6 @@ Metadata:
 #Conditions:
 #  RunningInAllowedRegion: !Equals [!FindInMap [TheRegionYouAreDeployingIn, !Ref 'AWS::Region', IsNotSupportedPleaseUseADifferentRegion], True]
 
-
 Parameters:
   VpcId:
     Description: select VPC which has public subnets
@@ -62,14 +61,13 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
   BREndpoint:
     Description: >-
-      If you deploy BRConnector on Lambda, this option is mendortory.
-      If you have bedrock-runtime endpoint, for example you have deploy this cfn-template before. 
-      In second time, select false to skip deploy this endpoint.
+      Deploy a bedrock-runtime endpoint in your VPC ? It is mendortory, for running BRConnector on Lambda
+      \nIf you already have one, choose false. \nIf you are new to this cfn template, choose true. 
     Type: String
     AllowedValues:
       - true
       - false
-    Default: false
+    Default: true
 
   ComputeType:
     Description: Choose using Lambda or EC2 to running BRConnector
@@ -83,13 +81,12 @@ Parameters:
     Description: EC2 instance type
     Type: String
     AllowedValues:
-      - t3.small
       - t3.medium
       - m5.large
     ConstraintDescription: Must be a valid instance type
     Default: t3.medium
   EC2InstanceAMI:
-    Description: EC2 instance AMI
+    Description: EC2 instance AMI is Amazon Linux 2023, do not support other distribution. 
     Type: String
     AllowedValues:
       - al2023-ami-kernel-default-x86_64
@@ -97,20 +94,19 @@ Parameters:
 
   EcrRepo:
     Description: >-
-      Private Repo name prefix for BRConnector, Repo full name will be brconnect-stackname
+      Prefix of private repo name , repo full name will be brconnect-<AWS::StackName>
     Type: String
     Default: brconnector
 
   StandaloneDB:
     Description: >-
-      If true, deploy RDS PostgreSQL (db.t3.micro with 10GB storage) instead of PostgreSQL container in EC2
+      If true, deploy RDS PostgreSQL (db.t3.micro with 20GB storage) instead of PostgreSQL container in EC2
       If ComputeType set to `lambda`, this value always be true.
     Type: String
     AllowedValues:
       - true
       - false
     Default: false
-
 
   PGDatabase:
     Description: PostgreSQL default database name
@@ -126,7 +122,7 @@ Parameters:
     Default: mysecretpassword
     
   KeepEc2:
-    Description: keep ec2 instance when you create brconnector on lambda
+    Description: keep ec2 instance for debugging when you deploy brconnector on lambda
     Type: String
     AllowedValues:
       - true
@@ -222,6 +218,14 @@ Resources:
           FromPort: 8866
           ToPort: 8866
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VpcId
 
   MySecurityGroupIngress:
@@ -240,13 +244,13 @@ Resources:
       Family: "postgres16"
       Parameters:
         rds.force_ssl: "0"
-        
+
   MyPG:
     Condition: IsStandaloneDB
     Type: AWS::RDS::DBInstance
     Properties:
-      AllocatedStorage: '10'
-      DBName: "brconnector_db"
+      AllocatedStorage: '20'
+      DBName: !Ref PGDatabase
       DBInstanceClass: db.t3.micro
       Engine: postgres
       EngineVersion: "16.3"
@@ -341,8 +345,14 @@ Resources:
           dnf update
           dnf install -y nodejs
           
-          git clone https://github.com/aws-samples/sample-connector-for-bedrock.git
+          # clone from pr branch
+          git clone https://github.com/panlm/sample-connector-for-bedrock.git
           cd sample-connector-for-bedrock
+          git checkout cfn
+          
+          # clone from main branch
+          #git clone https://github.com/aws-samples/sample-connector-for-bedrock.git
+          #cd sample-connector-for-bedrock
           npm install
           npm run build
 
@@ -437,10 +447,7 @@ Resources:
       DistributionConfig:
         Origins:
           - Id: LambdaOrigin
-#            DomainName: !GetAtt MyFunctionUrl.FunctionUrl
-#            OriginPath: ''
             DomainName: !Select [2, !Split ["/", !GetAtt MyFunctionUrl.FunctionUrl]]
-#            OriginPath: !Sub "/2015-03-31/functions/${LambdaFunction}/invocations"
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -467,7 +474,6 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
         ViewerCertificate:
           CloudFrontDefaultCertificate: 'true'
-
 
   MySSMParameterFirstUserKey:
     Type: AWS::SSM::Parameter
@@ -569,7 +575,6 @@ Resources:
             - rds:list*
             Resource: '*'
 
-
   # Lambda Function 
   LambdaFunction:
     Condition: IsLambda	
@@ -627,6 +632,7 @@ Resources:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.bedrock-runtime'
+      VpcEndpointType: Interface
       VpcId: !Ref VpcId
       SubnetIds: 
       - !Ref SubnetId
@@ -679,7 +685,6 @@ Resources:
 #     Action: 'lambda:InvokeFunction'
 #     Principal: cloudformation.amazonaws.com
 
-
 #  DeleteEC2CustomResource:
 #    Condition: NotKeepEc2
 #    DependsOn: 
@@ -688,7 +693,6 @@ Resources:
 #    Properties:
 #      ServiceToken: !GetAtt DeleteEC2Lambda.Arn
 #      InstanceId: !Ref MyEC2Instance
-
 
 Outputs:
   CloudFrontEc2URL:
