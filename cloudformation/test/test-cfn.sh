@@ -2,13 +2,13 @@
 UNIQ=$(TZ=EAT-8 date +%Y%m%d-%H%M%S)
 
 for i in us-east-1 us-west-2 ; do
-    export AWS_DEFAULT_REGION=$i
-    DEFAULT_VPC=$(aws ec2 describe-vpcs --filter Name=is-default,Values=true --query 'Vpcs[0].VpcId' --output text)
-    FIRST_AZ=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[].ZoneName' --output text |awk '{print $1}')
+    DEFAULT_VPC=$(aws ec2 describe-vpcs --filter Name=is-default,Values=true --query 'Vpcs[0].VpcId' --output text --region $i )
+    FIRST_AZ=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[].ZoneName' --output text --region $i |awk '{print $1}')
     SUBNET_ID=$(aws ec2 describe-subnets \
         --filters "Name=vpc-id,Values=${DEFAULT_VPC}" \
         --query 'Subnets[?(AvailabilityZone==`'"${FIRST_AZ}"'` && MapPublicIpOnLaunch==`true`)].SubnetId' \
-        --output text)
+        --output text \
+        --region $i )
 
     for j in true false ; do
         aws cloudformation create-stack --stack-name stack-name-${j}-${UNIQ} \
@@ -17,7 +17,8 @@ for i in us-east-1 us-west-2 ; do
                         ParameterKey=StandaloneDB,ParameterValue=${j} \
             --capabilities CAPABILITY_NAMED_IAM \
             --disable-rollback \
-            --template-body file://../quick-build-brconnector.yaml
+            --template-body file://../quick-build-brconnector.yaml \
+            --region $i 
         echo $i stack-name-${j}-${UNIQ} |tee -a cfn-name-${UNIQ}.txt
     done
 done

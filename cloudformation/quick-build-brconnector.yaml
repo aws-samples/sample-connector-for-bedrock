@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31 
 Description: >
   AWS CloudFormation template for bootstraps ec2 instance and cloudfront
   refer: https://github.com/aws-samples/sample-connector-for-bedrock
@@ -7,17 +8,40 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label: 
-          default: Settings for EC2
+          default: VPC settings for BRConnector
       - Parameters:
           - VpcId
           - SubnetId
+          - BREndpoint
+
+      - Label: 
+          default: Compute settings for BRConnector
+      - Parameters:
+          - ComputeType
+
+      - Label: 
+          default: EC2 settings for BRConnector
+      - Parameters:
           - EC2InstanceType
           - EC2InstanceAMI
+
+      - Label: 
+          default: Lambda settings for BRConnector
+      - Parameters:
+          - EcrRepo
+
       - Label: 
           default: Settings for RDS PostgreSQL
       - Parameters:
           - StandaloneDB
+          - PGDatabase
+          - PGUser
           - PGPassword
+
+      - Label: 
+          default: keep ec2 for debugging
+      - Parameters:
+          - KeepEc2
 
 #Mappings:
 #  TheRegionYouAreDeployingIn:
@@ -31,11 +55,29 @@ Metadata:
 
 Parameters:
   VpcId:
-    Type: AWS::EC2::VPC::Id
     Description: select VPC which has public subnets
+    Type: AWS::EC2::VPC::Id
   SubnetId:
-    Type: AWS::EC2::Subnet::Id
     Description: select one public subnet
+    Type: AWS::EC2::Subnet::Id
+  BREndpoint:
+    Description: >-
+      If you deploy BRConnector on Lambda, this option is mendortory.
+      If you have bedrock-runtime endpoint, for example you have deploy this cfn-template before. 
+      In second time, select false to skip deploy this endpoint.
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+
+  ComputeType:
+    Description: Choose using Lambda or EC2 to running BRConnector
+    Type: String
+    AllowedValues:
+      - lambda
+      - ec2
+    Default: lambda
 
   EC2InstanceType:
     Description: EC2 instance type
@@ -50,24 +92,55 @@ Parameters:
     Description: EC2 instance AMI
     Type: String
     AllowedValues:
-      - amzn2-ami-hvm-x86_64-gp2
-    Default: amzn2-ami-hvm-x86_64-gp2
+      - al2023-ami-kernel-default-x86_64
+    Default: al2023-ami-kernel-default-x86_64
+
+  EcrRepo:
+    Description: >-
+      Private Repo name prefix for BRConnector, Repo full name will be brconnect-stackname
+    Type: String
+    Default: brconnector
 
   StandaloneDB:
-    Description: If true, deploy RDS PostgreSQL (db.t3.micro with 10GB storage) instead of PostgreSQL container in EC2
+    Description: >-
+      If true, deploy RDS PostgreSQL (db.t3.micro with 10GB storage) instead of PostgreSQL container in EC2
+      If ComputeType set to `lambda`, this value always be true.
     Type: String
     AllowedValues:
       - true
       - false
     Default: false
 
+
+  PGDatabase:
+    Description: PostgreSQL default database name
+    Type: String
+    Default: brconnector_db
+  PGUser:
+    Description: PostgreSQL default user name
+    Type: String
+    Default: postgres
   PGPassword:
     Description: PostgreSQL default password
     Type: String
     Default: mysecretpassword
     
+  KeepEc2:
+    Description: keep ec2 instance when you create brconnector on lambda
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: true
+
 Conditions:
-  IsStandaloneDB: !Equals [!Ref StandaloneDB, 'true']
+  IsBREndpoint: !Equals [!Ref BREndpoint, 'true']
+  IsStandaloneDB: !Or
+    - !Equals [!Ref StandaloneDB, 'true']
+    - !Condition IsLambda
+  IsLambda: !Equals [!Ref ComputeType, 'lambda']
+  IsEc2: !Equals [!Ref ComputeType, 'ec2']
+  NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
 
 Resources:
   EC2Role:
@@ -89,6 +162,8 @@ Resources:
       ManagedPolicyArns:
       # - arn:aws:iam::aws:policy/AdministratorAccess
       - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+      - arn:aws:iam::aws:policy/AWSLambda_FullAccess
       Policies:
       - PolicyName: MyInlinePolicy-bedrock
         PolicyDocument:
@@ -217,29 +292,37 @@ Resources:
         Fn::Base64: !Sub |-
           #!/bin/bash -xe
           # install packages
-          yum install -y aws-cfn-bootstrap docker jq
+          yum install -y aws-cfn-bootstrap docker jq git cronie
           systemctl restart docker
           systemctl enable docker
+          systemctl restart crond
+          systemctl enable crond
+
           # save default settings 
           export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
           export KEY=$(uuidgen |tee /root/admin-api-key.txt)
           export AWS_DEFAULT_REGION="${AWS::Region}"
+
           # start postgress db
           PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text)
           if [[ $PGHOST == "172.17.0.1" ]]; then
-            docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=$PGPWD -p 5432:5432 -d postgres
-            sleep 10; echo "CREATE DATABASE brconnector_db;" |docker exec -i postgres psql -U postgres 
+            docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres
+            sleep 10; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
           fi
+
           # start brconnector container
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=brconnector_db -e PGSQL_USER=postgres -e PGSQL_PASSWORD=$PGPWD -e ADMIN_API_KEY=$KEY -d cloudbeer/sample-connector-for-bedrock
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d cloudbeer/sample-connector-for-bedrock
+
           # create first user
           sleep 10;
           curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
+
           # list users
           curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
           USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
           aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
           aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite
+
           # add health check script to root's crontab
           cat >/root/healthcheck.sh <<-EOF
           #!/bin/bash
@@ -252,8 +335,49 @@ Resources:
           EOF
           chmod a+x /root/healthcheck.sh
           echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' | /usr/bin/crontab -
+
+          # compile with lambda adapter, and push to ECR
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+          dnf update
+          dnf install -y nodejs
+          
+          git clone https://github.com/aws-samples/sample-connector-for-bedrock.git
+          cd sample-connector-for-bedrock
+          npm install
+          npm run build
+
+          cat > Dockerfile <<-EOF
+          FROM node:20
+          COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.3 /lambda-adapter /opt/extensions/lambda-adapter
+          
+          ENV AWS_LWA_PORT=8866
+          ENV AWS_LWA_INVOKE_MODE=response_stream
+          
+          WORKDIR /app
+          COPY ./dist/server .
+          COPY ./src/scripts/create.sql ./src/scripts/create.sql
+          COPY ./package.json .
+          RUN npm install --omit=dev
+          EXPOSE 8866
+          CMD ["node", "index.js"]
+          EOF
+
+          docker build -t brconnector .
+          aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+          docker tag brconnector:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest
+          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest
+
+          # prepare to delete self
+          TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+          INST_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/dynamic/instance-identity/document |jq -r .instanceId)
+          aws lambda update-function-configuration --function-name ${DeleteEC2Lambda} --environment "Variables={INSTANCE_ID=$INST_ID}"
+
+          # call back to cfn
           /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
-  
+          if [[ ${KeepEc2} != "true" ]]; then        
+            aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
+          fi
+
   PrivateWaitHandle:
     Type: AWS::CloudFormation::WaitConditionHandle
 
@@ -262,16 +386,22 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     Properties:
       Handle: !Ref PrivateWaitHandle
-      Timeout: '300'
+      Timeout: '900' # about 7-8 min will receive signal
       Count: 1
 
+  PrivateECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${EcrRepo}-${AWS::StackName}"
+
   MyCloudFrontDistribution:
+    Condition: IsEc2
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
         Origins:
-          - DomainName: !GetAtt MyEC2Instance.PublicDnsName
-            Id: myEC2Origin
+          - Id: myEC2Origin
+            DomainName: !GetAtt MyEC2Instance.PublicDnsName          
             CustomOriginConfig:
               HTTPPort: '8866'
               OriginProtocolPolicy: http-only
@@ -297,6 +427,47 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
         ViewerCertificate:
           CloudFrontDefaultCertificate: 'true'
+
+  MyCloudFrontLambda:
+    Condition: IsLambda	
+    DependsOn:
+    - MyFunctionUrl
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: LambdaOrigin
+#            DomainName: !GetAtt MyFunctionUrl.FunctionUrl
+#            OriginPath: ''
+            DomainName: !Select [2, !Split ["/", !GetAtt MyFunctionUrl.FunctionUrl]]
+#            OriginPath: !Sub "/2015-03-31/functions/${LambdaFunction}/invocations"
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+        Enabled: 'true'
+        Comment: CloudFront distribution in front of EC2
+        # ViewerProtocolPolicy: https-only
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
+          TargetOriginId: LambdaOrigin
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # Disable caching https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policy-caching-disabled
+          OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac # AllViewerExceptHostHeader https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header
+          # ForwardedValues:
+          #   QueryString: 'false'
+          #   Cookies:
+          #     Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: 'true'
+
 
   MySSMParameterFirstUserKey:
     Type: AWS::SSM::Parameter
@@ -328,9 +499,200 @@ Resources:
       Tier: Standard
       DataType: text
 
+  LambdaFunctionRole:
+    Condition: IsLambda	
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      #- arn:aws:iam::aws:policy/AdministratorAccess
+      - arn:aws:iam::aws:policy/AWSLambdaExecute
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+      - PolicyName: MyInlinePolicy-invokelambda
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Sid: InvokeLambda
+            Action:
+            - 'lambda:InvokeFunction'
+            - 'lambda:InvokeFunctionUrl'
+            Resource: '*'
+      - PolicyName: MyInlinePolicy-bedrock
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Sid: InvokeModel
+            Action:
+            - 'bedrock:InvokeModelWithResponseStream'
+            - 'bedrock:InvokeModel'
+            Resource: 'arn:aws:bedrock:*::foundation-model/*'
+          - Effect: Allow
+            Sid: ListFM
+            Action:
+            - 'bedrock:ListFoundationModels'
+            Resource: '*'
+      - PolicyName: MyInlinePolicy-ssm-parameter
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Sid: SSMPutParameter
+            Action:
+            - 'ssm:PutParameter'
+            - 'ssm:GetParameter'
+            - 'ssm:GetParameters'
+            Resource: 'arn:aws:ssm:*:*:parameter/*'
+      - PolicyName: LambdaRDSAccess
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - rds:connect
+            - rds:describe*
+            - rds:list*
+            Resource: '*'
+
+
+  # Lambda Function 
+  LambdaFunction:
+    Condition: IsLambda	
+    DependsOn:
+    - PrivateWaitCondition
+    Type: AWS::Serverless::Function
+    Properties:
+      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest"
+      PackageType: Image
+      Policies:
+        - AWSLambdaBasicExecutionRole 
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 512
+      Timeout: 60 
+      Environment:
+        Variables:
+          ADMIN_API_KEY: !GetAtt MySSMParameterAdminKey.Value
+          PGSQL_HOST: !GetAtt MyPG.Endpoint.Address
+          PGSQL_DATABASE: !Ref PGDatabase
+          PGSQL_USER: !Ref PGUser
+          PGSQL_PASSWORD: !Ref PGPassword
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref InstanceSecurityGroup
+        SubnetIds:
+          - !Ref SubnetId
+
+  MyLambdaFunctionVersion:
+    Condition: IsLambda	
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref LambdaFunction
+#      ProvisionedConcurrencyConfiguration:
+#      ProvisionedConcurrentExecutions: 3
+
+  MyLambdaFunctionPermission:
+    Condition: IsLambda	
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+  MyFunctionUrl:
+    Condition: IsLambda	
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !Ref LambdaFunction
+      AuthType: NONE
+      InvokeMode: RESPONSE_STREAM
+
+  BedrockEndpoint:
+    Condition: IsBREndpoint
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.bedrock-runtime'
+      VpcId: !Ref VpcId
+      SubnetIds: 
+      - !Ref SubnetId
+      SecurityGroupIds:
+      - !Ref InstanceSecurityGroup
+      PrivateDnsEnabled: true
+
+  DeleteEC2Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: !Sub |
+          import boto3,os
+
+          def lambda_handler(event, context):
+              ec2 = boto3.resource('ec2')
+              instance_id = os.environ.get('INSTANCE_ID')
+              instance = ec2.Instance(instance_id)
+              instance.terminate()
+              print(f"Terminated instance: {instance_id}")
+      Handler: index.lambda_handler
+      Role: !GetAtt DeleteEC2LambdaExecutionRole.Arn
+      Runtime: python3.11
+      MemorySize: 128
+      Timeout: 60 
+      Environment:
+        Variables:
+          INSTANCE_ID: ""
+
+  DeleteEC2LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+
+# DeleteEC2InstancePermission:
+#   Type: AWS::Lambda::Permission
+#   Properties:
+#     FunctionName: !GetAtt DeleteEC2Lambda.Arn
+#     Action: 'lambda:InvokeFunction'
+#     Principal: cloudformation.amazonaws.com
+
+
+#  DeleteEC2CustomResource:
+#    Condition: NotKeepEc2
+#    DependsOn: 
+#    - PrivateWaitCondition
+#    Type: AWS::CloudFormation::CustomResource
+#    Properties:
+#      ServiceToken: !GetAtt DeleteEC2Lambda.Arn
+#      InstanceId: !Ref MyEC2Instance
+
 
 Outputs:
-  CloudFrontURL:
+  CloudFrontEc2URL:
+    Condition: IsEc2
     Description: CloudFront URL
     Value: 
       Fn::Join:
@@ -338,6 +700,16 @@ Outputs:
       - - https://
         - Fn::GetAtt: 
           - MyCloudFrontDistribution
+          - DomainName
+  CloudFrontLambdaURL:
+    Condition: IsLambda
+    Description: CloudFront URL
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - MyCloudFrontLambda
           - DomainName
   MyPGEndpoint:
     Condition: IsStandaloneDB
@@ -352,5 +724,7 @@ Outputs:
   MySSMParameterAdminKey:
     Description: admin key
     Value: !GetAtt MySSMParameterAdminKey.Value
-
-
+  MyFunctionUrl:
+    Condition: IsLambda
+    Description: lambda url
+    Value: !GetAtt MyFunctionUrl.FunctionUrl
