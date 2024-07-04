@@ -24,6 +24,7 @@ for i in us-east-1 us-west-2 ; do
                          ParameterKey=ComputeType,ParameterValue=ec2 \
                          ParameterKey=BREndpoint,ParameterValue=false \
                          ParameterKey=KeepEc2,ParameterValue=true \
+                         ParameterKey=EnableCloudfront,ParameterValue=true \
                          ParameterKey=StandaloneDB,ParameterValue=${j} \
             --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
             --disable-rollback \
@@ -32,36 +33,22 @@ for i in us-east-1 us-west-2 ; do
         echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
     done
     
-    # test for in Lambda ComputeType
-    STACK_NAME=stack-lambda-${UNIQ}
-    aws cloudformation create-stack --stack-name ${STACK_NAME} \
-        --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
-                     ParameterKey=SubnetId,ParameterValue=${SUBNET_ID} \
-                     ParameterKey=ComputeType,ParameterValue=lambda \
-                     ParameterKey=BREndpoint,ParameterValue=false \
-                     ParameterKey=KeepEc2,ParameterValue=true \
-        --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-        --disable-rollback \
-        --template-body file://../quick-build-brconnector.yaml \
-        --region $i 
-    echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
-done
-
-# wait all stack complete 
-cat cfn-name-${UNIQ}.txt |while read i j ; do
-    echo $i $j
-    aws cloudformation wait stack-create-complete --region ${i} --stack-name ${j}
-done
-
-# get cloudfront url and api key
-cat cfn-name-${UNIQ}.txt |while read i j ; do
-    aws cloudformation describe-stacks --region ${i} --stack-name ${j} \
-        --query 'Stacks[].Outputs[?(OutputKey==`CloudFrontURL` || OutputKey==`MySSMParameterFirstUserKey`)].OutputValue' --output text |tee -a api-${UNIQ}.txt
-done
-
-# test keys are valid
-cat api-${UNIQ}.txt |while read i j ; do
-    curl -sL ${i}
-    echo
+    # test for LambdaArch set to x86_64/arm64 in Lambda ComputeType
+    for j in amd64 arm64 ; do
+        STACK_NAME=stack-lambda-${j}-${UNIQ}
+        aws cloudformation create-stack --stack-name ${STACK_NAME} \
+            --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
+                        ParameterKey=SubnetId,ParameterValue=${SUBNET_ID} \
+                        ParameterKey=ComputeType,ParameterValue=lambda \
+                        ParameterKey=BREndpoint,ParameterValue=false \
+                        ParameterKey=KeepEc2,ParameterValue=true \
+                         ParameterKey=EnableCloudfront,ParameterValue=true \
+                        ParameterKey=LambdaArch,ParameterValue=${j} \
+            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+            --disable-rollback \
+            --template-body file://../quick-build-brconnector.yaml \
+            --region $i 
+        echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
+    done
 done
 

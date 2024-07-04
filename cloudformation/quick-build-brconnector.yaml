@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31 
 Description: >
-  AWS CloudFormation template for bootstraps ec2 instance and cloudfront
+  AWS CloudFormation template for bootstraps BRConnector
   refer: https://github.com/aws-samples/sample-connector-for-bedrock
 Metadata:
   LICENSE: MIT-0 License
@@ -29,6 +29,7 @@ Metadata:
           default: Lambda settings for BRConnector
       - Parameters:
           - EcrRepo
+          - LambdaArch
 
       - Label: 
           default: Settings for RDS PostgreSQL
@@ -39,9 +40,10 @@ Metadata:
           - PGPassword
 
       - Label: 
-          default: keep ec2 for debugging
+          default: Others Settings
       - Parameters:
           - KeepEc2
+          - EnableCloudfront
 
 #Mappings:
 #  TheRegionYouAreDeployingIn:
@@ -98,6 +100,15 @@ Parameters:
     Type: String
     Default: brconnector
 
+  LambdaArch:
+    Description: >-
+      Choose Architecture amd64 or arm64 for Lambda runtime
+    Type: String
+    AllowedValues:
+      - amd64
+      - arm64
+    Default: arm64
+
   StandaloneDB:
     Description: >-
       If true, deploy RDS PostgreSQL (db.t3.micro with 20GB storage) instead of PostgreSQL container in EC2
@@ -129,6 +140,14 @@ Parameters:
       - false
     Default: true
 
+  EnableCloudfront:
+    Description: Enable Cloudfront or not, when using Lambda ComputeType. If you use EC2, this option will be ignored
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: true
+
 Conditions:
   IsBREndpoint: !Equals [!Ref BREndpoint, 'true']
   IsStandaloneDB: !Or
@@ -137,6 +156,17 @@ Conditions:
   IsLambda: !Equals [!Ref ComputeType, 'lambda']
   IsEc2: !Equals [!Ref ComputeType, 'ec2']
   NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
+  IsEnableCloudfrontEc2: !Condition IsEc2
+  IsEnableCloudfrontLambda: !And
+    - !Equals [!Ref EnableCloudfront, 'true']
+    - !Condition IsLambda
+
+Mappings:
+  ArchitectureMapping:
+    amd64:
+      Architecture: x86_64
+    arm64:
+      Architecture: arm64
 
 Resources:
   EC2Role:
@@ -295,12 +325,18 @@ Resources:
       UserData:
         Fn::Base64: !Sub |-
           #!/bin/bash -xe
-          # install packages
+          # install packages & buildx
           yum install -y aws-cfn-bootstrap docker jq git cronie
           systemctl restart docker
           systemctl enable docker
           systemctl restart crond
           systemctl enable crond
+          # mkdir -p ~/.docker/cli-plugins
+          # wget -q -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.15.1/buildx-v0.15.1.linux-amd64
+          # chmod a+x ~/.docker/cli-plugins/docker-buildx
+          # docker run -t --rm --privileged tonistiigi/binfmt --install all
+          # docker buildx inspect --bootstrap
+          # docker buildx create --use --platform=linux/arm64,linux/amd64 --name multi-platform-builder
 
           # save default settings 
           export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
@@ -340,37 +376,17 @@ Resources:
           chmod a+x /root/healthcheck.sh
           echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' | /usr/bin/crontab -
 
-          # compile with lambda adapter, and push to ECR
-          curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-          dnf update
-          dnf install -y nodejs
-          
-          # clone from main branch
-          git clone https://github.com/aws-samples/sample-connector-for-bedrock.git
-          cd sample-connector-for-bedrock
-          npm install
-          npm run build
-
-          cat > Dockerfile <<-EOF
-          FROM node:20
-          COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.3 /lambda-adapter /opt/extensions/lambda-adapter
-          
-          ENV AWS_LWA_PORT=8866
-          ENV AWS_LWA_INVOKE_MODE=response_stream
-          
-          WORKDIR /app
-          COPY ./dist/server .
-          COPY ./src/scripts/create.sql ./src/scripts/create.sql
-          COPY ./package.json .
-          RUN npm install --omit=dev
-          EXPOSE 8866
-          CMD ["node", "index.js"]
-          EOF
-
-          docker build -t brconnector .
           aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
-          docker tag brconnector:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest
-          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest
+          docker pull --platform=linux/arm64 cloudbeer/sample-connector-for-bedrock-lambda
+          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64
+          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64
+          docker pull --platform=linux/amd64 cloudbeer/sample-connector-for-bedrock-lambda
+          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64
+          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64
+          docker manifest create ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64 --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64
+          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64 --os linux --arch arm64
+          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64 --os linux --arch amd64
+          docker manifest push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest
 
           # prepare to delete self
           TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
@@ -379,7 +395,7 @@ Resources:
 
           # call back to cfn
           /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
-          if [[ ${KeepEc2} != "true" ]]; then        
+          if [[ ${KeepEc2} != "true" && ${ComputeType} == "lambda" ]]; then        
             aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
           fi
 
@@ -391,7 +407,7 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     Properties:
       Handle: !Ref PrivateWaitHandle
-      Timeout: '900' # about 7-8 min will receive signal
+      Timeout: '900' # about 10 min will receive signal
       Count: 1
 
   PrivateECRRepository:
@@ -400,7 +416,7 @@ Resources:
       RepositoryName: !Sub "${EcrRepo}-${AWS::StackName}"
 
   MyCloudFrontDistribution:
-    Condition: IsEc2
+    Condition: IsEnableCloudfrontEc2
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
@@ -434,15 +450,15 @@ Resources:
           CloudFrontDefaultCertificate: 'true'
 
   MyCloudFrontLambda:
-    Condition: IsLambda	
+    Condition: IsEnableCloudfrontLambda
     DependsOn:
-    - MyFunctionUrl
+    - BRConnectorLambdaUrl
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
         Origins:
           - Id: LambdaOrigin
-            DomainName: !Select [2, !Split ["/", !GetAtt MyFunctionUrl.FunctionUrl]]
+            DomainName: !Select [2, !Split ["/", !GetAtt BRConnectorLambdaUrl.FunctionUrl]]
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -500,7 +516,7 @@ Resources:
       Tier: Standard
       DataType: text
 
-  LambdaFunctionRole:
+  BRConnectorLambdaRole:
     Condition: IsLambda	
     Type: AWS::IAM::Role
     Properties:
@@ -565,23 +581,25 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
-            - rds:connect
-            - rds:describe*
-            - rds:list*
+            - rds:Connect
+            - rds:Describe*
+            - rds:List*
             Resource: '*'
 
   # Lambda Function 
-  LambdaFunction:
+  BRConnectorLambda:
     Condition: IsLambda	
     DependsOn:
     - PrivateWaitCondition
     Type: AWS::Serverless::Function
     Properties:
-      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest"
+      Architectures:
+        - !FindInMap [ArchitectureMapping, !Ref LambdaArch, Architecture]
+      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:${LambdaArch}" #!Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest"
       PackageType: Image
       Policies:
         - AWSLambdaBasicExecutionRole 
-      Role: !GetAtt LambdaFunctionRole.Arn
+      Role: !GetAtt BRConnectorLambdaRole.Arn
       MemorySize: 512
       Timeout: 60 
       Environment:
@@ -597,28 +615,28 @@ Resources:
         SubnetIds:
           - !Ref SubnetId
 
-  MyLambdaFunctionVersion:
+  BRConnectorLambdaVersion:
     Condition: IsLambda	
     Type: AWS::Lambda::Version
     Properties:
-      FunctionName: !Ref LambdaFunction
+      FunctionName: !Ref BRConnectorLambda
 #      ProvisionedConcurrencyConfiguration:
 #      ProvisionedConcurrentExecutions: 3
 
-  MyLambdaFunctionPermission:
+  BRConnectorLambdaPermission:
     Condition: IsLambda	
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref LambdaFunction
+      FunctionName: !Ref BRConnectorLambda
       Action: lambda:InvokeFunctionUrl
       Principal: "*"
       FunctionUrlAuthType: NONE
 
-  MyFunctionUrl:
+  BRConnectorLambdaUrl:
     Condition: IsLambda	
     Type: AWS::Lambda::Url
     Properties:
-      TargetFunctionArn: !Ref LambdaFunction
+      TargetFunctionArn: !Ref BRConnectorLambda
       AuthType: NONE
       InvokeMode: RESPONSE_STREAM
 
@@ -691,7 +709,7 @@ Resources:
 
 Outputs:
   CloudFrontEc2URL:
-    Condition: IsEc2
+    Condition: IsEnableCloudfrontEc2
     Description: CloudFront URL
     Value: 
       Fn::Join:
@@ -701,7 +719,7 @@ Outputs:
           - MyCloudFrontDistribution
           - DomainName
   CloudFrontLambdaURL:
-    Condition: IsLambda
+    Condition: IsEnableCloudfrontLambda
     Description: CloudFront URL
     Value: 
       Fn::Join:
@@ -726,4 +744,4 @@ Outputs:
   MyFunctionUrl:
     Condition: IsLambda
     Description: lambda url
-    Value: !GetAtt MyFunctionUrl.FunctionUrl
+    Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
