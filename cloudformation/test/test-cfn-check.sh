@@ -6,11 +6,11 @@ fi
 
 filename=$1
 
-# # wait all stack complete 
-# cat $filename |while read i j ; do
-#     echo $i $j
-#     aws cloudformation wait stack-create-complete --region ${i} --stack-name ${j}
-# done
+# wait all stack complete 
+cat $filename |while read i j ; do
+    echo $i $j
+    aws cloudformation wait stack-create-complete --region ${i} --stack-name ${j}
+done
 
 # get cloudfront url and api key
 cp /dev/null api-check.txt
@@ -37,7 +37,7 @@ cat api-check.txt |while read i j ; do
       ],
       "stream": true,
       "temperature": 1,
-      "max_tokens": 4096
+      "max_tokens": 4000
     }'
     echo
 done
