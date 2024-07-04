@@ -97,8 +97,8 @@ const loggerHandler = async (ctx: any, next: any) => {
         ),
         defaultMeta: { service: 'brconnector', path: ctx.path },
         transports: [
-            new transports.File({ filename: './logs/error.log', level: 'error' }),
-            new transports.File({ filename: './logs/combined.log' }),
+            new transports.File({ filename: '/tmp/error.log', level: 'error' }),
+            new transports.File({ filename: '/tmp/combined.log' }),
         ],
     });
 
