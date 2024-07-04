@@ -146,7 +146,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Default: false
+    Default: true
 
 Conditions:
   IsBREndpoint: !Equals [!Ref BREndpoint, 'true']

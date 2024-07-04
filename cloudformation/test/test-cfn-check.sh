@@ -7,9 +7,17 @@ fi
 filename=$1
 
 # wait all stack complete 
-cat $filename |while read i j ; do
-    echo $i $j
-    aws cloudformation wait stack-create-complete --region ${i} --stack-name ${j}
+while true ; do
+    cat $filename |while read i j ; do
+        # echo $i $j
+        # aws cloudformation wait stack-create-complete --region ${i} --stack-name ${j}
+        aws cloudformation describe-stacks --stack-name $j --region $i --query Stacks[].StackStatus --output text
+    done |grep --line-buffered -v CREATE_COMPLETE |tee /tmp/$$.log
+    line=$(wc -l /tmp/$$.log |awk '{print $1}')
+    if [[ $line -eq 0 ]]; then
+        break
+    fi
+    sleep 60
 done
 
 # get cloudfront url and api key

@@ -24,6 +24,7 @@ for i in us-east-1 us-west-2 ; do
                          ParameterKey=ComputeType,ParameterValue=ec2 \
                          ParameterKey=BREndpoint,ParameterValue=false \
                          ParameterKey=KeepEc2,ParameterValue=true \
+                         ParameterKey=EnableCloudfront,ParameterValue=true \
                          ParameterKey=StandaloneDB,ParameterValue=${j} \
             --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
             --disable-rollback \
@@ -41,6 +42,7 @@ for i in us-east-1 us-west-2 ; do
                         ParameterKey=ComputeType,ParameterValue=lambda \
                         ParameterKey=BREndpoint,ParameterValue=false \
                         ParameterKey=KeepEc2,ParameterValue=true \
+                         ParameterKey=EnableCloudfront,ParameterValue=true \
                         ParameterKey=LambdaArch,ParameterValue=${j} \
             --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
             --disable-rollback \
