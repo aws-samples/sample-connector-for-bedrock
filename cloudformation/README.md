@@ -14,7 +14,12 @@ Following main components will be included in this Cloudformation template:
 - BRConnector on Lambda or EC2
 - RDS PostgreSQL or PostgreSQL container on EC2
 
+## One-Click Deploy
+
+  [![Launch Stack](../assets/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=SampleClientForBedrockBRConnector&templateURL=s3://sample-client-for-bedrock-clouformation/quick-build-brconnector.yaml)
+
 ## Deploy Guide
+
 - Download [quick-build-brconnector.yaml](quick-build-brconnector.yaml) and upload to Cloudformation console.
 - VPC parameters
     - Choose a existing VPC with public subnets
