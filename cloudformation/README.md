@@ -20,7 +20,10 @@ Following main components will be included in this Cloudformation template:
 
 ## Deploy Guide
 
-- Download [quick-build-brconnector.yaml](quick-build-brconnector.yaml) and upload to Cloudformation console.
+- Click the follow button to load the template into the AWS Cloudformation Console.
+
+  [![Launch Stack](../assets/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=SampleClientForBedrockBRConnector&templateURL=https://sample-client-for-bedrock-clouformation.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
+  
 - VPC parameters
     - Choose a existing VPC with public subnets
     - Choose one public subnet
