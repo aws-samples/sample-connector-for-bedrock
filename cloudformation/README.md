@@ -16,7 +16,7 @@ Following main components will be included in this Cloudformation template:
 
 ## Deploy Guide
 
-- Click the follow button to load the template into the AWS Cloudformation Console.
+- Click the follow button to load the template into the AWS Cloudformation Console, this will redirect you to AWS Console automatically.
 
   [![Launch Stack](../assets/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=SampleClientForBedrockBRConnector&templateURL=https://sample-client-for-bedrock-clouformation.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
   
