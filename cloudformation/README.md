@@ -9,7 +9,7 @@
 - Enable Claude 3 Sonnet or Haiku in your region - If you are new to using Anthropic models, go to the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/) and choose **Model access** on the bottom left pane. Request access separately for Claude 3 Sonnet or Haiku.
 
 ## Components
-Following main components will be included in this Cloudformation template: 
+Following key components will be included in this Cloudformation template: 
 - Cloudfront
 - BRConnector on Lambda or EC2
 - RDS PostgreSQL or PostgreSQL container on EC2
@@ -18,7 +18,7 @@ Following main components will be included in this Cloudformation template:
 
 - Click the follow button to load the template into the AWS Cloudformation Console, this will redirect you to AWS Console automatically.
 
-  [![Launch Stack](../assets/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=SampleClientForBedrockBRConnector&templateURL=https://sample-client-for-bedrock-clouformation.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
+  [![Launch Stack](../assets/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-client-for-bedrock-clouformation.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
   
 - VPC parameters
     - Choose a existing VPC with public subnets
