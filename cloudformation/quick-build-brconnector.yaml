@@ -20,13 +20,13 @@ Metadata:
           - ComputeType
 
       - Label: 
-          default: EC2 settings for BRConnector
+          default: For EC2 settings 
       - Parameters:
           - EC2InstanceType
           - EC2InstanceAMI
 
       - Label: 
-          default: Lambda settings for BRConnector
+          default: For Lambda settings (!!! PUBLIC FUNCTION URL will be used. !!!)
       - Parameters:
           - EcrRepo
           - LambdaArch
@@ -63,8 +63,8 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
   BREndpoint:
     Description: >-
-      Deploy a bedrock-runtime endpoint in your VPC ? It is mendortory, for running BRConnector on Lambda
-      \nIf you already have one, choose false. \nIf you are new to this cfn template, choose true. 
+      Deploy a bedrock-runtime endpoint in your VPC ? It is mendortory, for running BRConnector on Lambda.
+      If you already have one, choose false. If you are new to this cfn template, choose true. 
     Type: String
     AllowedValues:
       - true
@@ -96,7 +96,7 @@ Parameters:
 
   EcrRepo:
     Description: >-
-      Prefix of private repo name , repo full name will be brconnect-<AWS::StackName>
+      Prefix of private repo name , repo full name will be brconnect-<Part of AWS::StackId>
     Type: String
     Default: brconnector
 
@@ -378,15 +378,15 @@ Resources:
 
           aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
           docker pull --platform=linux/arm64 cloudbeer/sample-connector-for-bedrock-lambda
-          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64
-          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64
+          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64
+          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64
           docker pull --platform=linux/amd64 cloudbeer/sample-connector-for-bedrock-lambda
-          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64
-          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64
-          docker manifest create ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64 --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64
-          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:arm64 --os linux --arch arm64
-          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:amd64 --os linux --arch amd64
-          docker manifest push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest
+          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64
+          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64
+          docker manifest create ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64 --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64
+          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64 --os linux --arch arm64
+          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64 --os linux --arch amd64
+          docker manifest push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest
 
           # prepare to delete self
           TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
@@ -413,7 +413,19 @@ Resources:
   PrivateECRRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub "${EcrRepo}-${AWS::StackName}"
+      EmptyOnDelete: true
+      RepositoryName: !Join
+        - '-'
+        - - !Ref EcrRepo
+          - !Select
+              - 4
+              - !Split
+                  - '-'
+                  - !Select
+                      - 2
+                      - !Split
+                          - '/'
+                          - !Ref AWS::StackId
 
   MyCloudFrontDistribution:
     Condition: IsEnableCloudfrontEc2
@@ -595,7 +607,7 @@ Resources:
     Properties:
       Architectures:
         - !FindInMap [ArchitectureMapping, !Ref LambdaArch, Architecture]
-      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:${LambdaArch}" #!Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepo}-${AWS::StackName}:latest"
+      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:${LambdaArch}" #!Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest"
       PackageType: Image
       Policies:
         - AWSLambdaBasicExecutionRole 

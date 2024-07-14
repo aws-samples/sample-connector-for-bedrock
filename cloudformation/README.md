@@ -9,17 +9,17 @@
 - Enable Claude 3 Sonnet or Haiku in your region - If you are new to using Anthropic models, go to the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/) and choose **Model access** on the bottom left pane. Request access separately for Claude 3 Sonnet or Haiku.
 
 ## Components
-Following main components will be included in this Cloudformation template: 
+Following key components will be included in this Cloudformation template: 
 - Cloudfront
 - BRConnector on Lambda or EC2
 - RDS PostgreSQL or PostgreSQL container on EC2
 
 ## Deploy Guide
 
-- Click the follow button to load the template into the AWS Cloudformation Console, this will redirect you to AWS Console automatically.
+- Click the follow button to load the template into the AWS Cloudformation Console, or download [quick-build-brconnector.yaml](quick-build-brconnector.yaml) and launch it by yourself.
 
-  [![Launch Stack](../assets/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=SampleClientForBedrockBRConnector&templateURL=https://sample-client-for-bedrock-clouformation.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
-  
+    [![Launch Stack](./assets/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
+
 - VPC parameters
     - Choose a existing VPC with public subnets
     - Choose one public subnet
@@ -33,6 +33,7 @@ Following main components will be included in this Cloudformation template:
         - Now only support Amazon Linux 2023
         - You could choose to create PostgreSQL as container in same EC2 (`StandaloneDB` to false), or create standalone RDS PostgreSQL as backend (`StandaloneDB` to true)
     - For Lambda settings
+        - PUBLIC Function URL will be used. Please ensure this security setting is acceptable.
         - Define your private repository name prefix string
         - Always create RDS PostgreSQL
 
