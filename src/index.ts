@@ -34,7 +34,11 @@ app.use(loggerHandler);
 
 app.use(errorHandler);
 
-app.use(bodyParser());
+app.use(bodyParser({
+    encoding: "utf-8",
+    formLimit: "100mb",
+    jsonLimit: "100mb",
+}));
 
 app.use(cors());
 
