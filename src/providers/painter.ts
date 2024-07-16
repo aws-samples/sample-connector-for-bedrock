@@ -1,7 +1,9 @@
 // A\
 import { ChatRequest, ResponseData } from "../entity/chat_request";
 import {
-  BedrockRuntimeClient, ConverseStreamCommand, ConverseCommand,
+  BedrockRuntimeClient,
+  ConverseStreamCommand,
+  ConverseCommand,
   InvokeModelCommand
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -44,10 +46,10 @@ export default class Painter extends AbstractProvider {
     }
 
     if (!this.sdModelId) {
-      throw new Error("You must specify the parameters 'sdModelId' in the backend model configuration.")
+      this.sdModelId = "stability.stable-diffusion-xl-v1";
     }
     if (!this.llmModelId) {
-      throw new Error("You must specify the parameters 'llmModelId' in the backend model configuration.")
+      this.llmModelId = "anthropic.claude-3-sonnet-20240229-v1:0";
     }
 
     let regions: any = this.modelData.config && this.modelData.config.regions;
@@ -104,7 +106,6 @@ export default class Painter extends AbstractProvider {
 
     ctx.status = 200;
 
-    // console.log("--------------｜｜-payload", JSON.stringify(payload, null, 2));
     if (chatRequest.stream) {
       payload.toolConfig = { tools };
       ctx.set({
@@ -119,28 +120,11 @@ export default class Painter extends AbstractProvider {
       });
       ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
     }
-    // let fullReq =
-
-
-    // if (chatRequest.stream) {
-    //   ctx.set({
-    //     'Connection': 'keep-alive',
-    //     'Cache-Control': 'no-cache',
-    //     'Content-Type': 'text/event-stream',
-    //   });
-    //   await this.chatStream(ctx, payload, chatRequest, session_id);
-    // } else {
-    //   ctx.set({
-    //     'Content-Type': 'application/json',
-    //   });
-    //   ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
-    // }
   }
 
   async functionCallingStream(ctx: any, input: any) {
 
-    let i = 0;
-    // console.log(JSON.stringify(input, null, 2));
+    // let i = 0;
     const command = new ConverseStreamCommand(input);
     const response = await this.client.send(command);
     let toolUseId = null;
@@ -170,12 +154,16 @@ export default class Painter extends AbstractProvider {
           if (toolName == "draw") {
             // console.log("----------all tools", toolName, responseTextTool);
             const sdInput = JSON.parse(responseTextTool)
-            console.log(sdInput)
-            const responseImage = await this.draw(sdInput);
-
-            const mdImage = `\n![](${responseImage})`
-
-            ctx.res.write("data:" + WebResponse.wrap(0, "painter", mdImage, null) + "\n\n");
+            ctx.logger.debug(sdInput);
+            // console.log(sdInput)
+            try {
+              const responseImage = await this.draw(sdInput);
+              const mdImage = `\n\n![](${responseImage})`
+              ctx.res.write("data:" + WebResponse.wrap(0, "painter", mdImage, null) + "\n\n");
+            } catch (ex) {
+              ctx.logger.error(ex.message);
+              ctx.res.write("data:" + WebResponse.wrap(0, "painter", "\n\nSorry, Your prompts contains filtered words.", null) + "\n\n");
+            }
 
           }
           // console.log(JSON.stringify(item.contentBlockDelta.delta))
@@ -228,7 +216,6 @@ export default class Painter extends AbstractProvider {
     return diff < 32 ? lowerMultiple : lowerMultiple + 64;
   }
 
-
   async draw(input: any) {
     let [width, height] = this.nearestMultiplesOf64AndScaleDown(input.width || 768, input.height || 768);
     width = width < 256 ? 256 : width;
@@ -249,8 +236,6 @@ export default class Painter extends AbstractProvider {
         },
       ]
     }
-
-    console.log("inp ", inputBody);
 
     const req = {
       body: JSON.stringify(inputBody),
@@ -416,8 +401,6 @@ class MessageConverter {
   async convertConverseSingleType(contentItem: any): Promise<any> {
     if (contentItem.type === "image_url") {
       const url = contentItem.image_url.url;
-      // For testing
-      // const url = "https://plugins-media.makeupar.com/smb/blog/post/2023-12-19/47b45fb5-63dd-40c9-aed0-4425c7aa265b.jpg";
       const image = await this.parseImageUrl(url);
       return {
         image
@@ -441,7 +424,7 @@ class MessageConverter {
 
     let newMessageJoin = "";
     for (const message of userMessages) {
-      console.log("ori msg: ", message)
+      // console.log("ori msg: ", message)
       if (typeof message.content === "string") {
         newMessageJoin += (message.content || "\n\n");
       }

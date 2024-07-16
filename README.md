@@ -8,6 +8,8 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models/Platform Support
 
+- Bedrock SDXL [Since Docker image version 0.0.9]. See [Screenshots](docs/painter.md).
+
 - Sagemaker LMI [Since Docker image version 0.0.8]
 
 - Amazon Bedrock Converse API [Since Docker image version 0.0.6]
@@ -62,6 +64,19 @@ Model Access Control [Since Docker image version 0.0.6]
 This connector provides a series of providers for model support, and you can configure them by writing JSON from the backend.
 
 ![Model config](docs/screenshots/model-config-1.png)
+
+### painter
+
+> Since Docker image version 0.0.9
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| llmModelId  | string   | N    |  "anthropic.claude-3-sonnet-20240229-v1:0" | You should choose a bedrock model for **function calling** |
+| sdModelId  | string   | N    | "stability.stable-diffusion-xl-v1" |  Bedrock  SDXL model id, The input parameters are only compatible with sdxl now.  |
+| s3Bucket  | string   | Y    |  | S3 is for storing the generated images, please set the IAM permissions to meet access requirements.  |
+| s3Prefix  | string   | N    | "" |   The S3 prefix combined with the date will ultimately form the S3 key.  |
+| s3Region  | string   | Y     | | S3 bucket region  |
+| regions  | string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
 
 ### sagemaker-lmi
 

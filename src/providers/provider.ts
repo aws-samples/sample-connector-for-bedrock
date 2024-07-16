@@ -25,7 +25,7 @@ class Provider {
     }
 
     async chat(ctx: any) {
-        let keyData = null;
+        // let keyData = null;
         if (ctx.db) {
             if (ctx.user && ctx.user.id > 0) {
                 await this.checkFee(ctx, ctx.user);
