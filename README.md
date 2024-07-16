@@ -192,7 +192,7 @@ And, important! replace the value of ADMIN_API_KEY to be a complex key instead o
 
 ```shell
 docker run --name brconnector \
- --restart always \
+ --restart always --pull always \
  -p 8866:8866 \
  -e AWS_ACCESS_KEY_ID=xxxx \
  -e AWS_SECRET_ACCESS_KEY=xxxxx \
@@ -214,8 +214,8 @@ And the server export port 8866 to the hosting EC2.
 Test the server with the API_Key using `curl` command:
 
 ```shell
-curl "http://localhost:8866/admin/api-key/list"     -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
+curl "http://localhost:8866/admin/api-key/list" \
+  -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
 ```
 
 You will get something like the following if every things go well:
@@ -235,7 +235,7 @@ Create the first admin user with the following command:
 ```shell
 curl -X POST "http://localhost:8866/admin/api-key/apply" \
      -H "Content-Type: application/json" \
-  -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+     -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
      -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
 
 ```
@@ -269,6 +269,12 @@ In the "APK Key" field, enter the API_Key of your first admin user, which is the
 Then, open a new chat to test.
 
 If every thing goes well, you can start to chat.
+
+> [!TIP]  
+>
+> You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project.
+>
+> Since 0.0.8, this client has been built into the docker image. The access address is: <http://localhost:8866/brclient/>
 
 ### 7. The connector's WebUI
 
