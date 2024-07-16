@@ -274,7 +274,7 @@ If every thing goes well, you can start to chat.
 >
 > You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project.
 >
-> Since 0.0.8, this client has been built into the docker image. The access address is: <http://localhost:8866/brclient/>
+> Since 0.0.8, this client has been built into the docker image. The access address is: <https://your-endpoint/brclient/>
 
 ### 7. The connector's WebUI
 
