@@ -44,6 +44,7 @@ Metadata:
       - Parameters:
           - KeepEc2
           - EnableCloudfront
+          # - AutoUpdateBRConnector
 
 #Mappings:
 #  TheRegionYouAreDeployingIn:
@@ -131,7 +132,7 @@ Parameters:
     Description: PostgreSQL default password
     Type: String
     Default: mysecretpassword
-    
+
   KeepEc2:
     Description: keep ec2 instance for debugging when you deploy brconnector on lambda
     Type: String
@@ -147,6 +148,14 @@ Parameters:
       - true
       - false
     Default: true
+
+  # AutoUpdateBRConnector:
+  #   Description: auto update BRConnector image to lambda & ec2
+  #   Type: String
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
 
 Conditions:
   IsBREndpoint: !Equals [!Ref BREndpoint, 'true']
@@ -190,6 +199,8 @@ Resources:
       - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
       - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+      - arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicReadOnly
       Policies:
       - PolicyName: MyInlinePolicy-bedrock
         PolicyDocument:
@@ -295,6 +306,7 @@ Resources:
     - MySSMParameterFirstUserKey 
     - MySSMParameterAdminKey
     - MySSMParameterPGDB
+    - ECRPullThroughCacheRule
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: 
@@ -337,21 +349,37 @@ Resources:
           # docker run -t --rm --privileged tonistiigi/binfmt --install all
           # docker buildx inspect --bootstrap
           # docker buildx create --use --platform=linux/arm64,linux/amd64 --name multi-platform-builder
+          # install regctl
+          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 >regctl
+          chmod 755 regctl
+          sudo mv regctl /usr/local/bin
 
           # save default settings 
           export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
           export KEY=$(uuidgen |tee /root/admin-api-key.txt)
           export AWS_DEFAULT_REGION="${AWS::Region}"
+          
+          REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
+          echo $REPO_PREFIX
+          aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+          IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
+          docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest
+
+          AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:latest)
+          ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:latest)
+          regctl image copy ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
+          regctl image copy ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA@$ARM64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:arm64
 
           # start postgress db
-          PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text)
+          PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
           if [[ $PGHOST == "172.17.0.1" ]]; then
             docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres
             sleep 10; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
           fi
 
-          # start brconnector container
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d cloudbeer/sample-connector-for-bedrock
+          # start brconnector container in ECR
+          IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:latest
 
           # create first user
           sleep 10;
@@ -374,19 +402,7 @@ Resources:
           fi
           EOF
           chmod a+x /root/healthcheck.sh
-          echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' | /usr/bin/crontab -
-
-          aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
-          docker pull --platform=linux/arm64 cloudbeer/sample-connector-for-bedrock-lambda
-          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64
-          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64
-          docker pull --platform=linux/amd64 cloudbeer/sample-connector-for-bedrock-lambda
-          docker tag cloudbeer/sample-connector-for-bedrock-lambda ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64
-          docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64
-          docker manifest create ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64 --amend ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64
-          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:arm64 --os linux --arch arm64
-          docker manifest annotate ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:amd64 --os linux --arch amd64
-          docker manifest push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest
+          echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' |crontab -
 
           # prepare to delete self
           TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
@@ -407,14 +423,13 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     Properties:
       Handle: !Ref PrivateWaitHandle
-      Timeout: '900' # about 10 min will receive signal
+      Timeout: '900' # about 2-4 min will receive signal
       Count: 1
 
-  PrivateECRRepository:
-    Type: AWS::ECR::Repository
+  ECRPullThroughCacheRule:
+    Type: 'AWS::ECR::PullThroughCacheRule'
     Properties:
-      EmptyOnDelete: true
-      RepositoryName: !Join
+      EcrRepositoryPrefix: !Join
         - '-'
         - - !Ref EcrRepo
           - !Select
@@ -426,6 +441,26 @@ Resources:
                       - !Split
                           - '/'
                           - !Ref AWS::StackId
+      # UpstreamRegistryUrl: 'https://registry.hub.docker.com'
+      UpstreamRegistryUrl: "public.ecr.aws"
+      UpstreamRegistry: "ecr-public"
+
+  # PrivateECRRepository:
+  #   Type: AWS::ECR::Repository
+  #   Properties:
+  #     EmptyOnDelete: true
+  #     RepositoryName: !Join
+  #       - '-'
+  #       - - !Ref EcrRepo
+  #         - !Select
+  #             - 4
+  #             - !Split
+  #                 - '-'
+  #                 - !Select
+  #                     - 2
+  #                     - !Split
+  #                         - '/'
+  #                         - !Ref AWS::StackId
 
   MyCloudFrontDistribution:
     Condition: IsEnableCloudfrontEc2
@@ -607,7 +642,9 @@ Resources:
     Properties:
       Architectures:
         - !FindInMap [ArchitectureMapping, !Ref LambdaArch, Architecture]
-      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:${LambdaArch}" #!Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest"
+      # ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:${LambdaArch}" 
+      # ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest"
+      ImageUri: !Join ["", [!Ref "AWS::AccountId", ".dkr.ecr.", !Ref "AWS::Region", ".amazonaws.com/", !Join ['-', [!Ref 'EcrRepo', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]], "/x6u9o2u4/sample-connector-for-bedrock-lambda:", !Ref LambdaArch]]
       PackageType: Image
       Policies:
         - AWSLambdaBasicExecutionRole 
@@ -757,3 +794,7 @@ Outputs:
     Condition: IsLambda
     Description: lambda url
     Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
+  MyFunctionName:
+    Condition: IsLambda
+    Description: lambda name
+    Value: !Ref BRConnectorLambda
