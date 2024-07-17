@@ -44,7 +44,7 @@ Metadata:
       - Parameters:
           - KeepEc2
           - EnableCloudfront
-          - AutoUpdateBRConnector
+          # - AutoUpdateBRConnector
 
 #Mappings:
 #  TheRegionYouAreDeployingIn:
@@ -133,14 +133,6 @@ Parameters:
     Type: String
     Default: mysecretpassword
 
-  AutoUpdateBRConnector:
-    Description: auto update BRConnector image to lambda & ec2
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true    
-
   KeepEc2:
     Description: keep ec2 instance for debugging when you deploy brconnector on lambda
     Type: String
@@ -156,6 +148,14 @@ Parameters:
       - true
       - false
     Default: true
+
+  # AutoUpdateBRConnector:
+  #   Description: auto update BRConnector image to lambda & ec2
+  #   Type: String
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
 
 Conditions:
   IsBREndpoint: !Equals [!Ref BREndpoint, 'true']
@@ -365,16 +365,10 @@ Resources:
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
           docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest
 
-          AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:latest)   
+          AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:latest)
           ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:latest)
           regctl image copy ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
           regctl image copy ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA@$ARM64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:arm64
-
-          echo 'IyEvYmluL2Jhc2gKCiMgc2NyaXB0IGlzIGZvciBhbWF6b24gbGludXggMiBvbiBhbWQ2NAoKeXVtIGluc3RhbGwgLXkgZG9ja2VyIGpxIGdpdCBjcm9uaWUKCmlmIFtbICEgLXggL3Vzci9sb2NhbC9iaW4vcmVnY3RsIF1dOyB0aGVuCiAgY3VybCAtTCBodHRwczovL2dpdGh1Yi5jb20vcmVnY2xpZW50L3JlZ2NsaWVudC9yZWxlYXNlcy9sYXRlc3QvZG93bmxvYWQvcmVnY3RsLWxpbnV4LWFtZDY0ID5yZWdjdGwKICBjaG1vZCA3NTUgcmVnY3RsCiAgc3VkbyBtdiByZWdjdGwgL3Vzci9sb2NhbC9iaW4KZmkKCkFXU19QQUdFUj0iIgoKZXhwb3J0IEFDQ09VTlRfSUQ9JChhd3Mgc3RzIGdldC1jYWxsZXItaWRlbnRpdHkgLS1vdXRwdXQgdGV4dCAtLXF1ZXJ5IEFjY291bnQpClRPS0VOPWBjdXJsIC1YIFBVVCAiaHR0cDovLzE2OS4yNTQuMTY5LjI1NC9sYXRlc3QvYXBpL3Rva2VuIiAtSCAiWC1hd3MtZWMyLW1ldGFkYXRhLXRva2VuLXR0bC1zZWNvbmRzOiAyMTYwMCJgCmV4cG9ydCBBV1NfREVGQVVMVF9SRUdJT049JChjdXJsIC1IICJYLWF3cy1lYzItbWV0YWRhdGEtdG9rZW46ICRUT0tFTiIgLXMgaHR0cDovLzE2OS4yNTQuMTY5LjI1NC9sYXRlc3QvZHluYW1pYy9pbnN0YW5jZS1pZGVudGl0eS9kb2N1bWVudCB8IGpxIC1yICcucmVnaW9uJykKCiMgZ2V0IHN0YWNrIG5hbWUKSU5TVF9JRD0kKGN1cmwgLUggIlgtYXdzLWVjMi1tZXRhZGF0YS10b2tlbjogJFRPS0VOIiAtcyBodHRwOi8vMTY5LjI1NC4xNjkuMjU0L2xhdGVzdC9keW5hbWljL2luc3RhbmNlLWlkZW50aXR5L2RvY3VtZW50IHwganEgLXIgJy5pbnN0YW5jZUlkJykKTkFNRV9UQUc9JChhd3MgZWMyIGRlc2NyaWJlLWluc3RhbmNlcyAtLWluc3RhbmNlLWlkcyAkSU5TVF9JRCAtLXF1ZXJ5ICdSZXNlcnZhdGlvbnNbKl0uSW5zdGFuY2VzWypdLlRhZ3NbP0tleSA9PSBgTmFtZWBdLlZhbHVlJyAtLW91dHB1dCB0ZXh0KQpTVEFDS19OQU1FPSR7TkFNRV9UQUcjKi19CgojIGdldCBlY3IgcmVwbyBuYW1lCmF3cyBjbG91ZGZvcm1hdGlvbiBkZXNjcmliZS1zdGFja3MgLS1zdGFjay1uYW1lICR7U1RBQ0tfTkFNRX0gPiAkJC55YW1sClNUQUNLX0lEPSQoY2F0ICQkLnlhbWwgfGpxIC1yICcuU3RhY2tzW10uU3RhY2tJZCcpClJFUE9fUFJFRklYPSQoY2F0ICQkLnlhbWwgfGpxIC1yICcuU3RhY2tzW10uUGFyYW1ldGVyc1tdIHwgc2VsZWN0ICguUGFyYW1ldGVyS2V5ID09ICJFY3JSZXBvIikgfCAuUGFyYW1ldGVyVmFsdWUnKQpET0NLRVJIVUJfUkVQTz14NnU5bzJ1NC9zYW1wbGUtY29ubmVjdG9yLWZvci1iZWRyb2NrLWxhbWJkYQpFQ1JfUkVQTz0ke1JFUE9fUFJFRklYfS0ke1NUQUNLX0lEIyMqLX0vJHtET0NLRVJIVUJfUkVQT30KCiMgcHVsbCBsb2NhbAphd3MgZWNyIGdldC1sb2dpbi1wYXNzd29yZCAtLXJlZ2lvbiAke0FXU19ERUZBVUxUX1JFR0lPTn0gfCBkb2NrZXIgbG9naW4gLS11c2VybmFtZSBBV1MgLS1wYXNzd29yZC1zdGRpbiAke0FDQ09VTlRfSUR9LmRrci5lY3IuJHtBV1NfREVGQVVMVF9SRUdJT059LmFtYXpvbmF3cy5jb20KZG9ja2VyIHB1bGwgJHtBQ0NPVU5UX0lEfS5ka3IuZWNyLiR7QVdTX0RFRkFVTFRfUkVHSU9OfS5hbWF6b25hd3MuY29tLyR7RUNSX1JFUE99OmxhdGVzdAoKIyB0YWcgYW1kNjQgLyBhcm02NApBTUQ2NF9ESUc9JChyZWdjdGwgaW1hZ2UgZGlnZXN0IC0tcGxhdGZvcm0gbGludXgvYW1kNjQgcHVibGljLmVjci5hd3MvJHtET0NLRVJIVUJfUkVQT306bGF0ZXN0KQpBUk02NF9ESUc9JChyZWdjdGwgaW1hZ2UgZGlnZXN0IC0tcGxhdGZvcm0gbGludXgvYXJtNjQgcHVibGljLmVjci5hd3MvJHtET0NLRVJIVUJfUkVQT306bGF0ZXN0KQpyZWdjdGwgaW1hZ2UgY29weSAke0FDQ09VTlRfSUR9LmRrci5lY3IuJHtBV1NfREVGQVVMVF9SRUdJT059LmFtYXpvbmF3cy5jb20vJHtFQ1JfUkVQT31AJHtBTUQ2NF9ESUd9ICR7QUNDT1VOVF9JRH0uZGtyLmVjci4ke0FXU19ERUZBVUxUX1JFR0lPTn0uYW1hem9uYXdzLmNvbS8ke0VDUl9SRVBPfTphbWQ2NApyZWdjdGwgaW1hZ2UgY29weSAke0FDQ09VTlRfSUR9LmRrci5lY3IuJHtBV1NfREVGQVVMVF9SRUdJT059LmFtYXpvbmF3cy5jb20vJHtFQ1JfUkVQT31AJHtBUk02NF9ESUd9ICR7QUNDT1VOVF9JRH0uZGtyLmVjci4ke0FXU19ERUZBVUxUX1JFR0lPTn0uYW1hem9uYXdzLmNvbS8ke0VDUl9SRVBPfTphcm02NAoKIyB1cGRhdGUgbGFtYmRhIGZ1bmN0aW9uIGltYWdlIHVyaQojRlVOQ1RJT05fTkFNRT0kKGF3cyBsYW1iZGEgbGlzdC1mdW5jdGlvbnMgLS1xdWVyeSAnRnVuY3Rpb25zWz9QYWNrYWdlVHlwZT09YEltYWdlYF0nIHxqcSAtciAnLltdLkZ1bmN0aW9uTmFtZSB8IG1hdGNoKCInIiR7U1RBQ0tfTkFNRX0iJy1CUkNvbm5lY3RvckxhbWJkYS4qIiknIHxqcSAtciAnLnN0cmluZycpCkZVTkNUSU9OX05BTUU9JChhd3MgY2xvdWRmb3JtYXRpb24gZGVzY3JpYmUtc3RhY2tzIC0tc3RhY2stbmFtZSAke1NUQUNLX05BTUV9IC0tcXVlcnkgJ1N0YWNrc1tdLk91dHB1dHNbPyhPdXRwdXRLZXk9PWBNeUZ1bmN0aW9uTmFtZWApXS5PdXRwdXRWYWx1ZScgLS1vdXRwdXQgdGV4dCkKaWYgW1sgISAteiAke0ZVTkNUSU9OX05BTUV9IF1dOyB0aGVuCklNQUdFX1VSST0kKGF3cyBsYW1iZGEgZ2V0LWZ1bmN0aW9uIC0tZnVuY3Rpb24tbmFtZSAke0ZVTkNUSU9OX05BTUV9IC0tcXVlcnkgJ0NvZGUuSW1hZ2VVcmknIC0tb3V0cHV0IHRleHQpCmF3cyBsYW1iZGEgdXBkYXRlLWZ1bmN0aW9uLWNvZGUgLS1mdW5jdGlvbi1uYW1lICR7RlVOQ1RJT05fTkFNRX0gLS1pbWFnZS11cmkgJHtJTUFHRV9VUkl9CmZpCgojIHVwZGF0ZSBpbWFnZSBvbiBlYzIKRE9DS0VSSFVCX1JFUE9fRUMyPXg2dTlvMnU0L3NhbXBsZS1jb25uZWN0b3ItZm9yLWJlZHJvY2sKZG9ja2VyIHB1bGwgcHVibGljLmVjci5hd3MvJHtET0NLRVJIVUJfUkVQT19FQzJ9OmxhdGVzdAo=' |base64 --decode >/root/pull-br.sh
-          sh -x /root/pull-br.sh >/root/pull-br.log 2>&1
-          if [[ ${AutoUpdateBRConnector} == "true" ]]; then
-            echo '0 0 * * * sh -x /root/pull-br.sh >>/root/pull-br.log 2>&1' |crontab -
-          fi
 
           # start postgress db
           PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
@@ -408,7 +402,7 @@ Resources:
           fi
           EOF
           chmod a+x /root/healthcheck.sh
-          ( crontab -l ; echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' ) |crontab -
+          echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' |crontab -
 
           # prepare to delete self
           TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
@@ -429,7 +423,7 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     Properties:
       Handle: !Ref PrivateWaitHandle
-      Timeout: '1200' # about 10 min will receive signal
+      Timeout: '900' # about 2-4 min will receive signal
       Count: 1
 
   ECRPullThroughCacheRule:

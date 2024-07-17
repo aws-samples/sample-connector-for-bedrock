@@ -60,7 +60,57 @@ Following key components will be included in this Cloudformation template:
 - Also you could connect to `BRConnector` EC2 instance with SSM Session Manager ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 
 ## Update BRConnector
-- Currently, we use ECR pull through cache to update ECR image with upstream automatically
+### ECR with pull through cache enabled
+- Check your ECR settings, if has rules in pull through cache page, you have enabled this feature to update ECR image with upstream repo automatically.
+- this script could running on any compactibility linux with bash shell to update your BRConnector easier
+```sh
+# this script is for update lambda image 
+# running on amazon linux 2023 on amd64
+# modify ACCOUNT_ID / AWS_DEFAULT_REGION / Cloudformation STACK_NAME before execution
+
+export ACCOUNT_ID=123456789012
+export AWS_DEFAULT_REGION=us-west-2
+STACK_NAME=cloudformation_stack_name
+DOCKERHUB_REPO=x6u9o2u4/sample-connector-for-bedrock-lambda
+
+
+yum install -y docker jq git cronie
+
+if [[ ! -x /usr/local/bin/regctl ]]; then
+  curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 >regctl
+  chmod 755 regctl
+  sudo mv regctl /usr/local/bin
+fi
+
+export AWS_PAGER=""
+# get ecr repo name
+aws cloudformation describe-stacks --stack-name ${STACK_NAME} > /tmp/$$.yaml
+STACK_ID=$(cat /tmp/$$.yaml |jq -r '.Stacks[].StackId')
+REPO_PREFIX=$(cat /tmp/$$.yaml |jq -r '.Stacks[].Parameters[] | select (.ParameterKey == "EcrRepo") | .ParameterValue')
+ECR_REPO=${REPO_PREFIX}-${STACK_ID##*-}/${DOCKERHUB_REPO}
+FUNCTION_NAME=$(cat /tmp/$$.yaml |jq -r '.Stacks[].Outputs[] | select (.OutputKey == "MyFunctionName") | .OutputValue')
+
+# pull local
+aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+#docker pull ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:latest
+
+# tag amd64 / arm64
+AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/${DOCKERHUB_REPO}:latest)
+ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/${DOCKERHUB_REPO}:latest)
+regctl image copy ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}@${AMD64_DIG} ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:amd64
+regctl image copy ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}@${ARM64_DIG} ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:arm64
+
+# update lambda function image uri
+if [[ ! -z ${FUNCTION_NAME} ]]; then
+  IMAGE_URI=$(aws lambda get-function --function-name ${FUNCTION_NAME} --query 'Code.ImageUri' --output text)
+  aws lambda update-function-code --function-name ${FUNCTION_NAME} --image-uri ${IMAGE_URI}
+else
+  echo "cannot get lambda function name"
+fi
+
+```
+
+### ECR without pull through cache enabled
 - following this script to update image manually if you do not enable ECR pull through cache
 ```sh
 export AWS_DEFAULT_REGION=us-west-2
@@ -87,6 +137,7 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 
 ```
 - update lambda image with correct architecture
+- or login to ec2 to update local image and restart brconnector container
 
 
 ## Migrating to new RDS PostgreSQL database
