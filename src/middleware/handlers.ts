@@ -13,6 +13,13 @@ const authHandler = async (ctx: any, next: any) => {
         return;
     }
     pathName = pathName.toLowerCase();
+
+    // skip cognito
+    if (pathName.indexOf("/aws_cognito_configuration") === 0) {
+        ctx.status = 404;
+        ctx.body = "Not Found";
+        return;
+    }
     if (pathName.indexOf("/brclient") === 0) {
         await next();
         return;

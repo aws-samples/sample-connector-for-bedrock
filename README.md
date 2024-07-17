@@ -8,6 +8,8 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models/Platform Support
 
+- Bedrock SDXL [Since Docker image version 0.0.9]. See [Screenshots](docs/painter.md).
+
 - Sagemaker LMI [Since Docker image version 0.0.8]
 
 - Amazon Bedrock Converse API [Since Docker image version 0.0.6]
@@ -62,6 +64,21 @@ Model Access Control [Since Docker image version 0.0.6]
 This connector provides a series of providers for model support, and you can configure them by writing JSON from the backend.
 
 ![Model config](docs/screenshots/model-config-1.png)
+
+### painter
+
+> Since Docker image version 0.0.9
+
+Draw using the conversation mode.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| llmModelId  | string   | N    |  "anthropic.claude-3-sonnet-20240229-v1:0" | You should choose a bedrock model for **function calling** |
+| sdModelId  | string   | N    | "stability.stable-diffusion-xl-v1" |  Bedrock  SDXL model id. This provider is only compatible with sdxl now.  |
+| s3Bucket  | string   | Y    |  | S3 is for storing the generated images, please set the IAM permissions to meet access requirements.  |
+| s3Prefix  | string   | N    | "" |   The S3 prefix combined with the date will ultimately form the S3 key.  |
+| s3Region  | string   | Y     | | S3 bucket region  |
+| regions  | string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
 
 ### sagemaker-lmi
 
@@ -177,7 +194,7 @@ And, important! replace the value of ADMIN_API_KEY to be a complex key instead o
 
 ```shell
 docker run --name brconnector \
- --restart always \
+ --restart always --pull always \
  -p 8866:8866 \
  -e AWS_ACCESS_KEY_ID=xxxx \
  -e AWS_SECRET_ACCESS_KEY=xxxxx \
@@ -199,8 +216,8 @@ And the server export port 8866 to the hosting EC2.
 Test the server with the API_Key using `curl` command:
 
 ```shell
-curl "http://localhost:8866/admin/api-key/list"     -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
+curl "http://localhost:8866/admin/api-key/list" \
+  -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
 ```
 
 You will get something like the following if every things go well:
@@ -220,7 +237,7 @@ Create the first admin user with the following command:
 ```shell
 curl -X POST "http://localhost:8866/admin/api-key/apply" \
      -H "Content-Type: application/json" \
-  -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+     -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
      -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
 
 ```
@@ -254,6 +271,12 @@ In the "APK Key" field, enter the API_Key of your first admin user, which is the
 Then, open a new chat to test.
 
 If every thing goes well, you can start to chat.
+
+> [!TIP]  
+>
+> You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project.
+>
+> Since 0.0.8, this client has been built into the docker image. The access address is: <https://your-endpoint/brclient/>
 
 ### 7. The connector's WebUI
 

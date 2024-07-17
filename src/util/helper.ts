@@ -40,9 +40,10 @@ const helper = {
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any): Promise<ModelData> => {
         if (ctx.db) {
-            const rtn = await modelService.loadByName(ctx.db, chatRequest.model);
+            let rtn = await modelService.loadByName(ctx.db, chatRequest.model);
             if (!rtn) {
-                throw new Error(`The model [${chatRequest.model}] is not found. You may refresh to get new models.`);
+                rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
+                // throw new Error(`The model [${chatRequest.model}] is not found. You may refresh to get new models.`);
             }
             return rtn;
         }
@@ -69,15 +70,14 @@ const helper = {
                 return {
                     name: 'claude-3-sonnet',
                     config: {
-                        model_id: 'anthropic.claude-3-sonnet-20240229-v1:0',
-                        anthropic_version: 'bedrock-2023-05-31'
+                        modelId: 'anthropic.claude-3-sonnet-20240229-v1:0'
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 3e-6,
                     price_out: 15e-6,
                     currency: "USD",
-                    provider: 'bedrock-claude3'
+                    provider: 'bedrock-converse'
                 };
             case 'claude-3-haiku':
                 return {

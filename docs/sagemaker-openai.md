@@ -24,9 +24,7 @@ To make the Sagemaker-deployed model compatible with the provider of sagemaker-o
 
 ## Output
 
-
 At the same time, you need to ensure your model's output also conforms to the OpenAI format. There are two output formats: streaming and non-streaming.
-
 
 ### Non-streaming
 
@@ -58,12 +56,9 @@ The non-streaming output format is as follows:
 
 choices[0].message.content is required.
 
-
 ### Streaming
 
-
 This is an example of streaming output, where each line represents a complete segment. Please do not truncate it. You must response this in your sagemaker custom inference function.
-
 
 ```json
 {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1694268190,"model":"gpt-3.5-turbo-0125", "system_fingerprint": "fp_44709d6fcb", "choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}
@@ -79,11 +74,8 @@ This is an example of streaming output, where each line represents a complete se
 
 You can use Sagemaker's custom inference code to perform format conversion. You can refer to these examples:
 
-
 <https://github.com/huggingface/notebooks/blob/main/sagemaker/17_custom_inference_script/sagemaker-notebook.ipynb>
 
 <https://github.com/aws/amazon-sagemaker-examples/blob/main/inference/generativeai/llm-workshop/lab3-optimize-llm/djl_accelerate_deploy_g5_12x_GPT_NeoX.ipynb>
 
 <https://docs.djl.ai/docs/serving/serving/docs/lmi/deployment_guide/testing-custom-script.html>
-
-

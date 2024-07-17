@@ -71,6 +71,7 @@ export default class BedrockClaude extends AbstractProvider {
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         let i = 0;
         const command = new InvokeModelWithResponseStreamCommand(input);
+        console.log(input);
         const response = await this.client.send(command);
 
         if (response.body) {
@@ -103,16 +104,7 @@ export default class BedrockClaude extends AbstractProvider {
                         completion_tokens = 0;
                         prompt_tokens = 0;
                         finish_reason = null;
-                        // ctx.res.write(WebResponse.wrap());
-                        // ctx.res.write(`{"id":"chatcmpl-${i}","object":"chat.completion.chunk","created":1694268190,"model":"", "system_fingerprint": "fp_44709d6fcb", "choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}
-                        // `)
-                        // ctx.res.write("id: " + i + "\n");
-                        // ctx.res.write("event: message\n");
-                        // ctx.res.write("data: " + JSON.stringify({
-                        //     choices: [
-                        //         { delta: { content: responseBody.delta.text } }
-                        //     ]
-                        // }) + "\n\n");
+                        ctx.res.write("data:" + WebResponse.wrap(i, model, content, finish_reason) + "\n\n");
                     } else if (responseBody.type === "message_delta") {
                         content = null;
                         completion_tokens = responseBody.usage?.output_tokens;
@@ -134,7 +126,6 @@ export default class BedrockClaude extends AbstractProvider {
 
                         await this.saveThread(ctx, session_id, chatRequest, response);
                     }
-                    ctx.res.write("data:" + WebResponse.wrap(i, model, content, finish_reason) + "\n\n");
                 }
             }
             ctx.res.write("data: [DONE]\n\n")

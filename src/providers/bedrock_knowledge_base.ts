@@ -6,6 +6,7 @@ import WebResponse from "../util/response";
 import {
   BedrockAgentRuntimeClient,
   RetrieveCommand,
+  SearchType,
 } from "@aws-sdk/client-bedrock-agent-runtime";
 
 import {
@@ -83,6 +84,7 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       retrievalConfiguration: {
         vectorSearchConfiguration: {
           numberOfResults,
+          overrideSearchType: SearchType.HYBRID
         },
       },
     }));

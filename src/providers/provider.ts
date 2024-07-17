@@ -10,6 +10,7 @@ import BedrockKnowledgeBase from "./bedrock_knowledge_base";
 import OllamaAProvider from "./ollama_provider";
 import BedrockConverse from "./bedrock_converse";
 import SagemakerLMI from "./sagemaker_lmi"
+import Painter from "./painter";
 
 class Provider {
     constructor() {
@@ -20,10 +21,11 @@ class Provider {
         this["ollama"] = new OllamaAProvider();
         this["bedrock-converse"] = new BedrockConverse();
         this["sagemaker-lmi"] = new SagemakerLMI();
+        this["painter"] = new Painter();
     }
 
     async chat(ctx: any) {
-        let keyData = null;
+        // let keyData = null;
         if (ctx.db) {
             if (ctx.user && ctx.user.id > 0) {
                 await this.checkFee(ctx, ctx.user);
