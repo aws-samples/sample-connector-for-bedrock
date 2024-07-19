@@ -12,7 +12,7 @@ while true ; do
         # echo $i $j
         # aws cloudformation wait stack-create-complete --region ${i} --stack-name ${j}
         aws cloudformation describe-stacks --stack-name $j --region $i --query Stacks[].StackStatus --output text
-    done |grep --line-buffered -v CREATE_COMPLETE |tee /tmp/$$.log
+    done |grep --line-buffered -v -e CREATE_COMPLETE -e CREATE_FAILED |tee /tmp/$$.log
     line=$(wc -l /tmp/$$.log |awk '{print $1}')
     if [[ $line -eq 0 ]]; then
         break
