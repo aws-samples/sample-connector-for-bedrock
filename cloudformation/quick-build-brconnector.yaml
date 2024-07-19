@@ -61,22 +61,18 @@ Parameters:
     Description: select VPC 
     Type: String #AWS::EC2::VPC::Id
     AllowedPattern: '(^$|^vpc-[a-z0-9]+$)'
-    Default: vpc-090fc45c64a040da9
   PublicSubnetId:
     Description: select one PUBLIC subnet (for EC2 deploy mode)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
-    Default: subnet-08c75fbed36250d94
   PrivateSubnet1Id:
     Description: select one PRIVATE subnet (for Lambda deploy mode)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
-    Default: subnet-0c82b175f9f4da006
   PrivateSubnet2Id:
     Description: select one more PRIVATE subnet (for RDS subnet group, 2 AZs at least)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
-    Default: subnet-0675d9568c291ca52
 
   ComputeType:
     Description: Choose using Lambda or EC2 to running BRConnector
