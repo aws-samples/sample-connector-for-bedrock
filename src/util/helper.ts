@@ -416,7 +416,13 @@ const helper = {
         }
         return selectRegion;
 
-    }
+    },
+    converse: () => {
+
+    },
+    converseStreaming: () => {
+
+    },
 }
 
 export default helper;

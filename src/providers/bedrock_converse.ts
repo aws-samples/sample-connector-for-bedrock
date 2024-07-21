@@ -91,7 +91,8 @@ export default class BedrockConverse extends AbstractProvider {
         const command = new ConverseCommand(input);
         const apiResponse = await this.client.send(command);
 
-        const content = apiResponse.output.message?.content
+        const content = apiResponse.output.message?.content;
+        // console.log("ori content:", JSON.stringify(content, null, 2));
         const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
         const { latencyMs } = apiResponse.metrics;
         const response: ResponseData = {
@@ -102,11 +103,29 @@ export default class BedrockConverse extends AbstractProvider {
             first_byte_latency: latencyMs
         }
         await this.saveThread(ctx, session_id, chatRequest, response);
+
         const choices = content.map((c: any) => {
-            return {
-                message: {
-                    content: c.text,
-                    role: "assistant"
+            if (c.text) {
+                return {
+                    message: {
+                        content: c.text,
+                        role: "assistant"
+                    }
+                }
+            }
+            if (c.toolUse) {
+                return {
+                    message: {
+                        tool_calls: [
+                            {
+                                type: "function",
+                                function: {
+                                    name: c.toolUse.name,
+                                    arguments: c.toolUse.input
+                                }
+                            }
+                        ]
+                    }
                 }
             }
         });
@@ -208,9 +227,6 @@ class MessageConverter {
         const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant');
 
         //First element must be user message
-
-
-
         const newMessages = [];
         for (const message of uaMessages) {
             const nowLen = newMessages.length;
@@ -225,7 +241,7 @@ class MessageConverter {
                         content: [
                             {
                                 "type": "text",
-                                "text": " "
+                                "text": "."
                             }
                         ]
                     });
@@ -241,7 +257,7 @@ class MessageConverter {
                         content: [
                             {
                                 "type": "text",
-                                "text": " "
+                                "text": "."
                             }
                         ]
                     });
@@ -254,7 +270,7 @@ class MessageConverter {
 
         if (systemMessages.length > 0) {
             const system = systemMessages.map(msg => ({
-                text: msg.content
+                text: msg.content || "."
             }));
             rtn.system = system;
         }
@@ -263,28 +279,34 @@ class MessageConverter {
         let xtools: any, toolChoice: any;
 
         if (tools) {
-            xtools = tools.map(tool => ({
+            xtools = {};
+            xtools = tools.map((tool: any) => ({
                 toolSpec: {
                     name: tool.function?.name,
                     description: tool.function?.description,
-                    inputSchema: { json: JSON.stringify(tool.function?.parameters) }
+                    inputSchema: { json: tool.function?.parameters }
                 }
             }));
         }
 
         if (tool_choice) {
+            toolChoice = {};
             if (typeof tool_choice === 'string') {
                 toolChoice["auto"] = {}
             } else if (typeof tool_choice === 'object' && tool_choice.type === 'function') {
                 toolChoice["tool"] = { name: tool_choice.function.name }
             }
+            rtn.toolConfig = {};
             rtn.toolConfig.toolChoice = toolChoice;
         }
 
         if (xtools || toolChoice) {
+            rtn.toolConfig = {};
             xtools && (rtn.toolConfig.tools = xtools);
             toolChoice && (rtn.toolConfig.toolChoice = toolChoice);
         }
+
+        // console.log("tools:", JSON.stringify(rtn, null, 2))
 
         return rtn;
     }

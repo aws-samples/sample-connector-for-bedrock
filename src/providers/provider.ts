@@ -11,6 +11,7 @@ import OllamaAProvider from "./ollama_provider";
 import BedrockConverse from "./bedrock_converse";
 import SagemakerLMI from "./sagemaker_lmi"
 import Painter from "./painter";
+import WebMiner from "./web_miner";
 
 class Provider {
     constructor() {
@@ -22,6 +23,7 @@ class Provider {
         this["bedrock-converse"] = new BedrockConverse();
         this["sagemaker-lmi"] = new SagemakerLMI();
         this["painter"] = new Painter();
+        this["web-miner"] = new WebMiner();
     }
 
     async chat(ctx: any) {

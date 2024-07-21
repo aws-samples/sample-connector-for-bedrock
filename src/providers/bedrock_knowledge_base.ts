@@ -219,7 +219,7 @@ Note that there may contain multiple <source> if you include information from mu
 
 Do NOT directly quote the <search_results> in your answer. Your job is to answer the user's question as concisely as possible.
 
-You may output your answer in Makrdown format. Pay attention and follow the formatting and style:
+You may output your answer in Markdown format. Pay attention and follow the formatting and style:
 
 first answer text 1️⃣ 2️⃣ second answer text 1️⃣ 3️⃣
 
