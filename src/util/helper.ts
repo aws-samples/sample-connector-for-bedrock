@@ -3,6 +3,7 @@ import { ChatRequest, ModelData } from "../entity/chat_request";
 import modelService from "../service/model"
 import config from '../config';
 import nodemailer from 'nodemailer';
+import { exec } from 'child_process';
 
 const helper = {
     genApiKey() {
@@ -417,12 +418,21 @@ const helper = {
         return selectRegion;
 
     },
-    converse: () => {
+    execAWSCli: (commandLine: string) => new Promise<string>((resolve, reject) => {
+        if (commandLine.indexOf("aws") != 0) {
+            throw new Error("aws cli must starts with 'aws '");
+        }
+        exec(commandLine, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+            } else if (stderr) {
+                reject(stderr);
+            } else {
+                resolve(stdout);
+            }
+        });
 
-    },
-    converseStreaming: () => {
-
-    },
+    })
 }
 
 export default helper;
