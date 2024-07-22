@@ -25,7 +25,7 @@ Metadata:
           default: "For EC2 settings" 
       - Parameters:
           - EC2InstanceType
-          - EC2InstanceAMI
+          # - EC2InstanceAMI
 
       - Label: 
           default: "For Lambda settings (!!! PUBLIC FUNCTION URL will be used. !!!)"
@@ -83,19 +83,20 @@ Parameters:
     Default: lambda
 
   EC2InstanceType:
-    Description: EC2 instance type
+    Description: Choose EC2 instance type, OS will be Amazon Linux 2023
     Type: String
     AllowedValues:
       - t3.medium
-      - m5.large
-    ConstraintDescription: Must be a valid instance type
+      - t4g.medium
+      # - m5.large
     Default: t3.medium
-  EC2InstanceAMI:
-    Description: EC2 instance AMI is Amazon Linux 2023, do not support other distribution. 
-    Type: String
-    AllowedValues:
-      - al2023-ami-kernel-default-x86_64
-    Default: al2023-ami-kernel-default-x86_64
+  # EC2InstanceAMI:
+  #   Description: EC2 instance AMI is Amazon Linux 2023, do not support other distribution. 
+  #   Type: String
+  #   AllowedValues:
+  #     - al2023-ami-kernel-default-x86_64
+  #     - al2023-ami-kernel-default-arm64
+  #   Default: al2023-ami-kernel-default-x86_64
 
   EcrRepo:
     Description: >-
@@ -114,7 +115,7 @@ Parameters:
 
   StandaloneDB:
     Description: >-
-      If true, deploy RDS PostgreSQL (db.t3.micro with 20GB storage) instead of PostgreSQL container in EC2
+      If true, deploy RDS PostgreSQL (db.t4g.small with 20GB storage) instead of PostgreSQL container in EC2
       If ComputeType set to `lambda`, this value always be true.
     Type: String
     AllowedValues:
@@ -136,7 +137,7 @@ Parameters:
     Default: mysecretpassword
 
   KeepEc2:
-    Description: keep ec2 instance for debugging when you deploy brconnector on lambda
+    Description: keep EC2 instance for debugging when you deploy brconnector on Lambda
     Type: String
     AllowedValues:
       - true
@@ -152,7 +153,7 @@ Parameters:
     Default: true
 
   AutoUpdateBRConnector:
-    Description: auto update BRConnector image to lambda & ec2
+    Description: auto update BRConnector image to Lambda & EC2
     Type: String
     AllowedValues:
       - true
@@ -179,6 +180,11 @@ Mappings:
       Architecture: x86_64
     arm64:
       Architecture: arm64
+  EC2InstanceAMIMapping:
+    t3.medium:
+      EC2InstanceAMI: al2023-ami-kernel-default-x86_64
+    t4g.medium:
+      EC2InstanceAMI: al2023-ami-kernel-default-arm64
 
 Resources:
   VpcStack:
@@ -312,7 +318,7 @@ Resources:
     Properties:
       AllocatedStorage: '20'
       DBName: !Ref PGDatabase
-      DBInstanceClass: db.t3.micro
+      DBInstanceClass: db.t4g.small
       Engine: postgres
       EngineVersion: "16.3"
       MasterUsername: postgres
@@ -335,7 +341,7 @@ Resources:
       ImageId: !Join
         - ''
         - - resolve:ssm:/aws/service/ami-amazon-linux-latest/
-          - Ref: EC2InstanceAMI
+          - !FindInMap [EC2InstanceAMIMapping, !Ref EC2InstanceType, EC2InstanceAMI]
       KeyName: !Ref "AWS::NoValue"
       IamInstanceProfile: 
         Ref: EC2InstanceProfile
@@ -370,9 +376,15 @@ Resources:
           # docker buildx inspect --bootstrap
           # docker buildx create --use --platform=linux/arm64,linux/amd64 --name multi-platform-builder
           # install regctl
-          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 >regctl
-          chmod 755 regctl
-          sudo mv regctl /usr/local/bin
+          if [[ $(uname -m) == "x86_64" ]]; then
+            curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64
+            chmod 755 regctl
+            sudo mv regctl /usr/local/bin/
+          else
+            curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-arm64
+            chmod 755 regctl
+            sudo mv regctl /usr/local/bin/
+          fi
 
           # save default settings 
           export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
@@ -381,10 +393,11 @@ Resources:
           
           REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
           echo $REPO_PREFIX
-          aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+          # aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+          aws ecr get-login-password --region ${AWS::Region} |regctl registry login ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com --user AWS --pass-stdin
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
-          docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest
-
+          # docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest
+          regctl image export ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest /dev/null
           AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:latest)
           ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:latest)
           regctl image copy ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
@@ -846,11 +859,12 @@ Resources:
 
   # EventBridge Rule for codecommit build trigger
   CodeBuildEventRule: 
+    Condition: IsAutoUpdate
     Type: AWS::Events::Rule
     Properties: 
       Name: !Sub "codebuild-${AWS::StackName}"
       Description: "This event rule triggers the codebuild project"
-      ScheduleExpression: 'cron(0 2 * * ? *)'                  
+      ScheduleExpression: 'cron(0 2 * * ? *)'
       State: "ENABLED"
       Targets: 
         - 
@@ -885,6 +899,49 @@ Resources:
             Action:
             - 'codebuild:StartBuild'
             Resource: !GetAtt CodeBuildProject.Arn
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub "ssmlogbucket-${MyEC2Instance}"
+
+  EC2AutoUpdateSSMDocument: 
+    Type: AWS::SSM::Document
+    Properties: 
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
+      DocumentType: Command
+      DocumentFormat: YAML
+      Content: 
+        schemaVersion: '2.2'
+        description: Bootstrap Cloud9 Instance
+        mainSteps:
+        - action: aws:runShellScript
+          name: ExampleC9bootstrap
+          inputs:
+            runCommand:
+            - "#!/bin/bash -x"
+            - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+            - docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
+            - docker restart brconnector
+
+  EC2AutoUpdateAssociation: 
+    Condition: IsAutoUpdate
+    Type: AWS::SSM::Association
+    Properties: 
+      Name: !Ref EC2AutoUpdateSSMDocument
+      ScheduleExpression: "cron(0 2 * * ? *)"
+      ApplyOnlyAtCronInterval: true
+      OutputLocation: 
+        S3Location:
+          OutputS3BucketName: !Ref S3Bucket
+          OutputS3KeyPrefix: ssmoutput
+      Targets:
+        - Key: tag:aws:cloudformation:stack-name
+          Values:
+          - !Sub ${AWS::StackName}
 
 Outputs:
   CloudFrontEc2URL:
