@@ -60,9 +60,12 @@ export default {
     btn_new: "New",
     btn_import: "Import",
     btn_recharge: "Recharge",
+    btn_reset: "Reset",
     btn_edit: "Edit",
     btn_detail: "Detail",
     btn_models: "Models",
+
+    tip_reset: "Reset will generate a new key",
 
     op_normal: 'Normal',
     op_admin: 'Admin',

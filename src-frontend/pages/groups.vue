@@ -24,11 +24,15 @@
       </Form>
     </Drawer>
     
-    <Drawer :title="title" v-model="modelsShown" @ok="modelsShown=false" :loading="saving">
+    <Drawer :title="title" v-model="modelsShown" @ok="modelsShown=false" :loading="saving" :mask-closable="true">
       <CheckboxGroup :options="models" v-model="checked_models" @change="setModel"/>
     </Drawer>
   </div>
 </template>
+<style lang="css">
+.k-drawer-mask {  pointer-events: all !important } 
+.k-popconfirm-title { color: white }
+</style>
 <script>
 export default {
   name: 'Groups',
@@ -39,7 +43,7 @@ export default {
       columns: [
         { key: 'name', title: this.$t('group.name') },
         { key: 'key', title: this.$t('group.key') },
-        { key: 'action', title: this.$t('common.action') },
+        { key: 'action', title: this.$t('common.action')},
       ],
       form: { name: '', key: '', id: '' },
       rules: {

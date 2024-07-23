@@ -7,6 +7,7 @@ class KeyController extends AbstractController {
     routers(router: any): void {
         router.post("/admin/api-key/apply", this.apply);
         router.post("/admin/api-key/recharge", this.recharge);
+        router.post("/admin/api-key/reset-key", this.resetKey);
         router.post("/admin/api-key/update", this.update);
         router.post("/admin/api-key/bind-or-unbind-model", this.bindModel);
         router.get("/admin/api-key/list", this.list);
@@ -49,6 +50,12 @@ class KeyController extends AbstractController {
     async listModels(ctx: any) {
         const data = ctx.query;
         const result = await service.listModels(ctx.db, data);
+        return super.ok(ctx, result);
+    }
+
+    async resetKey(ctx: any) {
+        const data = ctx.request.body;
+        const result = await service.resetKey(ctx.db, data);
         return super.ok(ctx, result);
     }
 }

@@ -18,6 +18,13 @@
         <Space>
           <Button size="small" @click="recharge(row)">{{ $t('keys.btn_recharge') }}</Button>
           <Button size="small" @click="edit(row)">{{ $t('keys.btn_edit') }}</Button>
+
+          <Popconfirm 
+            :title="$t('keys.tip_reset')"
+            @ok="rest(row)"
+          >
+            <Button size="small">{{ $t('keys.btn_reset') }}</Button>
+          </Popconfirm>
           <Button size="small" @click="listModels(row)">{{ $t('keys.btn_models') }}</Button>
         </Space>
       </template>
@@ -50,7 +57,7 @@
       </Form>
     </Drawer>
     
-    <Drawer :title="title" v-model="modelsShown" @ok="modelsShown=false" :loading="saving">
+    <Drawer :title="title" v-model="modelsShown" @ok="modelsShown=false" :loading="saving" :mask-closable="true">
       <CheckboxGroup :options="models" v-model="checked_models" @change="setModel"/>
     </Drawer>
   </div>
@@ -75,7 +82,7 @@ export default {
         { key: 'month_fee', title: this.$t('keys.col_month_fee') },
         { key: 'month_quota', title: this.$t('keys.col_month_quota') },
         // { key: 'created_at', title: 'Date' },
-        { key: 'action', title: this.$t('keys.col_action') ,fixed: "right", width: 200 },
+        { key: 'action', title: this.$t('keys.col_action') ,fixed: "right", width: 300 },
       ],
       form: { name: '', email: '', role: 'user', month_quota: 0, balance: 0 , group_id: 0},
       rules: {
@@ -183,6 +190,15 @@ export default {
       this.title = this.$t('keys.btn_recharge')
       this.action = 'recharge'
       this.show = true
+    },
+    rest(row) {
+      this.loading = true;
+      this.$http.post("/admin/api-key/reset-key", {id:row.id}).then(() => {
+        this.$Message.success("Reset successfuly.");
+        this.get_data();
+      }).finally(() => {
+        this.loading = false;
+      });
     },
     add() {
       this.action = 'new'

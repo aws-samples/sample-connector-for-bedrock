@@ -146,3 +146,4 @@ Dockerfile
 lambda.Dockerfile
 api-test/
 temp-code/
+src/ver.json
