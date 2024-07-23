@@ -26,7 +26,7 @@
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
-    <Drawer :title="title" v-model="show" @ok="save" :loading="saving" >
+    <Drawer :title="title" v-model="show" @ok="save" :loading="saving" :mask-closable="true">
       <div>
       <Form :model="form" :rules="rules" layout="horizontal" ref="form" theme="light" :labelCol="{span:5}" :wrapperCol="{span:18}">
         <FormItem :label="this.$t('model.name')" prop="name">

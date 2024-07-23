@@ -46,26 +46,31 @@ export default class AWSExecutor extends AbstractProvider {
         }
       }
 
-      text = (text || "I am executing the command:") + "\n\n";
+      text = (text || "I will use this command:") + "\n\n";
+      ctx.res.write("data:" + WebResponse.wrap(0, null, "## Prepare the command\n\n", null) + "\n\n");
       ctx.res.write("data:" + WebResponse.wrap(0, null, text, null) + "\n\n");
       ctx.res.write("data:" + WebResponse.wrap(0, null, "```shell\n", null) + "\n\n");
-      ctx.res.write("data:" + WebResponse.wrap(0, null, cli + "\n", null) + "\n\n");
+      ctx.res.write("data:" + WebResponse.wrap(0, null, (cli || "# No command extracted.") + "\n", null) + "\n\n");
       ctx.res.write("data:" + WebResponse.wrap(0, null, "```\n\n", null) + "\n\n");
+
+      ctx.res.write("data:" + WebResponse.wrap(0, null, "## Execution result\n\n", null) + "\n\n");
 
       // console.log(JSON.stringify(cliResponse, null, 2), cli);
       let isValidCmd = cli && cli.indexOf("aws") == 0;
 
       if (isValidCmd) {
         const lastQ = chatRequest.messages[chatRequest.messages.length - 1];
-        const resultCmd = await helper.execAWSCli(cli.trim());
+        let resultCmd = await helper.execAWSCli(cli.trim());
         if (resultCmd == null || resultCmd.length == 0) {
-          this.outputWrong(ctx, cli);
-          return;
+          resultCmd = "[{}]"
+          // this.outputWrong(ctx, cli);
+          // return;
         }
         // console.log("resCCC\n", resCCC);
         const q = lastQ.content;
         const prompt = this.toPrompt(q, resultCmd)
         lastQ.content = prompt;
+
         // console.log("Continue...", chatRequest);
 
         await this.chatStream(ctx, chatRequest, session_id, cli);
@@ -98,6 +103,7 @@ export default class AWSExecutor extends AbstractProvider {
           name: "extractCli",
           description: `According to the user's input and intent, parse out the aws command, note that the command must be an executable aws command, usually the command line starts with "aws ".
           This command without any variables. Ask user if the required parameters are insufficient.
+          Focus on the last question of the user and parse the command line from it.
           You should use awscli v2 version.
           In order to make it easier to answer user questions, please output brief information when commanding the list class.`,
           parameters: {
@@ -144,8 +150,7 @@ export default class AWSExecutor extends AbstractProvider {
   }
 
   outputWrong(ctx: any, cli: any) {
-    ctx.res.write("data:" + WebResponse.wrap(0, null, `Sorry, I can't execute your command, maybe the command was wrong. 
-      I'm not very stable yet. \nPlease re-inquire or continue to ask me.`, null) + "\n\n");
+    ctx.res.write("data:" + WebResponse.wrap(0, null, `Sorry, I can't execute your command, maybe the command was wrong. Please re-inquire or continue.\n\n`, null) + "\n\n");
     ctx.res.end();
 
   }
@@ -164,9 +169,11 @@ ${result}
 Here is the my question:
 ${q}
 
-
-To beautify the output, please output it in markdown format if necessary.`;
+Please answer the question directly and do not repeat it. To beautify your answer, add some markdown-formatted text if necessary.
+`;
+    // 
   }
+
 
   async chatSync(ctx: any, chatRequest: ChatRequest, session_id: string) {
 

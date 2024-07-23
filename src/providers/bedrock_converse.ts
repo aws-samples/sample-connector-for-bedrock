@@ -226,6 +226,13 @@ class MessageConverter {
         const systemMessages = messages.filter(message => message.role === 'system');
         const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant');
 
+        const inferenceConfig: any = {
+            maxTokens: chatRequest.max_tokens || 1024,
+            temperature: chatRequest.temperature || 0.7,
+            topP: chatRequest.top_p || 0.7,
+        };
+
+
         //First element must be user message
         const newMessages = [];
         for (const message of uaMessages) {
@@ -266,7 +273,7 @@ class MessageConverter {
 
             }
         }
-        const rtn: any = { messages: newMessages };
+        const rtn: any = { messages: newMessages, inferenceConfig };
 
         if (systemMessages.length > 0) {
             const system = systemMessages.map(msg => ({

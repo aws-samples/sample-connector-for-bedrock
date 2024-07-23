@@ -13,7 +13,7 @@
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
-    <Drawer :title="title" v-model="show" @ok="save" :loading="saving">
+    <Drawer :title="title" v-model="show" @ok="save" :loading="saving" :mask-closable="true">
       <Form :model="form" :rules="rules" layout="vertical" ref="form" theme="light">
         <FormItem :label="this.$t('group.name')" prop="name">
           <Input />

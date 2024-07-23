@@ -62,7 +62,7 @@ export default {
     btn_detail: "详情",
     btn_models: "模型",
 
-    tip_reset: "重置后将生成新的 Key",
+    tip_reset: "重置后将生成新的 Key。",
 
     op_normal: '普通用户',
     op_admin: '管理员',

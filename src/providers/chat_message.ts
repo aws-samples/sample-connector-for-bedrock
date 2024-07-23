@@ -75,7 +75,11 @@ export default class ChatMessageConverter {
         const systemPrompt = systemMessages.reduce((acc, message) => {
             return acc + message.content;
         }, "");
-
+        const inferenceConfig: any = {
+            maxTokens: chatRequest.max_tokens || 1024,
+            temperature: chatRequest.temperature || 0.7,
+            topP: chatRequest.top_p || 0.7,
+        };
 
         let userPrompts = [];
         let assistantPrompts = [];
@@ -110,7 +114,7 @@ export default class ChatMessageConverter {
             });
         }
 
-        return { messages: new_messages, systemPrompt }
+        return { messages: new_messages, systemPrompt, inferenceConfig }
 
     }
 

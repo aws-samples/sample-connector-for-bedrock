@@ -12,7 +12,7 @@ import {
 import {
   BedrockRuntimeClient,
   // InvokeModelCommand,
-  InvokeModelWithResponseStreamCommand,
+  ConverseStreamCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 
 // In dev-ing
@@ -104,75 +104,93 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
 
 
   async chatStream(ctx: any, chatRequest: ChatRequest, newModelData: ModelData, files: any) {
+
     let i = 0;
-    const { anthropic_version, model_id } = newModelData.config;
+    const { modelId } = newModelData.config;
 
     const payload = await this.chatMessageConverter.toClaude3Payload(chatRequest);
-    const body: any = {
-      anthropic_version,
-      "max_tokens": chatRequest.max_tokens || 4096,
-      "messages": payload.messages,
-      "temperature": chatRequest.temperature || 1.0,
-      "top_p": chatRequest.top_p || 1,
-      "top_k": chatRequest["top_k"] || 50
-    };
+    payload["modelId"] = modelId;
 
     const input = {
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
       contentType: "application/json",
-      accept: "application/json",
-      modelId: model_id,
+      accept: "application/json"
     };
 
-    // if (sysConfig.debugMode) {
-    //   console.log("Summary Input：")
-    //   console.log(JSON.stringify(input, null, 2))
-    // }
-    const command = new InvokeModelWithResponseStreamCommand(input);
+    const command = new ConverseStreamCommand(payload);
     const response = await this.client.send(command);
 
-    if (response.body) {
+    if (response.stream) {
       let responseText = "";
-      for await (const item of response.body) {
-        if (item.chunk?.bytes) {
-          const decodedResponseBody = new TextDecoder().decode(
-            item.chunk.bytes,
-          );
-          const responseBody = JSON.parse(decodedResponseBody);
-
-          if (responseBody.delta?.type === "text_delta") {
-            i++;
-            responseText += responseBody.delta.text;
-            ctx.res.write("data:" + WebResponse.wrap(i, model_id, responseBody.delta.text, "") + "\n\n");
-            // ctx.res.write("id: " + i + "\n");
-            // ctx.res.write("event: message\n");
-            // ctx.res.write("data: " + JSON.stringify({
-            //   choices: [
-            //     { delta: { content: responseBody.delta.text } }
-            //   ]
-            // }) + "\n\n");
-
-          } else if (responseBody.type === "message_stop") {
-            const {
-              inputTokenCount, outputTokenCount,
-              invocationLatency, firstByteLatency
-            } = responseBody["amazon-bedrock-invocationMetrics"];
-
-            const response: ResponseData = {
-              text: responseText,
-              input_tokens: inputTokenCount,
-              output_tokens: outputTokenCount,
-              invocation_latency: invocationLatency,
-              first_byte_latency: firstByteLatency
-            }
-
-            await this.saveThread(ctx, null, chatRequest, response);
+      for await (const item of response.stream) {
+        // console.log(item);
+        if (item.contentBlockDelta) {
+          responseText += item.contentBlockDelta.delta.text;
+          ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+        }
+        if (item.metadata) {
+          // console.log(item);
+          const input_tokens = item.metadata.usage.inputTokens;
+          const output_tokens = item.metadata.usage.outputTokens;
+          const first_byte_latency = item.metadata.metrics.latencyMs;
+          const response: ResponseData = {
+            text: responseText,
+            input_tokens,
+            output_tokens,
+            invocation_latency: 0,
+            first_byte_latency
           }
+          await this.saveThread(ctx, null, chatRequest, response);
         }
       }
     } else {
       throw new Error("No response.");
     }
+    // ctx.res.write("data: [DONE]\n\n")
+    // ctx.res.end();
+
+    // if (response.body) {
+    //   let responseText = "";
+    //   for await (const item of response.body) {
+    //     if (item.chunk?.bytes) {
+    //       const decodedResponseBody = new TextDecoder().decode(
+    //         item.chunk.bytes,
+    //       );
+    //       const responseBody = JSON.parse(decodedResponseBody);
+
+    //       if (responseBody.delta?.type === "text_delta") {
+    //         i++;
+    //         responseText += responseBody.delta.text;
+    //         ctx.res.write("data:" + WebResponse.wrap(i, modelId, responseBody.delta.text, "") + "\n\n");
+    //         // ctx.res.write("id: " + i + "\n");
+    //         // ctx.res.write("event: message\n");
+    //         // ctx.res.write("data: " + JSON.stringify({
+    //         //   choices: [
+    //         //     { delta: { content: responseBody.delta.text } }
+    //         //   ]
+    //         // }) + "\n\n");
+
+    //       } else if (responseBody.type === "message_stop") {
+    //         const {
+    //           inputTokenCount, outputTokenCount,
+    //           invocationLatency, firstByteLatency
+    //         } = responseBody["amazon-bedrock-invocationMetrics"];
+
+    //         const response: ResponseData = {
+    //           text: responseText,
+    //           input_tokens: inputTokenCount,
+    //           output_tokens: outputTokenCount,
+    //           invocation_latency: invocationLatency,
+    //           first_byte_latency: firstByteLatency
+    //         }
+
+    //         await this.saveThread(ctx, null, chatRequest, response);
+    //       }
+    //     }
+    //   }
+    // } else {
+    //   throw new Error("No response.");
+    // }
 
     ctx.res.write("data:" + WebResponse.wrap(i, null, "\n\n---\n\n", null) + "\n\n");
 

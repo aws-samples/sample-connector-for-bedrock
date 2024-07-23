@@ -51,13 +51,7 @@ app.use(router.routes());
 const port = 8866;
 
 app.listen(port, () => {
-    let ver = "dev"
-    try {
-        const verJson = require("./ver.json");
-        ver = verJson.version;
-    } catch (ex) {
-        console.log("❌ ver.json not found.");
-    }
+    const pJson = require("../package.json");
     console.log(`🚀 BRConnector is running on port http://0.0.0.0:${port}/`);
-    console.log(`📖 Version ${ver}`);
+    console.log(`📖 Version ${pJson.version}`);
 });

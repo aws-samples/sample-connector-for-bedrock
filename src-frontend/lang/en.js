@@ -65,7 +65,7 @@ export default {
     btn_detail: "Detail",
     btn_models: "Models",
 
-    tip_reset: "Reset will generate a new key",
+    tip_reset: "Reset will generate a new key.",
 
     op_normal: 'Normal',
     op_admin: 'Admin',
