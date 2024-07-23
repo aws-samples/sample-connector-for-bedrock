@@ -5,11 +5,6 @@
       <Button @click="add">{{ $t('keys.btn_new') }}</Button>
     </Space>
     <Table :data="items" :columns="columns" :loading="loading">
-      <template v-slot:api_key="c, row">
-        <Space>
-          {{ format_key(row) }}
-        </Space>
-      </template>
       <template v-slot:action="c, row">
         <Space>
           <Button size="small" @click="edit(row)">{{ $t('keys.btn_edit') }}</Button>
@@ -18,9 +13,8 @@
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
     <Modal :title="title" v-model="show" @ok="save" :loading="saving" class="my-knowledge-bases-model">
-      <div>
-      <Form :model="form" :rules="rules" layout="horizontal" ref="form" theme="light" :labelCol="{span:8}" :wrapperCol="{span:13}"
->
+      <Form :model="form" :rules="rules" layout="horizontal" ref="form" theme="light" :labelCol="{ span: 8 }"
+        :wrapperCol="{ span: 13 }">
         <FormItem :label="this.$t('knowledgebases.name')" prop="name">
           <Input placeholder="Name" :readonly="action == 'edit'" />
         </FormItem>
@@ -38,7 +32,6 @@
           <Input placeholder="Region" />
         </FormItem>
       </Form>
-      </div>
     </Modal>
   </div>
 </template>
@@ -89,10 +82,10 @@ export default {
       this.$http.get('/admin/model/list', {provider:"bedrock-knowledge-base",  limit: size, offset: (page - 1) * size }).then(res => {
         let items = res.data.items
         items.map(item => {
-          item.region = item.config.region
-          item.provider = item.config.provider
-          item.summaryModel = item.config.summaryModel
-          item.knowledgeBaseId = item.config.knowledgeBaseId
+          item.region = item.config.region || ''
+          item.provider = item.config.provider || ''
+          item.summaryModel = item.config.summaryModel || ''
+          item.knowledgeBaseId = item.config.knowledgeBaseId || ''
           item.object = item.config.object
           item.created_at = new Date(item.created_at).toLocaleString()
           item.updated_at = new Date(item.updated_at).toLocaleString()
@@ -105,12 +98,13 @@ export default {
       })
     },
     edit(row) {
-      this.form = {...row}
+      this.form = { ...row }
       this.title = this.$t('common.edit')
       this.action = 'edit'
       this.show = true
     },
     add() {
+      this.form.id = ''
       this.action = 'new'
       this.title = this.$t('common.new')
       this.show = true
@@ -143,6 +137,7 @@ export default {
     word-break: keep-all !important;
   }
 }
+
 .my-knowledge-bases-model {
   .k-form-item-label {
     width: 120px;

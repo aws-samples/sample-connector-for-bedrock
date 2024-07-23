@@ -4,26 +4,35 @@
       <transition>
         <span v-show="!collapsed">BRConnector</span>
       </transition>
+      <Avatar v-if="collapsed">B</Avatar>
     </div>
     <Menu mode="inline" class="sys-menu" v-model="activeMenu" @open-change="openChange" :open-keys="openKeys"
       :inline-collapsed="collapsed" style="border:none;" @click="go">
       <MenuItem v-for="route in routes" :route="route" :base-path="route.path" :key="route.path" />
     </Menu>
     <div class="sider-bottom">
-      <Button theme="light" :icon="!collapsed ? ChevronBack : ChevronForward" @click="toggle" class="btn-expand" />
+      <Space>
+        <a href="https://github.com/aws-samples/sample-connector-for-bedrock" target="_blank">
+          <Icon :type="LogoGithub" size="24" />
+        </a>
+        <span>{{ version }}</span>
+      </Space>
+      <!-- <Button theme="light" :icon="!collapsed ? ChevronBack : ChevronForward" @click="toggle" class="btn-expand" /> -->
     </div>
   </Sider>
 </template>
 <script>
 import MenuItem from './menuItem.vue'
-import { ChevronBack, ChevronForward, } from 'kui-icons'
+import { ChevronBack, ChevronForward, LogoGithub } from 'kui-icons'
+const pkg = require('../../../package.json')
 export default {
   name: "side",
   data() {
     return {
       openKeys: [],
+      version: pkg.version,
       collapsed: false,
-      ChevronBack, ChevronForward,
+      ChevronBack, ChevronForward, LogoGithub,
       activeMenu: [this.$route.path]
       // routes: this.$router.options.routes,
     }
@@ -78,6 +87,9 @@ export default {
       margin-right: 8px;
       width: 30px;
     }
+
+    font-size: 16px;
+    font-weight: bold;
   }
 
   .sider-bottom {

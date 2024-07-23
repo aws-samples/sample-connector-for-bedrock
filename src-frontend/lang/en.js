@@ -17,11 +17,13 @@ export default {
     custom_model: 'Custom models',
     key: 'API Keys',
     bedrock_kb: 'Bedrock Knowledge base',
+    topic_list:"Topic List",
+    chat_list:'Chat List',
+    admin:'Admin',
     model: 'Models',
     session: 'Sessions',
     thread: 'Threads',
     group: 'Group',
-
   },
   home: {
     title: 'Mine',

@@ -1,36 +1,47 @@
 <template>
-  <div class="sys-tab-box" ref="root">
-    <transition-group name="tab-fade" class="tab-inner-box" tag="div" @enter="enter" @beforeEnter="beforeEnter"
-      ref="tabbox" @afterEnter="afterEnter" @beforeLeave="beforeLeave" @leave="leave" @afterLeave="afterLeave">
-      <div :class="cls(view)" v-for="view in views" :key="view.path">
-        <Dropdown trigger="contextmenu" @click="e => handle(e, view)" :key="view.fullPath">
-          <div class="sys-tab-item-inner">
-            <router-link :to="{ path: view.path, query: view.query, fullPath: view.fullPath, params: view.params }">
-              <span class="sys-tab-title">{{ view.meta.title }}</span>
-              <Icon :type="Close" class="sys-tab-close" @click.prevent.stop="close(view)" :strokeWidth="40" />
-            </router-link>
-          </div>
-          <Menu slot="content">
-            <MenuItem key="reload">重新加载</MenuItem>
-            <MenuItem key="close">关闭</MenuItem>
-            <MenuItem key="close-other">关闭其他</MenuItem>
-            <MenuItem key="close-left">关闭左侧</MenuItem>
-            <MenuItem key="close-right">关闭右侧</MenuItem>
-          </Menu>
-        </Dropdown>
-      </div>
-    </transition-group>
+  <div class="sys-tab-wraper">
+    <div class="sys-tab-box" ref="root">
+      <transition-group name="tab-fade" class="tab-inner-box" tag="div" @enter="enter" @beforeEnter="beforeEnter"
+        ref="tabbox" @afterEnter="afterEnter" @beforeLeave="beforeLeave" @leave="leave" @afterLeave="afterLeave">
+        <div :class="cls(view)" v-for="view in views" :key="view.path">
+          <Dropdown trigger="contextmenu" @click="e => handle(e, view)" :key="view.fullPath">
+            <div class="sys-tab-item-inner">
+              <router-link :to="{ path: view.path, query: view.query, fullPath: view.fullPath, params: view.params }">
+                <Icon class="sys-tab-icon" :type="view.meta.icon" v-if="view.meta.icon" />
+                <span class="sys-tab-title">{{ view.meta.title }}</span>
+                <Icon :type="Close" class="sys-tab-close" @click.prevent.stop="close(view)" :strokeWidth="40" />
+              </router-link>
+            </div>
+            <Menu slot="content">
+              <MenuItem key="reload">重新加载</MenuItem>
+              <MenuItem key="close">关闭</MenuItem>
+              <MenuItem key="close-other">关闭其他</MenuItem>
+              <MenuItem key="close-left">关闭左侧</MenuItem>
+              <MenuItem key="close-right">关闭右侧</MenuItem>
+            </Menu>
+          </Dropdown>
+        </div>
+      </transition-group>
+    </div>
+    <Dropdown trigger="hover" v-if="showDrop" @click="dropGo">
+      <Button :icon="ChevronDown" theme="light" size="small" class="sys-tab-show-list-btn"></Button>
+      <Menu slot="content">
+        <MenuItem :icon="view.meta.icon" v-for="view in views" :key="view.path">{{
+          view.meta.title }}</MenuItem>
+      </Menu>
+    </Dropdown>
   </div>
 </template>
 <script>
-import { Close, Reload, Refresh } from 'kui-icons'
+import { Close, Reload, Refresh, ChevronDown } from 'kui-icons'
 import { mapGetters } from 'vuex'
 // import { getTranstionHorProp } from '../utils/transition'
 export default {
   name: 'Tab',
   data() {
     return {
-      Close, Reload, Refresh
+      Close, Reload, Refresh, ChevronDown,
+      showDrop: false
     }
   },
   computed: {
@@ -56,7 +67,28 @@ export default {
   beforeCreate() {
     this.$store.commit('tabViews/addView', this.$route)
   },
+  mounted() {
+    this.observe = new ResizeObserver((e) => {
+      // 调用 resize 方法，使图表自动适应新的容器尺寸
+      this.setDropShow(e[0].target, this._$('.tab-inner-box'))
+      this.scrollToCenter()
+    })
+    this.observe.observe(this._$('.sys-tab-box'))
+  },
   methods: {
+    dropGo({ key }) {
+      let view = this.views.findLast(x => x.path == key)
+      // console.log(view)
+      this.go(view)
+    },
+    _$(clsName) {
+      return document.querySelector(clsName)
+    },
+    setDropShow(outter, inner) {
+      this.showDrop = outter.offsetWidth < inner.offsetWidth
+      // console.log(el.offsetWidth, this.$refs.tabbox.$el.offsetWidth)
+      // console.log(el.offsetWidth, el.scrollWidth, el.width)
+    },
     scrollToCenter(animate = true) {
       // console.log(e)
       let root = this.$refs.root
@@ -202,254 +234,270 @@ export default {
 }
 </script>
 <style lang="less">
-.sys-tab-box {
+.sys-tab-wraper {
   display: flex;
-  flex-wrap: nowrap;
-  overflow: auto;
-  gap: 2px;
-  padding: 8px 10px 0;
+  align-items: center;
 
-  &::-webkit-scrollbar {
-    height: 0;
+  .sys-tab-show-list-btn.k-btn-sm {
+    border-radius: 10px;
+    width: 27px;
+    height: 27px;
+    margin: 0 8px;
   }
 
-  .tab-inner-box {
+  .sys-tab-box {
     display: flex;
     flex-wrap: nowrap;
-  }
+    overflow: auto;
+    gap: 2px;
+    padding: 8px 10px 0;
 
-  .sys-tab-item {
-    display: inline-flex;
-    position: relative;
-    cursor: pointer;
-    height: 26px;
-    line-height: 26px;
-    // color: #495060;
-    font-size: 12px;
-
-    &::before,
-    &::after {
-      content: '';
-      position: absolute;
-      width: 2px;
-      background: var(--kui-color-main-80);
-      height: 13px;
-      z-index: 10;
-      border-radius: 3px;
+    &::-webkit-scrollbar {
+      height: 0;
     }
 
-    &::before {
-      left: -1px;
-      top: 7px;
+    .tab-inner-box {
+      display: flex;
+      flex-wrap: nowrap;
     }
 
-    &::after {
-      right: -1px;
-      top: 7px;
-    }
-
-    &:hover {
-      z-index: 99;
+    .sys-tab-item {
+      display: inline-flex;
+      position: relative;
+      cursor: pointer;
+      height: 26px;
+      line-height: 26px;
+      // color: #495060;
+      font-size: 12px;
 
       &::before,
       &::after {
-        transition: background-color .3s;
-        background-color: var(--kui-color-nav-header);
-      }
-
-      .sys-tab-item-inner {
-        // transition: background-color .3s;
-        background: var(--kui-color-main-80)
-      }
-    }
-
-    .sys-tab-item-inner {
-      border-radius: 8px;
-      margin: 0 3px;
-      // transition: background-color .3s ease-in;
-      // background-color: #cccccc20;
-
-      a {
-        padding: 0 8px;
-        color: var(--kui-color-font);
-        display: flex;
-        text-decoration: none;
-        align-items: center;
-      }
-    }
-
-
-    .sys-tab-title {
-      max-width: 120px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-
-    .sys-tab-close {
-      margin-left: 5px;
-      font-size: 15px;
-      font-weight: bold;
-      border-radius: 50%;
-      padding: 0px;
-      z-index: 10;
-
-      &:hover {
-        background-color: var(--kui-color-gray-60);
-      }
-    }
-  }
-
-  .sys-tab-item-first:not(.sys-tab-item-actived) {
-    &::before {
-      display: none;
-    }
-  }
-
-  .sys-tab-item-next {
-    &::before {
-      display: none;
-      // background-color: var(--kui-color-border);
-    }
-  }
-
-
-
-  .sys-tab-item-prev {
-    &::after {
-      display: none;
-      background-color: var(--kui-color-border);
-    }
-  }
-
-  .sys-tab-item-actived {
-    // background-color: #fff;
-    // color: #000;
-    // border-color: #42b983;
-    // height: 40px;
-    vertical-align: top;
-    align-self: flex-start;
-    justify-self: baseline;
-    border-radius: 10px 10px 0 0;
-    padding-bottom: 8px;
-    position: relative;
-    transition: none;
-    z-index: 100;
-
-    .sys-tab-item-inner {
-      background: var(--kui-color-back);
-      position: relative;
-      border-radius: 8px 8px 0 0;
-      z-index: 1;
-
-      &::after {
         content: '';
         position: absolute;
-        width: 100%;
-        bottom: -8px;
-        left: 0;
-        height: 8px;
-        background-color: var(--kui-color-back);
+        width: 2px;
+        background: var(--kui-color-main-80);
+        height: 13px;
+        z-index: 10;
+        border-radius: 3px;
+      }
+
+      &::before {
+        left: -1px;
+        top: 7px;
+      }
+
+      &::after {
+        right: -1px;
+        top: 7px;
+      }
+
+      &:hover {
+        z-index: 99;
+
+        &::before,
+        &::after {
+          transition: background-color .3s;
+          background-color: var(--kui-color-nav-header);
+        }
+
+        .sys-tab-item-inner {
+          // transition: background-color .3s;
+          background: var(--kui-color-main-80)
+        }
+      }
+
+      .sys-tab-item-inner {
+        border-radius: 8px;
+        margin: 0 3px;
+        // transition: background-color .3s ease-in;
+        // background-color: #cccccc20;
+
+        a {
+          padding: 0 8px;
+          color: var(--kui-color-font);
+          display: flex;
+          text-decoration: none;
+          align-items: center;
+        }
+      }
+
+
+      .sys-tab-title {
+        max-width: 120px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+
+      .sys-tab-icon {
+        margin-right: 5px;
+      }
+
+      .sys-tab-close {
+        margin-left: 5px;
+        font-size: 15px;
+        font-weight: bold;
+        border-radius: 50%;
+        padding: 0px;
+        z-index: 10;
+
+        &:hover {
+          background-color: var(--kui-color-gray-60);
+        }
       }
     }
 
-    &:hover {
+    .sys-tab-item-first:not(.sys-tab-item-actived) {
+      &::before {
+        display: none;
+      }
+    }
+
+    .sys-tab-item-next {
+      &::before {
+        display: none;
+        // background-color: var(--kui-color-border);
+      }
+    }
+
+
+
+    .sys-tab-item-prev {
+      &::after {
+        display: none;
+        background-color: var(--kui-color-border);
+      }
+    }
+
+    .sys-tab-item-actived {
+      // background-color: #fff;
+      // color: #000;
+      // border-color: #42b983;
+      // height: 40px;
+      vertical-align: top;
+      align-self: flex-start;
+      justify-self: baseline;
+      border-radius: 10px 10px 0 0;
+      padding-bottom: 8px;
+      position: relative;
+      transition: none;
+      z-index: 100;
+
       .sys-tab-item-inner {
         background: var(--kui-color-back);
+        position: relative;
+        border-radius: 8px 8px 0 0;
+        z-index: 1;
+
+        &::after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          bottom: -8px;
+          left: 0;
+          height: 8px;
+          background-color: var(--kui-color-back);
+        }
       }
 
-      &::after,
-      &::before {
+      &:hover {
+        .sys-tab-item-inner {
+          background: var(--kui-color-back);
+        }
+
+        &::after,
+        &::before {
+          transition: none;
+          background-color: transparent;
+          display: block;
+        }
+      }
+
+      &::before,
+      &::after {
+        content: '';
         transition: none;
-        background-color: transparent;
-        display: block;
+        position: absolute;
+        width: 15px;
+        height: 17px;
+        background: none;
+        bottom: 8px;
+        z-index: 0;
+      }
+
+      &::before {
+        box-shadow: 12px 12px 0px 9px var(--kui-color-back);
+        border-radius: 0 0 12px 0;
+        left: -12px;
+        bottom: 2px;
+        height: 16px;
+        top: auto;
+      }
+
+      &::after {
+        border-radius: 0 0 0 12px;
+        box-shadow: -12px 12px 0px 9px var(--kui-color-back);
+        right: -12px;
+        top: 15px;
       }
     }
 
-    &::before,
-    &::after {
-      content: '';
-      transition: none;
-      position: absolute;
-      width: 15px;
-      height: 17px;
-      background: none;
-      bottom: 8px;
-      z-index: 0;
+
+  }
+
+  @keyframes fadein {
+    0% {
+      opacity: 0;
+      width: 0;
     }
 
-    &::before {
-      box-shadow: 12px 12px 0px 9px var(--kui-color-back);
-      border-radius: 0 0 12px 0;
-      left: -12px;
-      bottom: 2px;
-      height: 16px;
-      top: auto;
-    }
-
-    &::after {
-      border-radius: 0 0 0 12px;
-      box-shadow: -12px 12px 0px 9px var(--kui-color-back);
-      right: -12px;
-      top: 15px;
+    100% {
+      opacity: 1;
     }
   }
 
+  @-webkit-keyframes fadein {
+    0% {
+      width: 0;
+      opacity: 0;
+    }
 
-}
-
-@keyframes fadein {
-  0% {
-    opacity: 0;
-    width: 0;
+    100% {
+      opacity: 1;
+    }
   }
 
-  100% {
-    opacity: 1;
-  }
-}
+  // .tab-fade-enter-active {
+  //   animation: fadein 0.3s ease-in;
+  //   animation-fill-mode: both;
+  // }
 
-@-webkit-keyframes fadein {
-  0% {
-    width: 0;
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
-// .tab-fade-enter-active {
-//   animation: fadein 0.3s ease-in;
-//   animation-fill-mode: both;
-// }
-
-.tab-fade-leave-active {
-  transition: width .3s;
-  animation: fadeout 0.3s ease-in-out;
-  // animation-fill-mode: both;
-}
-
-@keyframes fadeout {
-  0% {
-    opacity: 1;
+  .tab-fade-leave-active {
+    transition: width .3s;
+    animation: fadeout 0.3s ease-in-out;
+    // animation-fill-mode: both;
   }
 
-  100% {
-    width: 0;
-    opacity: 0;
-  }
-}
+  @keyframes fadeout {
+    0% {
+      opacity: 1;
+    }
 
-@-webkit-keyframes fadeout {
-  0% {
-    opacity: 1;
+    100% {
+      width: 0;
+      opacity: 0;
+    }
   }
 
-  100% {
-    width: 0;
-    opacity: 0;
+  @-webkit-keyframes fadeout {
+    0% {
+      opacity: 1;
+    }
+
+    100% {
+      width: 0;
+      opacity: 0;
+    }
   }
 }
 </style>

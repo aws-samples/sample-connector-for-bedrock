@@ -5,7 +5,7 @@
     </Space>
     <Table :data="items" :columns="columns" :loading="loading">
       <template v-slot:action="c, row">
-        <Tooltip placement="top-right" :title="'对话'">
+        <Tooltip placement="top" :title="$t('menu.chat_list')">
           <Button :icon="ChatboxEllipses" theme="normal" @click="threadDetail(row)" />
         </Tooltip>
       </template>
