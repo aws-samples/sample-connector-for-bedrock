@@ -1,27 +1,39 @@
 # Sample Connector for Bedrock
 
-This is a bedrock API forwarding tool sample that can issue virtual keys, log chats, and manage costs.
+This is a bedrock API forwarding tool that can issue virtual keys, log chats, and manage costs.
 
 It is compatible with any OPENAI client that can define Host and API Key.
 
 ## Key Features
 
-### Models Support
+### Models/Platform Support
 
-- Bedrock Knowledge base. See [Instruction](docs/bedrock-knowledge-base.md).
+- A provider for Search Engine support [Since Docker image version 0.0.10]. See [here](./docs/web-miner.md)
 
-- Mistral, model name options:
+- An AWS command executor [Since Docker image version 0.0.10]. See [here](./docs/aws-executor.md)
+
+- Bedrock SDXL [Since Docker image version 0.0.9]. See [Screenshots](docs/painter.md).
+
+- Sagemaker LMI [Since Docker image version 0.0.8]
+
+- Amazon Bedrock Converse API [Since Docker image version 0.0.6]
+
+- Ollama [Since Docker image version 0.0.6]
+
+- Bedrock Knowledge base. See [Instruction](docs/bedrock-knowledge-base.md). [Since Docker image version 0.0.4]
+
+- Mistral, model name options: [Since Docker image version 0.0.2]
   - mistral-7b
   - mistral-large
   - mistral-8x7b
   - mistral-small (region: us-east-1)
 
-- Claude 3, model name options:
+- Claude 3, model name options: [Since Docker image version 0.0.1]
   - claude-3-sonnet (this is the default model)
   - claude-3-haiku
   - claude-3-opus
 
-- LLama 3, model name options:
+- LLama 3, model name options: [Since Docker image version 0.0.1]
   - llama3-8b
   - llama3-70b
 
@@ -33,15 +45,138 @@ It is compatible with any OPENAI client that can define Host and API Key.
 - Calculate the overall cost.
 
 > [!IMPORTANT]  
+> You can customize the pricing for your model. [Please refer to the official website for the Bedrock pricing](https://aws.amazon.com/bedrock/pricing).
+>
 > The cost calculation of this project cannot serve as the billing basis for AWS. Please refer to the AWS bill for actual charges.
 
-## Change Logs
+![api key](docs/screenshots/api-key.png)
+
+### Model management
+
+Models and their parameters can be defined from the backend.
+
+Model Access Control [Since Docker image version 0.0.6]
+
+- Models can be bound to Groups.
+
+- Models can be bound to API keys.
+
+![models bind](docs/screenshots/models-bind.png)
+
+## Providers
+
+This connector provides a series of providers for model support, and you can configure them by writing JSON from the backend.
+
+![Model config](docs/screenshots/model-config-1.png)
+
+### aws-executor
+
+> Since Docker image version 0.0.10
+
+Execute AWS command using natural language and get the execution results.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| llmModelId  | string   | N    |  | You should choose a bedrock model for **function calling** |
+
+### web-miner
+
+> Since Docker image version 0.0.10
+
+This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| llmModelId  | string   | Y    |  | You should choose a bedrock model for **function calling** |
+| sites  | string array  | N     |  |   Limit the search to these websites.  |
+| googleAPIKey  | string  | Y     |  |   Google API key.  |
+| googleCSECX  | string  | Y     |  |   Google CSE key.  |
+
+### painter
+
+> Since Docker image version 0.0.9
+
+Draw using the conversation mode.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| llmModelId  | string   | N    |  "anthropic.claude-3-sonnet-20240229-v1:0" | You should choose a bedrock model for **function calling** |
+| sdModelId  | string   | N    | "stability.stable-diffusion-xl-v1" |  Bedrock  SDXL model id. This provider is only compatible with sdxl now.  |
+| s3Bucket  | string   | Y    |  | S3 is for storing the generated images, please set the IAM permissions to meet access requirements.  |
+| s3Prefix  | string   | N    | "" |   The S3 prefix combined with the date will ultimately form the S3 key.  |
+| s3Region  | string   | Y     | | S3 bucket region  |
+| regions  | string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
+
+### sagemaker-lmi
+
+> Since Docker image version 0.0.8
+
+Please see [Deploy models on SageMaker](./notebook/sagemaker/hf-models.ipynb).
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| endpointName  | string   | Y    |  |   Sagemaker endpoint name  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
+
+### bedrock-converse
+
+> Since Docker image version 0.0.6
+
+Invoke model via Amazon Bedrock Converse API. You can config all supported models with this provider.
+
+[This page](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) explains how to use Bedrock Converse API, and what features it supports.
+
+It is recommended to use this provider, which can uniformly configure Bedrock models and support function calling.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
+
+### ollama
+
+You can deploy native model with Ollama, This provider can adapt to the API of Ollama.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| host  | string   | Y    |  |   Ollama's host address  |
+| model | string   | Y    |  |   Model id. See [Ollama doc](https://ollama.com/library) |
+
+### bedrock-knowledge-base
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| knowledgeBaseId  | string   | Y    |  | The Bedrock knowledge base id   |
+| summaryModel  | string   | Y    |  |  choices:   claude-3-sonnet, claude-3-haiku, claude-3-opus   |
+| region  | string   | Y     | |  The region of you Bedrock kb instance. |
+
+### bedrock-claude3
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)|
+| anthropic_version  | string   | N    | bedrock-2023-05-31  |  Version, must be "bedrock-2023-05-31"  |
+| regions  | string[] or string   | N     | ["us-east-1"] |  |
+
+### bedrock-mistral
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |    |
+
+### bedrock-llama3
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| regions  | string[] or string   | N     | ["us-east-1"] |   |
 
 ## Deployment
 
 Although this project is in rapic iterating, we still provide a relative easy way to deploy.
 
-Please follow these steps to deploy:
+Using [Cloudformation template](./cloudformation/README.md) to deploy or follow these steps to deploy:
 
 ### 1. Prepare a server to host the connector
 
@@ -86,7 +221,7 @@ And, important! replace the value of ADMIN_API_KEY to be a complex key instead o
 
 ```shell
 docker run --name brconnector \
- --restart always \
+ --restart always --pull always \
  -p 8866:8866 \
  -e AWS_ACCESS_KEY_ID=xxxx \
  -e AWS_SECRET_ACCESS_KEY=xxxxx \
@@ -96,7 +231,7 @@ docker run --name brconnector \
  -e PGSQL_USER=postgres \
  -e PGSQL_PASSWORD=mysecretpassword \
  -e ADMIN_API_KEY=br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
- -d cloudbeer/sample-connector-for-bedrock:0.0.4
+ -d cloudbeer/sample-connector-for-bedrock
 ```
 
 ### 4. Test the connector server
@@ -108,8 +243,8 @@ And the server export port 8866 to the hosting EC2.
 Test the server with the API_Key using `curl` command:
 
 ```shell
-curl "http://localhost:8866/admin/api-key/list"     -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
+curl "http://localhost:8866/admin/api-key/list" \
+  -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
 ```
 
 You will get something like the following if every things go well:
@@ -129,7 +264,7 @@ Create the first admin user with the following command:
 ```shell
 curl -X POST "http://localhost:8866/admin/api-key/apply" \
      -H "Content-Type: application/json" \
-  -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+     -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
      -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
 
 ```
@@ -163,6 +298,12 @@ In the "APK Key" field, enter the API_Key of your first admin user, which is the
 Then, open a new chat to test.
 
 If every thing goes well, you can start to chat.
+
+> [!TIP]  
+>
+> You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project.
+>
+> Since 0.0.8, this client has been built into the docker image. The access address is: <https://your-endpoint/brclient/>
 
 ### 7. The connector's WebUI
 

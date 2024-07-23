@@ -9,7 +9,7 @@ import { router } from "./routes";
 import serve from "koa-static-server";
 import config from './config';
 
-import install from './install'
+import install from './install';
 
 install();
 
@@ -34,7 +34,11 @@ app.use(loggerHandler);
 
 app.use(errorHandler);
 
-app.use(bodyParser());
+app.use(bodyParser({
+    encoding: "utf-8",
+    formLimit: "100mb",
+    jsonLimit: "100mb",
+}));
 
 app.use(cors());
 
@@ -47,5 +51,7 @@ app.use(router.routes());
 const port = 8866;
 
 app.listen(port, () => {
-    console.log(`🚀 Server is running on port http://0.0.0.0:${port}/`);
+    const pJson = require("../package.json");
+    console.log(`🚀 BRConnector is running on port http://0.0.0.0:${port}/`);
+    console.log(`📖 Version ${pJson.version}`);
 });

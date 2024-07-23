@@ -50,8 +50,8 @@ export default {
 
         conditions.where = where;
         conditions.params = params;
-        const items = await db.list("eiai_key", conditions);
-        const total = ~~await db.count("eiai_key", conditions);
+        const items = await db.list("eiai_v_key_group", conditions);
+        const total = ~~await db.count("eiai_v_key_group", conditions);
 
         return { items, total, limit, offset };
     },
@@ -216,6 +216,36 @@ export default {
         const total = ~~await db.count("eiai_v_key_model", conditions);
 
         return { items, total, limit, offset };
+
+    },
+
+    async resetKey(db: any, options: any) {
+
+        if (!options.api_key && !options.id) {
+            throw new Error("api_key or id is required");
+        }
+
+        const key = options.id ?
+            await db.loadById("eiai_key", options.id) :
+            await db.loadByKV("eiai_key", "api_key", options.api_key);
+        if (!key) {
+            throw new Error("api_key or id is invalid");
+        }
+
+        let apiKey: string = "";
+        for (let i = 0; i < 10; i++) {
+            apiKey = helper.genApiKey();
+            const existsKey = await db.loadByKV("eiai_key", "api_key", apiKey)
+            if (!existsKey) {
+                break;
+            }
+        }
+
+        return await db.update("eiai_key", {
+            id: key.id,
+            api_key: apiKey,
+            updated_at: new Date()
+        }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
 
     }
 

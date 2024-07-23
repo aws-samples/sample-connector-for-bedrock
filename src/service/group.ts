@@ -54,6 +54,7 @@ export default {
                 }
                 updateData.name = name;
             }
+            updateData.key = key;
             updateData.updated_at = new Date();
             return await db.update("eiai_group", updateData, ["id", "name", "key", "created_at", "updated_at"]);
         } else {

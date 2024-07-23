@@ -13,6 +13,13 @@ const authHandler = async (ctx: any, next: any) => {
         return;
     }
     pathName = pathName.toLowerCase();
+
+    // skip cognito
+    // if (pathName.indexOf("/aws_cognito_configuration") === 0) {
+    //     ctx.status = 404;
+    //     ctx.body = "Not Found";
+    //     return;
+    // }
     if (pathName.indexOf("/brclient") === 0) {
         await next();
         return;
@@ -45,12 +52,7 @@ const authHandler = async (ctx: any, next: any) => {
         if (!key) {
             throw new Error("Unauthorized: api key error");
         }
-        ctx.user = {
-            id: key.id,
-            api_key: key.api_key,
-            name: key.admin,
-            role: key.role
-        };
+        ctx.user = key;
     } else {
         // Anonymous access...
         ctx.logger.info("Fake api key, anonymous access...");
@@ -102,8 +104,8 @@ const loggerHandler = async (ctx: any, next: any) => {
         ),
         defaultMeta: { service: 'brconnector', path: ctx.path },
         transports: [
-            new transports.File({ filename: './logs/error.log', level: 'error' }),
-            new transports.File({ filename: './logs/combined.log' }),
+            new transports.File({ filename: '/tmp/error.log', level: 'error' }),
+            new transports.File({ filename: '/tmp/combined.log' }),
         ],
     });
 

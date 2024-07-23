@@ -14,7 +14,7 @@ import user_thread_controller from './controller/user/ThreadController';
 import user_key_controller from './controller/user/KeyController';
 import user_model_controller from './controller/user/ModelController';
 
-import admin_config_controller from './controller/admin/ConfigController';
+// import admin_config_controller from './controller/admin/ConfigController';
 
 // import user_thread from './controller/user/thread';
 
@@ -31,7 +31,7 @@ admin_payment_controller(router);
 admin_session_controller(router);
 admin_thread_controller(router);
 admin_model_controller(router);
-admin_config_controller(router);
+// admin_config_controller(router);
 admin_group_controller(router);
 
 // User APIs

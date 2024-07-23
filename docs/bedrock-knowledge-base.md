@@ -4,24 +4,19 @@
 
 Refer to this document: [Create a knowledge base](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-create.html)
 
-## Create a custom model in Bedrock connector
+## Create a custom model
 
-Use this API:
+Moel Configuration:
 
-```text
-POST /admin/model/save-kb-model
-Content-Type: application/json
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
+```json
 {
-  "name": "some-custom-model-name",
-  "knowledgeBaseId": "your-knowledge-base-id",
+  "region": "<your-region>",
   "summaryModel": "claude-3-sonnet",
-  "region": "us-west-2"
+  "knowledgeBaseId": "<your-kb-id>"
 }
+
 ```
 
-- name: an unique name for your custom model.
 - knowledgeBaseId: the knowledge base id.
 - summaryModel: support claude-3-sonnet, claude-3-haiku or claude-3-opus
 
@@ -35,7 +30,7 @@ Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
-  "model": "some-custom-model-name",
+  "model": "your-custom-model-name",
   "messages": [
     {
       "role": "user",
@@ -44,3 +39,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   ]
 }
 ```
+
+## Use BRClient
+
+![kb ui](./screenshots/kb-ui.png)

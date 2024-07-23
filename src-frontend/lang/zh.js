@@ -4,7 +4,9 @@ export default {
     updated_at: '更新时间',
     action: '操作',
     edit: '修改',
-    new: '新增'
+    new: '新增',
+    price_unit: '百万tokens',
+    detail: "详情"
   },
   login: {
     title: '登录 BRConnector',
@@ -17,7 +19,11 @@ export default {
     bedrock_kb: 'Bedrock 知识库',
     topic_list:"话题列表",
     chat_list:'聊天列表',
-    admin:'管理'
+    admin:'管理',
+    model: '模型',
+    session: '话题',
+    thread: '对话',
+    group: '组',
   },
   home: {
     title: '我的',
@@ -54,7 +60,12 @@ export default {
     btn_new: "新增",
     btn_import: "导入",
     btn_recharge: "充值",
+    btn_reset: "重置",
     btn_edit: "修改",
+    btn_detail: "详情",
+    btn_models: "模型",
+
+    tip_reset: "重置后将生成新的 Key。",
 
     op_normal: '普通用户',
     op_admin: '管理员',
@@ -69,11 +80,26 @@ export default {
     col_month_fee: '月消费',
     col_month_quota: '月额度',
     col_action: '操作',
+    col_group: '组',
   },
   knowledgebases: {
     name: "名称",
     knowledge_base_id: "知识库ID",
     summary_model: "模型",
     region: "区域"
-  }
+  },
+  model: {
+    name: "名称",
+    multiple: "多模态",
+    price_in: "提示词价格",
+    price_out: "输出价格",
+    provider: "提供器",
+    config: "配置"
+  },
+  group: {
+    name: "名称",
+    key: "编码",
+    btn_models: "模型",
+    title_set_models: "模型设置",
+  },
 }

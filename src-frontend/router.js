@@ -42,6 +42,7 @@ const router = new VueRouter({
           name: 'userSessions',
           meta: { title: i18n.t('menu.topic_list'), icon: Menu },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
+          hidden: false
         },
         {
           path: '/user/sessions/:session_id/threads',
@@ -57,7 +58,6 @@ const router = new VueRouter({
       component: Layout,
       meta: { title: i18n.t('menu.admin'), icon: Hammer },
       hidden: localStorage.getItem('role') != 'admin',
-      // hidden: (localStorage.getItem('role') == 'admin'),
       children: [
         {
           path: '/admin/keys',
@@ -71,14 +71,26 @@ const router = new VueRouter({
           name: 'userKnowledgeBases',
           meta: { title: i18n.t("menu.bedrock_kb"), icon: School },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
+          hidden: true
+        },
+        {
+          path: '/admin/model',
+          name: 'adminModel111',
+          meta: { title: i18n.t("menu.model") },
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/models')
+        },
+        {
+          path: '/admin/group',
+          name: 'adminGroup',
+          meta: { title: i18n.t("menu.group") },
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/groups')
         },
         {
           path: '/admin/sessions',
           name: 'adminSessions',
           meta: { title: i18n.t('menu.topic_list'), icon: Reader },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
-          // hidden: localStorage.getItem('role') != 'admin',
-          // hidden: true,
+          hidden: true,
         },
         {
           path: '/admin/sessions/:session_id/threads',

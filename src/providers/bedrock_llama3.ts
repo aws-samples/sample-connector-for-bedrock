@@ -9,7 +9,6 @@ import {
     BedrockRuntimeClient,
     InvokeModelCommand,
     InvokeModelWithResponseStreamCommand,
-    ResponseStream,
 } from "@aws-sdk/client-bedrock-runtime";
 
 
@@ -19,19 +18,35 @@ export default class BedrockLlama3 extends AbstractProvider {
     chatMessageConverter: ChatMessageConverter;
     constructor() {
         super();
-        this.client = new BedrockRuntimeClient({ region: helper.selectRandomRegion(config.bedrock.region) });
         this.chatMessageConverter = new ChatMessageConverter();
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
 
+        const modelId = this.modelData.config && (this.modelData.config.model_id || this.modelData.config.modelId);
+        if (!modelId) {
+            throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
+        }
+
+        const regions: [string] = this.modelData.config && this.modelData.config.regions || ["us-east-1"];
+        if (!Array.isArray(regions)) {
+            throw new Error("If you specify regions, please use the array format, such as: [\"us-east-1\", \"us-west-2\"].")
+        }
+
+        this.client = new BedrockRuntimeClient({ region: helper.selectRandomRegion(regions) });
+
         const prompt = await this.chatMessageConverter.toLlama3Payload(chatRequest);
+        let max_gen_len = chatRequest.max_tokens || 2048;
+        if (max_gen_len > 2048) {
+            max_gen_len = 2048;
+        }
+
 
         const body: any = {
-            "max_gen_len": chatRequest.max_tokens || 2048,
+            max_gen_len,
             prompt,
-            "temperature": chatRequest.temperature || 1.0,
-            "top_p": chatRequest.top_p || 1.0,
+            temperature: chatRequest.temperature || 1.0,
+            top_p: chatRequest.top_p || 1.0,
         };
 
         // ctx.logger.debug(body);
@@ -40,7 +55,7 @@ export default class BedrockLlama3 extends AbstractProvider {
             body: JSON.stringify(body),
             contentType: "application/json",
             accept: "application/json",
-            modelId: chatRequest.model_id,
+            modelId
         };
 
         ctx.status = 200;
@@ -61,76 +76,53 @@ export default class BedrockLlama3 extends AbstractProvider {
     }
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         let i = 0;
-        try {
-            const command = new InvokeModelWithResponseStreamCommand(input);
-            const response = await this.client.send(command);
+        const command = new InvokeModelWithResponseStreamCommand(input);
+        const response = await this.client.send(command);
 
-            if (response.body) {
-                let responseText = "";
-                for await (const item of response.body) {
-                    if (item.chunk?.bytes) {
-                        const chunk = new TextDecoder().decode(
-                            item.chunk.bytes,
-                        );
+        if (response.body) {
+            let responseText = "";
+            for await (const item of response.body) {
+                if (item.chunk?.bytes) {
+                    const chunk = new TextDecoder().decode(
+                        item.chunk.bytes,
+                    );
 
-                        const responseBody = JSON.parse(chunk);
-                        // console.log(i, responseBody);
+                    const responseBody = JSON.parse(chunk);
+                    // console.log(i, responseBody);
 
-                        if ("amazon-bedrock-invocationMetrics" in responseBody) {
-                            const {
-                                inputTokenCount, outputTokenCount,
-                                invocationLatency, firstByteLatency
-                            } = responseBody["amazon-bedrock-invocationMetrics"];
+                    if ("amazon-bedrock-invocationMetrics" in responseBody) {
+                        const {
+                            inputTokenCount, outputTokenCount,
+                            invocationLatency, firstByteLatency
+                        } = responseBody["amazon-bedrock-invocationMetrics"];
 
-                            const response: ResponseData = {
-                                text: responseText,
-                                input_tokens: inputTokenCount,
-                                output_tokens: outputTokenCount,
-                                invocation_latency: invocationLatency,
-                                first_byte_latency: firstByteLatency
-                            }
-
-                            await this.saveThread(ctx, session_id, chatRequest, response);
-                        } else {
-                            const genChunk = responseBody.generation;
-                            responseText += genChunk;
-
-                            i++;
-                            if (i > 3) { // first three chunk is tag
-                                // ctx.res.write("id: " + i + "\n");
-                                // ctx.res.write("event: message\n");
-
-                                ctx.res.write("data: " + JSON.stringify({
-                                    choices: [
-                                        { delta: { content: responseBody.generation } }
-                                    ]
-                                }) + "\n\n");
-                            }
+                        const response: ResponseData = {
+                            text: responseText,
+                            input_tokens: inputTokenCount,
+                            output_tokens: outputTokenCount,
+                            invocation_latency: invocationLatency,
+                            first_byte_latency: firstByteLatency
                         }
+
+                        await this.saveThread(ctx, session_id, chatRequest, response);
+                    } else {
+                        const genChunk = responseBody.generation;
+                        responseText += genChunk;
+
+                        i++;
+                        ctx.res.write("data: " + JSON.stringify({
+                            choices: [
+                                { delta: { content: responseBody.generation } }
+                            ]
+                        }) + "\n\n");
+
                     }
                 }
-            } else {
-                ctx.res.write("id: " + (i + 1) + "\n");
-                ctx.res.write("event: message\n");
-                ctx.res.write("data: " + JSON.stringify({
-                    choices: [
-                        { delta: { content: "Error invoking model" } }
-                    ]
-                }) + "\n\n");
             }
-        } catch (e: any) {
-            ctx.logger.error(e.message);
-            if (config.debugMode) {
-                console.error(e);
-            }
-            ctx.res.write("id: " + (i + 1) + "\n");
-            ctx.res.write("event: message\n");
-            ctx.res.write("data: " + JSON.stringify({
-                choices: [
-                    { delta: { content: "Error invoking model: " + e.message } }
-                ]
-            }) + "\n\n");
+        } else {
+            throw new Error("No response.");
         }
+
 
         // ctx.res.write("id: " + (i + 1) + "\n");
         // ctx.res.write("event: message\n");
@@ -148,7 +140,6 @@ export default class BedrockLlama3 extends AbstractProvider {
             const responseBody = JSON.parse(decodedResponseBody);
 
             let content = responseBody.generation;
-            content = content.substring("<|start_header_id|>assistant<|end_header_id|>\n".length);
 
             const response: ResponseData = {
                 text: content,

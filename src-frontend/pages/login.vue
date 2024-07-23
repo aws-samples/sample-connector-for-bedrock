@@ -28,7 +28,10 @@ export default {
     }
   },
   created() {
-    this.form.host = localStorage.getItem("host") || ''
+    const host = localStorage.getItem("host") || 'https://';
+    if (host.indexOf("http://")>-1 || host.indexOf("https://")>-1) {
+      this.form.host =  host;
+    }
   },
   methods: {
     login({ valid }) {
@@ -59,7 +62,7 @@ export default {
           localStorage.setItem("host", host);
 
           // this.$router.push('/')
-          window.location.href = ''
+          window.location.href = '';
         } else {
           alert(res.data);
         }

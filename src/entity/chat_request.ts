@@ -12,7 +12,7 @@ interface Message {
 
 interface ChatRequest {
     model: string;
-    messages: Message[];
+    messages?: Message[];
     stream?: boolean;
     max_tokens?: number;
     temperature?: number;
@@ -42,4 +42,17 @@ interface ResponseData {
     first_byte_latency?: number;
 }
 
-export { ChatRequest, ResponseData };
+interface ModelData {
+    name: string;
+    provider: string;
+    multiple: number;
+    config?: any;
+    model_type: number;
+    price_in?: number;
+    price_out?: number;
+    currency?: string;
+    [key: string]: any;
+}
+
+
+export { ChatRequest, ResponseData, ModelData };
