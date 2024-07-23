@@ -27,6 +27,8 @@ localLlmModel must be configured as a model that supports function calling and a
 
 > [!Note]
 > You need to configure a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key 'model_id' to 'modelId'.
+>
+> And You must install aws cli v2 in the BRConnector host.
 
 ## Screenshots in BRClient
 
