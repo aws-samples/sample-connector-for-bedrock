@@ -3,29 +3,12 @@
 
 if [[ $# -ne 1 ]]; then
     echo "Usage: $0 true : create new vpc"
-    echo "Usage: $0 false: using existing vpc (create by script)"
+    echo "Usage: $0 false: using existing vpc (run after `$0 true`)"
     exit 99
 fi
 NEWVPC=$1
 
 if [[ ${NEWVPC} == "false" ]]; then
-    # create standalone vpc
-    # if [[ ! -s existing-vpc.txt ]]; then
-    #     for i in us-east-1 us-west-2 ; do
-    #         aws cloudformation create-stack --stack-name  exising-vpc-$i \
-    #             --template-body file://../brconnector-vpc-cfn.yaml \
-    #             --region $i
-    #         aws cloudformation wait stack-create-complete --stack-name exising-vpc-$i --region $i &
-    #     done
-    #     wait
-    #     for i in us-east-1 us-west-2 ; do
-    #         aws cloudformation describe-stacks --stack-name exising-vpc-$i \
-    #             --query 'Stacks[].Outputs[?OutputKey==`VpcId`].OutputValue' --output text --region $i >> existing-vpc.txt
-    #     done
-    # fi
-    # EXISTING_VPC_STRING=$(cat existing-vpc.txt |xargs)
-
-
     # using existing not default vpc
     EXISTING_VPC_STRING=$(for i in us-east-1 us-west-2 ; do
         aws ec2 describe-vpcs --filter Name=is-default,Values=false --query 'Vpcs[0].VpcId' --output text --region $i |sort |head -n 1
@@ -72,42 +55,91 @@ for i in us-east-1 us-west-2 ; do
 
     # test for StandaloneDB set to true/false in EC2 ComputeType
     for j in true false ; do
-        STACK_NAME=stack-ec2-vpc-${NEWVPC}-db-${j}-${UNIQ}
-        aws cloudformation create-stack --stack-name ${STACK_NAME} \
-            --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
-                         ParameterKey=PublicSubnetId,ParameterValue=${PUB_SUBNET_ID} \
-                         ParameterKey=PrivateSubnet1Id,ParameterValue=${PRI_SUBNET1_ID} \
-                         ParameterKey=PrivateSubnet2Id,ParameterValue=${PRI_SUBNET2_ID} \
-                         ParameterKey=NewVpc,ParameterValue=${NEWVPC} \
-                         ParameterKey=ComputeType,ParameterValue=ec2 \
-                         ParameterKey=KeepEc2,ParameterValue=true \
-                         ParameterKey=EnableCloudfront,ParameterValue=true \
-                         ParameterKey=StandaloneDB,ParameterValue=${j} \
-            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-            --disable-rollback \
-            --template-body file://../quick-build-brconnector.yaml \
-            --region $i 
-        echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
+        if [[ ${NEWVPC} == "true" ]]; then
+            STACK_NAME=ec2-vpc-${NEWVPC}-db-${j}-${UNIQ}
+            aws cloudformation create-stack --stack-name ${STACK_NAME} \
+                --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
+                             ParameterKey=PublicSubnetId,ParameterValue=${PUB_SUBNET_ID} \
+                             ParameterKey=PrivateSubnet1Id,ParameterValue=${PRI_SUBNET1_ID} \
+                             ParameterKey=PrivateSubnet2Id,ParameterValue=${PRI_SUBNET2_ID} \
+                             ParameterKey=NewVpc,ParameterValue=${NEWVPC} \
+                             ParameterKey=ComputeType,ParameterValue=ec2 \
+                             ParameterKey=KeepEc2,ParameterValue=true \
+                             ParameterKey=EnableCloudfront,ParameterValue=true \
+                             ParameterKey=StandaloneDB,ParameterValue=${j} \
+                --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+                --disable-rollback \
+                --template-body file://../quick-build-brconnector.yaml \
+                --region $i 
+            echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
+        else
+            for AU in true false ; do
+                for EC2 in t4g.medium t3.medium ; do
+                    # same with previous command, except parameter AutoUpdateBRConnector and EC2InstanceType
+                    STACK_NAME=ec2-${EC2%%.*}-vpc-${NEWVPC}-db-${j}-${UNIQ}-AU-${AU}
+                    aws cloudformation create-stack --stack-name ${STACK_NAME} \
+                        --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
+                                     ParameterKey=PublicSubnetId,ParameterValue=${PUB_SUBNET_ID} \
+                                     ParameterKey=PrivateSubnet1Id,ParameterValue=${PRI_SUBNET1_ID} \
+                                     ParameterKey=PrivateSubnet2Id,ParameterValue=${PRI_SUBNET2_ID} \
+                                     ParameterKey=NewVpc,ParameterValue=${NEWVPC} \
+                                     ParameterKey=ComputeType,ParameterValue=ec2 \
+                                     ParameterKey=EC2InstanceType,ParameterValue=${EC2} \
+                                     ParameterKey=KeepEc2,ParameterValue=true \
+                                     ParameterKey=EnableCloudfront,ParameterValue=true \
+                                     ParameterKey=StandaloneDB,ParameterValue=${j} \
+                                     ParameterKey=AutoUpdateBRConnector,ParameterValue=${AU} \
+                        --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+                        --disable-rollback \
+                        --template-body file://../quick-build-brconnector.yaml \
+                        --region $i 
+                    echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
+                done
+            done
+        fi
     done
     
     # test for LambdaArch set to x86_64/arm64 in Lambda ComputeType
     for j in amd64 arm64 ; do
-        STACK_NAME=stack-lambda-vpc-${NEWVPC}-${j}-${UNIQ}
-        aws cloudformation create-stack --stack-name ${STACK_NAME} \
-            --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
-                         ParameterKey=PublicSubnetId,ParameterValue=${PUB_SUBNET_ID} \
-                         ParameterKey=PrivateSubnet1Id,ParameterValue=${PRI_SUBNET1_ID} \
-                         ParameterKey=PrivateSubnet2Id,ParameterValue=${PRI_SUBNET2_ID} \
-                         ParameterKey=NewVpc,ParameterValue=${NEWVPC} \
-                         ParameterKey=ComputeType,ParameterValue=lambda \
-                         ParameterKey=KeepEc2,ParameterValue=true \
-                         ParameterKey=EnableCloudfront,ParameterValue=true \
-                         ParameterKey=LambdaArch,ParameterValue=${j} \
-            --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-            --disable-rollback \
-            --template-body file://../quick-build-brconnector.yaml \
-            --region $i 
-        echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
+        if [[ ${NEWVPC} == "true" ]]; then
+            STACK_NAME=lambda-vpc-${NEWVPC}-${j}-${UNIQ}
+            aws cloudformation create-stack --stack-name ${STACK_NAME} \
+                --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
+                             ParameterKey=PublicSubnetId,ParameterValue=${PUB_SUBNET_ID} \
+                             ParameterKey=PrivateSubnet1Id,ParameterValue=${PRI_SUBNET1_ID} \
+                             ParameterKey=PrivateSubnet2Id,ParameterValue=${PRI_SUBNET2_ID} \
+                             ParameterKey=NewVpc,ParameterValue=${NEWVPC} \
+                             ParameterKey=ComputeType,ParameterValue=lambda \
+                             ParameterKey=KeepEc2,ParameterValue=true \
+                             ParameterKey=EnableCloudfront,ParameterValue=true \
+                             ParameterKey=LambdaArch,ParameterValue=${j} \
+                --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+                --disable-rollback \
+                --template-body file://../quick-build-brconnector.yaml \
+                --region $i 
+            echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
+        else
+            for AU in true false ; do
+                STACK_NAME=lambda-vpc-${NEWVPC}-${j}-${UNIQ}-AU-${AU}
+                # same with previous command, except parameter AutoUpdateBRConnector
+                aws cloudformation create-stack --stack-name ${STACK_NAME} \
+                    --parameters ParameterKey=VpcId,ParameterValue=${DEFAULT_VPC} \
+                                 ParameterKey=PublicSubnetId,ParameterValue=${PUB_SUBNET_ID} \
+                                 ParameterKey=PrivateSubnet1Id,ParameterValue=${PRI_SUBNET1_ID} \
+                                 ParameterKey=PrivateSubnet2Id,ParameterValue=${PRI_SUBNET2_ID} \
+                                 ParameterKey=NewVpc,ParameterValue=${NEWVPC} \
+                                 ParameterKey=ComputeType,ParameterValue=lambda \
+                                 ParameterKey=KeepEc2,ParameterValue=true \
+                                 ParameterKey=EnableCloudfront,ParameterValue=true \
+                                 ParameterKey=LambdaArch,ParameterValue=${j} \
+                                 ParameterKey=AutoUpdateBRConnector,ParameterValue=${AU} \
+                    --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+                    --disable-rollback \
+                    --template-body file://../quick-build-brconnector.yaml \
+                    --region $i 
+                echo $i ${STACK_NAME} |tee -a cfn-name-${UNIQ}.txt
+            done
+        fi
     done
 done
 

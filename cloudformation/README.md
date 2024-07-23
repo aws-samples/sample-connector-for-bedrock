@@ -59,12 +59,17 @@ Following key components will be included in this Cloudformation template:
 - Also you could connect to `BRConnector` EC2 instance with SSM Session Manager ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 
 ## Update BRConnector
-### ECR with pull through cache enabled
+### AutoUpdate is true
 - Check your ECR settings, if has rules in pull through cache page, you have enabled this feature to update ECR image with upstream repo automatically.
-- Go to codebuild page, one project will be triggered to build regularly to update your lambda image 
+- Go to codebuild page, one project will be triggered to build regularly to update your lambda image automatically
+- Images in EC2 will be updated using state manager in SSM automatically.
 
+### AutoUpdate is false
+- Check your ECR settings, if has rules in pull through cache page, you have enabled this feature to update ECR image with upstream repo automatically.
+- Go to codebuild page, one project could be triggered to update your lambda image manually. Click `Start build` to update lambda image.
+- Images in EC2 will NOT be updated using state manager in SSM automatically due to no association created. Reference document in SSM to execute commands in EC2 manually.
 
-### ECR without pull through cache enabled
+### ECR without pull through cache enabled (only for previous cfn version)
 - following this script to update image manually if you do not enable ECR pull through cache
 ```sh
 export AWS_DEFAULT_REGION=us-west-2
