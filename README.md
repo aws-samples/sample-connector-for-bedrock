@@ -77,7 +77,7 @@ Execute AWS command using natural language and get the execution results.
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
-| llmModelId  | string   | N    |  | You should choose a bedrock model for **function calling** |
+| localLlmModel  | string   | N    |  | You should choose a bedrock model for **function calling** |
 
 ### web-miner
 
@@ -87,7 +87,7 @@ This Provider can turn your question into search keywords, obtain results throug
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
-| llmModelId  | string   | Y    |  | You should choose a bedrock model for **function calling** |
+| localLlmModel  | string   | Y    |  | You should choose a bedrock model for **function calling** |
 | sites  | string array  | N     |  |   Limit the search to these websites.  |
 | googleAPIKey  | string  | Y     |  |   Google API key.  |
 | googleCSECX  | string  | Y     |  |   Google CSE key.  |
