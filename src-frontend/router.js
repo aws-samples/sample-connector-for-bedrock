@@ -8,7 +8,8 @@ VueRouter.prototype.push = function push(location, onResolve, onReject) {
   if (onResolve || onReject) return originalPush.call(this, location, onResolve, onReject)
   return originalPush.call(this, location).catch(err => err)
 }
-import { Home, ChatboxEllipses, School, Person, Hammer, Key, Menu, Reader } from 'kui-icons'
+import { Home, ChatboxEllipses, School, Person, Hammer, Key, Menu, Reader, People, ExtensionPuzzle } from 'kui-icons'
+
 
 const router = new VueRouter({
   mode: 'hash',
@@ -47,7 +48,7 @@ const router = new VueRouter({
         {
           path: '/user/sessions/:session_id/threads',
           name: 'userThreads',
-          meta: { title: i18n.t('menu.chat_list'), icon: Reader },
+          meta: { title: i18n.t('menu.chat_list'), icon: ChatboxEllipses },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
           hidden: true
         }
@@ -70,19 +71,19 @@ const router = new VueRouter({
           path: '/admin/kbs',
           name: 'userKnowledgeBases',
           meta: { title: i18n.t("menu.bedrock_kb"), icon: School },
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
+          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs'),
           hidden: true
         },
         {
           path: '/admin/model',
-          name: 'adminModel111',
-          meta: { title: i18n.t("menu.model") },
+          name: 'adminModel',
+          meta: { title: i18n.t("menu.model"), icon: ExtensionPuzzle },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/models')
         },
         {
           path: '/admin/group',
           name: 'adminGroup',
-          meta: { title: i18n.t("menu.group") },
+          meta: { title: i18n.t("menu.group"), icon: People },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/groups')
         },
         {
