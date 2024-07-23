@@ -14,8 +14,10 @@ export default {
     dashboard: 'Dashboard',
     custom_model: 'Custom models',
     key: 'API Keys',
-    bedrock_kb: 'Bedrock Knowledge base'
-
+    bedrock_kb: 'Bedrock Knowledge base',
+    topic_list:"Topic List",
+    chat_list:'Chat List',
+    admin:'Admin'
   },
   home: {
     title: 'Mine',

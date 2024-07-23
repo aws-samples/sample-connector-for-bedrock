@@ -8,7 +8,7 @@ VueRouter.prototype.push = function push(location, onResolve, onReject) {
   if (onResolve || onReject) return originalPush.call(this, location, onResolve, onReject)
   return originalPush.call(this, location).catch(err => err)
 }
-import { Home, Tv, Globe, StatsChart, Timer, Person, DocumentText, Hammer, Link, Key, Menu, Reader } from 'kui-icons'
+import { Home, ChatboxEllipses, School, Person, Hammer, Key, Menu, Reader } from 'kui-icons'
 
 const router = new VueRouter({
   mode: 'hash',
@@ -40,13 +40,13 @@ const router = new VueRouter({
         {
           path: '/user/sessions',
           name: 'userSessions',
-          meta: { title: '话题列表', icon: Menu },
+          meta: { title: i18n.t('menu.topic_list'), icon: Menu },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
         },
         {
           path: '/user/sessions/:session_id/threads',
           name: 'userThreads',
-          meta: { title: '对话列表', icon: Reader },
+          meta: { title: i18n.t('menu.chat_list'), icon: Reader },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
           hidden: true
         }
@@ -55,27 +55,27 @@ const router = new VueRouter({
     {
       path: '/admin',
       component: Layout,
-      meta: { title: 'Admin', icon: Hammer },
+      meta: { title: i18n.t('menu.admin'), icon: Hammer },
       hidden: localStorage.getItem('role') != 'admin',
       // hidden: (localStorage.getItem('role') == 'admin'),
       children: [
         {
           path: '/admin/keys',
           name: 'AdminKeys',
-          meta: { title: i18n.t("menu.key") },
+          meta: { title: i18n.t("menu.key"), icon: Key },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/keys'),
           // hidden: localStorage.getItem('role') != 'admin'
         },
         {
           path: '/admin/kbs',
           name: 'userKnowledgeBases',
-          meta: { title: i18n.t("menu.bedrock_kb") },
+          meta: { title: i18n.t("menu.bedrock_kb"), icon: School },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs')
         },
         {
           path: '/admin/sessions',
           name: 'adminSessions',
-          meta: { title: '话题列表' },
+          meta: { title: i18n.t('menu.topic_list'), icon: Reader },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
           // hidden: localStorage.getItem('role') != 'admin',
           // hidden: true,
@@ -83,7 +83,7 @@ const router = new VueRouter({
         {
           path: '/admin/sessions/:session_id/threads',
           name: 'adminThreads',
-          meta: { title: '对话列表' },
+          meta: { title: i18n.t('menu.chat_list'), icon: ChatboxEllipses },
           component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
           hidden: true
         }

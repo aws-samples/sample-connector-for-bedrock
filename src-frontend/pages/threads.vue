@@ -6,20 +6,20 @@
     </Space>
     <Table :data="items" :columns="columns" :loading="loading">
       <template v-slot:prompt="value">
-        <Poptip title="提示词" trigger="click">
+        <Poptip :title="$t('threads.col_prompt')" trigger="click">
           <template slot="content">
             <pre>{{ value }}</pre>
           </template>
-          <Button :icon="Copy" theme="normal" size="small" />
+          <Button :icon="Chatbubble" theme="normal" size="small" />
         </Poptip>
         {{ format_content(value) }}
       </template>
       <template v-slot:completion="value">
-        <Poptip title="回复" trigger="click">
+        <Poptip :title="$t('threads.col_completion')" trigger="click" placement="right">
           <template slot="content">
             <pre>{{ value }}</pre>
           </template>
-          <Button :icon="Copy" theme="normal" size="small" />
+          <Button :icon="Chatbubble" theme="normal" size="small" />
         </Poptip>
         {{ format_content(value) }}
       </template>
@@ -29,7 +29,7 @@
   </div>
 </template>
 <script>
-import { Copy } from 'kui-icons'
+import { Chatbubble } from 'kui-icons'
 export default {
   name: 'AdminThreads',
   data() {
@@ -43,7 +43,7 @@ export default {
       //   "fee": "0.0084570000"
       // }
     return {
-      Copy,
+      Chatbubble,
       items: [],
       title: '',
       columns: [
@@ -112,8 +112,12 @@ export default {
 
 .k-poptip-content {
   max-width: 400px;
+  max-height: 320px;
+  overflow: auto;
   pre {
     white-space: pre-line;
+    margin: 0;
+    word-break: break-all;
   }
 }
 </style>

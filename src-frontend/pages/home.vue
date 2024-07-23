@@ -1,7 +1,7 @@
 <template>
   <div class="home">
-    <Card :title="$t('home.title')" bordered>
-      <Space class="items">
+    <Card :title="$t('home.title')" :bordered="false">
+      <Space class="items" wrap>
         <div class="item">
           <span class="key">{{ $t('home.total_fee') }}</span>
           <span class="value">{{ parseFloat(my_info.total_fee || 0) }}<span class="sub">USD</span></span>
@@ -21,8 +21,8 @@
       </Space>
     </Card>
 
-    <Card :title="$t('home.all')" bordered v-if="is_admin">
-      <Space class="items">
+    <Card :title="$t('home.all')" :bordered="false" v-if="is_admin">
+      <Space class="items" wrap>
         <div class="item">
           <span class="key">{{ $t('home.total_fee') }}</span>
           <span class="value">{{ parseFloat(total_info.total_fee || 0) }}<span class="sub">USD</span></span>
@@ -109,6 +109,7 @@ export default {
     .key {
       font-weight: bold;
       margin-right: 10px;
+      white-space: nowrap;
     }
 
     .value {
@@ -126,8 +127,12 @@ export default {
 
   .k-card {
     margin-bottom: 20px;
+
+    .k-card-head {
+      border: none;
+    }
   }
 
- 
+
 }
 </style>

@@ -14,7 +14,10 @@ export default {
     dashboard: '首页',
     custom_model: '自定义模型',
     key: '接口密钥',
-    bedrock_kb: 'Bedrock 知识库'
+    bedrock_kb: 'Bedrock 知识库',
+    topic_list:"话题列表",
+    chat_list:'聊天列表',
+    admin:'管理'
   },
   home: {
     title: '我的',
@@ -72,6 +75,5 @@ export default {
     knowledge_base_id: "知识库ID",
     summary_model: "模型",
     region: "区域"
-
   }
 }
