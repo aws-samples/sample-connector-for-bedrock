@@ -1,6 +1,6 @@
 # AWS command executor
 
-With this Provider, you can query AWS using natural language and get the execution results.
+With this Provider, you can execute AWS command using natural language and get the execution results.
 
 The role for executing AWS commands and the role for running BRConnector are currently the same, so you need to grant the appropriate permissions to the current role.
 

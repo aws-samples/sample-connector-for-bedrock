@@ -8,6 +8,10 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 ### Models/Platform Support
 
+- A provider for Search Engine support [Since Docker image version 0.0.10]. See [here](./docs/web-miner.md)
+
+- An AWS command executor [Since Docker image version 0.0.10]. See [here](./docs/aws-executor.md)
+
 - Bedrock SDXL [Since Docker image version 0.0.9]. See [Screenshots](docs/painter.md).
 
 - Sagemaker LMI [Since Docker image version 0.0.8]
@@ -64,6 +68,29 @@ Model Access Control [Since Docker image version 0.0.6]
 This connector provides a series of providers for model support, and you can configure them by writing JSON from the backend.
 
 ![Model config](docs/screenshots/model-config-1.png)
+
+### aws-executor
+
+> Since Docker image version 0.0.10
+
+Execute AWS command using natural language and get the execution results.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| llmModelId  | string   | N    |  | You should choose a bedrock model for **function calling** |
+
+### web-miner
+
+> Since Docker image version 0.0.10
+
+This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
+
+| Key     | Type      | Required     | Default value | Description |
+| ------------- | -------| ------------- | ------------- | ------------- |
+| llmModelId  | string   | Y    |  | You should choose a bedrock model for **function calling** |
+| sites  | string array  | N     |  |   Limit the search to these websites.  |
+| googleAPIKey  | string  | Y     |  |   Google API key.  |
+| googleCSECX  | string  | Y     |  |   Google CSE key.  |
 
 ### painter
 
