@@ -162,7 +162,7 @@ export default class Painter extends AbstractProvider {
               ctx.res.write("data:" + WebResponse.wrap(0, "painter", mdImage, null) + "\n\n");
             } catch (ex) {
               ctx.logger.error(ex.message);
-              ctx.res.write("data:" + WebResponse.wrap(0, "painter", "\n\nSorry, Your prompts contains filtered words.", null) + "\n\n");
+              ctx.res.write("data:" + WebResponse.wrap(0, "painter", "\n\n" + ex.message + "\n\n", null) + "\n\n");
             }
 
           }
