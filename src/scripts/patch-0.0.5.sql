@@ -27,7 +27,7 @@ ALTER TABLE eiai_model ADD CONSTRAINT model_name_uniqe UNIQUE (name);
 ALTER TABLE eiai_group_model ADD CONSTRAINT model_group_id_uniqe UNIQUE (model_id, group_id);
 
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
-VALUES ('claude-3-5-sonnet', 1, 'bedrock-converse', '{"modelId": "anthropic.claude-3-5-sonnet-20240620-v 1:0"}', 3e-6, 15e-6 ) ON CONFLICT (name) DO NOTHING;
+VALUES ('claude-3-5-sonnet', 1, 'bedrock-converse', '{"modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"}', 3e-6, 15e-6 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
 VALUES ('claude-3-sonnet', 1, 'bedrock-converse', '{"modelId": "anthropic.claude-3-sonnet-20240229-v1:0"}', 3e-6, 15e-6 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
