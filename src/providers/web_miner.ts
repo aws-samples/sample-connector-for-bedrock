@@ -1,4 +1,4 @@
-import { ChatRequest, ResponseData } from "../entity/chat_request"
+import { ChatRequest } from "../entity/chat_request"
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import { google } from 'googleapis';
@@ -15,27 +15,22 @@ export default class WebMiner extends AbstractProvider {
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    // console.log(this.modelData);
-    const { localLlmModel, googleAPIKey, googleCSECX, sites } = this.modelData.config;
-    // const tarLLMModel = ....
-    // if (this.tarLLMModel.provider == "web-miner") {
-    //   throw new Error("Please redefine the parameter 'localLlmModel' to use a model that is not 'web-miner' as it's provider.")
-    // }
+    const { localLlmModel, sites, google, searxng, duckduckgo, serpapi } = this.modelData.config;
     if (!localLlmModel) {
       throw new Error("You must specify the parameter 'localLlmModel'.")
     }
-    let searchEngine = null;
-    if (googleAPIKey) {
-      searchEngine = "google";
-    }
-    if (!searchEngine) {
-      throw new Error("You must specify a search engine in the backend model configuration.")
-    }
-    this.googleCSECX = googleCSECX;
-    this.googleAPIKey = googleAPIKey;
     this.sites = sites;
-
     chatRequest.model = localLlmModel;
+
+    // let searchEngine = null;
+    // if (googleAPIKey) {
+    //   searchEngine = "google";
+    // }
+    // if (!searchEngine) {
+    //   throw new Error("You must specify a search engine in the backend model configuration.")
+    // }
+    // this.googleCSECX = googleCSECX;
+    // this.googleAPIKey = googleAPIKey;
 
     ctx.status = 200;
 
@@ -55,8 +50,11 @@ export default class WebMiner extends AbstractProvider {
 
       const lastQ = chatRequest.messages[chatRequest.messages.length - 1];
       const q = lastQ.content;
-      // console.log("keyword", keyword);
-      const gRes = await this.cse(keyword);
+      keyword = keyword || q;
+      console.log("keyword", keyword);
+      const gRes = await this.search(keyword, { google, searxng, duckduckgo, serpapi });
+      console.log("gRes", gRes);
+
       // console.log("g result", gRes);
       const prompt = this.toPrompt(q, gRes)
       // console.log(prompt);
@@ -117,7 +115,7 @@ export default class WebMiner extends AbstractProvider {
     for (let j = 0; j < refItems.length; j++) {
       const citaIndex = j + 1;
       i = i + 1 + citaIndex;
-      const citaContent = "\n\n[" + citaStrings[j] + " " + refItems[j]["title"] + "](" + refItems[j]["link"] + ")";
+      const citaContent = "\n\n[" + citaStrings[j] + " " + refItems[j]["title"] + "](" + refItems[j]["url"] + ")";
       ctx.res.write("data:" + WebResponse.wrap(i, null, citaContent, null) + "\n\n");
     }
     ctx.res.write("data: [DONE]\n\n")
@@ -211,11 +209,10 @@ export default class WebMiner extends AbstractProvider {
     // ctx.res.end();
   }
 
-  async cse(q: string): Promise<any> {
+  async search(q: string, options: any): Promise<any> {
     if (!q) {
       return [];
     }
-
     if (this.sites) {
       const lenSites = this.sites.length;
       // const sitesStr = this.sites ? this.sites.join(",") : "";
@@ -223,18 +220,64 @@ export default class WebMiner extends AbstractProvider {
       q += " + " + sitesStr;
     }
 
+    console.log("q", q, options);
+
+    if (options.searxng) {
+      return await this.searxng(q, options.searxng);
+    }
+
+
+    if (options.google) {
+      return await this.googleCSE(q, options.google);
+    }
+  }
+
+  async searxng(q: string, config: any): Promise<any> {
+    if (config.host) {
+      const url = config.host.endsWith('/') ? config.host : config.host + '/';
+      console.log(url);
+      const result = await fetch(url + "?format=json&q=" + q, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      const resultJson = await result.json();
+      const sortedItems = resultJson.results.sort((a: any, b: any) => a.score <= b.score);
+
+      return sortedItems.slice(0, 10).map((result: any) => ({
+        title: result.title,
+        url: result.url,
+        content: result.content,
+        score: result.score
+      }));
+    }
+    throw new Error("You must config searxng.host in your configuration.");
+
+  }
+
+  async googleCSE(q: string, config: any): Promise<any> {
+
+    if (config.google.googleAPIKey && config.google.googleCSECX) {
+      const customsearch = google.customsearch('v1');
+      const seRequest: any = {
+        cx: this.googleCSECX,
+        q,
+        auth: this.googleAPIKey,
+        num: 10
+      }
+      const res = await customsearch.cse.list(seRequest);
+
+      return res.data.items.map((result: any) => ({
+        title: result.title,
+        url: result.link,
+        content: result.snippet
+      }));
+    }
+    throw new Error("You must config google's api key and cse key in your configuration.");
     // console.log("real query: ", q)
 
-    const customsearch = google.customsearch('v1');
-    const seRequest: any = {
-      cx: this.googleCSECX,
-      q,
-      auth: this.googleAPIKey,
-      num: 10
-    }
-    const res = await customsearch.cse.list(seRequest);
-
-    return res.data.items;
 
   }
 
@@ -246,7 +289,7 @@ export default class WebMiner extends AbstractProvider {
       return preValue + `
   <search_result>
     <title>${ele["title"]}</title>
-    <content>${ele["snippet"]}</content>
+    <content>${ele["content"]}</content>
     <source>${currentIndex + 1}</source>
   </search_result>`;;
     }, "");
@@ -266,7 +309,7 @@ ${q}
 
 If you reference information from a search result within your answer, you must include a citation to source where the information was found. Each result has a corresponding source ID that you should reference. 
 
-Note that there may contain multiple <source> if you include information from multiple results in your answer, please use 1️⃣  as 1st source, 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 for 2 3 4 5 6 7 8 9 10.
+Note that there may contain multiple <source> if you include information from multiple results in your answer, please use 🔟 as source 10,1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ for 1 2 3 4 5 6 7 8 9.
 
 Do NOT directly quote the <search_results> in your answer. Your job is to answer my question as concisely as possible.
 

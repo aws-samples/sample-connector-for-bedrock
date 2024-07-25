@@ -1,4 +1,4 @@
-# AWS command executor
+# aws-executor: AWS command executor
 
 With this Provider, you can execute AWS command using natural language and get the execution results.
 

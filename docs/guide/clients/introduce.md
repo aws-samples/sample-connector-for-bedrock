@@ -1,0 +1,1 @@
+# Configuration for most clients

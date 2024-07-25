@@ -1,4 +1,4 @@
-# Provider painter
+# Paint with SDXL
 
 ## Configuration
 

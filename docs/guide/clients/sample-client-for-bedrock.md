@@ -1,0 +1,1 @@
+# Sample client for Bedrock

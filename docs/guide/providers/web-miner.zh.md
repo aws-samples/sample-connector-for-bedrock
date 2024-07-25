@@ -1,4 +1,4 @@
-# 提供器: web-miner
+# 搜索互联网
 
 This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
 
@@ -27,7 +27,7 @@ Configuration:
   ],
   "localLlmModel": "claude-3-sonnet",
   "searxng": {
-    "host": "http://localhost:8081"
+    "host": "http://127.0.0.1:8081"
   },
   "google": {
     "googleCSECX": "00xxxc000a2xxxxx",
@@ -56,15 +56,31 @@ Configuration:
 
 ### searxng
 
-Visit https://docs.searxng.org/ for more information.
+详情请访问 <https://docs.searxng.org/>。
 
-Start searxng:
+创建一个 settings.yml 文件，增加输出格式 json。
 
-```shell
-docker run --rm -d -p 8081:8080 -e "BASE_URL=http://localhost:8081/" -e "INSTANCE_NAME=searxng" searxng/searxng
+```yaml
+use_default_settings: true
+server:
+    secret_key: "some-Other-PWD"   # change this!
+    bind_address: "0.0.0.0"
+search:
+  formats:
+    - html
+    - json
 ```
 
-Then you will get the searxng endpoint: http://localhost:8081/.
+
+启动 searxng:
+
+```shell
+docker run --rm -d -p 8081:8080 \
+  -v ./settings.yml:/etc/searxng/settings.yml \
+  -e "INSTANCE_NAME=searxng" searxng/searxng
+```
+
+这样部署出来的 searxng 主机地址是: http://127.0.0.1:8081/.
 
 ### DuckDuckGo
 

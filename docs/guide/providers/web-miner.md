@@ -1,11 +1,11 @@
-# Provider: web-miner[text](bedrock-converse.en.md)
+# web-miner：Seach the internet
 
 This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
 
-> [!TIP]
-> Please note, do not ask too many rounds of questions, because this Provider will summarize your previous prompts to keywords for searching.
->
-> And since the results of the questions are too many, the BRClient will summarize the history, thereby losing the earliest user input.
+!!! tip
+    Do not ask too many rounds of questions, because this Provider will summarize your previous prompts to keywords for searching.
+
+    And since the results of the questions are too many, the BRClient will summarize the history, thereby losing the earliest user input.
 
 ## Model configuration
 
@@ -52,16 +52,32 @@ Configuration:
 
 
 
-## Search engine configuration
+## Search engines
 
 ### searxng
 
 Visit https://docs.searxng.org/ for more information.
 
+创建一个 settings.yml 文件，增加输出格式 json。
+
+```yaml
+use_default_settings: true
+server:
+    secret_key: "some-Other-PWD"   # change this!
+    bind_address: "0.0.0.0"
+search:
+  formats:
+    - html
+    - json
+```
+
+
 Start searxng:
 
 ```shell
-docker run --rm -d -p 8081:8080 -e "BASE_URL=http://localhost:8081/" -e "INSTANCE_NAME=searxng" searxng/searxng
+docker run --rm -d -p 8081:8080 \
+ -e "BASE_URL=http://localhost:8081/" \
+ -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
 Then you will get the searxng endpoint: http://localhost:8081/.

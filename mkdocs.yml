@@ -37,7 +37,7 @@ theme:
         - navigation.tabs
         - navigation.tabs.sticky
         # - navigation.sections
-        # - navigation.expand # auto expand folder in navi
+        - navigation.expand # auto expand folder in navi
         - search.suggest
         - search.highlight
         - toc.follow
@@ -116,16 +116,6 @@ plugins:
   # - file-filter:
   #     exclude_tag:
   #       - draft
-  - i18n:
-      docs_structure: suffix
-      languages:
-        - locale: en
-          default: true
-          name: English
-          build: true
-        - locale: zh
-          name: 中文
-          build: true
   - git-revision-date-localized:
       type: timeago
       timezone: Asia/Shanghai
