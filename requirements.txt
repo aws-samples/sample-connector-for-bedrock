@@ -12,6 +12,7 @@ mkdocs-encryptcontent-plugin
 mkdocs-callouts
 mkdocs-meta-descriptions-plugin
 mkdocs-glightbox
+mkdocs-static-i18n
 # mkdocs-pagetree-plugin
 # mkdocs-file-filter-plugin
 
