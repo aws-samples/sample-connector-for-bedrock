@@ -1,0 +1,25 @@
+mkdocs
+mkdocs-material
+mkdocs-ezlinked-plugin
+mkdocs-awesome-pages-plugin
+mkdocs-git-revision-date-localized-plugin
+mkdocs-custom-tags-attributes
+mdx_breakless_lists
+mkdocs-preview-links-plugin
+mkdocs-embed-file-plugins
+mkdocs_custom_fences
+mkdocs-encryptcontent-plugin
+mkdocs-callouts
+mkdocs-meta-descriptions-plugin
+mkdocs-glightbox
+# mkdocs-pagetree-plugin
+# mkdocs-file-filter-plugin
+
+#mkdocs-section-index
+#obsidiantools
+#pyvis
+#cairosvg
+#pillow
+#mkdocs-minify-plugin
+# replaced
+#mkdocs-exclude-tagged-files

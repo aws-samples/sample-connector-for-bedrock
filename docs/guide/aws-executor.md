@@ -30,6 +30,18 @@ localLlmModel must be configured as a model that supports function calling and a
 >
 > And You must install aws cli v2 in the BRConnector host.
 
+## Install AWS CLI  in Docker image
+
+In this demo, the AWS CLI is not included in the Docker image, and you can install it yourself with the following command.
+
+```shell
+docker exec -it <your-docker-instance>  sh
+```
+
+```shell
+apt update && apt install -y awscli
+```
+
 ## Screenshots in BRClient
 
 ![sampe executor 1](./screenshots/aws-exec-1.png)
