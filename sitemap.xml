@@ -22,39 +22,81 @@
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/deploy/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/aws-executor/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/quick-start/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/aws-executor/"/>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/aws-executor/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/quick-start/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/bedrock-knowledge-base/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/clients/introduce/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/bedrock-knowledge-base/"/>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/bedrock-knowledge-base/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/clients/introduce/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/clients/introduce/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/painter/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/clients/sample-client-for-bedrock/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/painter/"/>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/painter/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/clients/sample-client-for-bedrock/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/clients/sample-client-for-bedrock/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/sagemaker-openai/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/aws-executor/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/sagemaker-openai/"/>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/sagemaker-openai/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/aws-executor/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/aws-executor/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/web-miner/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/bedrock-converse/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/web-miner/"/>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/web-miner/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/bedrock-converse/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/bedrock-converse/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/bedrock-knowledge-base/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/bedrock-knowledge-base/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/bedrock-knowledge-base/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/ollama/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/ollama/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/ollama/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/painter/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/painter/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/painter/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/sagemaker-lmi/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/sagemaker-lmi/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/sagemaker-lmi/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/sagemaker-openai/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/sagemaker-openai/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/sagemaker-openai/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/web-miner/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/web-miner/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/web-miner/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/</loc>
@@ -78,38 +120,80 @@
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/deploy/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/aws-executor/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/quick-start/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/aws-executor/"/>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/aws-executor/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/quick-start/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/quick-start/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/bedrock-knowledge-base/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/clients/introduce/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/bedrock-knowledge-base/"/>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/bedrock-knowledge-base/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/clients/introduce/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/clients/introduce/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/painter/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/clients/sample-client-for-bedrock/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/painter/"/>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/painter/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/clients/sample-client-for-bedrock/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/clients/sample-client-for-bedrock/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/sagemaker-openai/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/aws-executor/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/sagemaker-openai/"/>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/sagemaker-openai/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/aws-executor/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/aws-executor/"/>
     </url>
     <url>
-        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/web-miner/</loc>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/bedrock-converse/</loc>
         <lastmod>2024-07-25</lastmod>
         <changefreq>daily</changefreq>
-        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/web-miner/"/>
-        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/web-miner/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/bedrock-converse/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/bedrock-converse/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/bedrock-knowledge-base/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/bedrock-knowledge-base/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/bedrock-knowledge-base/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/ollama/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/ollama/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/ollama/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/painter/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/painter/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/painter/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/sagemaker-lmi/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/sagemaker-lmi/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/sagemaker-lmi/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/sagemaker-openai/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/sagemaker-openai/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/sagemaker-openai/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/web-miner/</loc>
+        <lastmod>2024-07-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/guide/providers/web-miner/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/guide/providers/web-miner/"/>
     </url>
 </urlset>
