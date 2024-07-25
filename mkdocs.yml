@@ -1,0 +1,133 @@
+site_name: Bedrock Connector
+site_description: Docs for Bedrock Connector
+site_url: https://aws-samples.github.io/sample-connector-for-bedrock/ # Change this to your site URL
+
+theme:
+    name: material
+    logo: attachments/AWS_Logo.png #favicons.png
+    # favicon: assets/meta/AWS_Logo.png #favicons.png
+    # custom_dir: overrides
+    font:
+        text: Ubuntu
+        code: Ubuntu Mono
+    language: en
+
+    palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: light blue
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+    features:
+        - navigation.indexes
+        - navigation.top
+        - navigation.tabs
+        - navigation.tabs.sticky
+        # - navigation.sections
+        # - navigation.expand # auto expand folder in navi
+        - search.suggest
+        - search.highlight
+        - toc.follow
+        - content.code.copy
+
+# Extensions
+markdown_extensions:
+  - footnotes
+  - nl2br
+  - attr_list
+  - sane_lists
+  - meta
+  - smarty
+  - tables
+  - mdx_breakless_lists
+  - def_list
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.details
+  - pymdownx.magiclink
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.highlight:
+      use_pygments: true
+      anchor_linenums: true
+  - pymdownx.tasklist:
+       custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["docs/CLI/functions","docs/cloud9","."]
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+
+plugins:
+  - search
+  - meta-descriptions
+  - git-revision-date-localized:
+      type: timeago
+      timezone: Asia/Shanghai
+      locale: en
+      custom_format: "%A %d %B %Y"
+      enable_creation_date: true
+      fallback_to_build_date: false
+      exclude:
+        - index.md
+      enabled: true
+      strict: true
+  - ezlinks:
+        wikilinks: true
+  - awesome-pages
+  - tags:
+      tags_file: tags.md
+  - glightbox:
+      touchNavigation: false
+      loop: false
+      zoomable: true
+      draggable: false
+  # - mkdocs_exclude_tagged_files:
+  #     tags_to_exclude: ["panlm", "awscorp"]
+  # - pagetree
+  # - section-index
+  # - file-filter:
+  #     exclude_tag:
+  #       - draft
+
+
+# extra:
+  # status:
+  #   awsblog: blogs released on aws
+  #   myblog: my blogs
+  # analytics:
+  #   provider: google
+  #   property: G-8C6HW94JT3
+extra_css:
+  - extra.css
+
+
+
