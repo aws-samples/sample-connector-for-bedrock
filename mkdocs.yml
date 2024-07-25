@@ -1,6 +1,8 @@
 site_name: Bedrock Connector
 site_description: Docs for Bedrock Connector
 site_url: https://aws-samples.github.io/sample-connector-for-bedrock/ # Change this to your site URL
+repo_name: aws-samples/sample-connector-for-bedrock
+repo_url: https://github.com/aws-samples/sample-connector-for-bedrock
 
 theme:
     name: material

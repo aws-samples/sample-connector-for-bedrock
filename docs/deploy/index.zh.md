@@ -16,7 +16,7 @@ Cloudformation 模板已在以下区域验证：
 - 启用了拉取缓存的 ECR
 
 ## 部署指南
-- 下载 [quick-build-brconnector.yaml](quick-build-brconnector.yaml) 并上传到 Cloudformation 控制台或单击此按钮直接启动。
+- 下载 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 并上传到 Cloudformation 控制台或单击此按钮直接启动。
 
 [![[attachments/index.zh/IMG-index.zh.png|200]]](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
