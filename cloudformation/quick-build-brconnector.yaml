@@ -100,9 +100,9 @@ Parameters:
 
   EcrRepo:
     Description: >-
-      Prefix of private repo name , repo full name will be brconnect-<Part of AWS::StackId>
+      Prefix of private repo name , repo full name will be brc-<Last part of AWS::StackId>/x6u9o2u4/sample-connector-for-bedrock-lambda
     Type: String
-    Default: brconnector
+    Default: brc
 
   LambdaArch:
     Description: >-
@@ -393,11 +393,9 @@ Resources:
           
           REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
           echo $REPO_PREFIX
-          # aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
-          aws ecr get-login-password --region ${AWS::Region} |regctl registry login ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com --user AWS --pass-stdin
+          aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
-          # docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest
-          regctl image export ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest /dev/null
+          docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:latest
           AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:latest)
           ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:latest)
           regctl image copy ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
@@ -462,38 +460,34 @@ Resources:
   ECRPullThroughCacheRule:
     Type: 'AWS::ECR::PullThroughCacheRule'
     Properties:
-      EcrRepositoryPrefix: !Join
-        - '-'
-        - - !Ref EcrRepo
-          - !Select
-              - 4
-              - !Split
-                  - '-'
-                  - !Select
-                      - 2
-                      - !Split
-                          - '/'
-                          - !Ref AWS::StackId
+      EcrRepositoryPrefix: !Select
+        - 0
+        - !Split
+          - '/'
+          - !Ref PrivateECRRepository
       # UpstreamRegistryUrl: 'https://registry.hub.docker.com'
       UpstreamRegistryUrl: "public.ecr.aws"
       UpstreamRegistry: "ecr-public"
 
-  # PrivateECRRepository:
-  #   Type: AWS::ECR::Repository
-  #   Properties:
-  #     EmptyOnDelete: true
-  #     RepositoryName: !Join
-  #       - '-'
-  #       - - !Ref EcrRepo
-  #         - !Select
-  #             - 4
-  #             - !Split
-  #                 - '-'
-  #                 - !Select
-  #                     - 2
-  #                     - !Split
-  #                         - '/'
-  #                         - !Ref AWS::StackId
+  PrivateECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      EmptyOnDelete: true
+      RepositoryName: !Join
+        - '/'
+        - - !Join
+            - '-'
+            - - !Ref EcrRepo
+              - !Select
+                - 4
+                - !Split
+                  - '-'
+                  - !Select
+                    - 2
+                    - !Split
+                      - '/'
+                      - !Ref AWS::StackId
+          - "x6u9o2u4/sample-connector-for-bedrock-lambda"
 
   MyCloudFrontDistribution:
     Condition: IsEnableCloudfrontEc2
@@ -675,9 +669,9 @@ Resources:
     Properties:
       Architectures:
         - !FindInMap [ArchitectureMapping, !Ref LambdaArch, Architecture]
-      # ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:${LambdaArch}" 
+      ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:${LambdaArch}" 
       # ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${PrivateECRRepository}:latest"
-      ImageUri: !Join ["", [!Ref "AWS::AccountId", ".dkr.ecr.", !Ref "AWS::Region", ".amazonaws.com/", !Join ['-', [!Ref 'EcrRepo', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]], "/x6u9o2u4/sample-connector-for-bedrock-lambda:", !Ref LambdaArch]]
+      # ImageUri: !Join ["", [!Ref "AWS::AccountId", ".dkr.ecr.", !Ref "AWS::Region", ".amazonaws.com/", !Join ['-', [!Ref 'EcrRepo', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]], "/x6u9o2u4/sample-connector-for-bedrock-lambda:", !Ref LambdaArch]]
       PackageType: Image
       Policies:
         - AWSLambdaBasicExecutionRole 
@@ -864,7 +858,7 @@ Resources:
     Properties: 
       Name: !Sub "codebuild-${AWS::StackName}"
       Description: "This event rule triggers the codebuild project"
-      ScheduleExpression: 'cron(0 2 * * ? *)'
+      ScheduleExpression: 'cron(0 0 * * ? *)'
       State: "ENABLED"
       Targets: 
         - 
@@ -932,7 +926,7 @@ Resources:
     Type: AWS::SSM::Association
     Properties: 
       Name: !Ref EC2AutoUpdateSSMDocument
-      ScheduleExpression: "cron(0 2 * * ? *)"
+      ScheduleExpression: "cron(0 0 * * ? *)"
       ApplyOnlyAtCronInterval: true
       OutputLocation: 
         S3Location:
@@ -972,10 +966,10 @@ Outputs:
     Description: The ID of the EC2 instance
     Value: !Ref MyEC2Instance
   MySSMParameterFirstUserKey:
-    Description: first user key
+    Description: First User Key
     Value: !GetAtt MySSMParameterFirstUserKey.Value
   MySSMParameterAdminKey:
-    Description: admin key
+    Description: Admin Key
     Value: !GetAtt MySSMParameterAdminKey.Value
   MyFunctionUrl:
     Condition: IsLambda

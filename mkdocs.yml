@@ -99,17 +99,6 @@ plugins:
           build: true
   - search
   - meta-descriptions
-  - git-revision-date-localized:
-      type: timeago
-      timezone: Asia/Shanghai
-      locale: en
-      custom_format: "%A %d %B %Y"
-      enable_creation_date: true
-      fallback_to_build_date: false
-      exclude:
-        - index.md
-      enabled: true
-      strict: true
   - ezlinks:
         wikilinks: true
   - awesome-pages
@@ -127,7 +116,28 @@ plugins:
   # - file-filter:
   #     exclude_tag:
   #       - draft
-
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: zh
+          name: 中文
+          build: true
+  - git-revision-date-localized:
+      type: timeago
+      timezone: Asia/Shanghai
+      locale: en
+      custom_format: "%A %d %B %Y"
+      enable_creation_date: true
+      fallback_to_build_date: false
+      exclude:
+        - index.md
+        - index.zh.md
+      enabled: true
+      strict: true
 
 # extra:
   # status:
