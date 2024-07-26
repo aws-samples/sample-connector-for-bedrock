@@ -15,23 +15,15 @@ export default class WebMiner extends AbstractProvider {
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    const { localLlmModel, sites, google, searxng, duckduckgo, serpapi } = this.modelData.config;
+    const { localLlmModel, sites, google, searxng, serpapi } = this.modelData.config;
     if (!localLlmModel) {
       throw new Error("You must specify the parameter 'localLlmModel'.")
     }
+    if (!searxng && !serpapi && !google) {
+      throw new Error("You must specify at least one search engine in the backend model configuration.")
+    }
     this.sites = sites;
     chatRequest.model = localLlmModel;
-
-    // let searchEngine = null;
-    // if (googleAPIKey) {
-    //   searchEngine = "google";
-    // }
-    // if (!searchEngine) {
-    //   throw new Error("You must specify a search engine in the backend model configuration.")
-    // }
-    // this.googleCSECX = googleCSECX;
-    // this.googleAPIKey = googleAPIKey;
-
     ctx.status = 200;
 
     if (chatRequest.stream) {
@@ -51,19 +43,11 @@ export default class WebMiner extends AbstractProvider {
       const lastQ = chatRequest.messages[chatRequest.messages.length - 1];
       const q = lastQ.content;
       keyword = keyword || q;
-      console.log("keyword", keyword);
-      const gRes = await this.search(keyword, { google, searxng, duckduckgo, serpapi });
-      console.log("gRes", gRes);
-
-      // console.log("g result", gRes);
+      // console.log("keyword", keyword);
+      const gRes = await this.search(keyword, { google, searxng, serpapi });
+      // console.log("gRes", gRes);
       const prompt = this.toPrompt(q, gRes)
-      // console.log(prompt);
       lastQ.content = prompt;
-
-      // console.log()
-
-      // console.log("KKKKKKKKKK", keyword, JSON.stringify(chatRequest, null, 2));
-      // return;
       ctx.set({
         'Connection': 'keep-alive',
         'Cache-Control': 'no-cache',
@@ -195,18 +179,6 @@ export default class WebMiner extends AbstractProvider {
     });
 
     return await response.json();
-    // const json = await response.json();
-    // // console.log(json);
-    // return json;
-    // if (!response.ok)
-    //   throw new Error(await response.text());
-    // const reader = response.body.getReader();
-    // let done: any, value: any;
-    // while (!done) {
-    //   ({ value, done } = await reader.read());
-    //   if (value) { ctx.res.write(value); }
-    // }
-    // ctx.res.end();
   }
 
   async search(q: string, options: any): Promise<any> {
@@ -220,22 +192,68 @@ export default class WebMiner extends AbstractProvider {
       q += " + " + sitesStr;
     }
 
-    console.log("q", q, options);
+    q = encodeURIComponent(q);
 
     if (options.searxng) {
       return await this.searxng(q, options.searxng);
     }
-
-
+    // if (options.duckduckgo) {
+    //   return await this.duckduckgo(q);
+    // }
+    if (options.serpapi) {
+      return await this.serpapi(q, options.serpapi);
+    }
     if (options.google) {
       return await this.googleCSE(q, options.google);
     }
+    throw new Error("You must specify one search engine at least.")
+  }
+
+  async serpapi(q: string, config: any) {
+    if (config.apiKey) {
+      let url = "https://serpapi.com/search?output=json&api_key=" + config.apiKey;
+      let qKey = "q";
+      if (config.engine) {
+        url += "&engine=" + config.engine;
+        switch (config.engine) {
+          case "yahoo":
+            qKey = "p";
+            break;
+          case "yandex ":
+            qKey = "text";
+            break;
+          case "naver ":
+            qKey = "query";
+            break;
+          case "yelp":
+            qKey = "find_desc";
+            break;
+        }
+      }
+
+      url += "&" + qKey + "=" + q;
+      const result = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      const resultJson = await result.json();
+      const sortedItems = resultJson.organic_results.filter((item: any) => item && item.snippet);
+
+      return sortedItems.slice(0, 10).map((result: any) => ({
+        title: result.title,
+        url: result.link,
+        content: result.snippet
+      }));
+    }
+    throw new Error("You must config apiKey in your serpapi configuration.");
   }
 
   async searxng(q: string, config: any): Promise<any> {
     if (config.host) {
       const url = config.host.endsWith('/') ? config.host : config.host + '/';
-      console.log(url);
       const result = await fetch(url + "?format=json&q=" + q, {
         method: 'GET',
         headers: {
@@ -253,7 +271,7 @@ export default class WebMiner extends AbstractProvider {
         score: result.score
       }));
     }
-    throw new Error("You must config searxng.host in your configuration.");
+    throw new Error("You must config searxng.host in your searxng configuration.");
 
   }
 
@@ -275,7 +293,7 @@ export default class WebMiner extends AbstractProvider {
         content: result.snippet
       }));
     }
-    throw new Error("You must config google's api key and cse key in your configuration.");
+    throw new Error("You must config google's api key and cse key in your google configuration.");
     // console.log("real query: ", q)
 
 

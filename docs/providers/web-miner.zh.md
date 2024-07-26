@@ -1,16 +1,15 @@
 # web-miner：搜索互联网
 
-This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
-
+本 Provider 可以将您的问题转化为搜索关键词，通过搜索引擎获取结果，然后将其总结成相应的答案。支持多轮对话。
 
 !!! tip
-    Do not ask too many rounds of questions, because this Provider will summarize your previous prompts to keywords for searching.
+    不要问太多轮次的问题，因为这个 Provider 会把你之前的提示总结成为关键词并进行搜索。
 
-    And since the results of the questions are too many, the BRClient will summarize the history, thereby losing the earliest user input.
+    在 BRClient 中，太长信息会被总结成单一历史记录，从而丢失最早的用户输入，这会导致 AI 回答的结果和您想要的相去甚远。
 
-## Model configuration
+## 模型配置
 
-The parameter configuration is as follows:
+参数配置如下:
 
 Name: some-model
 
@@ -28,28 +27,26 @@ Configuration:
   ],
   "localLlmModel": "claude-3-sonnet",
   "searxng": {
-    "host": "http://127.0.0.1:8081"
-  },
-  "google": {
-    "googleCSECX": "00xxxc000a2xxxxx",
-    "googleAPIKey": "AIxxxxxx_xxxxxxxx"
+    "host": "http://127.0.0.1:8081/"
   },
   "serpapi": {
-    
+    "apiKey": "xxx......",
+    "engine": "google"
   },
-  "duckduckgo": {
-
+  "google": {
+    "googleAPIKey": "AIxxxxxx_xxxxxxxx",
+    "googleCSECX": "00xxxc000a2xxxxx"
   }
 }
 ```
 
-- sites: 只从这些网站里进行搜索。
-- 支持下面的这些搜索引擎或集合工具:
-    - searxng
-    - google
-    - DuckDuckGo
-    - SerpAPI
+
+- sites: 只从这些网站里进行搜索，可以不指定此参数。
 - localLlmModel: 必须配置为支持函数调用的模型，并且已存在于 BRConnector 中。
+- 支持下面的这些搜索引擎或集合工具中的一个，优先级如下:
+    - searxng
+    - SerpAPI
+    - google
 
 
 
@@ -81,25 +78,41 @@ docker run --rm -d -p 8081:8080 \
   -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
-这样部署出来的 searxng 主机地址是: http://127.0.0.1:8081/。
-
-### DuckDuckGo
+这样部署出来的 searxng 主机地址是: http://127.0.0.1:8081/，请将其配置到 searxng 的 host 节点中。
 
 ### SerpAPI
 
+详情请访问 <https://serpapi.com/>。
+
+登录后，您可以在其显眼位置看到 API Key。
+
+engine 参数支持如下这些，默认是 google：
+- google
+- bing
+- baidu
+- duckduckgo
+- yahoo
+- yandex 
+- yelp
+- naver
+
 !!! warning "SerpAPI 不免费"
-    Exceeding the daily free limit will be charged.
+    请注意：超过每月的限额会被收费。
 
 
 ### Google
 
+使用 Google 自定义搜索引擎，需要如下 2 个 Key，请点击相应链接创建：
+
+- [申请 googleAPIKey](https://console.cloud.google.com/apis/credentials)
+
+- [申请 googleCSECX](https://programmablesearchengine.google.com/controlpanel/create)
+
 !!! warning "Google CSE 不免费"
-    Exceeding the daily free limit will be charged.
-
-[Google CSE key apply](https://developers.google.com/custom-search/v1/introduction)
+    请注意：超过每日的限额会被收费。
 
 
-## Screenshots in BRClient
+## 在 BRClient 中的截图
 
 ![Web 1](./screenshots/web-1.png)
 
