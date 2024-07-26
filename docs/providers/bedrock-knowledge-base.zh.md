@@ -1,12 +1,12 @@
-# bedrock-knowledge-base: Bedrock 知识库
+# bedrock-knowledge-base：Bedrock 知识库
 
-## Create a knowledge base instance
+## 创建知识库实例
 
-Refer to this document: [Create a knowledge base](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-create.html)
+参考此文档：[创建知识库](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-create.html)
 
-## Create a custom model
+## 创建自定义模型
 
-Moel Configuration:
+Model 配置：
 
 ```json
 {
@@ -17,12 +17,12 @@ Moel Configuration:
 
 ```
 
-- knowledgeBaseId: the knowledge base id.
-- summaryModel: support claude-3-sonnet, claude-3-haiku or claude-3-opus
+- knowledgeBaseId：知识库 ID。
+- summaryModel：支持 claude-3-sonnet、claude-3-haiku 或 claude-3-opus
 
-## API Calls
+## API 调用
 
-You can use normal api invoke, the Bedrock connector will pop last message to chat with the knowledge base.
+您可以使用常规 api 调用，Bedrock 连接器将弹出最后一条消息以与知识库聊天。
 
 ```text
 POST /v1/chat/completions
@@ -40,6 +40,6 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-## Use BRClient
+## 使用 BRClient
 
 ![kb ui](./screenshots/kb-ui.png)

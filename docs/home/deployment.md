@@ -16,15 +16,15 @@ Following key components will be included in this Cloudformation template:
 - ECR with pull through cache enabled
 
 ## Deploy Guide
-- Download [quick-build-brconnector.yaml](quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
+- Download [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
 
-[![LaunchStack](attachments/index.zh/IMG-index.zh.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
+[![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
 - VPC parameters
     - Choose to create a new VPC or a existing VPC 
     - Choose one PUBLIC subnet for EC2 and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)
 
-![attachments/index.zh/IMG-index.zh-1.png](attachments/index.zh/IMG-index.zh-1.png)
+![attachments/deployment/IMG-deployment-1.png](attachments/deployment/IMG-deployment-1.png)
 
 - Compute parameters
     - Choose ComputeType for BRConnector, Lambda or EC2
@@ -36,25 +36,25 @@ Following key components will be included in this Cloudformation template:
         - Define your private repository name prefix string
         - Always create RDS PostgreSQL (`StandaloneDB` to true)
 
-![attachments/index.zh/IMG-index.zh-2.png](attachments/index.zh/IMG-index.zh-2.png)
+![attachments/deployment/IMG-deployment-2.png](attachments/deployment/IMG-deployment-2.png)
 
 - PostgreSQL parameters
     - Default PostgreSQL password is `mysecretpassword`
     - If you choose `StandaloneDB` to false, PostgreSQL will running on EC2 as container. RDS PostgreSQL will be create if this option is true.
     - Keep others as default
 
-![attachments/index.zh/IMG-index.zh-3.png](attachments/index.zh/IMG-index.zh-3.png)
+![attachments/deployment/IMG-deployment-3.png](attachments/deployment/IMG-deployment-3.png)
 
 - Debugging parameters
     - If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily. 
     - Don't delete EC2 if you choose EC2 as ComputeType
     - If you set `true` to AutoUpdateBRConnector, one script will be add to ec2 crontab
 
-![attachments/index.zh/IMG-index.zh-4.png](attachments/index.zh/IMG-index.zh-4.png)
+![attachments/deployment/IMG-deployment-4.png](attachments/deployment/IMG-deployment-4.png)
 
 - Until deploy successfully, go to output page and copy Cloudfront URL and first user key to your bedrock client settings page.
 
-![attachments/index.zh/IMG-index.zh-5.png](attachments/index.zh/IMG-index.zh-5.png)
+![attachments/deployment/IMG-deployment-5.png](attachments/deployment/IMG-deployment-5.png)
 
 - Also you could connect to `BRConnector` EC2 instance with SSM Session Manager ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 

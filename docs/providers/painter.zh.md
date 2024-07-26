@@ -1,17 +1,17 @@
 # painter: 使用 Bedrock 画图模型
 
-## Configuration
+## 配置
 
-Add a model in the /manager UI.
+在 /manager UI 中添加模型。
 
 ![config](./screenshots/painter001.jpg)
 
-- Name: Any words
+- 名字: 任意
 - Provider: painter
-- Multiple: disable
-- Price-in: any number
-- Price-out: any number
-- Config: Please see the sample below.
+- Multiple: 禁用
+- Price-in: 任意数字
+- Price-out: 任意数字
+- 配置：请参见下面的示例。
 
 ```json
 {
@@ -26,20 +26,18 @@ Add a model in the /manager UI.
 }
 ```
 
-Then grant this model to  group or apikey.
+然后将此模型授予组或 apikey。
 
-## Features and Screenshots in BRClient
+## BRClient 中的功能和截图
 
-Features:
+功能：
 
-- Supports natural language conversation
-- Supports multi-turn conversation to refine prompts
-- Supports multiple languages
-- Supports image size and aspect ratio ratio
+- 支持自然语言对话
+- 支持多轮对话以细化提示
+- 支持多种语言
+- 支持图像大小和宽高比
 
-Screenshots in BRClient:
-
-> BRClient has been built into the Docker image (since version 0.0.8). Access address: your-host:8866/brclient/
+BRClient 中的截图：
 
 ![demo dish](./screenshots/demo-dish-1.png)
 

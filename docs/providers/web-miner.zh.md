@@ -45,10 +45,10 @@ Configuration:
 
 - sites: 只从这些网站里进行搜索。
 - 支持下面的这些搜索引擎或集合工具:
-  > - searxng
-  > - google
-  > - DuckDuckGo
-  > - SerpAPI
+    - searxng
+    - google
+    - DuckDuckGo
+    - SerpAPI
 - localLlmModel: 必须配置为支持函数调用的模型，并且已存在于 BRConnector 中。
 
 
