@@ -1,4 +1,4 @@
-# Paint with SDXL
+# painter: 使用 Bedrock 画图模型
 
 ## Configuration
 

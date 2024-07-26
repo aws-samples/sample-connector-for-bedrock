@@ -18,7 +18,7 @@ Following key components will be included in this Cloudformation template:
 ## Deploy Guide
 - Download [quick-build-brconnector.yaml](quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
 
-[![attachments/quick-build-brconnector/launch-stack.png|200](attachments/index.zh/IMG-index.zh.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
+[![LaunchStack](attachments/index.zh/IMG-index.zh.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
 - VPC parameters
     - Choose to create a new VPC or a existing VPC 

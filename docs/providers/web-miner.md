@@ -1,11 +1,11 @@
-# 搜索互联网
+# web-miner：Seach the internet
 
 This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
 
-> [!TIP]
-> Please note, do not ask too many rounds of questions, because this Provider will summarize your previous prompts to keywords for searching.
->
-> And since the results of the questions are too many, the BRClient will summarize the history, thereby losing the earliest user input.
+!!! tip
+    Do not ask too many rounds of questions, because this Provider will summarize your previous prompts to keywords for searching.
+
+    And since the results of the questions are too many, the BRClient will summarize the history, thereby losing the earliest user input.
 
 ## Model configuration
 
@@ -27,7 +27,7 @@ Configuration:
   ],
   "localLlmModel": "claude-3-sonnet",
   "searxng": {
-    "host": "http://127.0.0.1:8081"
+    "host": "http://127.0.0.1:8081/"
   },
   "google": {
     "googleCSECX": "00xxxc000a2xxxxx",
@@ -43,20 +43,20 @@ Configuration:
 ```
 
 - sites: Limit the search to these websites.
-- search engine, choose one of the following:
-  - searxng
-  - google
-  - DuckDuckGo
-  - SerpAPI
+- search engine, support one of the following:
+  > - searxng
+  > - google
+  > - DuckDuckGo
+  > - SerpAPI
 - localLlmModel: must be configured as a model that supports function calling and already exists in BRConnector.
 
 
 
-## Search engine configuration
+## Search engines
 
 ### searxng
 
-详情请访问 <https://docs.searxng.org/>。
+Visit https://docs.searxng.org/ for more information.
 
 创建一个 settings.yml 文件，增加输出格式 json。
 
@@ -72,27 +72,28 @@ search:
 ```
 
 
-启动 searxng:
+Start searxng:
 
 ```shell
 docker run --rm -d -p 8081:8080 \
-  -v ./settings.yml:/etc/searxng/settings.yml \
-  -e "INSTANCE_NAME=searxng" searxng/searxng
+ -e "BASE_URL=http://localhost:8081/" \
+ -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
-这样部署出来的 searxng 主机地址是: http://127.0.0.1:8081/.
+Then you will get the searxng endpoint: http://127.0.0.1:8081/.
 
 ### DuckDuckGo
 
 ### SerpAPI
 
-!!! warning "SerpAPI 不免费"
+!!! warning "Not free"
     Exceeding the daily free limit will be charged.
 
 
 ### Google
 
-!!! warning
+
+!!! warning "Not free"
     Exceeding the daily free limit will be charged.
 
 [Google CSE key apply](https://developers.google.com/custom-search/v1/introduction)

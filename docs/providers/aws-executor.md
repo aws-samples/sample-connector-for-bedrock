@@ -1,10 +1,11 @@
-# AWS 命令行执行器
+# aws-executor: AWS command executor
 
 With this Provider, you can execute AWS command using natural language and get the execution results.
 
 The role for executing AWS commands and the role for running BRConnector are currently the same, so you need to grant the appropriate permissions to the current role.
 
-> !!! info  
+!!! warning
+
     Do not grant write permissions to critical resources, as the command lines parsed by the current AI are not stable. However, you can still refer to the command lines suggested by the AI.
 
 ## Model configuration
@@ -25,22 +26,12 @@ Configuration:
 
 localLlmModel must be configured as a model that supports function calling and already exists in BRConnector.
 
-> [!Note]
-> You need to configure a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key 'model_id' to 'modelId'.
->
-> And You must install aws cli v2 in the BRConnector host.
+!!! note
 
-## Install AWS CLI  in Docker image
+    You need to configure a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key 'model_id' to 'modelId'.
 
-In this demo, the AWS CLI is not included in the Docker image, and you can install it yourself with the following command.
+    And You must install aws cli v2 in the BRConnector host.
 
-```shell
-docker exec -it <your-docker-instance>  sh
-```
-
-```shell
-apt update && apt install -y awscli
-```
 
 ## Screenshots in BRClient
 

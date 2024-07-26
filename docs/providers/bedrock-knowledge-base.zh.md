@@ -1,4 +1,4 @@
-# Bedrock Knowledge Bases
+# bedrock-knowledge-base: Bedrock 知识库
 
 ## Create a knowledge base instance
 

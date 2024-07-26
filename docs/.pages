@@ -1,6 +1,4 @@
 nav:
-  - ... | index*.md
-  - guide
-  - deploy
-  - ...
-  - tags.md
+  - home
+  - user-manual
+  - providers
