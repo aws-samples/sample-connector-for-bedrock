@@ -40,6 +40,7 @@ Configuration:
 }
 ```
 
+
 - sites: 只从这些网站里进行搜索，可以不指定此参数。
 - localLlmModel: 必须配置为支持函数调用的模型，并且已存在于 BRConnector 中。
 - 支持下面的这些搜索引擎或集合工具中的一个，优先级如下:

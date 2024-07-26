@@ -1,21 +1,21 @@
 # aws-executor: AWS 命令行执行器
 
-With this Provider, you can execute AWS command using natural language and get the execution results.
+通过此 Provider，您可以使用自然语言执行 AWS 命令​​并获取执行结果。
 
-The role for executing AWS commands and the role for running BRConnector are currently the same, so you need to grant the appropriate permissions to the current role.
+执行 AWS 命令​​的角色和运行 BRConnector 的角色当前是相同的，因此您需要为当前角色授予适当的权限。
 
-> !!! info  
-    Do not grant write permissions to critical resources, as the command lines parsed by the current AI are not stable. However, you can still refer to the command lines suggested by the AI.
+!!! info  
+    不要为关键资源授予写权限，因为当前 AI 解析的命令行并不稳定。但是，您仍然可以参考 AI 建议的命令行。
 
-## Model configuration
+## 模型配置
 
-The parameter configuration is as follows:
+参数配置如下：
 
-Name: some-model
+名称：some-model
 
-Provider: aws-executor
+Provider：aws-executor
 
-Configuration:
+配置：
 
 ```json
 {
@@ -23,15 +23,15 @@ Configuration:
 }
 ```
 
-localLlmModel must be configured as a model that supports function calling and already exists in BRConnector.
+localLlmModel 必须配置为支持函数调用且已存在于 BRConnector 中的模型。
 
 > [!Note]
-> You need to configure a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key 'model_id' to 'modelId'.
->
-> And You must install aws cli v2 in the BRConnector host.
+> 您需要配置 bedrock-converse 提供程序提供的 claude3+ 模型，其他模型尚不具备函数调用功能。系统中默认的 claude3 模型不是由 converse 驱动的。如果您使用这些模型，则需要将原始配置更新为 bedrock-converse 提供程序。请注意将键 'model_id' 修改为 'modelId'。
+> 
+> 并且您必须在 BRConnector 主机中安装 aws cli v2。
 
 
-## Screenshots in BRClient
+## BRClient 中的屏幕截图
 
 ![sampe executor 1](./screenshots/aws-exec-1.png)
 
