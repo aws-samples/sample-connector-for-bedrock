@@ -5,7 +5,7 @@ This Provider can turn your question into search keywords, obtain results throug
 !!! tip
     Do not ask too many rounds of questions, because this Provider will summarize your previous prompts to keywords for searching.
 
-    And since the results of the questions are too many, the BRClient will summarize the history, thereby losing the earliest user input.
+    In BRClient, too long information is summarized into a single history, losing the earliest user input, which results in the AI answering a far cry from what you want.
 
 ## Model configuration
 
@@ -29,27 +29,23 @@ Configuration:
   "searxng": {
     "host": "http://127.0.0.1:8081/"
   },
-  "google": {
-    "googleCSECX": "00xxxc000a2xxxxx",
-    "googleAPIKey": "AIxxxxxx_xxxxxxxx"
-  },
   "serpapi": {
-    
+    "apiKey": "xxx......",
+    "engine": "google"
   },
-  "duckduckgo": {
-
+  "google": {
+    "googleAPIKey": "AIxxxxxx_xxxxxxxx",
+    "googleCSECX": "00xxxc000a2xxxxx"
   }
 }
 ```
 
-- sites: Limit the search to these websites.
-- search engine, support one of the following:
-  > - searxng
-  > - google
-  > - DuckDuckGo
-  > - SerpAPI
+- sites: Limit the search to these websites, you can leave this parameter unspecified.
 - localLlmModel: must be configured as a model that supports function calling and already exists in BRConnector.
-
+- the search tools below are supported in order:
+    - searxng
+    - SerpAPI
+    - google
 
 
 ## Search engines
@@ -80,24 +76,40 @@ docker run --rm -d -p 8081:8080 \
  -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
-Then you will get the searxng endpoint: http://127.0.0.1:8081/.
+Then you will get the searxng endpoint: http://127.0.0.1:8081/, configure it to searxng's host node.
 
-### DuckDuckGo
 
 ### SerpAPI
 
-!!! warning "Not free"
-    Exceeding the daily free limit will be charged.
+For more information, visit <https://serpapi. com/>.
+
+Once you're logged in, you can see Api key in a prominent place on it.
+
+The engine parameter supports the following, and the default is google:
+- google
+- bing
+- baidu
+- duckduckgo
+- yahoo
+- yandex 
+- yelp
+- naver
+
+
+!!! warning "SerpAPI is not free"
+    Exceeding the monthly free limit will be charged.
 
 
 ### Google
 
+To use the Google Custom Search Engine, you need the following 2 keys, click the link to create them:
 
-!!! warning "Not free"
+- [Google API Key](https://console.cloud.google.com/apis/credentials)
+
+- [Google CSECX](https://programmablesearchengine.google.com/controlpanel/create)
+
+!!! warning "Google CSE is not free"
     Exceeding the daily free limit will be charged.
-
-[Google CSE key apply](https://developers.google.com/custom-search/v1/introduction)
-
 
 ## Screenshots in BRClient
 
