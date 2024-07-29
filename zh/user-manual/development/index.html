@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Docs for Bedrock Connector">
+        <meta name="description" content="本项目是示例代码，强烈建议您参考本项目自行开发。">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/changelogs/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/development/">
       
       
-        <link rel="prev" href="../deployment/">
+        <link rel="prev" href="../sample-client-for-bedrock/">
       
       
-        <link rel="next" href="../../user-manual/introduction/">
+        <link rel="next" href="../apis/">
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>更新日志 - Sample Connector for Bedrock</title>
+        <title>开发指南 - Sample Connector for Bedrock</title>
       
     
     
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              更新日志
+              开发指南
             
           </span>
         </div>
@@ -174,7 +174,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../home/changelogs/" hreflang="en" class="md-select__link">
+            <a href="../../../user-manual/development/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -254,13 +254,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../home/" class="md-tabs__link">
           
   
     
@@ -276,11 +274,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../user-manual/introduction/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../introduction/" class="md-tabs__link">
           
   
     
@@ -368,6 +368,138 @@
       
   
   
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../home/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../home/quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    快速启动
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../home/deployment/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    使用 Cloudformation 快速部署
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../home/changelogs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    更新日志
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -376,7 +508,7 @@
     
       
         
-          
+      
         
       
         
@@ -398,36 +530,26 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
-              
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
   
   <span class="md-ellipsis">
-    Home
+    User manual
   </span>
   
 
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_1">
             <span class="md-nav__icon md-icon"></span>
-            Home
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            User manual
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
-            
-              
             
               
                 
@@ -436,11 +558,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../quick-start/" class="md-nav__link">
+      <a href="../introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    快速启动
+    如何使用
   </span>
   
 
@@ -457,11 +579,32 @@
   
   
     <li class="md-nav__item">
-      <a href="../deployment/" class="md-nav__link">
+      <a href="../management/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    使用 Cloudformation 快速部署
+    后台管理
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample-client-for-bedrock/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sample client for Bedrock
   </span>
   
 
@@ -491,7 +634,7 @@
           
   
   <span class="md-ellipsis">
-    更新日志
+    开发指南
   </span>
   
 
@@ -502,7 +645,7 @@
         
   
   <span class="md-ellipsis">
-    更新日志
+    开发指南
   </span>
   
 
@@ -524,11 +667,95 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#0010" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
-      0.0.10
+      开发模式
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="开发模式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      环境变量配置
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      启动后台
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      启动管理界面
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      构建
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="构建">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      一起构建
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      构建后端 (可选)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      构建前端 (可选)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Docker 镜像
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -541,65 +768,6 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
-            
-  
-  <span class="md-ellipsis">
-    User manual
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2">
-            <span class="md-nav__icon md-icon"></span>
-            User manual
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
               
                 
   
@@ -607,91 +775,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-manual/introduction/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    如何使用
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-manual/management/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    后台管理
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-manual/sample-client-for-bedrock/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Sample client for Bedrock
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-manual/development/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    开发指南
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-manual/apis/" class="md-nav__link">
+      <a href="../apis/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -972,11 +1056,95 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#0010" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
-      0.0.10
+      开发模式
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="开发模式">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      环境变量配置
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      启动后台
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      启动管理界面
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      构建
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="构建">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      一起构建
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      构建后端 (可选)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      构建前端 (可选)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Docker 镜像
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -998,9 +1166,207 @@
   
 
 
-<h1 id="_1">更新日志<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<h2 id="0010">0.0.10<a class="headerlink" href="#0010" title="Permanent link">&para;</a></h2>
-<p>2024-07-24</p>
+<h1 id="_1">开发指南<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>本项目是示例代码，强烈建议您参考本项目自行开发。</p>
+<h2 id="_2">开发模式<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>Clone 本项目。</p>
+<p>安装依赖：</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>npm<span class="w"> </span>install
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># or</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>yarn
+</code></pre></div>
+<h3 id="_3">环境变量配置<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<p>.env 文件</p>
+<blockquote>
+<p>这个文件放在项目根目录.</p>
+</blockquote>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>PGSQL_HOST=127.0.0.1
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>PGSQL_DATABASE=brconnector_db
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>PGSQL_USER=postgres
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>PGSQL_PASSWORD=mysecretpassword
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>PGSQL_DEBUG_MODE=ok
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>ADMIN_API_KEY=br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>DEBUG_MODE=true
+</code></pre></div>
+<p>支持如下环境变量：</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Required</th>
+<th>Default value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ADMIN_API_KEY</td>
+<td>yes</td>
+<td></td>
+<td>You need to set this value to generate the first API key.</td>
+</tr>
+<tr>
+<td>PGSQL_HOST</td>
+<td>no</td>
+<td></td>
+<td>The address of the PostgreSQL. If the database is not configured, then the connector is just a pure proxy.</td>
+</tr>
+<tr>
+<td>PGSQL_PORT</td>
+<td>no</td>
+<td>5432</td>
+<td>The port of the PostgreSQL.</td>
+</tr>
+<tr>
+<td>PGSQL_DATABASE</td>
+<td>no</td>
+<td></td>
+<td>The name of the PostgreSQL database.</td>
+</tr>
+<tr>
+<td>PGSQL_USER</td>
+<td>no</td>
+<td></td>
+<td>The login user for the PostgreSQL.</td>
+</tr>
+<tr>
+<td>PGSQL_PASSWORD</td>
+<td>no</td>
+<td></td>
+<td>The password user for the PostgreSQL.</td>
+</tr>
+<tr>
+<td>PGSQL_MAX</td>
+<td>no</td>
+<td>80</td>
+<td>The maximum connection pool size for PostgreSQL.</td>
+</tr>
+<tr>
+<td>PGSQL_DEBUG_MODE</td>
+<td>no</td>
+<td>false</td>
+<td>If you set this parameter, it will print out the SQL statements and parameters in the console.</td>
+</tr>
+<tr>
+<td>AWS_ACCESS_KEY_ID</td>
+<td>no</td>
+<td></td>
+<td>If your application has been authorized through an IAM policy, you don&rsquo;t need to set this variable.</td>
+</tr>
+<tr>
+<td>AWS_SECRET_ACCESS_KEY</td>
+<td>no</td>
+<td></td>
+<td>If your application has been authorized through an IAM policy, you don&rsquo;t need to set this variable.</td>
+</tr>
+<tr>
+<td>AWS_DEFAULT_REGION</td>
+<td>no</td>
+<td>&lsquo;us-east-1&rsquo;</td>
+<td></td>
+</tr>
+<tr>
+<td>DEBUG_MODE</td>
+<td>no</td>
+<td>false</td>
+<td>If you set this parameter, it will print out a lot of debugging information in the console.</td>
+</tr>
+<tr>
+<td>DISABLE_UI</td>
+<td>no</td>
+<td>false</td>
+<td>Setting this value will not publish the front-end UI.</td>
+</tr>
+<tr>
+<td>SMTP_HOST</td>
+<td>no</td>
+<td></td>
+<td>SMTP server host address. Setting up an SMTP Server allows you to send your API key directly to the user&rsquo;s email inbox.</td>
+</tr>
+<tr>
+<td>SMTP_PORT</td>
+<td>no</td>
+<td>465</td>
+<td>SMTP server port number</td>
+</tr>
+<tr>
+<td>SMTP_USER</td>
+<td>no</td>
+<td></td>
+<td>SMTP server username</td>
+</tr>
+<tr>
+<td>SMTP_PASS</td>
+<td>no</td>
+<td></td>
+<td>SMTP server password</td>
+</tr>
+<tr>
+<td>SMPT_FROM</td>
+<td>no</td>
+<td></td>
+<td>SMTP sender email address, your SMTP server maybe verify this</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4">启动后台<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>npm<span class="w"> </span>run<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># or</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>yarn<span class="w"> </span>dev
+</code></pre></div>
+<p>If you have configured postgres, the tables will be created automatically.</p>
+<h3 id="_5">启动管理界面<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>npm<span class="w"> </span>run<span class="w"> </span>dev-ui
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># or</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>yarn<span class="w"> </span>dev-ui
+</code></pre></div>
+<h2 id="_6">构建<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<h3 id="_7">一起构建<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>npm<span class="w"> </span>run<span class="w"> </span>build
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># or</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>yarn<span class="w"> </span>build
+</code></pre></div>
+<p>The above command will compile the frontend and backend applications into the dist/public and dist/server directories, respectively.</p>
+<p>After a successful compilation, navigate to the dist directory and execute <code>node server/index.js</code>.</p>
+<p>If you have not disabled the WebUI, <a href="http://localhost:8866/manager">http://localhost:8866/manager</a> will be bound to the WebUI.</p>
+<h3 id="_8">构建后端 (可选)<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>npm<span class="w"> </span>run<span class="w"> </span>build-server
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># or</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>yarn<span class="w"> </span>build-server
+</code></pre></div>
+<h3 id="_9">构建前端 (可选)<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>npm<span class="w"> </span>run<span class="w"> </span>build-ui
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># or</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>yarn<span class="w"> </span>build-ui
+</code></pre></div>
+<h3 id="docker">Docker 镜像<a class="headerlink" href="#docker" title="Permanent link">&para;</a></h3>
+<p>编译完成之后，你可以使用  Dockerfile 来构建你的镜像。</p>
+<p>The content of the Dockerfile:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">FROM</span><span class="w"> </span><span class="s">node:20</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">RUN</span><span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>awscli
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">COPY</span><span class="w"> </span>./dist<span class="w"> </span>/app
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">COPY</span><span class="w"> </span>./src/scripts/*<span class="w"> </span>./src/scripts/
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">COPY</span><span class="w"> </span>./package.json<span class="w"> </span>.
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="k">RUN</span><span class="w"> </span>npm<span class="w"> </span>install<span class="w"> </span>--omit<span class="o">=</span>dev
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="k">HEALTHCHECK</span><span class="w"> </span>--interval<span class="o">=</span>5s<span class="w"> </span>--timeout<span class="o">=</span>3s<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">  </span><span class="k">CMD</span><span class="w"> </span>curl<span class="w"> </span>-fs<span class="w"> </span>http://localhost:8866/<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="k">EXPOSE</span><span class="w"> </span><span class="s">8866</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;server/index.js&quot;</span><span class="p">]</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>上面的 Dockefile 没有包含在项目中。</p>
+</div>
+<p>然后执行打包命令：</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>&lt;registry-repo-tag&gt;<span class="w"> </span>.
+</code></pre></div>
 
 
 
@@ -1023,7 +1389,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-26T12:28:21+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
   </span>
 
     

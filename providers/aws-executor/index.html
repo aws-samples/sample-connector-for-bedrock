@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="With this Provider, you can execute AWS command using natural language and get the execution results.">
+        <meta name="description" content="An AWS command executor.">
       
       
       
         <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/aws-executor/">
       
       
-        <link rel="prev" href="../bedrock-knowledge-base/">
+        <link rel="prev" href="../introduction/">
       
       
-        <link rel="next" href="../ollama/">
+        <link rel="next" href="../bedrock-converse/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>aws-executor: AWS command executor - Sample Connector for Bedrock</title>
+        <title>aws-executor - Sample Connector for Bedrock</title>
       
     
     
@@ -80,7 +80,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="light-blue">
+    <body dir="ltr" data-md-color-scheme="aws" data-md-color-primary="indigo" data-md-color-accent="indigo">
   
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -89,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#aws-executor-aws-command-executor" class="md-skip">
+        <a href="#aws-executor" class="md-skip">
           Skip to content
         </a>
       
@@ -125,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              aws-executor: AWS command executor
+              aws-executor
             
           </span>
         </div>
@@ -138,20 +138,20 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="light-blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="aws" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
       </label>
     
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
       </label>
     
   
@@ -276,7 +276,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../user-manual/introduce/" class="md-tabs__link">
+        <a href="../../user-manual/introduction/" class="md-tabs__link">
           
   
     
@@ -298,7 +298,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../bedrock-converse/" class="md-tabs__link">
+        <a href="../introduction/" class="md-tabs__link">
           
   
     
@@ -373,8 +373,6 @@
       
         
           
-        
-      
         
       
         
@@ -475,27 +473,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/development/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Development
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../home/changelogs/" class="md-nav__link">
         
   
@@ -525,6 +502,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -572,11 +553,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-manual/introduce/" class="md-nav__link">
+      <a href="../../user-manual/introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Introduction
+    How to Use
   </span>
   
 
@@ -618,7 +599,49 @@
         
   
   <span class="md-ellipsis">
-    Sample client for Bedrock Manual
+    Sample client for Bedrock
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-manual/development/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Development
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-manual/apis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API Reference
   </span>
   
 
@@ -645,6 +668,8 @@
   
     
     
+      
+        
       
         
       
@@ -701,32 +726,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../bedrock-converse/" class="md-nav__link">
+      <a href="../introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    bedrock-converse: LLM Consistent Interface
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../bedrock-knowledge-base/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    bedrock-knowledge-base: Bedrock Knowledge Bases
+    Using Provider
   </span>
   
 
@@ -756,7 +760,7 @@
           
   
   <span class="md-ellipsis">
-    aws-executor: AWS command executor
+    aws-executor
   </span>
   
 
@@ -767,7 +771,7 @@
         
   
   <span class="md-ellipsis">
-    aws-executor: AWS command executor
+    aws-executor
   </span>
   
 
@@ -822,11 +826,53 @@
   
   
     <li class="md-nav__item">
+      <a href="../bedrock-converse/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bedrock-converse
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bedrock-knowledge-base/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bedrock-knowledge-base
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../ollama/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    ollama: Models on-premises
+    ollama
   </span>
   
 
@@ -847,7 +893,7 @@
         
   
   <span class="md-ellipsis">
-    painter: Draw using the bedrock paint model
+    painter
   </span>
   
 
@@ -868,7 +914,7 @@
         
   
   <span class="md-ellipsis">
-    sagemaker-lmi: Connect to Sagemaker LLM modes
+    sagemaker-lmi
   </span>
   
 
@@ -889,7 +935,7 @@
         
   
   <span class="md-ellipsis">
-    web-miner：Seach the internet
+    web-miner
   </span>
   
 
@@ -968,7 +1014,8 @@
   
 
 
-<h1 id="aws-executor-aws-command-executor">aws-executor: AWS command executor<a class="headerlink" href="#aws-executor-aws-command-executor" title="Permanent link">&para;</a></h1>
+<h1 id="aws-executor">aws-executor<a class="headerlink" href="#aws-executor" title="Permanent link">&para;</a></h1>
+<p>An AWS command executor.</p>
 <p>With this Provider, you can execute AWS command using natural language and get the execution results.</p>
 <p>The role for executing AWS commands and the role for running BRConnector are currently the same, so you need to grant the appropriate permissions to the current role.</p>
 <div class="admonition warning">
@@ -987,7 +1034,7 @@
 <p>localLlmModel must be configured as a model that supports function calling and already exists in BRConnector.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You need to configure a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key &lsquo;model_id&rsquo; to &lsquo;modelId&rsquo;.</p>
+<p>You need to configure a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The early default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key &lsquo;model_id&rsquo; to &lsquo;modelId&rsquo;.</p>
 <p>And You must install aws cli v2 in the BRConnector host.</p>
 </div>
 <h2 id="screenshots-in-brclient">Screenshots in BRClient<a class="headerlink" href="#screenshots-in-brclient" title="Permanent link">&para;</a></h2>
@@ -1015,7 +1062,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-26T14:35:04+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
   </span>
 
     
