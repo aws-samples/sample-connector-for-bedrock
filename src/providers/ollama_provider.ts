@@ -24,7 +24,7 @@ export default class OllamaAProvider extends AbstractProvider {
         }
         chatRequest.model_id = model;
 
-        //we only use chatRequest.messages as ollama  input 
+        //we only use chatRequest.messages as ollama input 
         ctx.status = 200;
 
         if (chatRequest.stream) {

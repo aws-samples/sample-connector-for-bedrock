@@ -1,1 +1,3 @@
-# sagemaker-lmi: Connect to Sagemaker LLM modes
+# sagemaker-lmi
+
+Connect to Sagemaker LLM modes.

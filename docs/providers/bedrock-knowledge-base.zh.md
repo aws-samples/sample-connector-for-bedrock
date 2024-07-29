@@ -1,12 +1,14 @@
-# bedrock-knowledge-base：Bedrock 知识库
+# bedrock-knowledge-base
+
+Bedrock 知识库。
 
 ## 创建知识库实例
 
 参考此文档：[创建知识库](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-create.html)
 
-## 创建自定义模型
+## 模型定义
 
-Model 配置：
+配置示例如下：
 
 ```json
 {

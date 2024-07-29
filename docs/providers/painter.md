@@ -1,17 +1,8 @@
-# painter: Draw using the bedrock paint model
+# painter
+
+Draw using the bedrock paint model.
 
 ## Configuration
-
-Add a model in the /manager UI.
-
-![config](./screenshots/painter001.jpg)
-
-- Name: Any words
-- Provider: painter
-- Multiple: disable
-- Price-in: any number
-- Price-out: any number
-- Config: Please see the sample below.
 
 ```json
 {

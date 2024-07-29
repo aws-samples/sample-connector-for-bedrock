@@ -1,17 +1,8 @@
-# painter: 使用 Bedrock 画图模型
+# painter
+
+使用 Bedrock 画图模型
 
 ## 配置
-
-在 /manager UI 中添加模型。
-
-![config](./screenshots/painter001.jpg)
-
-- 名字: 任意
-- Provider: painter
-- Multiple: 禁用
-- Price-in: 任意数字
-- Price-out: 任意数字
-- 配置：请参见下面的示例。
 
 ```json
 {

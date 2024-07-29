@@ -1,4 +1,6 @@
-# web-miner：Seach the internet
+# web-miner
+
+Seach the internet.
 
 This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
 
@@ -43,18 +45,20 @@ Configuration:
 - sites: Limit the search to these websites, you can leave this parameter unspecified.
 - localLlmModel: must be configured as a model that supports function calling and already exists in BRConnector.
 - the search tools below are supported in order:
-    - searxng
-    - SerpAPI
-    - google
+  1. searxng
+  2. SerpAPI
+  3. google
 
+!!! note
+    You need to configure localLlmModel as a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The early default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key 'model_id' to 'modelId'.
 
 ## Search engines
 
 ### searxng
 
-Visit https://docs.searxng.org/ for more information.
+Visit <https://docs.searxng.org/> for more information.
 
-创建一个 settings.yml 文件，增加输出格式 json。
+Create a file: `settings.yml` to support json。
 
 ```yaml
 use_default_settings: true
@@ -67,7 +71,6 @@ search:
     - json
 ```
 
-
 Start searxng:
 
 ```shell
@@ -76,29 +79,27 @@ docker run --rm -d -p 8081:8080 \
  -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
-Then you will get the searxng endpoint: http://127.0.0.1:8081/, configure it to searxng's host node.
-
+Then you will get the searxng endpoint: <http://127.0.0.1:8081/>, configure it to searxng's host node.
 
 ### SerpAPI
 
-For more information, visit <https://serpapi. com/>.
+For more information, visit <https://serpapi.com/>.
 
 Once you're logged in, you can see Api key in a prominent place on it.
 
 The engine parameter supports the following, and the default is google:
+
 - google
 - bing
 - baidu
 - duckduckgo
 - yahoo
-- yandex 
+- yandex
 - yelp
 - naver
 
-
 !!! warning "SerpAPI is not free"
     Exceeding the monthly free limit will be charged.
-
 
 ### Google
 
@@ -113,6 +114,6 @@ To use the Google Custom Search Engine, you need the following 2 keys, click the
 
 ## Screenshots in BRClient
 
-![Web 1](./screenshots/web-1.png)
+![Web 1](../user-manual/screenshots/web-1.png)
 
-![Web 2](./screenshots/web-2.png)
+![Web 2](../user-manual/screenshots/web-2.png)

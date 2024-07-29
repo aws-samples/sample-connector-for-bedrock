@@ -1,0 +1,6 @@
+nav:
+  - ... | introduction*.md
+  - ... | management*.md
+  - ...
+  - ... | development*.md
+  - ... | apis*.md

@@ -1,14 +1,12 @@
-# 开发指南
+# Development
 
-本项目是示例代码，强烈建议您参考本项目自行开发。
+## Development
 
-## 开发模式
+### installation
 
+Clone the repository.
 
-Clone 本项目。
-
-
-安装依赖：
+Install dependencies:
 
 ```shell
 npm install
@@ -16,11 +14,11 @@ npm install
 yarn
 ```
 
-### 环境变量配置
+### Environment
 
-.env 文件
+the .env file
 
-> Place it in the root directory of the project.
+ Place it in the root directory of the project.
 
  ```env
  PGSQL_HOST=127.0.0.1
@@ -55,7 +53,7 @@ The connector supports the following environment variables:
 | SMTP_PASS | no |  |  SMTP server password |
 | SMPT_FROM | no |  | SMTP sender email address, your SMTP server maybe verify this |
 
-### 启动后台
+### Run backend
 
  ```shell
  npm run dev
@@ -65,7 +63,7 @@ The connector supports the following environment variables:
 
  If you have configured postgres, the tables will be created automatically.
 
-### 启动管理界面
+### Run fontend
 
  ```shell
  npm run dev-ui
@@ -73,7 +71,7 @@ The connector supports the following environment variables:
  yarn dev-ui
  ```
 
-## 构建
+## Build
 
 ### Build the backend and frontend together
 
@@ -105,12 +103,16 @@ npm run build-ui
 yarn build-ui
 ```
 
-### Build docker image
+### Build Docker image
+
+After building, you can use Dockerfile to build Docker image.
 
 The content of the Dockerfile:
 
 ```dockerfile
 FROM node:20
+
+RUN apt update && apt install -y awscli
 
 COPY ./dist /app
 WORKDIR /app
@@ -128,179 +130,11 @@ CMD ["node", "server/index.js"]
 
 ```
 
-> Please note: The above code is not included in this project. Please save the above content in the project's root directory `./Dockerfile`.
+!!! note
+    Please note: The above code is not included in this project. Please save the above content in the project's root directory `./Dockerfile`.
 
 Then execute the following command:
 
 ```shell
 docker build -t <registry-repo-tag> .
-```
-
-## API Specification
-
-### LLM API
-
-Completions
-
-```text
-POST /v1/chat/completions
-Content-Type: application/json
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-{
-  "model": "claude-3-sonnet",
-  "messages": [
-    {
-      "role": "user",
-      "content": "ping"
-    }
-  ],
-  "stream": true,
-  "temperature": 1,
-  "max_tokens": 4096
-}
-```
-
-List supported models
-
-```text
-GET /v1/models
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-### Admin API
-
-Create an api key
-
-```text
-POST /admin/api-key/apply
-Content-Type: application/json
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-{
-  "name": "jack",
-  "group_id": 1,
-  "role": "user",
-  "email": "",
-  "month_quota": 1.00
-}
-```
-
-Create an api key with admin role
-
-```text
-POST /admin/api-key/apply
-Content-Type: application/json
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-{
-  "name": "rob",
-  "group_id": 1,
-  "role": "admin",
-  "email": ""
-}
-```
-
-Update and api key's info
-
-```text
-POST /admin/api-key/update
-Content-Type: application/json
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-{
-  "id": 2,
-  "name": "jack",
-  "month_quota": 10.00
-}
-```
-
-Recharge up an API key
-
-```text
-POST /admin/api-key/recharge
-Content-Type: application/json
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-{
-  "api_key": "br-xxxxxxxxxxxxxxx",
-  "balance": 0.23
-}
-```
-
-recharge history
-
-```text
-GET /admin/payment/list?key_id=
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-List api keys
-
-```text
-GET /admin/api-key/list?q=&limit=10&offset=
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-List sessions
-
-```text
-GET /admin/session/list?q=&limit=10&offset=&key_id=
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-List threads / histories
-
-```text
-GET /admin/thread/list?q=&limit=10&offset=&key_id=&session_id=
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-Update Config Region
-
-```text
-POST /admin/config/region
-Content-Type: application/json
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-{
- "region":"us-east-1,us-west-2"
-}
-```
-
-List Config Region
-
-```text
-GET /admin/config/region
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-### User API
-
-My sessions
-
-```text
-GET /user/session/list?q=&limit=10&offset=
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-My session detail
-
-```text
-GET /user/session/detail/1
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-My threads / histories
-
-```text
-GET /user/thread/list?q=&limit=10&offset=&session_id=
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-My thread detail
-
-```text
-GET /user/thread/detail/1
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```

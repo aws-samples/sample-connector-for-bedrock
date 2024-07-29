@@ -5,45 +5,41 @@ repo_name: aws-samples/sample-connector-for-bedrock
 repo_url: https://github.com/aws-samples/sample-connector-for-bedrock
 
 theme:
-    name: material
-    # logo: attachments/AWS_Logo.png #favicons.png
-    # favicon: assets/meta/AWS_Logo.png #favicons.png
-    custom_dir: docs/.overrides
-    font:
-        text: Ubuntu
-        code: Ubuntu Mono
-    language: en
+  name: material
+  # logo: attachments/AWS_Logo.png #favicons.png
+  # favicon: assets/meta/AWS_Logo.png #favicons.png
+  custom_dir: docs/.overrides
+  font:
+    text: Ubuntu
+    code: Ubuntu Mono
+  language: en
 
-    palette:
+  palette:
     # Light mode
     - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: teal
-      accent: light blue
+      scheme: aws
       toggle:
-        icon: material/toggle-switch-off-outline
+        icon: material/brightness-7
         name: Switch to dark mode
 
     # Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: blue
-      accent: light blue
       toggle:
-        icon: material/toggle-switch
+        icon: material/brightness-4
         name: Switch to light mode
 
-    features:
-        - navigation.indexes
-        - navigation.top
-        - navigation.tabs
-        - navigation.tabs.sticky
-        # - navigation.sections
-        - navigation.expand # auto expand folder in navi
-        - search.suggest
-        - search.highlight
-        - toc.follow
-        - content.code.copy
+  features:
+    - navigation.indexes
+    - navigation.top
+    - navigation.tabs
+    - navigation.tabs.sticky
+    # - navigation.sections
+    - navigation.expand # auto expand folder in navi
+    - search.suggest
+    - search.highlight
+    - toc.follow
+    - content.code.copy
 
 # Extensions
 markdown_extensions:
@@ -69,7 +65,7 @@ markdown_extensions:
       use_pygments: true
       anchor_linenums: true
   - pymdownx.tasklist:
-       custom_checkbox: true
+      custom_checkbox: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
@@ -78,7 +74,7 @@ markdown_extensions:
       permalink: true
   - pymdownx.inlinehilite
   - pymdownx.snippets:
-      base_path: ["docs/CLI/functions","docs/cloud9","."]
+      base_path: ["docs/CLI/functions", "docs/cloud9", "."]
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -86,7 +82,6 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
-
 
 plugins:
   - i18n:
@@ -102,7 +97,7 @@ plugins:
   - search
   - meta-descriptions
   - ezlinks:
-        wikilinks: true
+      wikilinks: true
   - awesome-pages
   - tags:
       tags_file: tags.md
@@ -132,14 +127,11 @@ plugins:
       strict: true
 
 # extra:
-  # status:
-  #   awsblog: blogs released on aws
-  #   myblog: my blogs
-  # analytics:
-  #   provider: google
-  #   property: G-8C6HW94JT3
+# status:
+#   awsblog: blogs released on aws
+#   myblog: my blogs
+# analytics:
+#   provider: google
+#   property: G-8C6HW94JT3
 extra_css:
   - extra.css
-
-
-

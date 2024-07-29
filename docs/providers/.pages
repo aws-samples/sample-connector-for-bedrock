@@ -1,4 +1,3 @@
 nav:
-  - ... | bedrock-converse*.md
-  - ... | bedrock-knowledge-base*.md
+  - ... | introduction*.md
   - ...

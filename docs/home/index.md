@@ -8,7 +8,6 @@ This is a bedrock API forwarding tool that can issue virtual keys, log chats, an
 
 It is compatible with any OPENAI client that can define Host and API Key.
 
-
 ## Key Features
 
 ### Models/Platform Support
@@ -67,4 +66,3 @@ Model Access Control [Since Docker image version 0.0.6]
 - Models can be bound to API keys.
 
 ![models bind](docs/screenshots/models-bind.png)
-

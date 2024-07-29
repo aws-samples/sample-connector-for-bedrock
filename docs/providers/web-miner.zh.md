@@ -1,4 +1,6 @@
-# web-miner：搜索互联网
+# web-miner
+
+搜索互联网。
 
 本 Provider 可以将您的问题转化为搜索关键词，通过搜索引擎获取结果，然后将其总结成相应的答案。支持多轮对话。
 
@@ -40,15 +42,15 @@ Configuration:
 }
 ```
 
-
 - sites: 只从这些网站里进行搜索，可以不指定此参数。
 - localLlmModel: 必须配置为支持函数调用的模型，并且已存在于 BRConnector 中。
 - 支持下面的这些搜索引擎或集合工具中的一个，优先级如下:
-    - searxng
-    - SerpAPI
-    - google
+  1. searxng
+  2. SerpAPI
+  3. google
 
-
+!!! note
+    您需要将 localLlmModel 的模型配置成 bedrock-converse 提供程序提供的 claude3+ 模型，其他模型尚不具备函数调用功能。早期系统中默认的 claude3 模型不是由 converse 驱动的。如果您使用这些模型，则需要将原始配置的 Provider 更新为 bedrock-converse。请注意将键 'model_id' 修改为 'modelId'。
 
 ## 搜索配置
 
@@ -69,7 +71,6 @@ search:
     - json
 ```
 
-
 启动 searxng:
 
 ```shell
@@ -78,7 +79,7 @@ docker run --rm -d -p 8081:8080 \
   -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
-这样部署出来的 searxng 主机地址是: http://127.0.0.1:8081/，请将其配置到 searxng 的 host 节点中。
+这样部署出来的 searxng 主机地址是: <http://127.0.0.1:8081/，请将其配置到> searxng 的 host 节点中。
 
 ### SerpAPI
 
@@ -87,18 +88,18 @@ docker run --rm -d -p 8081:8080 \
 登录后，您可以在其显眼位置看到 API Key。
 
 engine 参数支持如下这些，默认是 google：
+
 - google
 - bing
 - baidu
 - duckduckgo
 - yahoo
-- yandex 
+- yandex
 - yelp
 - naver
 
 !!! warning "SerpAPI 不免费"
     请注意：超过每月的限额会被收费。
-
 
 ### Google
 
@@ -111,9 +112,8 @@ engine 参数支持如下这些，默认是 google：
 !!! warning "Google CSE 不免费"
     请注意：超过每日的限额会被收费。
 
-
 ## 在 BRClient 中的截图
 
-![Web 1](./screenshots/web-1.png)
+![Web 1](../user-manual/screenshots/web-1.png)
 
-![Web 2](./screenshots/web-2.png)
+![Web 2](../user-manual/screenshots/web-2.png)

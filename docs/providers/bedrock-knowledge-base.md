@@ -1,12 +1,12 @@
-# bedrock-knowledge-base: Bedrock Knowledge Bases
+# bedrock-knowledge-base
 
-## Create a knowledge base instance
+Knowledge Bases for Amazon Bedrock.
+
+## Create a Knowledge Bases for Bedrock instance
 
 Refer to this document: [Create a knowledge base](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-create.html)
 
-## Create a custom model
-
-Model Configuration:
+## Model Configuration
 
 ```json
 {
