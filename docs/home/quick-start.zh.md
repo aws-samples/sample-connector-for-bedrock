@@ -1,12 +1,12 @@
 # 快速启动
 
-### 1. Prepare a server to host the connector
+## 1. 准备服务器
 
-Launch an EC2 on AWS or any other server with docker support.
+在 AWS 上启动一个 EC2 实例或任何其他支持 Docker 的服务器。
 
-### 2. Run Postgres with docker
+## 2. 使用 Docker 运行 Postgres
 
-Launch a docker container to host postgres with the following shell command:
+使用以下shell命令启动一个Docker容器来托管Postgres:
 
 ```shell
 docker run --name postgres \
@@ -15,31 +15,31 @@ docker run --name postgres \
   -d postgres
 ```
 
-Then create a database named `brconnector_db` with the following command.
+然后使用以下命令创建一个名为 `brconnector_db` 的数据库。
 
-At first, attach to the prostgress container:
+首先，连接到 prostgress 容器:
 
 ```shell
 docker exec -it postgres psql -U postgres
 ```
 
-Then, in the SQL command line of postgres, run the following command to create the database:
+然后，在 postgres 的 SQL 命令行中，运行以下命令来创建数据库:
 
 ```sql
 CREATE DATABASE brconnector_db;
 ```
 
-The database name is not necessary to be `brconnector_db`, you can use what ever valid database name you want.
+数据库名称不一定要是 `brconnector_db`，你可以使用任何有效的数据库名称。
 
-If you use your own database name, make sure that you remember the database name and replace `brconnector_db` with your database name.
+如果你使用自己的数据库名称,请确保记住数据库名称,并将 `brconnector_db` 替换为你的数据库名称。
 
-### 3. Start the connector server with docker
+## 3. 使用 Docker 启动
 
-Run the following docker command directly to start the connector container.
+直接运行以下 docker 命令来启动连接器容器。
 
-Make sure to replace the value of access key, secret key, region to be right ones.
+确保将访问密钥、秘密密钥、区域的值替换为正确的值。
 
-And, important! replace the value of ADMIN_API_KEY to be a complex key instead of using the simple one in the sample.
+而且,重要的是!将 ADMIN_API_KEY 的值替换为一个复杂的密钥,而不是使用示例中的简单密钥。
 
 ```shell
 docker run --name brconnector \
@@ -56,32 +56,30 @@ docker run --name brconnector \
  -d cloudbeer/sample-connector-for-bedrock
 ```
 
-### 4. Test the connector server
+## 4. 测试
 
-Now, you have the first admin user with the API_KEY "br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".
+现在,您有了第一个管理员用户,其API密钥为"br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"。
 
-And the server export port 8866 to the hosting EC2.
-
-Test the server with the API_Key using `curl` command:
+使用`curl`命令并带上API密钥来测试服务器:
 
 ```shell
 curl "http://localhost:8866/admin/api-key/list" \
   -H "Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
 ```
 
-You will get something like the following if every things go well:
+您会得到如下的输出:
 
 ```json
 {"success":true,"data":{"items":[],"total":"0","limit":20,"offset":0}}
 ```
 
-### 5. Creat the first admin user
+## 5. 创建第一个管理员用户
 
-The API_KEY configed above is only used for booting the server and create first admin user.
+上面配置的 API_KEY 仅用于启动服务器和创建第一个管理员用户。
 
-This API_KEY is not designed to be used as admin user or normal user.
+该 API_KEY 并非设计用于作为管理员用户或普通用户使用。
 
-Create the first admin user with the following command:
+使用以下命令创建第一个管理员用户:
 
 ```shell
 curl -X POST "http://localhost:8866/admin/api-key/apply" \
@@ -91,7 +89,7 @@ curl -X POST "http://localhost:8866/admin/api-key/apply" \
 
 ```
 
-You will get some response like the following:
+输出大概如下:
 
 ```json
 
@@ -99,36 +97,34 @@ You will get some response like the following:
 
 ```
 
-Record the new api_key for the new user,
-this api_key can be used to config your client to chat.
-and this api_key can be used to login the connector's manager WebUI to manage other api_key.
+记录新用户的新 api_key, 此 api_key 可用于配置您的客户端进行聊天。
+此 api_key 也可用于登录 BRConnector的管理 WebUI 来管理其他 api_key。
 
-### 6. Config client to connect to the connector server
+## 6. 配置客户端
 
-You should expose the connector server with HTTPS.
+您应该使用 HTTPS 暴露连接器服务器。
 
-One simple way to do it on AWS is creating a CloudFront CDN to provide SSL support.
+在 AWS 上一种简单的方式是创建 CloudFront CDN 来提供 SSL 支持。
 
-For more information about setting up CloudFront on AWS, please refer to official document of AWS.
+有关在 AWS 上设置 CloudFront 的更多信息,请参阅 AWS 的官方文档。
 
-Open a client that can define Host and API Key for OpenAI.
+打开一个可以为 OpenAI 定义 Host 和 API 密钥的客户端。
 
-In Host field enter the CloudFront url.
+在 "Host" 字段中输入 CloudFront 网址。
 
-In the "APK Key" field, enter the API_Key of your first admin user, which is the one you created in step 5.
+在"APK Key"字段中, 输入步骤 5 中创建的第一个管理员用户的 API Key。
 
-Then, open a new chat to test.
+然后,打开一个新的聊天窗口进行测试。
 
-If every thing goes well, you can start to chat.
+如果一切顺利,您就可以开始聊天了。
 
-> [!TIP]  
->
-> You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project.
->
-> Since 0.0.8, this client has been built into the docker image. The access address is: <https://your-endpoint/brclient/>
+!!!note
+    您可以使用这个 <https://github.com/aws-samples/sample-client-for-amazon-bedrock> 客户端来测试，[请查看如何配置](../user-manual/sample-client-for-bedrock.md)。
 
-### 7. The connector's WebUI
+    Since 0.0.8, this client has been built into the docker image. The access address is: `http(s)://your-endpoint/brclient/`
 
-If you have not set the environment variable DISABLE_UI, you can now access the BRConnector WebUI via <https://your-endpoint/manager>.
+## 7. 后台管理界面
 
-You can log in and manage it using the API key you just generated. Enter <https://your-endpoint> as the Host.
+如果您没有设置环境变量 DISABLE_UI,您现在可以通过 `http(s)://your-endpoint/manager/` 访问 BRConnector Web 管理界面。
+
+您可以使用刚刚生成的API密钥登录并管理它。请将 `http(s)://your-endpoint` 作为主机地址输入。

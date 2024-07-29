@@ -1,10 +1,10 @@
 # Quick start
 
-### 1. Prepare a server to host the connector
+## 1. Prepare a server to host the connector
 
 Launch an EC2 on AWS or any other server with docker support.
 
-### 2. Run Postgres with docker
+## 2. Run Postgres with docker
 
 Launch a docker container to host postgres with the following shell command:
 
@@ -33,7 +33,7 @@ The database name is not necessary to be `brconnector_db`, you can use what ever
 
 If you use your own database name, make sure that you remember the database name and replace `brconnector_db` with your database name.
 
-### 3. Start the connector server with docker
+## 3. Start the connector server with docker
 
 Run the following docker command directly to start the connector container.
 
@@ -56,7 +56,7 @@ docker run --name brconnector \
  -d cloudbeer/sample-connector-for-bedrock
 ```
 
-### 4. Test the connector server
+## 4. Test the connector server
 
 Now, you have the first admin user with the API_KEY "br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".
 
@@ -75,7 +75,7 @@ You will get something like the following if every things go well:
 {"success":true,"data":{"items":[],"total":"0","limit":20,"offset":0}}
 ```
 
-### 5. Creat the first admin user
+## 5. Creat the first admin user
 
 The API_KEY configed above is only used for booting the server and create first admin user.
 
@@ -103,7 +103,7 @@ Record the new api_key for the new user,
 this api_key can be used to config your client to chat.
 and this api_key can be used to login the connector's manager WebUI to manage other api_key.
 
-### 6. Config client to connect to the connector server
+## 6. Config client to connect to the connector server
 
 You should expose the connector server with HTTPS.
 
@@ -121,13 +121,12 @@ Then, open a new chat to test.
 
 If every thing goes well, you can start to chat.
 
-> [!TIP]  
->
-> You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project.
->
-> Since 0.0.8, this client has been built into the docker image. The access address is: <https://your-endpoint/brclient/>
+!!!note
+    You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project, [View how to config](../user-manual/sample-client-for-bedrock.md).
 
-### 7. The connector's WebUI
+    Since 0.0.8, this client has been built into the docker image. The access address is: `http(s)://your-endpoint/brclient/`
+
+## 7. The connector's WebUI
 
 If you have not set the environment variable DISABLE_UI, you can now access the BRConnector WebUI via <https://your-endpoint/manager>.
 

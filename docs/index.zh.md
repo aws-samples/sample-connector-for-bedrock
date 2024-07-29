@@ -9,8 +9,8 @@ template: home.html
 
 从下面的链接开始：
 
-- [快速启动](home/quick-start.md)
+- [快速启动](./home/quick-start.md)
 
-- [使用 Cloudformation 快速部署](home/deployment.md)
+- [使用 Cloudformation 快速部署](./home/deployment.md)
 
-- [开发模式](user-manual/development.md)
+- [开发模式](./user-manual/development.md)
