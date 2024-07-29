@@ -4,65 +4,38 @@ title: Introduction
 
 # Introduction
 
-This is a bedrock API forwarding tool that can issue virtual keys, log chats, and manage costs.
+This project is an Amazon Bedrock and other large language model or application forwarding tool. It can manage virtual API Keys, record chat logs, and manage costs.
 
-It is compatible with any OPENAI client that can define Host and API Key.
+It is compatible with any OpenAI client that can define a Host and API key.
 
-## Key Features
+## Main Features
 
-### Models/Platform Support
+### Supported Models and Platforms
 
-- A provider for Search Engine support [Since Docker image version 0.0.10]. See [here](./docs/web-miner.md)
-
-- An AWS command executor [Since Docker image version 0.0.10]. See [here](./docs/aws-executor.md)
-
-- Bedrock SDXL [Since Docker image version 0.0.9]. See [Screenshots](docs/painter.md).
-
-- Sagemaker LMI [Since Docker image version 0.0.8]
-
-- Amazon Bedrock Converse API [Since Docker image version 0.0.6]
-
-- Ollama [Since Docker image version 0.0.6]
-
-- Bedrock Knowledge base. See [Instruction](docs/bedrock-knowledge-base.md). [Since Docker image version 0.0.4]
-
-- Mistral, model name options: [Since Docker image version 0.0.2]
-  - mistral-7b
-  - mistral-large
-  - mistral-8x7b
-  - mistral-small (region: us-east-1)
-
-- Claude 3, model name options: [Since Docker image version 0.0.1]
-  - claude-3-sonnet (this is the default model)
-  - claude-3-haiku
-  - claude-3-opus
-
-- LLama 3, model name options: [Since Docker image version 0.0.1]
-  - llama3-8b
-  - llama3-70b
+- Supports all current and future large language models from Bedrock (supported through bedrock-converse).
+- Supports models deployed through Sagemaker LMI (partial models).
+- Supports other forms of custom models, including Ollama, etc.
+- More AI workflow applications, such as internet search, AWS command executors, etc.
 
 ### API Key and Cost Management
 
-- Create API Keys. Can be created for regular users and administrators. Regular users can chat, while administrators can manage API Keys and costs.
-- Record the cost of each call and use it as the basis for cost control.
-- Cost Control. You can set a monthly quota and account balance for each API Key. When the monthly quota or account balance is insufficient, it cannot be used.
+- Create API keys. Keys can be created for regular users and administrators. Regular users can chat, while administrators can manage API keys and costs.
+- Record the cost of each call and use it as a basis for cost control.
+- Cost control. You can set monthly quotas and account balances for each API key. When the monthly quota or account balance is insufficient, it cannot be used.
 - Calculate the overall cost.
 
-> [!IMPORTANT]  
-> You can customize the pricing for your model. [Please refer to the official website for the Bedrock pricing](https://aws.amazon.com/bedrock/pricing).
->
-> The cost calculation of this project cannot serve as the billing basis for AWS. Please refer to the AWS bill for actual charges.
+You can customize model prices. [Please refer to the official website for the Bedrock pricing](https://aws.amazon.com/bedrock/pricing).
+
+!!! warning
+
+    The cost calculation of this project cannot be used as the basis for AWS billing. Please refer to the AWS bill for actual expenses.
 
 ![api key](docs/screenshots/api-key.png)
 
-### Model management
+### Model Management
 
-Models and their parameters can be defined from the backend.
+Models and their parameters can be defined from the backend. See [Models management](../user-manual/management.md##models)
 
-Model Access Control [Since Docker image version 0.0.6]
-
-- Models can be bound to Groups.
-
-- Models can be bound to API keys.
+Once defined, models can be bound to groups or API Keys.
 
 ![models bind](docs/screenshots/models-bind.png)
