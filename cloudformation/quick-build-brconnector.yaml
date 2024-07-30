@@ -320,7 +320,7 @@ Resources:
       DBName: !Ref PGDatabase
       DBInstanceClass: db.t4g.small
       Engine: postgres
-      EngineVersion: "16.3"
+      EngineVersion: "16"
       MasterUsername: postgres
       MasterUserPassword: !Ref PGPassword
       DBParameterGroupName: !Ref MyPGParameterGroup
@@ -404,7 +404,7 @@ Resources:
           # start postgress db
           PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
           if [[ $PGHOST == "172.17.0.1" ]]; then
-            docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres
+            docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres:16
             sleep 10; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
           fi
 

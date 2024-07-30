@@ -13,5 +13,5 @@ Enable Claude 3 Sonnet or Haiku in your region - If you are new to using Anthrop
 
 [![attachments/quick-build-brconnector/launch-stack.png](attachments/quick-build-brconnector/launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
-reference detail deploy document: https://aws-samples.github.io/sample-connector-for-bedrock/deploy/
+reference detail deploy document: https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/
 

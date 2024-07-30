@@ -114,4 +114,28 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 
 ## Migrating to new RDS PostgreSQL database
 
-working ...
+### Export from existing PG
+
+- list your database name
+```sh
+docker exec -it postgres psql -U postgres
+\l # list databases
+```
+
+- dump db
+```sh
+docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
+
+```
+
+### Import to new PG
+
+- import to brconnector_db
+```sh
+docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
+
+```
+
+
+
+
