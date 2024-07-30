@@ -124,4 +124,25 @@ docker restart brconnector
 
 ## 迁移到新的 RDS PostgreSQL 数据库
 
-working ...
+### 导出
+
+- 列出数据库名
+```sh
+docker exec -it postgres psql -U postgres
+\l # list databases
+```
+
+- dump 数据库
+```sh
+docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
+
+```
+
+### 导入
+
+- 导入到 brconnector_db 数据库
+```sh
+docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
+
+```
+
