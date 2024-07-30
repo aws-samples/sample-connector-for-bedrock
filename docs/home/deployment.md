@@ -112,29 +112,61 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 - update lambda image with correct architecture
 - or login to ec2 to update local image and restart brconnector container
 
-## Migrating to new RDS PostgreSQL database
+## Migrating to new PostgreSQL database
+You could choose to deploy PostgreSQL in container on ECR or in RDS directly, here list some command for your reference to migrate your data in PG.
 
-### Export from existing PG
-
+### Migrating BRConnector data from PG container on EC2 to RDS
 - list your database name
 ```sh
 docker exec -it postgres psql -U postgres
-\l # list databases
-```
+postgres=> \l # list databases
 
+```
 - dump db
 ```sh
 docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
 
 ```
+- Find your PG endpoint in RDS
+- we will run a docker on your local as postgres client temporarily, instead of install postgresql
+```sh
+POSTGRES_VERSION=16
+docker run --name postgres-client \
+    -e POSTGRES_PASSWORD=postgres-client-tmp-password \
+    -d postgres:${POSTGRES_VERSION}
 
-### Import to new PG
+```
+- import to brconnector_db 
+```sh
+docker exec -i postgres-client \
+    psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com \
+    -d brconnector_db < db.sql
 
+```
+- clean temporary docker on local
+```sh
+docker rm -f postgres-client
+
+```
+
+### Migrating BRConnector data from PG container on EC2 to new EC2
+- list your database name
+```sh
+docker exec -it postgres psql -U postgres
+postgres=> \l # list databases
+
+```
+- dump db
+```sh
+docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
+
+```
 - import to brconnector_db
 ```sh
 docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
 
 ```
+
 
 
 
