@@ -14,8 +14,8 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "^3.592.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.592.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.621.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.621.0",
     "@aws-sdk/client-s3": "^3.614.0",
     "@aws-sdk/client-sagemaker-runtime": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.614.0",

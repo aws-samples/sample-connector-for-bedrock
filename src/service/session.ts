@@ -36,7 +36,7 @@ export default {
             if (key === "key_id") {
                 params.push(options.key_id);
                 where += " and key_id = $" + (keyIndex + 1);
-                orderBy = "id asc";
+                // orderBy = "id asc";
             } else if (key === "q") {
                 params.push(`%${options.q}%`);
                 where += ` and title like $${keyIndex + 1}`;

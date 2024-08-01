@@ -79,7 +79,7 @@ docker run --rm -d -p 8081:8080 \
   -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
-这样部署出来的 searxng 主机地址是: <http://127.0.0.1:8081/，请将其配置到> searxng 的 host 节点中。
+这样部署出来的 searxng 主机地址是: <http://127.0.0.1:8081/>，请将其配置到 searxng 的 host 节点中。
 
 ### SerpAPI
 

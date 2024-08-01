@@ -21,6 +21,8 @@ export default class BedrockConverse extends AbstractProvider {
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
+
+        // console.log("-ori--------------", JSON.stringify(chatRequest, null, 2));
         this.modelId = this.modelData.config && this.modelData.config.modelId;
         if (!this.modelId) {
             throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
@@ -35,7 +37,7 @@ export default class BedrockConverse extends AbstractProvider {
 
         ctx.status = 200;
 
-        // console.log("---------------", chatRequest);
+        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
 
         if (chatRequest.stream) {
             ctx.set({
@@ -214,6 +216,21 @@ class MessageConverter {
             return {
                 text: contentItem.text
             }
+        } else if (contentItem.type === "doc") {
+            // This is for BRClient
+            return {
+                document: {
+                    name: contentItem.doc.name,
+                    format: contentItem.doc.format,
+                    source: {
+                        bytes: Uint8Array.from(Object.values(contentItem.doc.source.bytes)),
+                        name: contentItem.doc.source.name + (new Date()).getTime(),
+                        format: contentItem.doc.source.format
+                    }
+
+                }
+            }
+
         }
         return contentItem;
     }
