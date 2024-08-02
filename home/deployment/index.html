@@ -579,28 +579,28 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migrating-to-new-rds-postgresql-database" class="md-nav__link">
+  <a href="#migrating-to-new-postgresql-database" class="md-nav__link">
     <span class="md-ellipsis">
-      Migrating to new RDS PostgreSQL database
+      Migrating to new PostgreSQL database
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Migrating to new RDS PostgreSQL database">
+    <nav class="md-nav" aria-label="Migrating to new PostgreSQL database">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#export-from-existing-pg" class="md-nav__link">
+  <a href="#migrating-brconnector-data-from-pg-container-on-ec2-to-rds" class="md-nav__link">
     <span class="md-ellipsis">
-      Export from existing PG
+      Migrating BRConnector data from PG container on EC2 to RDS
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#import-to-new-pg" class="md-nav__link">
+  <a href="#migrating-brconnector-data-from-pg-container-on-ec2-to-new-ec2" class="md-nav__link">
     <span class="md-ellipsis">
-      Import to new PG
+      Migrating BRConnector data from PG container on EC2 to new EC2
     </span>
   </a>
   
@@ -1150,28 +1150,28 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migrating-to-new-rds-postgresql-database" class="md-nav__link">
+  <a href="#migrating-to-new-postgresql-database" class="md-nav__link">
     <span class="md-ellipsis">
-      Migrating to new RDS PostgreSQL database
+      Migrating to new PostgreSQL database
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Migrating to new RDS PostgreSQL database">
+    <nav class="md-nav" aria-label="Migrating to new PostgreSQL database">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#export-from-existing-pg" class="md-nav__link">
+  <a href="#migrating-brconnector-data-from-pg-container-on-ec2-to-rds" class="md-nav__link">
     <span class="md-ellipsis">
-      Export from existing PG
+      Migrating BRConnector data from PG container on EC2 to RDS
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#import-to-new-pg" class="md-nav__link">
+  <a href="#migrating-brconnector-data-from-pg-container-on-ec2-to-new-ec2" class="md-nav__link">
     <span class="md-ellipsis">
-      Import to new PG
+      Migrating BRConnector data from PG container on EC2 to new EC2
     </span>
   </a>
   
@@ -1309,13 +1309,14 @@
 <li>update lambda image with correct architecture</li>
 <li>or login to ec2 to update local image and restart brconnector container</li>
 </ul>
-<h2 id="migrating-to-new-rds-postgresql-database">Migrating to new RDS PostgreSQL database<a class="headerlink" href="#migrating-to-new-rds-postgresql-database" title="Permanent link">&para;</a></h2>
-<h3 id="export-from-existing-pg">Export from existing PG<a class="headerlink" href="#export-from-existing-pg" title="Permanent link">&para;</a></h3>
+<h2 id="migrating-to-new-postgresql-database">Migrating to new PostgreSQL database<a class="headerlink" href="#migrating-to-new-postgresql-database" title="Permanent link">&para;</a></h2>
+<p>You could choose to deploy PostgreSQL in container on ECR or in RDS directly, here list some command for your reference to migrate your data in PG.</p>
+<h3 id="migrating-brconnector-data-from-pg-container-on-ec2-to-rds">Migrating BRConnector data from PG container on EC2 to RDS<a class="headerlink" href="#migrating-brconnector-data-from-pg-container-on-ec2-to-rds" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>list your database name<br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="se">\l</span><span class="w"> </span><span class="c1"># list databases</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">postgres</span><span class="o">=</span>&gt;<span class="w"> </span><span class="se">\l</span><span class="w"> </span><span class="c1"># list databases</span>
 </code></pre></div></p>
 </li>
 <li>
@@ -1323,12 +1324,48 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>postgres<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>brproxy_dbname<span class="w"> </span>-a<span class="w"> </span>&gt;<span class="w"> </span>db.sql
 </code></pre></div></p>
 </li>
+<li>
+<p>Find your PG endpoint in RDS</p>
+</li>
+<li>
+<p>we will run a docker on your local as postgres client temporarily, instead of install postgresql<br />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">POSTGRES_VERSION</span><span class="o">=</span><span class="m">16</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>postgres-client<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>-e<span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span>postgres-client-tmp-password<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span>-d<span class="w"> </span>postgres:<span class="si">${</span><span class="nv">POSTGRES_VERSION</span><span class="si">}</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>import to brconnector_db <br />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>postgres-client<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-h<span class="w"> </span>pg-endpoint.xxx.us-west-2.rds.amazonaws.com<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>-d<span class="w"> </span>brconnector_db<span class="w"> </span>&lt;<span class="w"> </span>db.sql
+</code></pre></div></p>
+</li>
+<li>
+<p>clean temporary docker on local<br />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>postgres-client
+</code></pre></div></p>
+</li>
 </ul>
-<h3 id="import-to-new-pg">Import to new PG<a class="headerlink" href="#import-to-new-pg" title="Permanent link">&para;</a></h3>
+<h3 id="migrating-brconnector-data-from-pg-container-on-ec2-to-new-ec2">Migrating BRConnector data from PG container on EC2 to new EC2<a class="headerlink" href="#migrating-brconnector-data-from-pg-container-on-ec2-to-new-ec2" title="Permanent link">&para;</a></h3>
 <ul>
-<li>import to brconnector_db<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>brconnector_db<span class="w"> </span>&lt;<span class="w"> </span>db.sql
-</code></pre></div></li>
+<li>
+<p>list your database name<br />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">postgres</span><span class="o">=</span>&gt;<span class="w"> </span><span class="se">\l</span><span class="w"> </span><span class="c1"># list databases</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>dump db<br />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>postgres<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>brproxy_dbname<span class="w"> </span>-a<span class="w"> </span>&gt;<span class="w"> </span>db.sql
+</code></pre></div></p>
+</li>
+<li>
+<p>import to brconnector_db<br />
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>brconnector_db<span class="w"> </span>&lt;<span class="w"> </span>db.sql
+</code></pre></div></p>
+</li>
 </ul>
 
 
@@ -1352,7 +1389,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-30T10:46:34+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-30</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-30T14:10:25+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-30</span>
   </span>
 
     
