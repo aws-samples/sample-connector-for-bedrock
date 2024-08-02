@@ -122,25 +122,57 @@ docker restart brconnector
 
 ```
 
-## 迁移到新的 RDS PostgreSQL 数据库
 
-### 导出
+## 迁移到新的 PostgreSQL 数据库
+您可以选择在 ECR 或 RDS 上的容器中直接部署 PostgreSQL，这里列出了一些命令供您在 PG 中迁移数据的参考。
 
-- 列出数据库名
+### 将 BRConnector 数据从 EC2 上的 PG 容器迁移到 RDS
+- 列出您的数据库名称
 ```sh
 docker exec -it postgres psql -U postgres
-\l # list databases
-```
+postgres=> \l # 列出数据库
 
-- dump 数据库
+```
+- dump db
 ```sh
 docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
 
 ```
+- 在 RDS 中找到您的 PG 端点 (Endpoint)
+- 我们将在您的本地临时运行一个 docker 作为 postgres 客户端，而不是安装 postgresql
+```sh
+POSTGRES_VERSION=16
+docker run --name postgres-client \
+-e POSTGRES_PASSWORD=postgres-client-tmp-password \
+-d postgres:${POSTGRES_VERSION}
 
-### 导入
+```
+- 导入到 brconnector_db
+```sh
+docker exec -i postgres-client \
+psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com \
+-d brconnector_db < db.sql
 
-- 导入到 brconnector_db 数据库
+```
+- clean temporary docker on local
+```sh
+docker rm -f postgres-client
+
+```
+
+### 将 BRConnector 数据从 EC2 上的 PG 容器迁移到新的 EC2
+- 列出数据库名称
+```sh
+docker exec -it postgres psql -U postgres
+postgres=> \l # 列出数据库
+
+```
+- dump db
+```sh
+docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
+
+```
+- 导入到 brconnector_db
 ```sh
 docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
 
