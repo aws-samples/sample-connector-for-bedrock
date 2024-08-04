@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import Koa from "koa";
-import { bodyParser } from "@koa/bodyparser"
+// import { bodyParser } from "@koa/bodyparser"
+import { koaBody as bodyParser } from 'koa-body';
 import cors from "@koa/cors"
 import { authHandler, errorHandler, databaseHandler, loggerHandler } from './middleware/handlers'
 import { router } from "./routes";
@@ -35,6 +36,7 @@ app.use(loggerHandler);
 app.use(errorHandler);
 
 app.use(bodyParser({
+    multipart: true,
     encoding: "utf-8",
     formLimit: "100mb",
     jsonLimit: "100mb",

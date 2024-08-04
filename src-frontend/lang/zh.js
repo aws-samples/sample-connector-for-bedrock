@@ -17,9 +17,9 @@ export default {
     custom_model: '自定义模型',
     key: '接口密钥',
     bedrock_kb: 'Bedrock 知识库',
-    topic_list:"话题列表",
-    chat_list:'聊天列表',
-    admin:'管理',
+    topic_list: "话题列表",
+    chat_list: '聊天列表',
+    admin: '管理',
     model: '模型',
     session: '话题',
     thread: '对话',
@@ -64,7 +64,8 @@ export default {
     btn_edit: "修改",
     btn_detail: "详情",
     btn_models: "模型",
-
+    title_import_user: "导入用户",
+    upload_file: "上传文件",
     tip_reset: "重置后将生成新的 Key。",
 
     op_normal: '普通用户',

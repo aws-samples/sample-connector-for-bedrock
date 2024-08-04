@@ -3,7 +3,9 @@
     <Space>
       <Button @click="get_data">{{ $t('keys.btn_query') }}</Button>
       <Button @click="add">{{ $t('keys.btn_new') }}</Button>
-      <Button @click="imports">{{ $t('keys.btn_import') }}</Button>
+
+          <Button :icon="CloudUpload" @click="importUser">{{ $t('keys.btn_import') }}</Button>
+
     </Space>
     <Table :data="items" :columns="columns" :loading="loading" :width="1900">
       <template v-slot:api_key="c, row">
@@ -57,18 +59,45 @@
       </Form>
     </Drawer>
     
+    <Drawer :title="this.$t('keys.title_import_user')" v-model="showImport" @ok="submitExcel" :loading="saving" :mask-closable="true">
+      <Form :model="importForm" layout="vertical" ref="importForm" theme="light">
+        <FormItem :label="this.$t('keys.upload_file')" prop="file">
+            <Upload 
+            action=""
+              name="file"
+              :autoTrigger="false"
+              :limit="1"
+              :showUploadList="true"
+              >Choose</Upload>
+        </FormItem>
+        <FormItem :label="this.$t('keys.col_group')" prop="group_id">
+          <Select :width="200" :options="groups">
+          </Select>
+        </FormItem>
+        <FormItem :label="this.$t('keys.col_month_quota')" prop="month_quota">
+          <Input />
+        </FormItem>
+      </Form>
+    </Drawer>
     <Drawer :title="title" v-model="modelsShown" @ok="modelsShown=false" :loading="saving" :mask-closable="true">
       <CheckboxGroup :options="models" v-model="checked_models" @change="setModel"/>
     </Drawer>
   </div>
 </template>
 <script>
-import { Copy } from 'kui-icons'
+import { Copy, CloudUpload} from 'kui-icons'
 export default {
   name: 'AdminKeys',
   data() {
+    let url = localStorage.getItem('host');
+    const key = localStorage.getItem('key')
+    if (url.endsWith('/')) {
+      url = host.substring(0, host.length - 1);
+    }
+    url = url + '/admin/api-key/import';
     return {
       Copy,
+      CloudUpload,
       items: [],
       title: '',
       columns: [
@@ -88,9 +117,13 @@ export default {
       rules: {
         name: [{ required: true, message: 'Please input name...' }],
       },
+      importForm: {
+        month_quota: 1, group_id: 1
+      },
       groups:[],
       action: "add",
       show: false,
+      showImport:false,
       page: 1,
       size: 15,
       total: 0,
@@ -100,12 +133,28 @@ export default {
       models:[],
       checked_models:[],
       current_key_id: 0,
+      uploadEndpoint: url,
+      uploadHeaders: { authorization: "Bearer " + key}
     }
   },
   mounted() {
     this.get_data()
   },
   methods: {
+    importUser() {
+      this.showImport = true;
+    },
+    submitExcel(){
+      console.log("upload URL: " + this.uploadEndpoint);
+      console.log(this.$refs.importForm);
+      setTimeout(() => {
+      }, 0);
+      
+      //TODO: 这里加入回调
+    },
+    uploadChange(info){
+      console.log(info);
+    },
     copy({ api_key }) {
       this.$copyText(api_key).then(e => {
         this.$Message.success('Copied')
@@ -115,9 +164,6 @@ export default {
     },
     format_key({ api_key }) {
       return api_key ? api_key.substr(0, 5) + '...' + api_key.substr(-3) : ""
-    },
-    imports() {
-
     },
     change(page) {
       this.page = page

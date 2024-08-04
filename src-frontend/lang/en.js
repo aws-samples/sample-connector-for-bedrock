@@ -66,7 +66,8 @@ export default {
     btn_edit: "Edit",
     btn_detail: "Detail",
     btn_models: "Models",
-
+    title_import_user: "Import User",
+    upload_file: "Upload File",
     tip_reset: "Reset will generate a new key.",
 
     op_normal: 'Normal',
