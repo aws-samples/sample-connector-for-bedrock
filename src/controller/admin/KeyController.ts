@@ -80,17 +80,15 @@ class KeyController extends AbstractController {
         const file = ctx.request.files.file;
         const jsonUsers: any = await toJson(file.filepath);
         for (const user of jsonUsers) {
-            console.log(user);
-            // await service.create(ctx.db, {
-            //     name: user.name,
-            //     email: user.email,
-            //     month_quota,
-            //     group_id
-            // });
+            const name = user["cognito:username"] || user.name;
+            // console.log(name, month_quota, group_id);
+            await service.create(ctx.db, {
+                name,
+                email: user.email,
+                month_quota,
+                group_id
+            });
         }
-
-        // ctx.request.files.file
-        console.log(jsonUsers);
         return super.ok(ctx, "OK");
     }
 }

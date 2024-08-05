@@ -58,10 +58,10 @@
 
     <Modal :title="this.$t('keys.title_import_user')" v-model="showImport" @ok="submitExcel" :loading="saving"
       :mask-closable="true">
-      <Form :model="importForm" ref="importForm" theme="light" :labelCol="{ span: 5 }">
+      <Form :model="importForm" ref="importForm" theme="light" :rules="uploadRules" :labelCol="{ span: 5 }">
         <FormItem :label="this.$t('keys.upload_file')" prop="file">
-          <input type="file" ref="file" style="display: none;" @change="fileChange" />
-          <Button @click="$refs.file.click()" style="max-width: 300px;">{{ importFileName || 'Choose file' }}</Button>
+          <input type="file" ref="file" style="display: none;" @change="fileChange" name="file" id="file" />
+          <Button @click="$refs.file.click()" style="width: 200px;max-width: 300px;">{{ importFileName || 'Choose file' }}</Button>
         </FormItem>
         <FormItem :label="this.$t('keys.col_group')" prop="group_id">
           <Select style="width:200px" :options="groups">
@@ -103,12 +103,14 @@ export default {
         { key: 'balance', title: this.$t('keys.col_balance') },
         { key: 'month_fee', title: this.$t('keys.col_month_fee') },
         { key: 'month_quota', title: this.$t('keys.col_month_quota') },
-        // { key: 'created_at', title: 'Date' },
         { key: 'action', title: this.$t('keys.col_action'), fixed: "right", width: 300 },
       ],
       form: { name: '', email: '', role: 'user', month_quota: 0, balance: 0, group_id: 0 },
       rules: {
         name: [{ required: true, message: 'Please input name...' }],
+      },
+      uploadRules: {
+        file: [{ required: true, message: 'Please choose a csv file...' }],
       },
       importForm: {
         month_quota: 1, group_id: 1
@@ -142,10 +144,6 @@ export default {
       this.importFileName = e.target.value.split('\\').pop()
     },
     submitExcel() {
-      console.log("upload URL: " + this.uploadEndpoint);
-      //TODO: 这个地址要改下
-      let url = 'http://0.0.0.0:8866/admin/api-key/import'
-
       this.saving = true
       let data = new FormData()
       let { month_quota, group_id } = this.importForm
@@ -153,14 +151,15 @@ export default {
       data.append('group_id', group_id)
       data.append('file', this.$refs.file.files[0])
 
-      this.$http.post(url, data).then(res => {
-
+      this.$http.post(this.uploadEndpoint, data).then(res => {
+        if (res.success) {
+          this.$Message.success("Import successfuly.");
+          this.showImport = false; 
+          this.get_data()
+        }
       }).finally(() => {
         this.saving = false;
       });
-    },
-    uploadChange(info) {
-      console.log(info);
     },
     copy({ api_key }) {
       this.$copyText(api_key).then(e => {
