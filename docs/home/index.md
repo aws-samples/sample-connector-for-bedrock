@@ -1,7 +1,3 @@
----
-title: Introduction
----
-
 # Introduction
 
 This project is an Amazon Bedrock and other large language model or application forwarding tool. It can manage virtual API Keys, record chat logs, and manage costs.
@@ -34,7 +30,7 @@ You can customize model prices. [Please refer to the official website for the Be
 
 ### Model Management
 
-Models and their parameters can be defined from the backend. See [Models management](../user-manual/management.md##models)
+Models and their parameters can be defined from the backend. See [Models management](../user-manual/management.md#models)
 
 Once defined, models can be bound to groups or API Keys.
 

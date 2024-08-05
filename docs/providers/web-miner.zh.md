@@ -1,5 +1,7 @@
 # web-miner
 
+> Since Docker image version 0.0.10
+
 搜索互联网。
 
 本 Provider 可以将您的问题转化为搜索关键词，通过搜索引擎获取结果，然后将其总结成相应的答案。支持多轮对话。
@@ -56,6 +58,8 @@ Configuration:
 
 ### searxng
 
+> Since Docker image version 0.0.11
+
 详情请访问 <https://docs.searxng.org/>。
 
 创建一个 settings.yml 文件，增加 json 输出格式。
@@ -82,6 +86,8 @@ docker run --rm -d -p 8081:8080 \
 这样部署出来的 searxng 主机地址是: <http://127.0.0.1:8081/>，请将其配置到 searxng 的 host 节点中。
 
 ### SerpAPI
+
+> Since Docker image version 0.0.11
 
 详情请访问 <https://serpapi.com/>。
 

@@ -12,12 +12,28 @@ API key 分管理员权限和普通用户权限。普通用户可以看到自己
 
 ## API Keys 管理
 
-您可以：
+### 主要功能
 
 - 创建一个用户（颁发一个 Key）。
+- 批量导入用户。
 - 修改这个 Key，修改名字，月消费额等。
 - 重置 Key。
 - 给 Key 充值。
+
+### 批量导入用户
+
+需要准备一个 csv 文件，列应该包含 `name` 和 `email` 两个字段。
+
+本项目直接支持了 cognito 的导入模版，这里是一个 cognito 的 excel 示例，用户的名字会优先采纳 `cognito:username`，然后 `name`。
+
+```text
+cognito:username,name,given_name,family_name,middle_name,nickname,preferred_username,profile,picture,website,email,email_verified,gender,birthdate,zoneinfo,locale,phone_number,phone_number_verified,address,updated_at,cognito:mfa_enabled
+John,,John,Doe,,,,,,,johndoe@example.com,TRUE,,02/01/1985,,,+12345550100,TRUE,123 Any Street,,FALSE
+Jane,,Jane,Roe,,,,,,,janeroe@example.com,TRUE,,01/01/1985,,,+12345550199,TRUE,100 Main Street,,FALSE
+```
+
+!!!note
+    如果您配置了 SMTP，并且在 csv 文件里里包含了用户 email，那么 API key 会直接通过邮件发送给用户。
 
 ## 模型管理
 
@@ -54,7 +70,7 @@ API key 分管理员权限和普通用户权限。普通用户可以看到自己
 
 同时 API Keys 也可以属于某一个组。
 
-## 授权管理
+## 模型授权
 
 创建完模型，您需要将该模型授权给组或者用户（API Key）。
 

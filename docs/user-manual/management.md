@@ -12,12 +12,30 @@ In addition to having the functions of a regular user, the admin role can also m
 
 ## API Keys management
 
+### Main features
+
 You can:
 
 - Create a user (issue a Key).
+- Import users in bulk.
 - Modify this Key, change the name, monthly consumption limit, etc.
 - Reset the Key.
 - Recharge the Key.
+
+### Import users
+
+You need to prepare a csv file, the column should contain the `name` and `email` fields.
+
+This project directly supports the import template of cognito. Here's an Excel example of Cognito, where the user's name takes precedence over `cognito:username` and then `name`.
+
+```text
+cognito:username,name,given_name,family_name,middle_name,nickname,preferred_username,profile,picture,website,email,email_verified,gender,birthdate,zoneinfo,locale,phone_number,phone_number_verified,address,updated_at,cognito:mfa_enabled
+John,,John,Doe,,,,,,,johndoe@example.com,TRUE,,02/01/1985,,,+12345550100,TRUE,123 Any Street,,FALSE
+Jane,,Jane,Roe,,,,,,,janeroe@example.com,TRUE,,01/01/1985,,,+12345550199,TRUE,100 Main Street,,FALSE
+```
+
+!!!note
+    If you have SMTP configured and include the user's email in the csv file, the API key will be emailed directly to the user.
 
 ## Models
 
@@ -48,7 +66,7 @@ Through groups, you can conveniently grant authorization to models.
 
 At the same time, API Keys can also belong to a group.
 
-## Authorization Management
+## Models Authorization
 
 After creating a model, you need to grant authorization for the model to a group or user (API Key).
 

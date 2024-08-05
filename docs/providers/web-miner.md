@@ -1,5 +1,7 @@
 # web-miner
 
+> Since Docker image version 0.0.10
+
 Seach the internet.
 
 This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.
@@ -56,6 +58,8 @@ Configuration:
 
 ### searxng
 
+> Since Docker image version 0.0.11
+
 Visit <https://docs.searxng.org/> for more information.
 
 Create a file: `settings.yml` to support json。
@@ -82,6 +86,8 @@ docker run --rm -d -p 8081:8080 \
 Then you will get the searxng endpoint: <http://127.0.0.1:8081/>, configure it to searxng's host node.
 
 ### SerpAPI
+
+> Since Docker image version 0.0.11
 
 For more information, visit <https://serpapi.com/>.
 

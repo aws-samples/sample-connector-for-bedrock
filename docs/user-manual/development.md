@@ -1,6 +1,8 @@
 # Development
 
-## Development
+This project mainly provides sample code, and it is strongly recommended that you develop it yourself with reference to this project.
+
+## Local Development
 
 ### installation
 

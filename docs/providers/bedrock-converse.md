@@ -1,12 +1,12 @@
 # bedrock-converse
 
+> Since Docker image version 0.0.6
+
 LLM Consistent Interface.
 
 Sends messages to the specified Amazon Bedrock model. `Converse` provides a consistent interface that works with all models that support messages. This allows you to write code once and use it with different models. If a model has unique inference parameters, you can also pass those unique parameters to the model.
 
 ## Configuration
-
-> Since Docker image version 0.0.6
 
 Invoke model via Amazon Bedrock Converse API. You can config all supported models with this provider.
 

@@ -33,7 +33,7 @@
 
 ### 模型管理
 
-模型及其参数可以从后端定义。参见[创建模型](../user-manual/management.md#models)
+模型及其参数可以从后端定义。参见[创建模型](../user-manual/management.md#models)。
 
 定义完成之后，模型可以绑定到组或者 API Key。
 

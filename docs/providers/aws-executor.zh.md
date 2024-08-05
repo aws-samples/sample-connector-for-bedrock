@@ -1,5 +1,7 @@
 # aws-executor
 
+> Since Docker image version 0.0.10
+
 AWS 命令行执行器。
 
 通过此 Provider，您可以使用自然语言执行 AWS 命令​​并获取执行结果。

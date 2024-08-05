@@ -1,12 +1,12 @@
 # bedrock-converse
 
+> Since Docker image version 0.0.6
+
 Amazon Bedrock LLM 统一调用。
 
 将消息发送到指定的 Amazon Bedrock 模型。Converse提供了一个与支持消息的所有模型兼容的统一接口。这允许您只编写一次代码,并将其用于不同的模型。如果某个模型具有独特的推理参数,您也可以将这些独特的参数传递给该模型。
 
 ## 参数配置
-
-> 从 Docker 镜像版本 0.0.6 后提供
 
 通过亚马逊Bedrock Converse API调用模型。您可以使用此提供程序配置所有支持的模型。
 
