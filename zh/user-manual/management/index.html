@@ -640,10 +640,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="API Keys 管理">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      主要功能
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      批量导入用户
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       模型管理
     </span>
@@ -652,7 +676,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       组管理
     </span>
@@ -661,9 +685,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
-      授权管理
+      模型授权
     </span>
   </a>
   
@@ -1023,10 +1047,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="API Keys 管理">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      主要功能
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      批量导入用户
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       模型管理
     </span>
@@ -1035,7 +1083,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       组管理
     </span>
@@ -1044,9 +1092,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
-      授权管理
+      模型授权
     </span>
   </a>
   
@@ -1077,14 +1125,26 @@
 <p>API key 分管理员权限和普通用户权限。普通用户可以看到自己的消费和聊天记录。</p>
 <p>管理员角色除了拥有普通用户的功能，还可以管理 API key，模型 和 组。</p>
 <h2 id="api-keys">API Keys 管理<a class="headerlink" href="#api-keys" title="Permanent link">&para;</a></h2>
-<p>您可以：</p>
+<h3 id="_3">主要功能<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>创建一个用户（颁发一个 Key）。</li>
+<li>批量导入用户。</li>
 <li>修改这个 Key，修改名字，月消费额等。</li>
 <li>重置 Key。</li>
 <li>给 Key 充值。</li>
 </ul>
-<h2 id="_3">模型管理<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<h3 id="_4">批量导入用户<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<p>需要准备一个 csv 文件，列应该包含 <code>name</code> 和 <code>email</code> 两个字段。</p>
+<p>本项目直接支持了 cognito 的导入模版，这里是一个 cognito 的 excel 示例，用户的名字会优先采纳 <code>cognito:username</code>，然后 <code>name</code>。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cognito:username,name,given_name,family_name,middle_name,nickname,preferred_username,profile,picture,website,email,email_verified,gender,birthdate,zoneinfo,locale,phone_number,phone_number_verified,address,updated_at,cognito:mfa_enabled
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>John,,John,Doe,,,,,,,johndoe@example.com,TRUE,,02/01/1985,,,+12345550100,TRUE,123 Any Street,,FALSE
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Jane,,Jane,Roe,,,,,,,janeroe@example.com,TRUE,,01/01/1985,,,+12345550199,TRUE,100 Main Street,,FALSE
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>如果您配置了 SMTP，并且在 csv 文件里里包含了用户 email，那么 API key 会直接通过邮件发送给用户。</p>
+</div>
+<h2 id="_5">模型管理<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <p>包含如下功能：</p>
 <ul>
 <li>创建模型</li>
@@ -1152,10 +1212,10 @@
 </tr>
 </tbody>
 </table>
-<h2 id="_4">组管理<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h2 id="_6">组管理<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <p>通过组，您可以方便地给模型授权。</p>
 <p>同时 API Keys 也可以属于某一个组。</p>
-<h2 id="_5">授权管理<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<h2 id="_7">模型授权<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <p>创建完模型，您需要将该模型授权给组或者用户（API Key）。</p>
 <p>在 API Keys 的列表页面，点击 Models 按钮。</p>
 <p>在 Groups 的列表页面，同样也有 Models 按钮。</p>
@@ -1182,7 +1242,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-08-05T13:24:02+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-08-05</span>
   </span>
 
     

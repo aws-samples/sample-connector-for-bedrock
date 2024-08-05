@@ -638,6 +638,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="API Keys management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#main-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Main features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import users
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -659,9 +683,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#authorization-management" class="md-nav__link">
+  <a href="#models-authorization" class="md-nav__link">
     <span class="md-ellipsis">
-      Authorization Management
+      Models Authorization
     </span>
   </a>
   
@@ -1021,6 +1045,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="API Keys management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#main-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Main features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      Import users
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1042,9 +1090,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#authorization-management" class="md-nav__link">
+  <a href="#models-authorization" class="md-nav__link">
     <span class="md-ellipsis">
-      Authorization Management
+      Models Authorization
     </span>
   </a>
   
@@ -1075,13 +1123,26 @@
 <p>API keys have admin privileges and regular user privileges. Regular users can view their own consumption and chat records.</p>
 <p>In addition to having the functions of a regular user, the admin role can also manage API keys, models, and groups.</p>
 <h2 id="api-keys-management">API Keys management<a class="headerlink" href="#api-keys-management" title="Permanent link">&para;</a></h2>
+<h3 id="main-features">Main features<a class="headerlink" href="#main-features" title="Permanent link">&para;</a></h3>
 <p>You can:</p>
 <ul>
 <li>Create a user (issue a Key).</li>
+<li>Import users in bulk.</li>
 <li>Modify this Key, change the name, monthly consumption limit, etc.</li>
 <li>Reset the Key.</li>
 <li>Recharge the Key.</li>
 </ul>
+<h3 id="import-users">Import users<a class="headerlink" href="#import-users" title="Permanent link">&para;</a></h3>
+<p>You need to prepare a csv file, the column should contain the <code>name</code> and <code>email</code> fields.</p>
+<p>This project directly supports the import template of cognito. Here&rsquo;s an Excel example of Cognito, where the user&rsquo;s name takes precedence over <code>cognito:username</code> and then <code>name</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cognito:username,name,given_name,family_name,middle_name,nickname,preferred_username,profile,picture,website,email,email_verified,gender,birthdate,zoneinfo,locale,phone_number,phone_number_verified,address,updated_at,cognito:mfa_enabled
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>John,,John,Doe,,,,,,,johndoe@example.com,TRUE,,02/01/1985,,,+12345550100,TRUE,123 Any Street,,FALSE
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Jane,,Jane,Roe,,,,,,,janeroe@example.com,TRUE,,01/01/1985,,,+12345550199,TRUE,100 Main Street,,FALSE
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you have SMTP configured and include the user&rsquo;s email in the csv file, the API key will be emailed directly to the user.</p>
+</div>
 <h2 id="models">Models<a class="headerlink" href="#models" title="Permanent link">&para;</a></h2>
 <p>Enter the manager backend, as shown in the image:</p>
 <p><a class="glightbox" href="../../providers/screenshots/model-1.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Model Create" src="../../providers/screenshots/model-1.png" style="max-width:600px;" /></a></p>
@@ -1147,7 +1208,7 @@
 <h2 id="group-management">Group Management<a class="headerlink" href="#group-management" title="Permanent link">&para;</a></h2>
 <p>Through groups, you can conveniently grant authorization to models.</p>
 <p>At the same time, API Keys can also belong to a group.</p>
-<h2 id="authorization-management">Authorization Management<a class="headerlink" href="#authorization-management" title="Permanent link">&para;</a></h2>
+<h2 id="models-authorization">Models Authorization<a class="headerlink" href="#models-authorization" title="Permanent link">&para;</a></h2>
 <p>After creating a model, you need to grant authorization for the model to a group or user (API Key).</p>
 <p>On the API Keys list page, click the Models button.</p>
 <p>On the Groups list page, there is also a Models button.</p>
@@ -1174,7 +1235,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-08-05T13:24:02+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-08-05</span>
   </span>
 
     
