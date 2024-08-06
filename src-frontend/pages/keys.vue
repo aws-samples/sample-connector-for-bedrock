@@ -61,9 +61,13 @@
       <Form :model="importForm" ref="importForm" theme="light" :rules="uploadRules" :labelCol="{ span: 5 }">
         <FormItem :label="this.$t('keys.upload_file')" prop="file">
           <ButtonGroup>
-            <Input style="width: 190px;" readonly="true" v-model="importFileName" theme="light" />
-            <Button @click="$refs.file.click()" theme="light">Choose file</Button>
+            <Input style="width: 168px;" readonly="true" v-model="importFileName" theme="light" />
+            
+            <Button @click="$refs.file.click()" :icon="FolderOpen" theme="light"></Button>
           </ButtonGroup>
+          <a href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/#import-users" target="_blank" 
+          style="margin-left: 8px;"
+          >Help</a>
           <input type="file" ref="file" style="display: none;" @change="fileChange" />
         </FormItem>
         <FormItem :label="this.$t('keys.col_group')" prop="group_id">
@@ -81,7 +85,7 @@
   </div>
 </template>
 <script>
-import { Copy, CloudUpload } from 'kui-icons'
+import { Copy, CloudUpload,FolderOpen } from 'kui-icons'
 export default {
   name: 'AdminKeys',
   data() {
@@ -94,6 +98,7 @@ export default {
     return {
       Copy,
       CloudUpload,
+      FolderOpen,
       items: [],
       title: '',
       columns: [
