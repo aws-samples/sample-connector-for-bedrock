@@ -26,6 +26,14 @@ You can:
 
 You need to prepare a csv file, the column should contain the `name` and `email` fields.
 
+```text
+name,email
+tom,tom@example.com
+jerry,jerry@example.com
+```
+
+[Download CSV file](./sample-users.csv).
+
 This project directly supports the import template of cognito. Here's an Excel example of Cognito, where the user's name takes precedence over `cognito:username` and then `name`.
 
 ```text

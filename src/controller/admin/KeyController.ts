@@ -77,17 +77,21 @@ class KeyController extends AbstractController {
         }
         const month_quota = ctx.request.body.month_quota;
         const group_id = ctx.request.body.group_id;
-        const file = ctx.request.files.file;
-        const jsonUsers: any = await toJson(file.filepath);
-        for (const user of jsonUsers) {
-            const name = user["cognito:username"] || user.name;
-            // console.log(name, month_quota, group_id);
-            await service.create(ctx.db, {
-                name,
-                email: user.email,
-                month_quota,
-                group_id
-            });
+        try {
+            const file = ctx.request.files.file;
+            const jsonUsers: any = await toJson(file.filepath);
+            for (const user of jsonUsers) {
+                const name = user["cognito:username"] || user.name;
+                // console.log(name, month_quota, group_id);
+                await service.create(ctx.db, {
+                    name,
+                    email: user.email,
+                    month_quota,
+                    group_id
+                });
+            }
+        } catch (ex) {
+            throw new Error("Please upload a properly formatted CSV file.");
         }
         return super.ok(ctx, "OK");
     }
