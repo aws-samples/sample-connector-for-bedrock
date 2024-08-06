@@ -60,8 +60,11 @@
       :mask-closable="true">
       <Form :model="importForm" ref="importForm" theme="light" :rules="uploadRules" :labelCol="{ span: 5 }">
         <FormItem :label="this.$t('keys.upload_file')" prop="file">
-          <input type="file" ref="file" style="display: none;" @change="fileChange" name="file" id="file" />
-          <Button @click="$refs.file.click()" style="width: 200px;max-width: 300px;">{{ importFileName || 'Choose file' }}</Button>
+          <ButtonGroup>
+            <Input style="width: 190px;" readonly="true" v-model="importFileName" theme="light" />
+            <Button @click="$refs.file.click()" theme="light">Choose file</Button>
+          </ButtonGroup>
+          <input type="file" ref="file" style="display: none;" @change="fileChange" />
         </FormItem>
         <FormItem :label="this.$t('keys.col_group')" prop="group_id">
           <Select style="width:200px" :options="groups">
@@ -113,7 +116,7 @@ export default {
         file: [{ required: true, message: 'Please choose a csv file...' }],
       },
       importForm: {
-        month_quota: 1, group_id: 1
+        month_quota: 1, group_id: 1, file: ''
       },
       groups: [],
       action: "add",
@@ -144,22 +147,28 @@ export default {
       this.importFileName = e.target.value.split('\\').pop()
     },
     submitExcel() {
-      this.saving = true
-      let data = new FormData()
-      let { month_quota, group_id } = this.importForm
-      data.append('month_quota', month_quota)
-      data.append('group_id', group_id)
-      data.append('file', this.$refs.file.files[0])
+      this.$refs.importForm.validate(v => {
+        if (!v) return;
+        this.saving = true
+        let data = new FormData()
+        let { month_quota, group_id } = this.importForm
+        data.append('month_quota', month_quota)
+        data.append('group_id', group_id)
+        data.append('file', this.$refs.file.files[0])
 
-      this.$http.post(this.uploadEndpoint, data).then(res => {
-        if (res.success) {
-          this.$Message.success("Import successfuly.");
-          this.showImport = false; 
-          this.get_data()
-        }
-      }).finally(() => {
-        this.saving = false;
-      });
+        this.$http.post(this.uploadEndpoint, data).then(res => {
+          if (res.success) {
+            this.$Message.success("Import successfuly.");
+            this.showImport = false;
+            this.get_data()
+
+            this.$refs.file.value = null
+            this.importFileName = null
+          }
+        }).finally(() => {
+          this.saving = false;
+        });
+      })
     },
     copy({ api_key }) {
       this.$copyText(api_key).then(e => {
@@ -297,6 +306,13 @@ export default {
 
   th {
     word-break: keep-all !important;
+  }
+}
+
+.k-btn-group {
+  .k-input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
   }
 }
 </style>
