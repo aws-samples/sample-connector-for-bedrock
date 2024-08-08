@@ -913,13 +913,20 @@ Resources:
         description: Bootstrap Cloud9 Instance
         mainSteps:
         - action: aws:runShellScript
-          name: ExampleC9bootstrap
+          name: AutoUpdateBrConnectorInEc2
           inputs:
             runCommand:
             - "#!/bin/bash -x"
-            - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-            - docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
-            - docker restart brconnector
+            - BRC_DIGEST=$(docker images --digests public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock |grep -v -e DIGEST -e grep |awk '{print $3}')
+            - BRC_REG_DIGEST=$(regctl image digest public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock:latest)
+            - |
+              if [[ $BRC_REG_DIGEST != $BRC_DIGEST ]]; then
+                aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+                docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
+                docker rm -f brconnector
+                cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sh
+              fi
+            - echo "Bootstrap Complete"
 
   EC2AutoUpdateAssociation: 
     Condition: IsAutoUpdate
