@@ -2,266 +2,266 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/tags/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/tags/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/tags/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/home/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/changelogs/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/deployment/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/home/quick-start/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/quick-start/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/aws-executor/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/aws-executor/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/aws-executor/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-converse/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-knowledge-base/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/introduction/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/introduction/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/introduction/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/ollama/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/ollama/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/ollama/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/painter/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/sagemaker-lmi/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/sagemaker-lmi/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/sagemaker-lmi/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/web-miner/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/web-miner/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/web-miner/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/apis/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/apis/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/apis/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/development/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/development/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/development/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/introduction/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/introduction/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/introduction/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/management/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/sample-client-for-bedrock/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/sample-client-for-bedrock/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/sample-client-for-bedrock/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/tags/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/tags/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/tags/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/changelogs/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/changelogs/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/deployment/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/deployment/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/quick-start/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/home/quick-start/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/aws-executor/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/aws-executor/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/aws-executor/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-converse/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-converse/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-knowledge-base/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-knowledge-base/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/introduction/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/introduction/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/introduction/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/ollama/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/ollama/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/ollama/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/painter/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/painter/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/sagemaker-lmi/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/sagemaker-lmi/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/sagemaker-lmi/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/web-miner/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/web-miner/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/web-miner/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/apis/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/apis/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/apis/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/development/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/development/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/development/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/introduction/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/introduction/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/introduction/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/management/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/management/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/sample-client-for-bedrock/</loc>
-        <lastmod>2024-08-06</lastmod>
+        <lastmod>2024-08-08</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/sample-client-for-bedrock/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/sample-client-for-bedrock/"/>
