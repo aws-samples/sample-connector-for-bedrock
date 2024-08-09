@@ -110,7 +110,19 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 ```
 
 - update lambda image with correct architecture
-- or login to ec2 to update local image and restart brconnector container
+
+
+### BRConnector on EC2
+
+- login to ec2 to update local image and restart brconnector container
+
+```sh
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
+docker rm -f brconnector
+cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sh
+
+```
 
 ## Migrating to new PostgreSQL database
 You could choose to deploy PostgreSQL in container on ECR or in RDS directly, here list some command for your reference to migrate your data in PG.
