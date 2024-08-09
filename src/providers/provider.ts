@@ -13,20 +13,22 @@ import SagemakerLMI from "./sagemaker_lmi"
 import Painter from "./painter";
 import WebMiner from "./web_miner";
 import AWSExecutor from "./aws_executor"
+import UrlsReader from "./urls_reader";
 
 
 class Provider {
     constructor() {
+        this["bedrock-converse"] = new BedrockConverse();
+        this["sagemaker-lmi"] = new SagemakerLMI();
+        this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
+        this["painter"] = new Painter();
+        this["ollama"] = new OllamaAProvider();
+        this["web-miner"] = new WebMiner();
+        this["urls-reader"] = new UrlsReader();
+        this["aws-executor"] = new AWSExecutor();
         this["bedrock-claude3"] = new BedrockClaude();
         this["bedrock-mistral"] = new BedrockMixtral();
         this["bedrock-llama3"] = new BedrockLlama3();
-        this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
-        this["ollama"] = new OllamaAProvider();
-        this["bedrock-converse"] = new BedrockConverse();
-        this["sagemaker-lmi"] = new SagemakerLMI();
-        this["painter"] = new Painter();
-        this["web-miner"] = new WebMiner();
-        this["aws-executor"] = new AWSExecutor();
     }
 
     async chat(ctx: any) {
@@ -38,7 +40,6 @@ class Provider {
         }
         const chatRequest: ChatRequest = ctx.request.body;
 
-        // console.log("ccccccccccccccc", chatRequest);
         const session_id = ctx.headers["session-id"];
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
         const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
