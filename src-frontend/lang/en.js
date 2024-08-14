@@ -6,7 +6,8 @@ export default {
     edit: 'Edit',
     new: 'New',
     detail: "Detail",
-    price_unit: 'M tokens'
+    price_unit: 'M tokens',
+    btn_delete: 'Del'
   },
   login: {
     title: 'Sign in to BRConnector',
@@ -69,7 +70,7 @@ export default {
     title_import_user: "Import User",
     upload_file: "Upload File",
     tip_reset: "Reset will generate a new key.",
-
+    tip_delete: "The deletion operation will delete the key and its associated resources.",
     op_normal: 'Normal',
     op_admin: 'Admin',
 
@@ -97,12 +98,14 @@ export default {
     price_in: "Price-In",
     price_out: "Price-Out",
     provider: "Provider",
+    tip_delete: "The deletion operation will delete the model and its associated resources.",
     config: "Config"
   },
   group: {
     name: "Name",
     key: "Code",
     btn_models: "Models",
+    tip_delete: "The deletion operation will delete the group and its associated resources.",
     title_set_models: "Set Models",
   },
 }

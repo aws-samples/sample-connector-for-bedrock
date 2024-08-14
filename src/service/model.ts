@@ -77,8 +77,21 @@ export default {
         return await db.update("eiai_model", data, ["id", "name", "config", "updated_at"]);
     },
 
-    async delete(db: any, id: any) {
-        return await db.delete("eiai_model", id);
+    async delete(db: any, data: any) {
+        const { id } = data;
+        if (!id) {
+            throw new Error("id is required");
+        }
+        await db.deleteMulti("eiai_group_model", {
+            where: "model_id=$1",
+            params: [id]
+        });
+        await db.deleteMulti("eiai_key_model", {
+            where: "model_id=$1",
+            params: [id]
+        });
+        await db.delete("eiai_model", id);
+        return true;
     },
 
 

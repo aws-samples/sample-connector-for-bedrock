@@ -54,14 +54,6 @@ INSERT INTO eiai_group_model (model_id, group_id)
 SELECT id, 1 FROM eiai_model ON CONFLICT (model_id, group_id) DO NOTHING;
 
 
-CREATE TABLE IF NOT EXISTS eiai_group_model (
-    id serial PRIMARY KEY,
-    model_id int NOT NULL,
-    group_id int NOT NULL,
-    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 
 CREATE OR REPLACE VIEW eiai_v_group_model AS
 SELECT gm.*, g.name group_name, m.name model_name, m.multiple, m.price_in, m.price_out, m.provider, m.config from eiai_group_model gm 

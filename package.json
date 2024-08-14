@@ -50,7 +50,7 @@
     "core-js": "^3.8.3",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
-    "kui-vue": "^3.4.4-a",
+    "kui-vue": "^3.4.5",
     "less": "^4.2.0",
     "less-loader": "^11.1.4",
     "nodemon": "^3.1.0",

@@ -7,7 +7,10 @@
     <Table :data="items" :columns="columns" :loading="loading" >
       <template v-slot:action="c, row">
         <Space>
-          <Button size="small" @click="edit(row)">{{ $t('common.edit') }}</Button>
+          <Button size="small" @click="edit(row)">{{ $t('common.edit') }}</Button> 
+          <Popconfirm :title="$t('group.tip_delete')" @ok="del(row)" :width="260">
+            <Button size="small">{{ $t('common.btn_delete') }}</Button>
+          </Popconfirm>
           <Button size="small" @click="listModels(row)">{{ $t('group.btn_models') }}</Button>
         </Space>
       </template>
@@ -29,10 +32,6 @@
     </Drawer>
   </div>
 </template>
-<style lang="css">
-.k-drawer-mask {  pointer-events: all !important } 
-.k-popconfirm-title { color: white }
-</style>
 <script>
 export default {
   name: 'Groups',
@@ -94,6 +93,15 @@ export default {
       this.title = this.$t('keys.btn_edit')
       this.action = 'edit'
       this.show = true
+    },
+    del(row) {
+      this.loading = true;
+      this.$http.post("/admin/group/delete", { id: row.id }).then(() => {
+        this.$Message.success("Delete successfuly.");
+        this.get_data();
+      }).finally(() => {
+        this.loading = false;
+      });
     },
     listModels(row) {
       this.current_group_id = row.id;

@@ -21,6 +21,9 @@
       <template v-slot:action="c, row">
         <Space>
           <Button size="small" @click="edit(row)">{{ $t('keys.btn_edit') }}</Button>
+          <Popconfirm :title="$t('model.tip_delete')" @ok="del(row)" :width="260">
+            <Button size="small">{{ $t('common.btn_delete') }}</Button>
+          </Popconfirm>
           <Button size="small" @click="detail(row)">{{ $t('keys.btn_detail') }}</Button>
         </Space>
       </template>
@@ -139,6 +142,16 @@ export default {
       this.action = 'detail'
       this.title = this.$t('common.detail')
       this.show = true
+    },
+
+    del(row) {
+      this.loading = true;
+      this.$http.post("/admin/model/delete", { id: row.id }).then(() => {
+        this.$Message.success("Delete successfuly.");
+        this.get_data();
+      }).finally(() => {
+        this.loading = false;
+      });
     },
     save() {
       if (this.action == 'detail') {

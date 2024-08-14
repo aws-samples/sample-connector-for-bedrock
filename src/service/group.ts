@@ -79,7 +79,13 @@ export default {
         if (!id) {
             throw new Error("id is required");
         }
-        return await db.delete("eiai_group", id);
+        await db.deleteMulti("eiai_group_model", {
+            where: "group_id=$1",
+            params: [id]
+        });
+
+        await db.delete("eiai_group", id);
+        return true;
     },
 
     async listModels(db: any, options: any) {
@@ -155,7 +161,8 @@ export default {
             return "created";
         }
 
-    }
+    },
+
 
 
 }

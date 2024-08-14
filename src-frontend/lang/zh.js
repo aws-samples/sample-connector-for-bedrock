@@ -6,7 +6,8 @@ export default {
     edit: '修改',
     new: '新增',
     price_unit: '百万tokens',
-    detail: "详情"
+    detail: "详情",
+    btn_delete: '删'
   },
   login: {
     title: '登录 BRConnector',
@@ -67,6 +68,7 @@ export default {
     title_import_user: "导入用户",
     upload_file: "上传文件",
     tip_reset: "重置后将生成新的 Key。",
+    tip_delete: "删除操作将会删除 Key 及其关联资源。",
 
     op_normal: '普通用户',
     op_admin: '管理员',
@@ -95,12 +97,14 @@ export default {
     price_in: "提示词价格",
     price_out: "输出价格",
     provider: "提供器",
+    tip_delete: "删除操作将会删除模型及其关联资源。",
     config: "配置"
   },
   group: {
     name: "名称",
     key: "编码",
     btn_models: "模型",
+    tip_delete: "删除操作将会删除组及其关联资源。",
     title_set_models: "模型设置",
   },
 }

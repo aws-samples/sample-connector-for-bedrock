@@ -124,11 +124,7 @@ class ModelController extends AbstractController {
     }
     async delete(ctx: any) {
         const data = ctx.request.body;
-        const { id } = data;
-        if (!(~~id)) {
-            throw new Error("id is required");
-        }
-        const result = await service.delete(ctx.db, id);
+        const result = await service.delete(ctx.db, data);
         return super.ok(ctx, result);
     }
     async list(ctx: any) {

@@ -247,6 +247,44 @@ export default {
             updated_at: new Date()
         }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
 
+    },
+
+    async delete(db: any, options: any) {
+        if (!options.api_key && !options.id) {
+            throw new Error("api_key or id is required");
+        }
+        const key = options.id ?
+            await db.loadById("eiai_key", options.id) :
+            await db.loadByKV("eiai_key", "api_key", options.api_key);
+        if (!key) {
+            throw new Error("api_key or id is invalid");
+        }
+
+        const keyId = key.id;
+
+        await db.deleteMulti("eiai_key_model", {
+            where: "key_id=$1",
+            params: [keyId]
+        });
+        await db.deleteMulti("eiai_thread", {
+            where: "key_id=$1",
+            params: [keyId]
+        });
+        await db.deleteMulti("eiai_session", {
+            where: "key_id=$1",
+            params: [keyId]
+        });
+        await db.deleteMulti("eiai_payment", {
+            where: "key_id=$1",
+            params: [keyId]
+        });
+        await db.deleteMulti("eiai_payment", {
+            where: "key_id=$1",
+            params: [keyId]
+        });
+        await db.delete("eiai_key", keyId);
+        return true;
+
     }
 
 }

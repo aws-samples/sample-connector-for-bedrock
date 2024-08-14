@@ -20,9 +20,11 @@
         <Space>
           <Button size="small" @click="recharge(row)">{{ $t('keys.btn_recharge') }}</Button>
           <Button size="small" @click="edit(row)">{{ $t('keys.btn_edit') }}</Button>
-
-          <Popconfirm :title="$t('keys.tip_reset')" @ok="rest(row)">
+          <Popconfirm :title="$t('keys.tip_reset')" @ok="rest(row)" :width="260">
             <Button size="small">{{ $t('keys.btn_reset') }}</Button>
+          </Popconfirm>
+          <Popconfirm :title="$t('keys.tip_delete')" @ok="del(row)" :width="260">
+            <Button size="small">{{ $t('common.btn_delete') }}</Button>
           </Popconfirm>
           <Button size="small" @click="listModels(row)">{{ $t('keys.btn_models') }}</Button>
         </Space>
@@ -92,7 +94,7 @@ export default {
     let url = localStorage.getItem('host');
     const key = localStorage.getItem('key')
     if (url.endsWith('/')) {
-      url = host.substring(0, host.length - 1);
+      url = url.substring(0, url.length - 1);
     }
     url = url + '/admin/api-key/import';
     return {
@@ -261,6 +263,15 @@ export default {
       this.loading = true;
       this.$http.post("/admin/api-key/reset-key", { id: row.id }).then(() => {
         this.$Message.success("Reset successfuly.");
+        this.get_data();
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+    del(row) {
+      this.loading = true;
+      this.$http.post("/admin/api-key/delete", { id: row.id }).then(() => {
+        this.$Message.success("Delete successfuly.");
         this.get_data();
       }).finally(() => {
         this.loading = false;
