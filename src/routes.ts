@@ -9,6 +9,8 @@ import admin_thread_controller from './controller/admin/ThreadController';
 import admin_model_controller from './controller/admin/ModelController';
 import admin_group_controller from './controller/admin/GroupController';
 
+import im_feishu_controlller from './controller/im/Feishu';
+
 import user_session_controller from './controller/user/SessionController';
 import user_thread_controller from './controller/user/ThreadController';
 import user_key_controller from './controller/user/KeyController';
@@ -33,6 +35,9 @@ admin_thread_controller(router);
 admin_model_controller(router);
 // admin_config_controller(router);
 admin_group_controller(router);
+
+
+im_feishu_controlller(router);
 
 // User APIs
 user_session_controller(router);
