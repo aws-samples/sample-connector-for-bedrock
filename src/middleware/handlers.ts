@@ -12,7 +12,12 @@ const authHandler = async (ctx: any, next: any) => {
         ctx.body = "ok";
         return;
     }
+    if (pathName == "/favicon.ico") {
+        ctx.body = "ok";
+        return;
+    }
     pathName = pathName.toLowerCase();
+
 
     // skip cognito
     // if (pathName.indexOf("/aws_cognito_configuration") === 0) {
@@ -20,55 +25,63 @@ const authHandler = async (ctx: any, next: any) => {
     //     ctx.body = "Not Found";
     //     return;
     // }
-    if (pathName.indexOf("/brclient") === 0) {
-        await next();
-        return;
-    }
-    if (pathName.indexOf("/manager") === 0) {
-        await next();
-        return;
-    }
-    if (pathName == "/favicon.ico") {
-        ctx.body = "ok";
-        return;
-    }
 
-    const authorization = ctx.header.authorization || "";
-    const api_key = authorization.length > 20 ? authorization.substring(7) : null;
-    if (!api_key) {
-        throw new Error("Unauthorized: api key required");
-    }
-    if (api_key === config.admin_api_key) {
-        ctx.user = {
-            id: -1,
-            api_key: config.admin_api_key,
-            name: "amdin",
-            role: "admin"
-        };
-    } else if (ctx.db) {
-        //TODO: refactor this to your cache service if too many accesses.
-        const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
 
-        if (!key) {
-            throw new Error("Unauthorized: api key error");
+    // if (pathName.indexOf("/brclient") === 0) {
+    //     await next();
+    //     return;
+    // }
+    // if (pathName.indexOf("/manager") === 0) {
+    //     await next();
+    //     return;
+    // }
+    // if (pathName.indexOf("/im") === 0) {
+    //     await next();
+    //     return;
+    // }
+
+    if (pathName.indexOf("/admin") === 0
+        || pathName.indexOf("/user") === 0
+        || pathName.indexOf("/v1") === 0
+    ) {
+        const authorization = ctx.header.authorization || "";
+        const api_key = authorization.length > 20 ? authorization.substring(7) : null;
+        if (!api_key) {
+            throw new Error("Unauthorized: api key required");
         }
-        ctx.user = key;
-    } else {
-        // Anonymous access...
-        ctx.logger.info("Fake api key, anonymous access...");
-        ctx.user = null;
-    }
+        if (api_key === config.admin_api_key) {
+            ctx.user = {
+                id: -1,
+                api_key: config.admin_api_key,
+                name: "amdin",
+                role: "admin"
+            };
+        } else if (ctx.db) {
+            //TODO: refactor this to your cache service if too many accesses.
+            const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
 
-    if (pathName.indexOf("/admin") >= 0) {
-        if (!ctx.user || ctx.user.role !== "admin") {
-            throw new Error("Unauthorized: you are not an admin role.")
+            if (!key) {
+                throw new Error("Unauthorized: api key error");
+            }
+            ctx.user = key;
+        } else {
+            // Anonymous access...
+            ctx.logger.info("Fake api key, anonymous access...");
+            ctx.user = null;
         }
-    }
 
-    if (pathName.indexOf("/user") >= 0) {
-        if (!ctx.user) {
-            throw new Error("Unauthorized: you are not a member.")
+        if (pathName.indexOf("/admin") >= 0) {
+            if (!ctx.user || ctx.user.role !== "admin") {
+                throw new Error("Unauthorized: you are not an admin role.")
+            }
         }
+
+        if (pathName.indexOf("/user") >= 0) {
+            if (!ctx.user) {
+                throw new Error("Unauthorized: you are not a member.")
+            }
+        }
+
     }
     await next();
 
