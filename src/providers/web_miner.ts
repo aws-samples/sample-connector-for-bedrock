@@ -27,7 +27,7 @@ export default class WebMiner extends AbstractProvider {
     ctx.status = 200;
 
     if (chatRequest.stream) {
-      const keywordsResponse = await this.extractKeywords(ctx, chatRequest);
+      const keywordsResponse = await this.extractKeywords(chatRequest, session_id, ctx);
       let keyword: string;
       for (const c of keywordsResponse.choices) {
         if (c.message.tool_calls) {
@@ -108,7 +108,7 @@ export default class WebMiner extends AbstractProvider {
     ctx.res.end();
   }
 
-  async extractKeywords(ctx: any, chatRequest: ChatRequest) {
+  async extractKeywords(chatRequest: ChatRequest, session_id: string, ctx: any) {
     const keyQuery = chatRequest.messages.filter(e => (e.role == "user")).reduce((prev, ele) => {
       return prev + ele.content + "\n\n";
     }, "");
@@ -149,14 +149,13 @@ export default class WebMiner extends AbstractProvider {
       tool_choice: "auto"
     }
 
-    // console.log(JSON.stringify(kRequest, null, 2));
-    // console.log(chatRequest, ctx.user);
     const response = await fetch("http://localhost:8866/v1/chat/completions", {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ctx.user.api_key
+        'Authorization': 'Bearer ' + ctx.user.api_key,
+        'Session-Id': session_id
       },
       body: JSON.stringify(kRequest)
     });

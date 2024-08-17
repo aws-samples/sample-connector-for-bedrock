@@ -11,7 +11,7 @@ export default class UrlsReader extends AbstractProvider {
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-        console.log(chatRequest);
+        // console.log(chatRequest);
         const { localLlmModel } = this.modelData.config;
         if (!localLlmModel) {
             throw new Error("You must specify the parameter 'localLlmModel'.")
@@ -34,7 +34,7 @@ export default class UrlsReader extends AbstractProvider {
         const urlContents = await this.fetchUrls(q);
         const prompt = this.toPrompt(q, urlContents)
         lastQ.content = prompt;
-        console.log(chatRequest);
+        // console.log(chatRequest);
         ctx.set({
             'Connection': 'keep-alive',
             'Cache-Control': 'no-cache',
