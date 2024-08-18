@@ -11,7 +11,7 @@ export default async (router: any): Promise<void> => {
     limit: 1000
   });
   for (const connector of connectors) {
-    console.log("----------------Feishu [" + connector.name + "] configured----------------");
+    console.log("Feishu bot [" + connector.name + "] is connected...");
 
     const { appId, appSecret, encryptKey } = connector.config;
     const client = new lark.Client({
@@ -24,7 +24,7 @@ export default async (router: any): Promise<void> => {
     if (encryptKey) params.encryptKey = encryptKey;
 
     const eventDispatcher = new lark.EventDispatcher(params).register({
-      'im.message.receive_v1': async data => { receive(client, data) },
+      'im.message.receive_v1': async data => { await receive(client, data) },
     });
 
     router.post(`/bot/feishu/${connector.name}/webhook/event`, lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true, }));
@@ -36,6 +36,8 @@ export default async (router: any): Promise<void> => {
 const receive = async (client: lark.Client, data: any) => {
   console.log(data);
   const open_chat_id = data.message.chat_id;
+  const content = data.message.content;
+  const jContent = JSON.parse(content);
 
   const res = await client.im.message.create({
     params: {
@@ -43,10 +45,31 @@ const receive = async (client: lark.Client, data: any) => {
     },
     data: {
       receive_id: open_chat_id,
-      content: JSON.stringify({ text: 'hello world' }),
-      msg_type: 'text'
+      content: JSON.stringify({
+        "schema": "2.0",
+        "config": {
+          "streaming_mode": true,
+        },
+        "card_link": {
+          "url": "https://www.baidu.com"
+        },
+        "header": {},
+        "body": {
+          "elements": [
+            {
+              "tag": "div",
+              "element_id": "xxxxx_id",
+              text: {
+                content: "Hello 123",
+                lines: 1
+              }
+            }
+          ]
+        }
+      }),
+      msg_type: 'interactive'
     },
   });
+  console.log(res);
   return res;
 };
-
