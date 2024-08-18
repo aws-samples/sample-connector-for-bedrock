@@ -27,7 +27,7 @@ export default async (router: any): Promise<void> => {
       'im.message.receive_v1': async data => { receive(client, data) },
     });
 
-    router.post(`/bot/feishu/${connector.name}/webhook/event`, lark.adaptKoaRouter(eventDispatcher));
+    router.post(`/bot/feishu/${connector.name}/webhook/event`, lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true, }));
 
   }
 }

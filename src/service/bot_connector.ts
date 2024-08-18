@@ -50,9 +50,9 @@ export default {
         const { id, name, config, provider } = data;
         if (id) {
             const updateData: any = { id };
-            updateData.name = name;
-            updateData.config = config;
-            updateData.provider = provider;
+            name && (updateData.name = name);
+            config && (updateData.config = config);
+            provider && (updateData.provider = provider);
             updateData.updated_at = new Date();
             return await db.update("eiai_bot_connector", updateData, ["id", "name", "provider", "created_at", "updated_at"]);
         } else {
