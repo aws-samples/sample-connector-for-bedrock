@@ -34,6 +34,7 @@ export default async (router: any): Promise<void> => {
 
 
 const receive = async (client: lark.Client, data: any) => {
+  console.log(data);
   const open_chat_id = data.message.chat_id;
 
   const res = await client.im.message.create({
