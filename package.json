@@ -21,6 +21,7 @@
     "@aws-sdk/client-sagemaker-runtime": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.614.0",
     "@koa/cors": "^5.0.0",
+    "@larksuiteoapi/node-sdk": "^1.32.0",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.4.5",
     "googleapis": "^140.0.1",

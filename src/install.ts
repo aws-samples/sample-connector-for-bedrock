@@ -51,6 +51,20 @@ export default async function () {
         console.log("[v0.0.5] Created  successfully.");
     }
 
+    // 0.0.12 install...
+    console.log("[v0.0.12] Check database status...");
+    const sql_0_0_12 = "SELECT to_regclass('public.eiai_bot_connector')";
+    const res_0_0_12 = await client.query(sql_0_0_12);
+    const regClass_0_0_12 = res_0_0_12.rows[0]["to_regclass"];
+    if (regClass_0_0_12) {
+        console.log("[v0.0.12] Tables created, skip installation.");
+    } else {
+        console.log("[v0.0.12] Tables not exists, installing...");
+        const sqlCreate_0_0_12 = fs.readFileSync("./src/scripts/patch-0.0.12.sql", "utf8");
+        await client.query(sqlCreate_0_0_12);
+        console.log("[v0.0.12] Created  successfully.");
+    }
+
     await client.end();
     const adminKey = config.admin_api_key;
     if (!adminKey) {

@@ -6,7 +6,7 @@ export default class PGClient {
   debug: boolean = false;
 
 
-  public static async build(config: any): Promise<PGClient | null> {
+  public static build(config: any): PGClient {
     try {
       const pGClient = new PGClient();
       const client = new Pool({

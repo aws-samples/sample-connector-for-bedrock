@@ -102,7 +102,7 @@ const errorHandler = async (ctx: any, next: any) => {
 
 const databaseHandler = async (ctx: any, next: any) => {
     if (config.pgsql.host && config.pgsql.database) {
-        ctx.db = await DB.build(config.pgsql);
+        ctx.db = DB.build(config.pgsql);
     }
     await next();
 };
