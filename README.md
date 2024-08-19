@@ -12,6 +12,10 @@ It is compatible with any OPENAI client that can define Host and API Key.
 
 [Providers](https://aws-samples.github.io/sample-connector-for-bedrock/providers/introduction/)
 
+Docker Image: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock)
+
+Docker Image for Lambda: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock-lambda/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda)
+
 ## Main Features
 
 ### Supported Models and Platforms
@@ -38,12 +42,12 @@ Models and their parameters can be defined from the backend.
 
 Once defined, models can be bound to groups or API Keys.
 
-## Change logs
+## Changelogs
 
 ### 0.0.12
 
-1. New plugin: urls-reader, which can parse URLs in user conversations and download the text content from the URLs to add to the conversation context.
-2. Optimized the painter plugin, now supporting the Titan image model. The large language model has been changed to BRConnector's local model.
+1. New provider: [urls-reader](https://aws-samples.github.io/sample-connector-for-bedrock/providers/urls-reader/ ), which can parse URLs in user conversations and download the text content from the URLs to add to the conversation context.
+2. Optimized the [painter](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/) provider, now supporting the Titan image model. The large language model has been changed to BRConnector's local model.
 3. It is now possible to delete models, groups, and API Keys in the manager interface.
 4. Bug fix: Automatic update script for CloudFormation EC2.
 
