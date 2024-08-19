@@ -1,6 +1,6 @@
 # ollama
 
-您可以使用 Ollama 部署原生模型。该提供商可以适应 Ollama 的 API。
+您可以使用 Ollama 部署原生模型。该 Provider 可以适配 Ollama 的 API。
 
 更多信息,请访问 <https://github.com/ollama/ollama/>。
 

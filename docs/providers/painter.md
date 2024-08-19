@@ -21,8 +21,6 @@ Draw using the bedrock paint model.
 }
 ```
 
-
-
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
 | localLlmModel  | string   | N    |   | You should choose a native model for **function calling** |
