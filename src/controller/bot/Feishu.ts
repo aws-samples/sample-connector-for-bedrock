@@ -2,32 +2,35 @@ import * as lark from '@larksuiteoapi/node-sdk';
 import config from '../../config';
 import DB from '../../util/postgres';
 
-
 export default async (router: any): Promise<void> => {
-  const db = DB.build(config.pgsql);
-  const connectors = await db.list("eiai_bot_connector", {
-    where: "provider=$1",
-    params: ["feishu"],
-    limit: 1000
-  });
-  for (const connector of connectors) {
-    console.log("Feishu bot [" + connector.name + "] is connected...");
-
-    const { appId, appSecret, encryptKey } = connector.config;
-    const client = new lark.Client({
-      appId,
-      appSecret
+  try {
+    const db = DB.build(config.pgsql);
+    const connectors = await db.list("eiai_bot_connector", {
+      where: "provider=$1",
+      params: ["feishu"],
+      limit: 1000
     });
+    for (const connector of connectors) {
+      console.log("Feishu bot [" + connector.name + "] is connected...");
 
-    const params: any = {};
+      const { appId, appSecret, encryptKey } = connector.config;
+      const client = new lark.Client({
+        appId,
+        appSecret
+      });
 
-    if (encryptKey) params.encryptKey = encryptKey;
+      const params: any = {};
 
-    const eventDispatcher = new lark.EventDispatcher(params).register({
-      'im.message.receive_v1': async data => { await receive(client, data) },
-    });
+      if (encryptKey) params.encryptKey = encryptKey;
 
-    router.post(`/bot/feishu/${connector.name}/webhook/event`, lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true, }));
+      const eventDispatcher = new lark.EventDispatcher(params).register({
+        'im.message.receive_v1': async data => { await receive(client, data) },
+      });
+
+      router.post(`/bot/feishu/${connector.name}/webhook/event`, lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true, }));
+
+    }
+  } catch (ex) {
 
   }
 }
