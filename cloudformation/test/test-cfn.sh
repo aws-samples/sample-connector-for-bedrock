@@ -3,7 +3,7 @@
 
 if [[ $# -ne 1 ]]; then
     echo "Usage: $0 true : create new vpc"
-    echo "Usage: $0 false: using existing vpc (run after `$0 true`)"
+    echo "Usage: $0 false: using existing vpc (run after \"$0 true\")"
     exit 99
 fi
 NEWVPC=$1
