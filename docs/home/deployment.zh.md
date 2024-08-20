@@ -178,3 +178,10 @@ docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
 
 ```
 
+## 不支持的区域
+中国区域暂时不支持部署，由于：
+- Lambda URL 在中国区域不支持
+- Cloudfront 在中国区域需要使用已备案的自有域名
+- ALB 暴露 443 端口需要使用已备案的自有域名
+
+
