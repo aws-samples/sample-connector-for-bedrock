@@ -182,7 +182,8 @@ export default class Painter extends AbstractProvider {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ctx.user.api_key
+        'Authorization': 'Bearer ' + ctx.user.api_key,
+        'Session-Id': session_id
       },
       body: JSON.stringify(kRequest)
     });
