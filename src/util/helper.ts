@@ -43,9 +43,15 @@ const helper = {
         if (ctx.db) {
             let rtn = await modelService.loadByName(ctx.db, chatRequest.model);
             if (!rtn) {
-                rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
+                rtn = await modelService.loadByName(ctx.db, "default");
+                // rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
                 // throw new Error(`The model [${chatRequest.model}] is not found. You may refresh to get new models.`);
             }
+            if (!rtn) {
+                // rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
+                throw new Error(`The model [${chatRequest.model}] is not found.`);
+            }
+
             return rtn;
         }
         return helper.getModelDataWithoutDB(chatRequest.model);

@@ -30,6 +30,15 @@ export default {
         if (options.q) {
             keys.push("q");
         }
+        if (options.name) {
+            keys.push("name");
+        }
+        if (options.group_id) {
+            keys.push("group_id");
+        }
+        if (options.role) {
+            keys.push("role");
+        }
 
         const conditions: any = {
             cols: "*",
@@ -45,6 +54,18 @@ export default {
                 where += ` and (name like $${keyIndex + 1} or email like  $${keyIndex + 1})`;
             }
 
+            if (key === "name") {
+                params.push(`${options.name}`);
+                where += ` and name=$${keyIndex + 1}`;
+            }
+            if (key === "group_id") {
+                params.push(`${options.group_id}`);
+                where += ` and group_id=$${keyIndex + 1}`;
+            }
+            if (key === "role") {
+                params.push(`${options.role}`);
+                where += ` and role=$${keyIndex + 1}`;
+            }
         }
 
 
@@ -207,6 +228,7 @@ export default {
                 params.push(options.model_id);
                 where += ` and model_id=$${keyIndex + 1}`;
             }
+
         }
 
         conditions.where = where;

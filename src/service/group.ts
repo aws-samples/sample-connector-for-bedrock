@@ -28,7 +28,7 @@ export default {
             const keyIndex = keys.indexOf(key);
             if (key === "q") {
                 params.push(`%${options.q}%`);
-                where += ` and (name like $${keyIndex + 1}`;
+                where += ` and (name like $${keyIndex + 1})`;
             }
         }
 

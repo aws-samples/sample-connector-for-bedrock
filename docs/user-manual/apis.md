@@ -1,6 +1,6 @@
 # API Reference
 
-### LLM API
+## LLM API
 
 Completions
 
@@ -23,14 +23,16 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-List supported models
+List models
 
 ```text
 GET /v1/models
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### Admin API
+## Admin API
+
+### API key
 
 Create an api key
 
@@ -100,9 +102,116 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 List api keys
 
 ```text
-GET /admin/api-key/list?q=&limit=10&offset=
+GET /admin/api-key/list?q=&name=&group_id=&role=&limit=10&offset=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
+
+Delete an api key
+
+```text
+POST /admin/api-key/delete
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "id": 1
+}
+```
+
+### Model
+
+List models
+
+```text
+GET /admin/model/list?q=&limit=10&offset=
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Create a model
+
+```text
+POST /admin/model/save
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "name": "xxxx",
+  "group_id": 1,
+  "multiple": false, 
+  "config": "{\"modelId\": \"somevalue\"}", 
+  "provider": "bedrock-converse",
+  "price_in": 1,
+  "price_out":3
+}
+```
+
+Update a model
+
+```text
+POST /admin/model/save
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "id": 1,
+  "name": "xxxx",
+  "group_id": 1,
+  "multiple": false, 
+  "config": "{\"modelId\": \"somevalue\"}", 
+  "provider": "bedrock-converse",
+  "price_in": 1,
+  "price_out":3
+}
+```
+
+Delete a model
+
+```text
+POST /admin/model/delete
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "id": 1
+}
+```
+
+### Group
+
+List groups
+
+```text
+GET /admin/group/list?q=&limit=10&offset=
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Delete a group
+
+```text
+POST /admin/group/delete
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "id": 1
+}
+```
+
+### Model Authorization
+
+List models of a group
+
+Authorize the model to a group
+
+Deauthorize the model from a group
+
+List models of an api key
+
+Authorize the model to an api key
+
+Deauthorize the model from an api key
+
+### Chat records
 
 List sessions
 
@@ -118,7 +227,7 @@ GET /admin/thread/list?q=&limit=10&offset=&key_id=&session_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### User API
+## User API
 
 My sessions
 
