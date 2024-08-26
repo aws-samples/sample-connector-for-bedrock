@@ -68,6 +68,15 @@ A model consists of the following fields:
 
 After creating the model, you need to authorize the model to a group or user (API Key).
 
+!!! tip
+    Some clients may restrict users from customizing model names. To enable BRConnector to respond to such requests, you can adopt the following strategies:
+
+    1. Create a new model in the backend with a name matching the one specified by the client, thereby forwarding the request to your actual backend model.
+    
+    2. Alternatively, you can create a generic model named "default". This way, regardless of the model name passed from the frontend, BRConnector will be able to respond.
+
+    These methods ensure that BRConnector maintains flexibility and compatibility when facing various client requests, thereby enhancing the overall adaptability of the system.
+
 ## Group Management
 
 Through groups, you can conveniently grant authorization to models.
