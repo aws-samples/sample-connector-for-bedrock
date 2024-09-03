@@ -25,6 +25,7 @@ export default {
     session: 'Sessions',
     thread: 'Threads',
     group: 'Groups',
+    webhook: 'Webhook'
   },
   home: {
     title: 'Mine',
@@ -108,4 +109,10 @@ export default {
     tip_delete: "The deletion operation will delete the group and its associated resources.",
     title_set_models: "Set Models",
   },
+  webhook: {
+    name: "Webhook",
+    tip_delete: "The deletion operation will delete the group and its associated resources.",
+    provider: "Provider",
+    config: "Config"
+  }
 }

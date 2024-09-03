@@ -25,6 +25,7 @@ export default {
     session: '话题',
     thread: '对话',
     group: '组',
+    webhook: 'Webhook'
   },
   home: {
     title: '我的',
@@ -107,4 +108,10 @@ export default {
     tip_delete: "删除操作将会删除组及其关联资源。",
     title_set_models: "模型设置",
   },
+  webhook: {
+    name: "Webhook",
+    tip_delete: "删除操作将会删除组及其关联资源。",
+    provider: "提供者",
+    config: "配置"
+  }
 }
