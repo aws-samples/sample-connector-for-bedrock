@@ -92,3 +92,46 @@ On the API Keys list page, click the Models button.
 On the Groups list page, there is also a Models button.
 
 The models authorized to API Keys and groups have an "AND" relationship.
+
+## Webhook Configuration
+
+Includes the following features:
+
+- Add Feishu bot
+- Modify Feishu bot
+
+To create a Feishu bot, enter the manager backend as shown:
+![Webhook Create](./screenshots/feishu-1.jpg){: style="max-width:600px;"}
+
+Webhook form:
+
+![Webhook Create](./screenshots/feishu-2.jpeg){: style="max-width:600px"}
+
+A Webhook consists of the following fields:
+
+| Key     | Type      | Required     | Default value | Description                          |
+| ------------- | -------| ------------- | ------------- |--------------------------------------|
+| Name  | string   | Y    |  | Name of the Webhook, which also determines the URL of the Webhook |
+| Provider  | string   | Y    |  | Provider is selected from options provided by BRConnector        |
+| Config  | string(json)   | N    |  | Different configurations are provided based on different providers                    |
+
+### Config Example
+```json
+{
+  "appId": "cli_xxxxx",
+  "apiKey": "br-xxxxx",
+  "modelId": "claude-3-sonnet", 
+  "appSecret": "xxxxx"
+}
+```
+
+- appId: The app id of the Feishu bot
+- apiKey: The api key of the BRConnector user, which the Feishu bot will use to call models with relevant permissions
+- modelId: The name of the model in BRConnector
+-appSecret: The app secret of the Feishu bot
+
+> ⚠️Note: Currently, BRConnector must be restarted for the added Webhook to take effect
+Example of configured Webhook URL:
+
+- https://<yourdomain>/bot/feishu/<webhook name>/webhook/event
+- https://www.example.com/bot/feishu/feishu001/webhook/event

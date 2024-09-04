@@ -88,3 +88,46 @@ Jane,,Jane,Roe,,,,,,,janeroe@example.com,TRUE,,01/01/1985,,,+12345550199,TRUE,10
 在 Groups 的列表页面，同样也有 Models 按钮。
 
 API Keys 与 组授权的模型是 “并” 的关系。
+
+## Webhoook 配置
+
+包含如下功能：
+
+- 添加飞书机器人
+- 修改飞书机器人
+
+创建飞书机器人，进入 manager 后台，如图：
+![Webhook Create](./screenshots/feishu-1.png){: style="max-width:600px;"}
+
+Webhook表单：
+
+![Webhook Create](./screenshots/feishu-2.png){: style="max-width:600px"}
+
+Webhook由以下几个字段组成：
+
+| Key     | Type      | Required     | Default value | Description                          |
+| ------------- | -------| ------------- | ------------- |--------------------------------------|
+| Name  | string   | Y    |  | Webhook的名字，这个名字也决定了 Webhook 的 URL 地址 |
+| Provider  | string   | Y    |  | Privder 这个由 BRConnector 提供选择。        |
+| Config  | string(json)   | N    |  | 根据不同的提供器会提供不同的配置。                    |
+
+### Config样例
+```json
+{
+  "appId": "cli_xxxxx",
+  "apiKey": "br-xxxxx",
+  "modelId": "claude-3-sonnet",
+  "appSecret": "xxxxx"
+}
+```
+
+- appId: 飞书机器人的 app id
+- apiKey: BRConnector 用户的 api key，飞书机器人将用这个 api key 的相关权限调用模型
+- modelId: BRConnector中模型的名字
+- appSecret: 飞书机器人的 app secret
+
+> **⚠️注意：目前添加 Webhook 后必须重启BRConnector 才能生效** 
+
+配置完成后的Webhook URL 示例：
+- `https://<yourdomain>/bot/feishu/<webhook name>/webhook/event`
+- `https://www.example.com/bot/feishu/feishu001/webhook/event`
