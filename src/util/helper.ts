@@ -4,8 +4,12 @@ import modelService from "../service/model"
 import config from '../config';
 import nodemailer from 'nodemailer';
 import { exec } from 'child_process';
+const crypto = require('crypto');
 
 const helper = {
+    generateUUID() {
+        return crypto.randomUUID();
+    },
     genApiKey() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let key = '';
