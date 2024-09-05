@@ -26,7 +26,7 @@ export default abstract class AbstractProvider {
             'Cache-Control': 'no-cache',
             'Content-Type': 'text/event-stream',
         });
-
+        // console.log("openAIRequest", openAIRequest)
         const response = await fetch("http://localhost:8866/v1/completions", {
             method: 'POST',
             headers: {
@@ -44,12 +44,27 @@ export default abstract class AbstractProvider {
         let done: any, value: any;
         while (!done) {
             ({ value, done } = await reader.read());
-            // console.log(done);
+            // value && console.log(done, new TextDecoder().decode(value));
             !done && ctx.res.write(value);
         }
         ctx.res.end();
 
     }
+
+    async localCompleteSync(ctx: any, openAIRequest: any, session_id: string) {
+        const response = await fetch("http://localhost:8866/v1/completions", {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + ctx.user.api_key,
+                'Session-Id': session_id
+            },
+            body: JSON.stringify(openAIRequest)
+        });
+        return await response.json();
+    }
+
 
     async localChatStream(ctx: any, openAIRequest: any, session_id: string) {
         ctx.set({

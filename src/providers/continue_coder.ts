@@ -29,30 +29,27 @@ export default class ContinueCoder extends AbstractProvider {
   }
   async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
     this.init(chatRequest);
-    console.log("............", chatRequest);
-    chatRequest.stream = false;
+    // console.log("............", chatRequest);
+
 
     const payload = await this.chatMessageConverter.toPayload(chatRequest);
+    // payload.stream = false;
 
     ctx.status = 200;
 
-    console.log("--payload-------------", JSON.stringify(payload, null, 2));
-
-    if (chatRequest.stream) {
+    if (payload.stream) {
       ctx.set({
         'Connection': 'keep-alive',
         'Cache-Control': 'no-cache',
         'Content-Type': 'text/event-stream',
       });
       await this.localCompleteStream(ctx, payload, session_id);
-      // ctx.body = "ok"
     } else {
       ctx.set({
         'Content-Type': 'application/json',
       });
-      ctx.body = "ok";
 
-      // ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+      ctx.body = await this.localCompleteSync(ctx, payload, session_id);
     }
   }
 

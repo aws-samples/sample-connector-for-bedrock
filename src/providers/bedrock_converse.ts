@@ -33,7 +33,6 @@ export default class BedrockConverse extends AbstractProvider {
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        // console.log("This method is not implemented.");
         const payload = await this.chatMessageConverter.toPayload(chatRequest);
         payload["modelId"] = this.modelId;
 
@@ -83,20 +82,19 @@ export default class BedrockConverse extends AbstractProvider {
 
     async completeStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         let i = 0;
-        // console.log(chatRequest, JSON.stringify(input, null, 2));
+        // console.log("xxxxxxxxxxx ", chatRequest, JSON.stringify(input, null, 2));
         const command = new ConverseStreamCommand(input);
         const response = await this.client.send(command);
 
         if (response.stream) {
             let responseText = "";
             for await (const item of response.stream) {
-                // console.log(item);
                 if (item.contentBlockDelta) {
                     responseText += item.contentBlockDelta.delta.text;
                     ctx.res.write("data:" + WebResponse.wrap2(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
                 }
                 if (item.metadata) {
-                    // console.log(item);
+                    // console.log("resp----", responseText);
                     const input_tokens = item.metadata.usage.inputTokens;
                     const output_tokens = item.metadata.usage.outputTokens;
                     const first_byte_latency = item.metadata.metrics.latencyMs;
