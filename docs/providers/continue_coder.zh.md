@@ -25,8 +25,8 @@
 ```json
 {
   "tabAutocompleteModel": {
-    "title": "MMMM",
-    "model": "Coder",
+    "title": "Any-title",
+    "model": "you-defined-model-name",
     "apiKey": "br-xxxxxxxxxxxx",
     "contextLength": 4000,
     "apiBase": "https://<your-endpoint>/v1/",
@@ -34,7 +34,6 @@
   },
   "tabAutocompleteOptions": {
     "debounceDelay": 3000,
-    "useCache": false,
     "multilineCompletions": "always"
   }
 }
