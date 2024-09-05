@@ -11,7 +11,7 @@ export default class AWSExecutor extends AbstractProvider {
     super();
   }
 
-  async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
+  async chat(chatRequest: ChatRequest, session_id: string, ctx: any,) {
     // console.log(this.modelData);
     const { localLlmModel } = this.modelData.config;
     if (!localLlmModel) {
@@ -83,7 +83,8 @@ export default class AWSExecutor extends AbstractProvider {
       ctx.set({
         'Content-Type': 'application/json',
       });
-      ctx.body = await this.chatSync(ctx, chatRequest, session_id);
+      // ctx.body = await this.chatSync(ctx, chatRequest, session_id);
+      ctx.body = await this.localChatSync(ctx, chatRequest, session_id);
     }
   }
   async extractCli(ctx: any, chatRequest: ChatRequest) {

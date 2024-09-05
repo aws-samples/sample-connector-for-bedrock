@@ -42,6 +42,34 @@ export default {
         // console.log(JSON.stringify(data));
 
         return JSON.stringify(data);
+    },
+    wrap2: (id: any, model: any, content?: any, finish_reason?: any, completion_tokens?: number, prompt_tokens?: number) => {
+        // const created = new Date().getTime();
+        completion_tokens = completion_tokens || 0;
+        prompt_tokens = prompt_tokens || 0;
+        content = content || "";
+        const data: any = {
+            // id, created,
+            // "object": "chat.completion.chunk",
+            // usage: {
+            //     completion_tokens,
+            //     prompt_tokens,
+            //     total_tokens: completion_tokens + prompt_tokens
+            // }
+        };
+
+
+
+        data.choices = [
+            { "index": 0, text: content, finish_reason: finish_reason || "" }
+        ];
+
+        if (model) {
+            data.model = model;
+        }
+
+
+        return JSON.stringify(data);
     }
 }
 
