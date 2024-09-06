@@ -58,18 +58,19 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
+        // console.log("--payload-------------", JSON.stringify(chatRequest, null, 2));
+
         const payload = await this.chatMessageConverter.toPayload(chatRequest);
         payload["modelId"] = this.modelId;
 
         ctx.status = 200;
 
-        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
 
         if (chatRequest.stream) {
             ctx.set({
                 'Connection': 'keep-alive',
                 'Cache-Control': 'no-cache',
-                'Content-Type': 'text/event-stream',
+                'Content-Type': 'text/event-stream'
             });
             await this.chatStream(ctx, payload, chatRequest, session_id);
         } else {
@@ -127,13 +128,15 @@ export default class BedrockConverse extends AbstractProvider {
             let index = 0;
             for await (const item of response.stream) {
                 i++;
-                console.log(item);
+                // console.log(item);
                 if (item.contentBlockDelta) {
                     responseText += item.contentBlockDelta.delta.text;
-                    ctx.res.write("data:" + WebResponse.wrap(i, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                    const p = item.contentBlockDelta["p"];
+                    ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
                 }
-                if (item.messageStop) {
-                    ctx.res.write("data:" + WebResponse.wrap(i, chatRequest.model, "", "stop") + "\n\n");
+                if (item.contentBlockStop) {
+                    const p = item.contentBlockStop["p"];
+                    ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, "", "stop") + "\n\n");
                 }
                 if (item.metadata) {
                     // console.log(item);

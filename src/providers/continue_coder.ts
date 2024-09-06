@@ -2,9 +2,9 @@ import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
   BedrockRuntimeClient, ConverseStreamCommand, ConverseCommand
 } from "@aws-sdk/client-bedrock-runtime";
-import helper from "../util/helper";
+// import helper from "../util/helper";
 // import config from "../config";
-import WebResponse from "../util/response";
+// import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 
 /**
@@ -29,11 +29,7 @@ export default class ContinueCoder extends AbstractProvider {
   }
   async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
     this.init(chatRequest);
-    // console.log("............", chatRequest);
-
-
     const payload = await this.chatMessageConverter.toPayload(chatRequest);
-    // payload.stream = false;
 
     ctx.status = 200;
 
@@ -56,7 +52,7 @@ export default class ContinueCoder extends AbstractProvider {
 
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    console.log("--payload-------------", JSON.stringify(chatRequest, null, 2));
+    // console.log("--payload-------------", JSON.stringify(chatRequest, null, 2));
     // console.log("-ori--------------", JSON.stringify(chatRequest, null, 2));
     this.init(chatRequest);
     // const payload = await this.chatMessageConverter.toPayload(chatRequest);
