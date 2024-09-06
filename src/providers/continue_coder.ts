@@ -56,13 +56,13 @@ export default class ContinueCoder extends AbstractProvider {
 
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
+    console.log("--payload-------------", JSON.stringify(chatRequest, null, 2));
     // console.log("-ori--------------", JSON.stringify(chatRequest, null, 2));
-
-    const payload = await this.chatMessageConverter.toPayload(chatRequest);
+    this.init(chatRequest);
+    // const payload = await this.chatMessageConverter.toPayload(chatRequest);
 
     ctx.status = 200;
 
-    console.log("--payload-------------", JSON.stringify(payload, null, 2));
 
     if (chatRequest.stream) {
       ctx.set({
@@ -70,15 +70,15 @@ export default class ContinueCoder extends AbstractProvider {
         'Cache-Control': 'no-cache',
         'Content-Type': 'text/event-stream',
       });
-      await this.localChatStream(ctx, payload, session_id);
+      await this.localChatStream(ctx, chatRequest, session_id);
       // ctx.body = "ok"
     } else {
       ctx.set({
         'Content-Type': 'application/json',
       });
-      ctx.body = "ok";
+      // ctx.body = "ok";
 
-      // ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+      ctx.body = await this.localChatSync(ctx, chatRequest, session_id);
     }
   }
 

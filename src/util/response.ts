@@ -18,7 +18,8 @@ export default {
         content = content || "";
         const data: any = {
             id, created,
-            // "object": "chat.completion.chunk",
+            "object": "chat.completion.chunk",
+            // finish_reason: null,
             // usage: {
             //     completion_tokens,
             //     prompt_tokens,
@@ -29,16 +30,13 @@ export default {
 
 
         data.choices = [
-            { "index": 0, delta: { content } }
+            { "index": 0, delta: { content }, finish_reason: finish_reason || null }
         ];
 
         if (model) {
             data.model = model;
         }
 
-        if (finish_reason) {
-            data.finish_reason = finish_reason;
-        }
         // console.log(JSON.stringify(data));
 
         return JSON.stringify(data);
@@ -61,7 +59,7 @@ export default {
 
 
         data.choices = [
-            { "index": 0, text: content, finish_reason: finish_reason || "" }
+            { "index": 0, text: content, finish_reason: finish_reason || null }
         ];
 
         if (model) {
