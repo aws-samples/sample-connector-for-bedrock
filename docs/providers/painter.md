@@ -53,6 +53,8 @@ Features:
 
 Screenshots in BRClient:
 
+![Wukong](./screenshots/sd-ultra.webp)
+
 ![demo dish](./screenshots/demo-dish-1.png)
 
 ![demo dish](./screenshots/demo-dish-2.png)

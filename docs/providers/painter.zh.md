@@ -53,6 +53,8 @@ paintModelId 可以是如下的参数:
 
 BRClient 中的截图：
 
+![Wukong](./screenshots/sd-ultra.webp)
+
 ![demo dish](./screenshots/demo-dish-1.png)
 
 ![demo dish](./screenshots/demo-dish-2.png)
