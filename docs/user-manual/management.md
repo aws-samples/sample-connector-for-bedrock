@@ -128,10 +128,14 @@ A Webhook consists of the following fields:
 - appId: The app id of the Feishu bot
 - apiKey: The api key of the BRConnector user, which the Feishu bot will use to call models with relevant permissions
 - modelId: The name of the model in BRConnector
--appSecret: The app secret of the Feishu bot
+- appSecret: The app secret of the Feishu bot
 
-> ⚠️Note: Currently, BRConnector must be restarted for the added Webhook to take effect
+!!! note
+
+    Currently, BRConnector must be restarted for the added Webhook to take effect.
+
+
 Example of configured Webhook URL:
 
-- https://<yourdomain>/bot/feishu/<webhook name>/webhook/event
-- https://www.example.com/bot/feishu/feishu001/webhook/event
+- `https://<yourdomain>/bot/feishu/<webhook name>/webhook/event`
+- `https://www.example.com/bot/feishu/feishu001/webhook/event`
