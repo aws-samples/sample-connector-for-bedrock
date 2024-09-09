@@ -1,6 +1,6 @@
 # FAQ
 
-## How to upload documents
+## How to support documents in chat
 
 Please note: Document uploads are currently only supported in Claude 3.
 

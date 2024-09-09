@@ -1,6 +1,6 @@
 # FAQ
 
-## 如何使用 API 上传文档
+## 如何使用聊天 API 中上传文档
 
 请注意：当前只有 Claude 3 支持文档上传。
 
@@ -41,6 +41,12 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
+需要使用 Javascript 将本地的文档转化成 bytes json 的形式。
+
 ## 如何配置默认模型支持？
 
-有时候，API
+您只要创建一个新的模型，名称为 default 即可。
+
+## 可以画图吗？
+
+可以，配置并使用 painter 为提供器的模型即可。
