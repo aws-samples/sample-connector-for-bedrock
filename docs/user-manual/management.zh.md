@@ -128,7 +128,9 @@ Webhook由以下几个字段组成：
 - modelId: BRConnector中模型的名字
 - appSecret: 飞书机器人的 app secret
 
-> **⚠️注意：目前添加 Webhook 后必须重启BRConnector 才能生效**
+!!! note
+
+    注意：目前添加 Webhook 后必须重启BRConnector 才能生效。
 
 配置完成后的Webhook URL 示例：
 
