@@ -44,7 +44,8 @@ export default class Painter extends AbstractProvider {
       throw new Error("You must specify the parameter 's3Region'.")
     }
     if (!s3Prefix) {
-      throw new Error("You must specify the parameter 's3Prefix'.")
+      s3Prefix = "";
+      // throw new Error("You must specify the parameter 's3Prefix'.")
     }
     if (s3Prefix.endsWith("/")) {
       s3Prefix = s3Prefix.substring(0, this.s3Prefix.length - 1);
