@@ -109,7 +109,7 @@ export default {
     title_set_models: "模型设置",
   },
   webhook: {
-    name: "Webhook",
+    name: "名称",
     tip_delete: "删除操作将会删除组及其关联资源。",
     provider: "提供者",
     config: "配置"

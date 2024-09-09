@@ -48,7 +48,7 @@ export default {
       columns: [
         {key: 'name', title: this.$t('webhook.name')},
         {key: 'provider', title: this.$t('webhook.provider')},
-        {key: 'config', title: this.$t('webhook.config')},
+        // {key: 'config', title: this.$t('webhook.config')},
         {key: 'action', title: this.$t('keys.col_action')},
       ],
       form: {name: '', provider: '', config: '', id: 0},
@@ -76,7 +76,7 @@ export default {
     get_data() {
       this.loading = true
       let {page, size} = this
-      this.$http.get('/admin/bot/feishu/list', {limit: size, offset: (page - 1) * size}).then(res => {
+      this.$http.get('/admin/bot-connector/list', {limit: size, offset: (page - 1) * size}).then(res => {
         let items = res.data.items
         items.map(item => {
           item.config = JSON.stringify(item.config, null, 2);
@@ -84,7 +84,7 @@ export default {
           item.updated_at = new Date(item.updated_at).toLocaleString();
           return item;
         });
-        this.$http.get('/admin/bot/feishu/list-providers').then(res => {
+        this.$http.get('/admin/bot-connector/list-providers').then(res => {
           this.providers = res.data.map(provider => ({label: provider, value: provider}));
         }).finally(() => {
           this.loading = false;
@@ -118,7 +118,7 @@ export default {
     del(row) {
       this.loading = true;
       console.log(row.id)
-      this.$http.post("/admin/bot/feishu/delete", {id: row.id}).then(() => {
+      this.$http.post("/admin/bot-connector/delete", {id: row.id}).then(() => {
         this.$Message.success("Delete successfuly.");
         this.get_data();
       }).finally(() => {
@@ -134,12 +134,12 @@ export default {
         if (v) {
           this.saving = true
           let {id, name, config, provider} = this.form;
-          this.$http.post('/admin/bot/feishu/save', {
+          this.$http.post('/admin/bot-connector/save', {
             id,
             name,
             config,
             provider
-          }).then(res => {
+          }).then(() => {
             this.show = false
             this.$Message.success("Save successfuly.")
             this.get_data();

@@ -110,7 +110,7 @@ export default {
     title_set_models: "Set Models",
   },
   webhook: {
-    name: "Webhook",
+    name: "Name",
     tip_delete: "The deletion operation will delete the group and its associated resources.",
     provider: "Provider",
     config: "Config"

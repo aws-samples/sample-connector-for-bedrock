@@ -72,6 +72,11 @@ export default {
                 throw new Error(`${name}@[${provider}] already exists`);
             }
 
+            console.log("------------eiai_bot_connector", {
+                name,
+                provider,
+                config
+            })
             return await db.insert("eiai_bot_connector", {
                 name,
                 provider,

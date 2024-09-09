@@ -5,6 +5,7 @@ class BotConnectorController extends AbstractController {
 
     routers(router: any): void {
         router.get("/admin/bot-connector/list", this.list);
+        router.get("/admin/bot-connector/list-providers", this.listProviders);
         router.post("/admin/bot-connector/save", this.save);
         router.post("/admin/bot-connector/delete", this.delete);
         router.get("/admin/bot-connector/detail/:id", async (ctx: any) => {
@@ -27,6 +28,12 @@ class BotConnectorController extends AbstractController {
     async list(ctx: any) {
         const options = ctx.query;
         const result = await service.list(ctx.db, options);
+        return super.ok(ctx, result);
+    }
+    async listProviders(ctx: any) {
+        const result = [
+            "feishu",
+        ];
         return super.ok(ctx, result);
     }
 
