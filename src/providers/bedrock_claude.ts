@@ -71,7 +71,7 @@ export default class BedrockClaude extends AbstractProvider {
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         let i = 0;
         const command = new InvokeModelWithResponseStreamCommand(input);
-        console.log(input);
+        // console.log(input);
         const response = await this.client.send(command);
 
         if (response.body) {

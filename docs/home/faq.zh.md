@@ -40,3 +40,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   "max_tokens":4000
 }
 ```
+
+## 如何配置默认模型支持？
+
+有时候，API

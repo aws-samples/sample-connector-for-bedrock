@@ -12,8 +12,8 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 
 /**
- * Use llm and sdxl to chat with openai completions api
- */
+* Use llm and sdxl to chat with openai completions api
+*/
 export default class Painter extends AbstractProvider {
   s3Client: S3Client;
   client: BedrockRuntimeClient;
@@ -197,6 +197,27 @@ export default class Painter extends AbstractProvider {
     }
     return jRes;
   }
+  getImageRatio(width: number, height: number) {
+    const aspectRatios = [
+      { ratio: '16:9', value: 16 / 9 },
+      { ratio: '1:1', value: 1 },
+      { ratio: '21:9', value: 21 / 9 },
+      { ratio: '2:3', value: 2 / 3 },
+      { ratio: '3:2', value: 3 / 2 },
+      { ratio: '4:5', value: 4 / 5 },
+      { ratio: '5:4', value: 5 / 4 },
+      { ratio: '9:16', value: 9 / 16 },
+      { ratio: '9:21', value: 9 / 21 },
+    ];
+
+    const aspectRatio = width / height;
+
+    const closestRatio = aspectRatios.reduce((prev, curr) =>
+      Math.abs(curr.value - aspectRatio) < Math.abs(prev.value - aspectRatio) ? curr : prev
+    );
+
+    return closestRatio.ratio;
+  }
 
   scaleTitanRatio(width: number, height: number) {
     const allowedSizes = [
@@ -305,24 +326,38 @@ export default class Painter extends AbstractProvider {
     return base64Data;
   }
 
-  async drawBySDXL(modelId: string, input: any): Promise<string> {
-    const inputBody = {
-      "cfg_scale": 7,
-      width: input.width,
-      height: input.height,
-      "steps": 30,
-      "text_prompts": [
-        {
-          "text": input.prompt,
-          "weight": 1
-        },
-        {
-          "text": input.negative_prompt,
-          "weight": -1
-        },
-      ]
+  async drawBySD(modelId: string, input: any): Promise<string> {
+    // console.log(modelId, input);
+    const aspect_ratio = this.getImageRatio(input.width, input.height);
+    let inputBody: any = {
+      prompt: input.prompt,
+      aspect_ratio,
+      output_format: "jpg"
+    };
+    if (modelId.indexOf("stable-image-ultra") > 0) {
+      inputBody.negative_prompt = input.negative_prompt;
+    } else if (modelId.indexOf("stable-image-core") > 0) {
+      inputBody.mode = "text-to-image";
+    } else if (modelId.indexOf("sd3-large") > 0) {
+      inputBody.mode = "text-to-image";
+    } else if (modelId.indexOf("stable-diffusion-xl") > 0) {
+      inputBody = {
+        "cfg_scale": 7,
+        width: input.width,
+        height: input.height,
+        "steps": 30,
+        "text_prompts": [
+          {
+            "text": input.prompt,
+            "weight": 1
+          },
+          {
+            "text": input.negative_prompt,
+            "weight": -1
+          },
+        ]
+      }
     }
-
     const req = {
       body: JSON.stringify(inputBody),
       contentType: "application/json",
@@ -333,7 +368,11 @@ export default class Painter extends AbstractProvider {
     const response = await this.client.send(command);
     const jsonString = new TextDecoder().decode(response.body);
     const parsedResponse = JSON.parse(jsonString);
-    const base64ImageData = parsedResponse.artifacts[0].base64;
+    // console.log("xxxx", parsedResponse);
+    let base64ImageData = parsedResponse.artifacts && parsedResponse.artifacts[0].base64;
+    if (!base64ImageData) {
+      base64ImageData = parsedResponse.images[0];
+    }
     const base64Data = base64ImageData.replace(/^data:image\/\w+;base64,/, "");
     return base64Data;
   }
@@ -349,8 +388,8 @@ export default class Painter extends AbstractProvider {
     let base64Data: any;
 
     try {
-      if (modelId.startsWith("stability.stable-diffusion-xl")) {
-        base64Data = await this.drawBySDXL(modelId, input);
+      if (modelId.startsWith("stability.")) {
+        base64Data = await this.drawBySD(modelId, input);
       } else if (modelId.startsWith("amazon.titan-image-generator")) {
         base64Data = await this.drawByTitan(modelId, input);
       } else {

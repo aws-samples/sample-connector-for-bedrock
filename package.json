@@ -1,6 +1,6 @@
 {
   "name": "sample-connector-for-bedrock",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -14,12 +14,12 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "^3.621.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.621.0",
-    "@aws-sdk/client-qbusiness": "^3.624.0",
-    "@aws-sdk/client-s3": "^3.614.0",
-    "@aws-sdk/client-sagemaker-runtime": "^3.600.0",
-    "@aws-sdk/s3-request-presigner": "^3.614.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.645.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.645.0",
+    "@aws-sdk/client-qbusiness": "^3.645.0",
+    "@aws-sdk/client-s3": "^3.645.0",
+    "@aws-sdk/client-sagemaker-runtime": "^3.645.0",
+    "@aws-sdk/s3-request-presigner": "^3.645.0",
     "@koa/cors": "^5.0.0",
     "@larksuiteoapi/node-sdk": "^1.32.0",
     "csv-parser": "^3.0.0",

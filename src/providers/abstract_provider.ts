@@ -16,6 +16,102 @@ export default abstract class AbstractProvider {
 
     abstract chat(chatRequest: ChatRequest, session_id: string, ctx: any): void;
 
+    async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
+        console.log("This method is not implemented.");
+    };
+
+    async localCompleteStream(ctx: any, openAIRequest: any, session_id: string) {
+        ctx.set({
+            'Connection': 'keep-alive',
+            'Cache-Control': 'no-cache',
+            'Content-Type': 'text/event-stream',
+        });
+        // console.log("openAIRequest", openAIRequest)
+        const response = await fetch("http://localhost:8866/v1/completions", {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + ctx.user.api_key,
+                'Session-Id': session_id
+            },
+            body: JSON.stringify(openAIRequest)
+        });
+
+        if (!response.ok)
+            throw new Error(await response.text());
+        const reader = response.body.getReader();
+        let done: any, value: any;
+        while (!done) {
+            ({ value, done } = await reader.read());
+            // value && console.log(done, new TextDecoder().decode(value));
+            !done && ctx.res.write(value);
+        }
+        ctx.res.end();
+
+    }
+
+    async localCompleteSync(ctx: any, openAIRequest: any, session_id: string) {
+        const response = await fetch("http://localhost:8866/v1/completions", {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + ctx.user.api_key,
+                'Session-Id': session_id
+            },
+            body: JSON.stringify(openAIRequest)
+        });
+        return await response.json();
+    }
+
+
+    async localChatStream(ctx: any, openAIRequest: any, session_id: string) {
+        ctx.set({
+            'Connection': 'keep-alive',
+            'Cache-Control': 'no-cache',
+            'Content-Type': 'text/event-stream',
+        });
+
+        const response = await fetch("http://localhost:8866/v1/chat/completions", {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + ctx.user.api_key,
+                'Session-Id': session_id
+            },
+            body: JSON.stringify(openAIRequest)
+        });
+
+        if (!response.ok)
+            throw new Error(await response.text());
+        const reader = response.body.getReader();
+        let done: any, value: any;
+        while (!done) {
+            ({ value, done } = await reader.read());
+            // console.log(done);
+            !done && ctx.res.write(value);
+        }
+        ctx.res.end();
+
+    }
+
+    async localChatSync(ctx: any, openAIRequest: any, session_id: string) {
+        const response = await fetch("http://localhost:8866/v1/chat/completions", {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + ctx.user.api_key,
+                'Session-Id': session_id
+            },
+            body: JSON.stringify(openAIRequest)
+        });
+        return await response.json();
+    }
+
+
     // save session to db
     async saveThread(ctx: any, session_id: string, chatRequest: ChatRequest, response: ResponseData) {
         // If db not set or use default admin user, will not save info.

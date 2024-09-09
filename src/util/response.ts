@@ -12,12 +12,50 @@ export default {
         }
     },
     wrap: (id: any, model: any, content?: any, finish_reason?: any, completion_tokens?: number, prompt_tokens?: number) => {
-        const created = new Date().getTime();
+        const created = Math.floor((new Date().getTime()) / 1000);
         completion_tokens = completion_tokens || 0;
         prompt_tokens = prompt_tokens || 0;
         content = content || "";
         const data: any = {
             id, created,
+            "object": "chat.completion.chunk",
+            system_fingerprint: null
+            // finish_reason: null,
+            // usage: {
+            //     completion_tokens,
+            //     prompt_tokens,
+            //     total_tokens: completion_tokens + prompt_tokens
+            // }
+        };
+
+
+
+        if (finish_reason) {
+            data.choices = [
+                { "index": 0, delta: {}, finish_reason, logprobs: null }
+            ];
+        } else {
+            data.choices = [
+                { "index": 0, delta: { content }, finish_reason, logprobs: null }
+            ];
+
+        }
+
+        if (model) {
+            data.model = model;
+        }
+
+        // console.log(JSON.stringify(data));
+
+        return JSON.stringify(data);
+    },
+    wrap2: (id: any, model: any, content?: any, finish_reason?: any, completion_tokens?: number, prompt_tokens?: number) => {
+        // const created = new Date().getTime();
+        completion_tokens = completion_tokens || 0;
+        prompt_tokens = prompt_tokens || 0;
+        content = content || "";
+        const data: any = {
+            // id, created,
             // "object": "chat.completion.chunk",
             // usage: {
             //     completion_tokens,
@@ -29,17 +67,13 @@ export default {
 
 
         data.choices = [
-            { "index": 0, delta: { content } }
+            { "index": 0, text: content, finish_reason: finish_reason || null }
         ];
 
         if (model) {
             data.model = model;
         }
 
-        if (finish_reason) {
-            data.finish_reason = finish_reason;
-        }
-        // console.log(JSON.stringify(data));
 
         return JSON.stringify(data);
     }

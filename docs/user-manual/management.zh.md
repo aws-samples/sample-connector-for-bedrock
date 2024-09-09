@@ -97,11 +97,12 @@ API Keys 与 组授权的模型是 “并” 的关系。
 - 修改飞书机器人
 
 创建飞书机器人，进入 manager 后台，如图：
-![Webhook Create](./screenshots/feishu-1.png){: style="max-width:600px;"}
+
+![Webhook Create](./screenshots/feishu-1.jpg){: style="max-width:600px;"}
 
 Webhook表单：
 
-![Webhook Create](./screenshots/feishu-2.png){: style="max-width:600px"}
+![Webhook Create](./screenshots/feishu-2.jpeg){: style="max-width:600px"}
 
 Webhook由以下几个字段组成：
 
@@ -112,6 +113,7 @@ Webhook由以下几个字段组成：
 | Config  | string(json)   | N    |  | 根据不同的提供器会提供不同的配置。                    |
 
 ### Config样例
+
 ```json
 {
   "appId": "cli_xxxxx",
@@ -126,8 +128,9 @@ Webhook由以下几个字段组成：
 - modelId: BRConnector中模型的名字
 - appSecret: 飞书机器人的 app secret
 
-> **⚠️注意：目前添加 Webhook 后必须重启BRConnector 才能生效** 
+> **⚠️注意：目前添加 Webhook 后必须重启BRConnector 才能生效**
 
 配置完成后的Webhook URL 示例：
+
 - `https://<yourdomain>/bot/feishu/<webhook name>/webhook/event`
 - `https://www.example.com/bot/feishu/feishu001/webhook/event`

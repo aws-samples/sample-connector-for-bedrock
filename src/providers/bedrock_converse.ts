@@ -20,18 +20,19 @@ export default class BedrockConverse extends AbstractProvider {
         this.chatMessageConverter = new MessageConverter();
     }
 
-    async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-
-        // console.log("-ori--------------", JSON.stringify(chatRequest, null, 2));
+    async init() {
         this.modelId = this.modelData.config && this.modelData.config.modelId;
         if (!this.modelId) {
             throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
-
         let regions: any = this.modelData.config && this.modelData.config.regions;
         const region = helper.selectRandomRegion(regions);
         this.client = new BedrockRuntimeClient({ region });
 
+    }
+
+    async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
+        await this.init();
         const payload = await this.chatMessageConverter.toPayload(chatRequest);
         payload["modelId"] = this.modelId;
 
@@ -39,11 +40,37 @@ export default class BedrockConverse extends AbstractProvider {
 
         // console.log("--payload-------------", JSON.stringify(payload, null, 2));
 
+
         if (chatRequest.stream) {
             ctx.set({
                 'Connection': 'keep-alive',
                 'Cache-Control': 'no-cache',
                 'Content-Type': 'text/event-stream',
+            });
+            await this.completeStream(ctx, payload, chatRequest, session_id);
+        } else {
+            ctx.set({
+                'Content-Type': 'application/json',
+            });
+            ctx.body = await this.completeSync(ctx, payload, chatRequest, session_id);
+        }
+    };
+
+    async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
+        await this.init();
+        // console.log("--payload-------------", JSON.stringify(chatRequest, null, 2));
+
+        const payload = await this.chatMessageConverter.toPayload(chatRequest);
+        payload["modelId"] = this.modelId;
+
+        ctx.status = 200;
+
+
+        if (chatRequest.stream) {
+            ctx.set({
+                'Connection': 'keep-alive',
+                'Cache-Control': 'no-cache',
+                'Content-Type': 'text/event-stream'
             });
             await this.chatStream(ctx, payload, chatRequest, session_id);
         } else {
@@ -53,6 +80,43 @@ export default class BedrockConverse extends AbstractProvider {
             ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
         }
     }
+
+    async completeStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+        let i = 0;
+        // console.log("xxxxxxxxxxx ", chatRequest, JSON.stringify(input, null, 2));
+        const command = new ConverseStreamCommand(input);
+        const response = await this.client.send(command);
+
+        if (response.stream) {
+            let responseText = "";
+            for await (const item of response.stream) {
+                if (item.contentBlockDelta) {
+                    responseText += item.contentBlockDelta.delta.text;
+                    ctx.res.write("data:" + WebResponse.wrap2(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                }
+                if (item.metadata) {
+                    // console.log("resp----", responseText);
+                    const input_tokens = item.metadata.usage.inputTokens;
+                    const output_tokens = item.metadata.usage.outputTokens;
+                    const first_byte_latency = item.metadata.metrics.latencyMs;
+                    const response: ResponseData = {
+                        text: responseText,
+                        input_tokens,
+                        output_tokens,
+                        invocation_latency: 0,
+                        first_byte_latency
+                    }
+
+                    await this.saveThread(ctx, session_id, chatRequest, response);
+                }
+            }
+        } else {
+            throw new Error("No response.");
+        }
+        ctx.res.write("data: [DONE]\n\n")
+        ctx.res.end();
+    }
+
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         let i = 0;
         // console.log(chatRequest, JSON.stringify(input, null, 2));
@@ -61,11 +125,18 @@ export default class BedrockConverse extends AbstractProvider {
 
         if (response.stream) {
             let responseText = "";
+            let index = 0;
             for await (const item of response.stream) {
+                i++;
                 // console.log(item);
                 if (item.contentBlockDelta) {
                     responseText += item.contentBlockDelta.delta.text;
-                    ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                    const p = item.contentBlockDelta["p"];
+                    ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                }
+                if (item.contentBlockStop) {
+                    const p = item.contentBlockStop["p"];
+                    ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, "", "stop") + "\n\n");
                 }
                 if (item.metadata) {
                     // console.log(item);
@@ -87,6 +158,41 @@ export default class BedrockConverse extends AbstractProvider {
         }
         ctx.res.write("data: [DONE]\n\n")
         ctx.res.end();
+    }
+
+    async completeSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+        const command = new ConverseCommand(input);
+        const apiResponse = await this.client.send(command);
+
+        const content = apiResponse.output.message?.content;
+        // console.log("ori content:", JSON.stringify(content, null, 2));
+        const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
+        const { latencyMs } = apiResponse.metrics;
+        const response: ResponseData = {
+            text: content[0].text,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            invocation_latency: 0,
+            first_byte_latency: latencyMs
+        }
+        await this.saveThread(ctx, session_id, chatRequest, response);
+
+        const choices = content.map((c: any) => {
+            if (c.text) {
+                return {
+                    text: c.text
+                }
+            }
+        });
+        return {
+            model: chatRequest.model,
+            choices, usage: {
+                completion_tokens: outputTokens,
+                prompt_tokens: inputTokens,
+                total_tokens: totalTokens
+            }
+        };
+
     }
 
     async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
@@ -131,6 +237,13 @@ export default class BedrockConverse extends AbstractProvider {
                 }
             }
         });
+        // console.log({
+        //     choices, usage: {
+        //         completion_tokens: outputTokens,
+        //         prompt_tokens: inputTokens,
+        //         total_tokens: totalTokens
+        //     }
+        // })
         return {
             choices, usage: {
                 completion_tokens: outputTokens,
@@ -242,13 +355,16 @@ class MessageConverter {
         const tool_choice = chatRequest.tool_choice;
         const systemMessages = messages.filter(message => message.role === 'system');
         const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant');
+        let stopSequences = chatRequest.stop;
 
         const inferenceConfig: any = {
             maxTokens: chatRequest.max_tokens || 1024,
             temperature: chatRequest.temperature || 0.7,
-            topP: chatRequest.top_p || 0.7,
+            topP: chatRequest.top_p || 0.7
         };
-
+        if (stopSequences && Array.isArray(stopSequences)) {
+            inferenceConfig.stopSequences = stopSequences.slice(0, 4);
+        }
 
         //First element must be user message
         const newMessages = [];

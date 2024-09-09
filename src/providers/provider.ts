@@ -14,6 +14,7 @@ import Painter from "./painter";
 import WebMiner from "./web_miner";
 import AWSExecutor from "./aws_executor"
 import UrlsReader from "./urls_reader";
+import ContinueCoder from "./continue_coder";
 
 
 class Provider {
@@ -24,6 +25,7 @@ class Provider {
         this["painter"] = new Painter();
         this["ollama"] = new OllamaAProvider();
         this["web-miner"] = new WebMiner();
+        this["continue-coder"] = new ContinueCoder();
         this["urls-reader"] = new UrlsReader();
         this["aws-executor"] = new AWSExecutor();
         this["bedrock-claude3"] = new BedrockClaude();
@@ -31,14 +33,16 @@ class Provider {
         this["bedrock-llama3"] = new BedrockLlama3();
     }
 
-    async chat(ctx: any) {
-        // let keyData = null;
+    async init(ctx: any) {
         if (ctx.db) {
             if (ctx.user && ctx.user.id > 0) {
                 await this.checkFee(ctx, ctx.user);
             }
         }
+        // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
+
         const chatRequest: ChatRequest = ctx.request.body;
+
 
         const session_id = ctx.headers["session-id"];
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
@@ -57,8 +61,24 @@ class Provider {
         provider.setModelData(modelData);
         provider.setKeyData(ctx.user);
 
-        return provider.chat(chatRequest, session_id, ctx);
+        return {
+            provider, chatRequest, session_id
+        }
+
     }
+
+    async chat(ctx: any) {
+        // let keyData = null;
+        const res = await this.init(ctx);
+        return res.provider.chat(res.chatRequest, res.session_id, ctx);
+    }
+
+    async complete(ctx: any) {
+        // let keyData = null;
+        const res = await this.init(ctx);
+        return res.provider.complete(res.chatRequest, res.session_id, ctx);
+    }
+
 
     async checkFee(ctx: any, key: any) {
         let month_fee = parseFloat(key.month_fee);

@@ -1,5 +1,6 @@
 import Router from "koa-router";
-import chat from './controller/runtime/chat';
+// import chat from './controller/runtime/chat';
+import v1 from './controller/runtime/v1';
 import models from './controller/runtime/models';
 import admin_statistics_controller from './controller/admin/StatisticsController';
 import admin_key_controller from './controller/admin/KeyController';
@@ -24,7 +25,8 @@ import user_model_controller from './controller/user/ModelController';
 export const router = new Router();
 
 // AI API
-router.post("/v1/chat/completions", chat.completions);
+router.post("/v1/chat/completions", v1.chat_completions);
+router.post("/v1/completions", v1.completions);
 router.get("/v1/models", models.list);
 
 // Admin APIs
