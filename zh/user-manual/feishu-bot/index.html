@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Docs for Bedrock Connector">
+        <meta name="description" content="⚠️当前版本仅支持飞书，不支持 Lark">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/apis/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/feishu-bot/">
       
       
-        <link rel="prev" href="../development/">
+        <link rel="prev" href="../management/">
       
       
-        <link rel="next" href="../../providers/introduction/">
+        <link rel="next" href="../sample-client-for-bedrock/">
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>API Reference - Sample Connector for Bedrock</title>
+        <title>飞书机器人配置 - Sample Connector for Bedrock</title>
       
     
     
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#api-reference" class="md-skip">
+        <a href="#_1" class="md-skip">
           跳转至
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              API Reference
+              飞书机器人配置
             
           </span>
         </div>
@@ -174,7 +174,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../user-manual/apis/" hreflang="en" class="md-select__link">
+            <a href="../../../user-manual/feishu-bot/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -622,10 +622,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../feishu-bot/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -634,6 +643,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -685,30 +695,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    API Reference
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../apis/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -717,179 +707,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="目录">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#llm-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      LLM API
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="LLM API">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#completions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Completions
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#admin-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      Admin API
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Admin API">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#api-key" class="md-nav__link">
-    <span class="md-ellipsis">
-      API key
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="API key">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#create-an-api-key" class="md-nav__link">
-    <span class="md-ellipsis">
-      Create an api key
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update-and-api-keys-info" class="md-nav__link">
-    <span class="md-ellipsis">
-      Update and api key&rsquo;s info
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#recharge-history" class="md-nav__link">
-    <span class="md-ellipsis">
-      Recharge history
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-an-api-key" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete an api key
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-a-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      Create a model
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-a-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete a model
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-a-webhook" class="md-nav__link">
-    <span class="md-ellipsis">
-      Create a webhook
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-a-webhook" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete a webhook
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-a-group" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete a group
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#my-session-detail" class="md-nav__link">
-    <span class="md-ellipsis">
-      My session detail
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#my-thread-detail" class="md-nav__link">
-    <span class="md-ellipsis">
-      My thread detail
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1201,167 +1018,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#llm-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      LLM API
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="LLM API">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#completions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Completions
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#admin-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      Admin API
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Admin API">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#api-key" class="md-nav__link">
-    <span class="md-ellipsis">
-      API key
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="API key">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#create-an-api-key" class="md-nav__link">
-    <span class="md-ellipsis">
-      Create an api key
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update-and-api-keys-info" class="md-nav__link">
-    <span class="md-ellipsis">
-      Update and api key&rsquo;s info
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#recharge-history" class="md-nav__link">
-    <span class="md-ellipsis">
-      Recharge history
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-an-api-key" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete an api key
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-a-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      Create a model
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-a-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete a model
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-a-webhook" class="md-nav__link">
-    <span class="md-ellipsis">
-      Create a webhook
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-a-webhook" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete a webhook
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete-a-group" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delete a group
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#my-session-detail" class="md-nav__link">
-    <span class="md-ellipsis">
-      My session detail
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#my-thread-detail" class="md-nav__link">
-    <span class="md-ellipsis">
-      My thread detail
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1378,247 +1034,27 @@
   
 
 
-<h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
-<h2 id="llm-api">LLM API<a class="headerlink" href="#llm-api" title="Permanent link">&para;</a></h2>
-<h4 id="completions">Completions<a class="headerlink" href="#completions" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /v1/chat/completions<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;model&rdquo;: &ldquo;claude-3-sonnet&rdquo;,<br />
-  &ldquo;messages&rdquo;: [<br />
-    {<br />
-      &ldquo;role&rdquo;: &ldquo;user&rdquo;,<br />
-      &ldquo;content&rdquo;: &ldquo;ping&rdquo;<br />
-    }<br />
-  ],<br />
-  &ldquo;stream&rdquo;: true,<br />
-  &ldquo;temperature&rdquo;: 1,<br />
-  &ldquo;max_tokens&rdquo;: 4096<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>#### List models
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>```http request
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>GET /v1/models
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<h2 id="admin-api">Admin API<a class="headerlink" href="#admin-api" title="Permanent link">&para;</a></h2>
-<h3 id="api-key">API key<a class="headerlink" href="#api-key" title="Permanent link">&para;</a></h3>
-<h4 id="create-an-api-key">Create an api key<a class="headerlink" href="#create-an-api-key" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/api-key/apply<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;name&rdquo;: &ldquo;jack&rdquo;,<br />
-  &ldquo;group_id&rdquo;: 1,<br />
-  &ldquo;role&rdquo;: &ldquo;user&rdquo;,<br />
-  &ldquo;email&rdquo;: &ldquo;&rdquo;,<br />
-  &ldquo;month_quota&rdquo;: 1.00<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>#### Create an api key with admin role
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>```http request
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>POST /admin/api-key/apply
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Content-Type: application/json
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>{
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>  &quot;name&quot;: &quot;rob&quot;,
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>  &quot;group_id&quot;: 1,
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>  &quot;role&quot;: &quot;admin&quot;,
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>  &quot;email&quot;: &quot;&quot;
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>}
-</code></pre></div></p>
-<h4 id="update-and-api-keys-info">Update and api key&rsquo;s info<a class="headerlink" href="#update-and-api-keys-info" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/api-key/update<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;id&rdquo;: 2,<br />
-  &ldquo;name&rdquo;: &ldquo;jack&rdquo;,<br />
-  &ldquo;month_quota&rdquo;: 10.00<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>#### Recharge up an API key
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>```http request
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>POST /admin/api-key/recharge
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Content-Type: application/json
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>{
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  &quot;api_key&quot;: &quot;br-xxxxxxxxxxxxxxx&quot;,
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  &quot;balance&quot;: 0.23
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>}
-</code></pre></div></p>
-<h4 id="recharge-history">Recharge history<a class="headerlink" href="#recharge-history" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-GET /admin/payment/list?key_id=<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>#### List api keys
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>```http request
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>GET /admin/api-key/list?q=&amp;name=&amp;group_id=&amp;role=&amp;limit=10&amp;offset=
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<h4 id="delete-an-api-key">Delete an api key<a class="headerlink" href="#delete-an-api-key" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/api-key/delete<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;id&rdquo;: 1<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>### Model
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>#### List models
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>```http request
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>GET /admin/model/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<h4 id="create-a-model">Create a model<a class="headerlink" href="#create-a-model" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/model/save<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;name&rdquo;: &ldquo;xxxx&rdquo;,<br />
-  &ldquo;group_id&rdquo;: 1,<br />
-  &ldquo;multiple&rdquo;: false, <br />
-  &ldquo;config&rdquo;: &ldquo;{"modelId": "somevalue"}&rdquo;, <br />
-  &ldquo;provider&rdquo;: &ldquo;bedrock-converse&rdquo;,<br />
-  &ldquo;price_in&rdquo;: 1,<br />
-  &ldquo;price_out&rdquo;:3<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>#### Update a model
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>```http request
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>POST /admin/model/save
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>Content-Type: application/json
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>{
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  &quot;id&quot;: 1,
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>  &quot;name&quot;: &quot;xxxx&quot;,
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>  &quot;group_id&quot;: 1,
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>  &quot;multiple&quot;: false, 
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>  &quot;config&quot;: &quot;{\&quot;modelId\&quot;: \&quot;somevalue\&quot;}&quot;, 
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>  &quot;provider&quot;: &quot;bedrock-converse&quot;,
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>  &quot;price_in&quot;: 1,
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>  &quot;price_out&quot;:3
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>}
-</code></pre></div></p>
-<h4 id="delete-a-model">Delete a model<a class="headerlink" href="#delete-a-model" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/model/delete<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;id&rdquo;: 1<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>### Webhook
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>#### List webhook
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>```http request
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>GET /admin/bot/feishu/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<h4 id="create-a-webhook">Create a webhook<a class="headerlink" href="#create-a-webhook" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/bot/feishu/save<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;name&rdquo;: &ldquo;xxxx&rdquo;,<br />
-  &ldquo;config&rdquo;: &ldquo;{"appId": "cli_xxxxx", "apiKey": "br-xxxxx", "modelId": "claude-3-sonnet", "appSecret": "xxxxx" }&rdquo;, <br />
-  &ldquo;provider&rdquo;: &ldquo;bedrock-converse&rdquo;<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>#### Update a webhook
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>```http request
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>POST /admin/bot/feishu/save
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>Content-Type: application/json
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>{ 
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  &quot;appId&quot;: &quot;cli_xxxxx&quot;, 
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>  &quot;apiKey&quot;: &quot;br-xxxxx&quot;, 
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>  &quot;modelId&quot;: &quot;claude-3-sonnet&quot;, 
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>  &quot;appSecret&quot;: &quot;xxxxx&quot; 
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>}
-</code></pre></div></p>
-<h4 id="delete-a-webhook">Delete a webhook<a class="headerlink" href="#delete-a-webhook" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/bot/feishu/delete<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;id&rdquo;: 1<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>### Group
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>#### List groups
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>```http request
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>GET /admin/group/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<h4 id="delete-a-group">Delete a group<a class="headerlink" href="#delete-a-group" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-POST /admin/group/delete<br />
-Content-Type: application/json<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
-<p>{<br />
-  &ldquo;id&rdquo;: 1<br />
-}<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>### Model Authorization
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>* List models of a group
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>* Authorize the model to a group
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>* Deauthorize the model from a group
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>* List models of an api key
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>* Authorize the model to an api key
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>* Deauthorize the model from an api key
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>### Chat records
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>#### List sessions
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>```http request
-<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>GET /admin/session/list?q=&amp;limit=10&amp;offset=&amp;key_id=
-<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<p>List threads / histories</p>
-<p>```http request<br />
-GET /admin/thread/list?q=&amp;limit=10&amp;offset=&amp;key_id=&amp;session_id=<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>## User API
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>#### My sessions
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>```http request
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>GET /user/session/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<h4 id="my-session-detail">My session detail<a class="headerlink" href="#my-session-detail" title="Permanent link">&para;</a></h4>
-<p>```http request<br />
-GET /user/session/detail/1<br />
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>#### My threads / histories
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>```http request
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>GET /user/thread/list?q=&amp;limit=10&amp;offset=&amp;session_id=
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div></p>
-<h4 id="my-thread-detail">My thread detail<a class="headerlink" href="#my-thread-detail" title="Permanent link">&para;</a></h4>
-<p><code>http request
-GET /user/thread/detail/1
-Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></p>
+<h1 id="_1">飞书机器人配置<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>⚠️当前版本仅支持飞书，不支持 Lark</p>
+</blockquote>
+<ol>
+<li>企业管理员登录<a href="https://open.feishu.cn/app/">飞书开放平台</a></li>
+<li>创建企业自建应用<br />
+<a class="glightbox" href="../../../user-manual/screenshots/feishu-3.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-3.png" src="../../../user-manual/screenshots/feishu-3.jpg" /></a></li>
+<li>填写名字和描述<br />
+<a class="glightbox" href="../../../user-manual/screenshots/feishu-4.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-4.png" src="../../../user-manual/screenshots/feishu-4.jpg" /></a></li>
+<li>添加<code>机器人</code>能力<br />
+<a class="glightbox" href="../../../user-manual/screenshots/feishu-5.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-5.png" src="../../../user-manual/screenshots/feishu-5.jpg" /></a></li>
+<li>在机器人配置页面中，点击<code>事件与回调</code><br />
+<a class="glightbox" href="../../../user-manual/screenshots/feishu-6.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-6.png" src="../../../user-manual/screenshots/feishu-6.jpg" /></a></li>
+<li>编辑<code>订阅方式</code>，修改请求地址。请求地址和服务端webhook名字有关。具体地址参考<a href="../management/#webhoook-配置">webhoook-配置</a><br />
+<a class="glightbox" href="../../../user-manual/screenshots/feishu-7.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-7.png" src="../../../user-manual/screenshots/feishu-7.jpg" /></a></li>
+<li>然后在飞书中切换到对应企业，搜索应用（步骤 3 中的应用名）<br />
+<a class="glightbox" href="../../../user-manual/screenshots/feishu-8.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-8.png" src="../../../user-manual/screenshots/feishu-8.jpg" /></a></li>
+<li>然后我们就可以测试发送问题，让大预言模型来回答了<br />
+<a class="glightbox" href="../../../user-manual/screenshots/feishu-9.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-9.png" src="../../../user-manual/screenshots/feishu-9.jpg" /></a></li>
+</ol>
 
 
 
@@ -1641,7 +1077,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></p>
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-04T09:57:05+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-04</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-09T10:54:06+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-09</span>
   </span>
 
     
@@ -1651,7 +1087,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></p>
     <span class="md-icon" title="创建日期">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-09T10:54:06+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-09</span>
   </span>
 
     

@@ -134,6 +134,13 @@
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/development/"/>
     </url>
     <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/feishu-bot/</loc>
+        <lastmod>2024-09-09</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/feishu-bot/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/feishu-bot/"/>
+    </url>
+    <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/introduction/</loc>
         <lastmod>2024-09-09</lastmod>
         <changefreq>daily</changefreq>
@@ -286,6 +293,13 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/development/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/development/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/feishu-bot/</loc>
+        <lastmod>2024-09-09</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/feishu-bot/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/feishu-bot/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/introduction/</loc>
