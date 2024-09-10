@@ -1,8 +1,10 @@
-# Feishu Bot Configuration
+# Feishu Bot
+
+> Since Docker image version 0.0.13
 
 !!! note
 
-    Currently version only supports Feishu, does not support Lark.
+    Currently version only supports Feishu, does not support Lark(Feishu international version).
 
 1. Enterprise administrator logs into the [Feishu Open Platform](https://open.feishu.cn/app/)
 
@@ -18,7 +20,7 @@
 5. On the bot configuration page, click on `Events and Callbacks`
 ![feishu-6.png](screenshots/feishu-6.jpg)
 
-6. Edit the `Subscription Method` and modify the request URL. The request URL is related to the server-side webhook name. For specific address details, refer to [Webhook Configuration](management.md#webhook-configuration)
+6. Edit the `Subscription Method` and modify the request URL. The request URL is related to the server-side webhook name, such as `https://<yourdomain>/bot/feishu/<webhook-name>/webhook/event`. For specific address details, refer to [Webhook Configuration](management.md#webhook-configuration)
 ![feishu-7.png](screenshots/feishu-7.jpg)
 
 7. Add permissions

@@ -1,8 +1,10 @@
-# 飞书机器人配置
+# 飞书机器人
+
+> Since Docker image version 0.0.13
 
 !!! note
 
-    当前版本仅支持飞书，不支持 Lark
+    当前版本仅支持飞书，不支持 Lark(飞书国际版)。
 
 1. 企业管理员登录[飞书开放平台](https://open.feishu.cn/app/)
 
@@ -18,10 +20,10 @@
 5. 在机器人配置页面中，点击`事件与回调`
 ![feishu-6.png](screenshots/feishu-6.jpg)
 
-6. 编辑`订阅方式`，修改请求地址。请求地址和服务端webhook名字有关。具体地址参考[webhoook-配置](management.zh.md#webhoook-配置)
+6. 编辑`订阅方式`，修改请求地址。请求地址和服务端配置的 webhook 名字有关，形如：`https://<yourdomain>/bot/feishu/<webhook-name>/webhook/event`。具体地址参考[webhoook-配置]。(management.zh.md#webhoook-配置)
 ![feishu-7.png](screenshots/feishu-7.jpg)
 
-7. 添加权限，
+7. 添加权限
 ![feishu-10.png](screenshots/feishu-10.png)
 
 8. 然后在飞书中切换到对应企业，搜索应用（步骤 3 中的应用名）

@@ -44,11 +44,34 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
+### 0.0.13
+
+1. New Feature: [Introduced a webhook mechanism for easy integration with third-party applications](https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/management/#webhoook).
+
+2. New Webhook: [Feishu, allowing BRConnector integration into Feishu through configuration](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/feishu-bot/).
+
+3. New Plugin: [continue-coder, enabling BRConnector configuration in Continue for code generation](https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/continue_coder/).
+
+4. New Models Support: The painter plugin now supports the latest bedrock SD models: `stability.stable-image-core-v1:0`, `stability.sd3-large-v1:0`, and `stability.stable-image-ultra-v1:0`.
+
+5. Deployment Script Upgrade: Added a permission configuration, now correctly calling cross-region model profiles.
+
+6. Improvement: Added an API key query API, allowing precise matching by name, group_id, and role.
+
+7. Improvement: Default model support: Now a model named 'default' can respond to any model name. If not defined, an error message will be output.
+
+8. Refactored parts of the code and added a standard API: `/v1/completions`, to support continue-coder. Currently, only bedrock-coverse and continue-coder have implemented this API.
+
+9. Upgraded the underlying AWS SDK dependency to 3.645.0 and fixed various other bugs.
+
 ### 0.0.12
 
 1. New provider: [urls-reader](https://aws-samples.github.io/sample-connector-for-bedrock/providers/urls-reader/ ), which can parse URLs in user conversations and download the text content from the URLs to add to the conversation context.
+
 2. Optimized the [painter](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/) provider, now supporting the Titan image model. The large language model has been changed to BRConnector's local model.
+
 3. It is now possible to delete models, groups, and API Keys in the manager interface.
+
 4. Bug fix: Automatic update script for CloudFormation EC2.
 
 ## Disclaimer

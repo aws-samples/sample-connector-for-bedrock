@@ -116,6 +116,7 @@ A Webhook consists of the following fields:
 | Config  | string(json)   | N    |  | Different configurations are provided based on different providers                    |
 
 ### Config Example
+
 ```json
 {
   "appId": "cli_xxxxx",
@@ -134,8 +135,7 @@ A Webhook consists of the following fields:
 
     Currently, BRConnector must be restarted for the added Webhook to take effect.
 
-
 Example of configured Webhook URL:
 
-- `https://<yourdomain>/bot/feishu/<webhook name>/webhook/event`
+- `https://<yourdomain>/bot/feishu/<webhook-name>/webhook/event`
 - `https://www.example.com/bot/feishu/feishu001/webhook/event`
