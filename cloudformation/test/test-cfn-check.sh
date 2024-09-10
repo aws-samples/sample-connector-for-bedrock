@@ -32,7 +32,7 @@ cat api-check.txt |while read i j ; do
     echo ======================================================================
     echo $i $j
     echo ======================================================================
-    curl -sL ${j}/v1/chat/completions \
+    time curl -sL ${j}/v1/chat/completions \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer ${i}" \
       -d '{
@@ -40,12 +40,12 @@ cat api-check.txt |while read i j ; do
       "messages": [
         {
           "role": "user",
-          "content": "ping"
+          "content": "Ping. You just response 'Pong', nothing else."
         }
       ],
       "stream": true,
       "temperature": 1,
-      "max_tokens": 4000
+      "max_tokens": 1000
     }'
     echo
 done

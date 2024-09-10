@@ -228,7 +228,9 @@ Resources:
               Action:
               - 'bedrock:InvokeModelWithResponseStream'
               - 'bedrock:InvokeModel'
-              Resource: 'arn:aws:bedrock:*::foundation-model/*'
+              Resource: 
+              - 'arn:aws:bedrock:*::foundation-model/*'
+              - 'arn:aws:bedrock:*:*:inference-profile/*'
             - Effect: Allow
               Sid: ListFM
               Action:
@@ -267,7 +269,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub "ec2-security-group-${AWS::StackName}"
-      GroupDescription: "Security Group for EC2 RDS Lambda"
+      GroupDescription: "Security Group for EC2"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -277,22 +279,39 @@ Resources:
           FromPort: 8866
           ToPort: 8866
           CidrIp: 0.0.0.0/0
+      VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
+
+  RdsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "rds-security-group-${AWS::StackName}"
+      GroupDescription: "Security Group for RDS"
+      VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
+
+  RdsSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref RdsSecurityGroup
+      IpProtocol: "tcp"
+      FromPort: "5432"
+      ToPort: "5432"
+      SourceSecurityGroupId: !Ref RdsSecurityGroup
+
+  LambdaSecurityGroup:
+    Condition: IsLambda
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "lambda-security-group-${AWS::StackName}"
+      GroupDescription: "Security Group for Lambda"
+      SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
       VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
 
-  MySecurityGroupIngress:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref InstanceSecurityGroup
-      IpProtocol: "tcp"
-      FromPort: "5432"
-      ToPort: "5432"
-      SourceSecurityGroupId: !Ref InstanceSecurityGroup
-
   MyPGParameterGroup:
+    Condition: IsStandaloneDB
     Type: AWS::RDS::DBParameterGroup
     Properties:
       Description: "My PostgreSQL Parameter Group"
@@ -301,6 +320,7 @@ Resources:
         rds.force_ssl: "0"
 
   MyPGSubnetGroup:
+    Condition: IsStandaloneDB
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: Subnets available for the RDS instance
@@ -321,7 +341,7 @@ Resources:
       MasterUserPassword: !Ref PGPassword
       DBParameterGroupName: !Ref MyPGParameterGroup
       VPCSecurityGroups:
-        - !Ref InstanceSecurityGroup
+        - !Ref RdsSecurityGroup
       DBSubnetGroupName: !Ref MyPGSubnetGroup
 
   MyEC2Instance:
@@ -329,7 +349,7 @@ Resources:
       - MySSMParameterFirstUserKey 
       - MySSMParameterAdminKey
       - MySSMParameterPGDB
-      - ECRPullThroughCacheRule
+      - PrivateECRRepository
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: 
@@ -346,6 +366,7 @@ Resources:
           DeviceIndex: '0'
           GroupSet:
             - !Ref InstanceSecurityGroup
+            - !Ref RdsSecurityGroup
           SubnetId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PublicSubnetId, !Ref PublicSubnetId ]
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
@@ -387,7 +408,8 @@ Resources:
           export KEY=$(uuidgen |tee /root/admin-api-key.txt)
           export AWS_DEFAULT_REGION="${AWS::Region}"
           
-          REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
+          #REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
+          REPO_PREFIX=${EcrRepo}-${RandomString}
           echo $REPO_PREFIX
           aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
@@ -452,20 +474,20 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     Properties:
       Handle: !Ref PrivateWaitHandle
-      Timeout: '900' # about 2-4 min will receive signal
+      Timeout: '600' # about 2-4 min will receive signal
       Count: 1
 
-  ECRPullThroughCacheRule:
-    Type: 'AWS::ECR::PullThroughCacheRule'
-    Properties:
-      EcrRepositoryPrefix: !Select
-        - 0
-        - !Split
-          - '/'
-          - !Ref PrivateECRRepository
-      # UpstreamRegistryUrl: 'https://registry.hub.docker.com'
-      UpstreamRegistryUrl: "public.ecr.aws"
-      UpstreamRegistry: "ecr-public"
+  # ECRPullThroughCacheRule:
+  #   Type: 'AWS::ECR::PullThroughCacheRule'
+  #   Properties:
+  #     EcrRepositoryPrefix: !Select
+  #       - 0
+  #       - !Split
+  #         - '/'
+  #         - !Ref PrivateECRRepository
+  #     # UpstreamRegistryUrl: 'https://registry.hub.docker.com'
+  #     UpstreamRegistryUrl: "public.ecr.aws"
+  #     UpstreamRegistry: "ecr-public"
 
   PrivateECRRepository:
     Type: AWS::ECR::Repository
@@ -473,21 +495,53 @@ Resources:
       EmptyOnDelete: true
       RepositoryName: !Join
         - '/'
-        - - !Join
-            - '-'
-            - - !Ref EcrRepo
-              - !Select
-                - 4
-                - !Split
-                  - '-'
-                  - !Select
-                    - 2
-                    - !Split
-                      - '/'
-                      - !Ref AWS::StackId
+        - - !Sub ${EcrRepo}-${RandomString}
           - "x6u9o2u4/sample-connector-for-bedrock-lambda"
 
-  MyCloudFrontDistribution:
+  RandomString:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt RandomStringLambda.Arn
+      RandomLength: 12
+
+  RandomStringLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import random
+          import string
+          import cfnresponse
+          import json
+          
+          def handler(event, context):
+              status = cfnresponse.SUCCESS
+              try:
+                  random_length = int(event['ResourceProperties']['RandomLength'])
+                  random_string = ''.join(random.choices(string.ascii_lowercase, k=random_length))
+                  cfnresponse.send(event, context, status, {}, random_string)
+              except Exception as e:
+                  status = cfnresponse.FAILED
+                  cfnresponse.send(event, context, status, {}, str(e))
+
+      Handler: index.handler
+      Runtime: python3.11
+      Role: !GetAtt RandomStringLambdaExecutionRole.Arn
+
+  RandomStringLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  Ec2CloudFrontDistribution:
     Condition: IsEnableCloudfrontEc2
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -521,7 +575,7 @@ Resources:
         ViewerCertificate:
           CloudFrontDefaultCertificate: 'true'
 
-  MyCloudFrontLambda:
+  LambdaCloudFrontDistribution:
     Condition: IsEnableCloudfrontLambda
     DependsOn:
     - BRConnectorLambdaUrl
@@ -589,7 +643,7 @@ Resources:
       DataType: text
 
   BRConnectorLambdaRole:
-    Condition: IsLambda	
+    Condition: IsLambda
     Type: AWS::IAM::Role
     Properties:
       Tags:
@@ -630,7 +684,9 @@ Resources:
             Action:
             - 'bedrock:InvokeModelWithResponseStream'
             - 'bedrock:InvokeModel'
-            Resource: 'arn:aws:bedrock:*::foundation-model/*'
+            Resource: 
+            - 'arn:aws:bedrock:*::foundation-model/*'
+            - 'arn:aws:bedrock:*:*:inference-profile/*'
           - Effect: Allow
             Sid: ListFM
             Action:
@@ -685,7 +741,8 @@ Resources:
           PGSQL_PASSWORD: !Ref PGPassword
       VpcConfig:
         SecurityGroupIds:
-          - !Ref InstanceSecurityGroup
+          - !Ref LambdaSecurityGroup
+          - !Ref RdsSecurityGroup
         SubnetIds:
           - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet1Id, !Ref PrivateSubnet1Id ]
 
@@ -753,6 +810,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
 
   CodeBuildSecurityGroup:
+    Condition: IsAutoUpdate
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub "codebuild-security-group-${AWS::StackName}"
@@ -760,6 +818,7 @@ Resources:
       VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
 
   CodeBuildRole:
+    Condition: IsAutoUpdate
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -778,6 +837,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
 
   CodeBuildProject:
+    Condition: IsAutoUpdate
     Type: AWS::CodeBuild::Project
     Properties:
       Name: !Sub MyCodeBuildProject-${AWS::StackName}
@@ -807,8 +867,8 @@ Resources:
                 - # get ecr repo name
                 - aws cloudformation describe-stacks --stack-name ${STACK_NAME} > /tmp/cfn.yaml
                 - STACK_ID=$(cat /tmp/cfn.yaml |jq -r '.Stacks[].StackId')
-                - REPO_PREFIX=$(cat /tmp/cfn.yaml |jq -r '.Stacks[].Parameters[] | select (.ParameterKey == "EcrRepo") | .ParameterValue')
-                - ECR_REPO=${REPO_PREFIX}-${STACK_ID##*-}/${DOCKERHUB_REPO}
+                - REPO_PREFIX=$(cat /tmp/cfn.yaml |jq -r '.Stacks[].Outputs[] | select (.OutputKey == "EcrRepo") | .OutputValue')
+                - ECR_REPO=${REPO_PREFIX%%/*}/${DOCKERHUB_REPO}
                 - FUNCTION_NAME=$(cat /tmp/cfn.yaml |jq -r '.Stacks[].Outputs[] | select (.OutputKey == "MyFunctionName") | .OutputValue')
                 - 
                 - # pull local
@@ -816,6 +876,7 @@ Resources:
                 - # docker pull ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:latest
                 - 
                 - # tag amd64 / arm64
+                - regctl tag ls public.ecr.aws/${DOCKERHUB_REPO} |sort -t '.' -k3n
                 - AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/${DOCKERHUB_REPO}:latest)
                 - ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/${DOCKERHUB_REPO}:latest)
                 - regctl image copy public.ecr.aws/${DOCKERHUB_REPO}@${AMD64_DIG} ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:amd64
@@ -893,12 +954,14 @@ Resources:
             Resource: !GetAtt CodeBuildProject.Arn
 
   S3Bucket:
+    Condition: IsAutoUpdate
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
     Properties:
       BucketName: !Sub "ssmlogbucket-${MyEC2Instance}"
 
   EC2AutoUpdateSSMDocument: 
+    Condition: IsAutoUpdate
     Type: AWS::SSM::Document
     Properties: 
       Tags:
@@ -951,7 +1014,7 @@ Outputs:
       - ''
       - - https://
         - Fn::GetAtt: 
-          - MyCloudFrontDistribution
+          - Ec2CloudFrontDistribution
           - DomainName
   CloudFrontLambdaURL:
     Condition: IsEnableCloudfrontLambda
@@ -961,7 +1024,7 @@ Outputs:
       - ''
       - - https://
         - Fn::GetAtt: 
-          - MyCloudFrontLambda
+          - LambdaCloudFrontDistribution
           - DomainName
   MyPGEndpoint:
     Condition: IsStandaloneDB
@@ -984,3 +1047,7 @@ Outputs:
     Condition: IsLambda
     Description: lambda name
     Value: !Ref BRConnectorLambda
+  EcrRepo:
+    Condition: IsAutoUpdate
+    Description: EcrRepo
+    Value: !Ref PrivateECRRepository
