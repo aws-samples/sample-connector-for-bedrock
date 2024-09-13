@@ -44,9 +44,13 @@ Metadata:
       - Label: 
           default: "Others Settings"
       - Parameters:
-          - KeepEc2
           - EnableCloudfront
           - AutoUpdateBRConnector
+
+      - Label: 
+          default: "Debugging Settings"
+      - Parameters:
+          - KeepEc2
 
 Parameters:
   NewVpc:
@@ -136,14 +140,6 @@ Parameters:
     Type: String
     Default: mysecretpassword
 
-  KeepEc2:
-    Description: keep EC2 instance for debugging when you deploy brconnector on Lambda
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true
-
   EnableCloudfront:
     Description: Enable Cloudfront or not, when using Lambda ComputeType. If you use EC2, this option will be ignored
     Type: String
@@ -154,6 +150,14 @@ Parameters:
 
   AutoUpdateBRConnector:
     Description: auto update BRConnector image to Lambda & EC2
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: true
+
+  KeepEc2:
+    Description: keep EC2 instance for debugging when you deploy brconnector on Lambda
     Type: String
     AllowedValues:
       - true
@@ -1008,7 +1012,7 @@ Resources:
 Outputs:
   CloudFrontEc2URL:
     Condition: IsEnableCloudfrontEc2
-    Description: CloudFront URL
+    Description: BRConnector URL
     Value: 
       Fn::Join:
       - ''
@@ -1016,9 +1020,32 @@ Outputs:
         - Fn::GetAtt: 
           - Ec2CloudFrontDistribution
           - DomainName
+  CloudFrontEc2ManagerURL:
+    Condition: IsEnableCloudfrontEc2
+    Description: BRConnector Manager URL
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - Ec2CloudFrontDistribution
+          - DomainName
+        - '/manager'
+  CloudFrontEc2BrclientURL:
+    Condition: IsEnableCloudfrontEc2
+    Description: BRClient WebUI
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - Ec2CloudFrontDistribution
+          - DomainName
+        - '/brclient'
+  
   CloudFrontLambdaURL:
     Condition: IsEnableCloudfrontLambda
-    Description: CloudFront URL
+    Description: BRConnector URL
     Value: 
       Fn::Join:
       - ''
@@ -1026,6 +1053,29 @@ Outputs:
         - Fn::GetAtt: 
           - LambdaCloudFrontDistribution
           - DomainName
+  CloudFrontLambdaManagerURL:
+    Condition: IsEnableCloudfrontLambda
+    Description: BRConnector Manager URL
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - LambdaCloudFrontDistribution
+          - DomainName
+        - '/manager'
+  CloudFrontLambdaBrclientURL:
+    Condition: IsEnableCloudfrontLambda
+    Description: BRClient WebUI
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - LambdaCloudFrontDistribution
+          - DomainName
+        - '/brclient'
+
   MyPGEndpoint:
     Condition: IsStandaloneDB
     Description: The Endpoint of the RDS PostgreSQL
@@ -1034,20 +1084,23 @@ Outputs:
     Description: The ID of the EC2 instance
     Value: !Ref MyEC2Instance
   MySSMParameterFirstUserKey:
-    Description: First User Key
+    Description: First User API Key
     Value: !GetAtt MySSMParameterFirstUserKey.Value
-  MySSMParameterAdminKey:
-    Description: Admin Key
-    Value: !GetAtt MySSMParameterAdminKey.Value
-  MyFunctionUrl:
-    Condition: IsLambda
-    Description: lambda url
-    Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
+  # MySSMParameterAdminKey:
+  #   Description: Admin Key
+  #   Value: !GetAtt MySSMParameterAdminKey.Value
+  # MyFunctionUrl:
+  #   Condition: IsLambda
+  #   Description: Lambda URL
+  #   Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
   MyFunctionName:
     Condition: IsLambda
-    Description: lambda name
+    Description: Lambda Name (needed by AutoUpdate)
     Value: !Ref BRConnectorLambda
   EcrRepo:
-    Condition: IsAutoUpdate
-    Description: EcrRepo
+    Condition: IsLambda
+    Description: EcrRepo Name (needed by AutoUpdate)
     Value: !Ref PrivateECRRepository
+
+
+
