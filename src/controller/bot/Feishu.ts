@@ -132,23 +132,80 @@ const chatSync = async (chatContent: string, session_id: string, connectorName: 
   return await response.json();
 }
 
+const buildCard = (title: string, content: string) => {
+  return {
+    "config": {
+      "wide_screen_mode": true
+    },
+    "header": {
+      "title": {
+        "tag": "plain_text",
+        "content": title
+      }
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "fields": [
+          {
+            "is_short": false,
+            "text": {
+              "tag": "lark_md",
+              "content": content
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
 
-const receive = (client: lark.Client, data: any, connectorName: string) => {
-  const open_id = data.sender.sender_id.open_id;
-  const jContent = JSON.parse(data.message.content);
-  chatSync(jContent.text, data.message.chat_id, connectorName).then(async llmRes => {
-    await client.im.message.create({
+const sendCard = async (client: lark.Client, open_id: string, title: string, content: string) => {
+  let card = buildCard(title, content);
+  try {
+    const response = await client.im.message.create({
       params: {
         receive_id_type: 'open_id',
       },
       data: {
         receive_id: open_id,
-        msg_type: 'text',
-        content: JSON.stringify({
-          "text": llmRes.choices[0].message.content
-        }),
+        msg_type: 'interactive',
+        content: JSON.stringify(card),
         uuid: helper.generateUUID(),
       }
+    });
+    return response
+  }
+  catch (ex) {
+    console.error(ex)
+  }
+}
+
+const updateCard = async (client: lark.Client, messageId: string, title: string, content: string) => {
+  let card = buildCard(title, content);
+  try {
+    const response = await client.im.message.patch({
+      path: {
+        message_id: messageId
+      },
+      data: {
+        content: JSON.stringify(card)
+      }
+    });
+    return response
+  }
+  catch (ex) {
+    console.error(ex)
+  }
+}
+
+const receive = (client: lark.Client, data: any, connectorName: string) => {
+  const open_id = data.sender.sender_id.open_id;
+  const jContent = JSON.parse(data.message.content);
+  sendCard(client, open_id, "正在思考中", "……").then(async res => {
+    const messageId: string = res.data.message_id;
+    chatSync(jContent.text, data.message.chat_id, connectorName).then(async llmRes => {
+      updateCard(client, messageId, "以下是回复", llmRes.choices[0].message.content);
     });
   })
 };
