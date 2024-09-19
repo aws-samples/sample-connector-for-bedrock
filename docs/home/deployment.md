@@ -131,14 +131,13 @@ You could choose to deploy PostgreSQL in container on ECR or in RDS directly, he
 - list your database name
 ```sh
 docker exec -it postgres psql -U postgres
-postgres=>
 postgres=> \l # list databases
 postgres=>
 
 ```
-- dump db
+- dump full db 
 ```sh
-docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
+docker exec -i postgres pg_dump -U postgres -d brproxy_dbname > db.sql
 
 ```
 - Find your PG endpoint in RDS
@@ -150,56 +149,28 @@ docker run --name postgres-client \
     -d postgres:${POSTGRES_VERSION}
 
 ```
-- create target database in RDS
-```bash
-docker exec -it postgres-client \
-    psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
-postgres=>
-postgres=> CREATE DATABASE brconnector_db;
-postgres=>
+- copy full db sql to container's /tmp folder
+```sh
+docker cp db.sql postgres-client:/tmp/
 
 ```
-- import to database `brconnector_db` 
-```sh
-docker exec -i postgres-client \
-    psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com \
-    -d brconnector_db < db.sql
-
+- create target database in RDS and import data
+```
+docker exec -it postgres-client sh 
+#
+# psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
+Password for user postgres:
+postgres=> CREATE DATABASE brconnector_db;
+postgres=> ^D
+# psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com -d brconnector_db </tmp/db.sql
+Password for user postgres:
+# 
 ```
 - clean temporary docker on local
 ```sh
 docker rm -f postgres-client
 
 ```
-
-### Migrating BRConnector data from PG container on EC2 to new EC2
-- list your database name
-```sh
-docker exec -it postgres psql -U postgres
-postgres=>
-postgres=> \l # list databases
-postgres=>
-
-```
-- dump db
-```sh
-docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
-
-```
-- create database
-```bash
-docker exec -it postgres psql -U postgres
-postgres=>
-postgres=>CREATE DATABASE brconnector_db;
-postgres=>
-
-```
-- import to `brconnector_db`
-```sh
-docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
-
-```
-
 
 
 
