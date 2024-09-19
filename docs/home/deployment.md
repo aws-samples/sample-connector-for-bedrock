@@ -131,7 +131,9 @@ You could choose to deploy PostgreSQL in container on ECR or in RDS directly, he
 - list your database name
 ```sh
 docker exec -it postgres psql -U postgres
+postgres=>
 postgres=> \l # list databases
+postgres=>
 
 ```
 - dump db
@@ -148,7 +150,16 @@ docker run --name postgres-client \
     -d postgres:${POSTGRES_VERSION}
 
 ```
-- import to brconnector_db 
+- create target database in RDS
+```bash
+docker exec -it postgres-client \
+    psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
+postgres=>
+postgres=> CREATE DATABASE brconnector_db;
+postgres=>
+
+```
+- import to database `brconnector_db` 
 ```sh
 docker exec -i postgres-client \
     psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com \
@@ -165,7 +176,9 @@ docker rm -f postgres-client
 - list your database name
 ```sh
 docker exec -it postgres psql -U postgres
+postgres=>
 postgres=> \l # list databases
+postgres=>
 
 ```
 - dump db
@@ -173,7 +186,15 @@ postgres=> \l # list databases
 docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
 
 ```
-- import to brconnector_db
+- create database
+```bash
+docker exec -it postgres psql -U postgres
+postgres=>
+postgres=>CREATE DATABASE brconnector_db;
+postgres=>
+
+```
+- import to `brconnector_db`
 ```sh
 docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
 

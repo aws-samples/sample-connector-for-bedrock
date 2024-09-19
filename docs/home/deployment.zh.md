@@ -130,7 +130,9 @@ docker restart brconnector
 - 列出您的数据库名称
 ```sh
 docker exec -it postgres psql -U postgres
+postgres=>
 postgres=> \l # 列出数据库
+postgres=>
 
 ```
 - dump db
@@ -147,7 +149,16 @@ docker run --name postgres-client \
 -d postgres:${POSTGRES_VERSION}
 
 ```
-- 导入到 brconnector_db
+- 创建目标数据库
+```bash
+docker exec -it postgres-client \
+    psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
+postgres=>
+postgres=>CREATE DATABASE brconnector_db;
+postgres=>
+
+```
+- 导入到数据库 `brconnector_db`
 ```sh
 docker exec -i postgres-client \
 psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com \
@@ -164,7 +175,9 @@ docker rm -f postgres-client
 - 列出数据库名称
 ```sh
 docker exec -it postgres psql -U postgres
+postgres=>
 postgres=> \l # 列出数据库
+postgres=>
 
 ```
 - dump db
@@ -172,7 +185,15 @@ postgres=> \l # 列出数据库
 docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
 
 ```
-- 导入到 brconnector_db
+- 创建数据库
+```bash
+docker exec -it postgres psql -U postgres
+postgres=>
+postgres=>CREATE DATABASE brconnector_db;
+postgres=>
+
+```
+- 导入到 `brconnector_db`
 ```sh
 docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
 
