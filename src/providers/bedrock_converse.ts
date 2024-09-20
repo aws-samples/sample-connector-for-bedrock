@@ -161,7 +161,7 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             throw new Error("No response.");
         }
-        ctx.res.write("data: [DONE]\n\n")
+        // ctx.res.write("data: [DONE]\n\n")
         ctx.res.end();
     }
 
