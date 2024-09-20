@@ -32,7 +32,7 @@ class ModelController extends AbstractController {
         // const myself = await service.loadById(ctx.db, id);
 
         const keyModels = await service.listModels(ctx.db, { key_id: myself.id, limit: 1000 });
-        const groupModels = await serviceGroup.listModels(ctx.db, { group_id: myself.group_id, limit: 200 });
+        const groupModels = await serviceGroup.listModels(ctx.db, { group_id: myself.group_id, limit: 1000 });
         const keyItems = keyModels.items;
         const groupItems = groupModels.items;
         const mapFun = (item: any) => ({

@@ -118,7 +118,7 @@ export default class BedrockConverse extends AbstractProvider {
     }
 
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
-        let i = 0;
+        // let i = 0;
         // console.log(chatRequest, JSON.stringify(input, null, 2));
         const command = new ConverseStreamCommand(input);
         const response = await this.client.send(command);
@@ -127,22 +127,25 @@ export default class BedrockConverse extends AbstractProvider {
             let responseText = "";
             let index = 0;
             for await (const item of response.stream) {
-                i++;
                 // console.log(item);
                 if (item.contentBlockDelta) {
                     responseText += item.contentBlockDelta.delta.text;
-                    const p = item.contentBlockDelta["p"];
-                    ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                    // const p = item.contentBlockDelta["p"];
+                    ctx.res.write("data:" + WebResponse.wrap(index, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+
+                    index++;
                 }
-                if (item.contentBlockStop) {
-                    const p = item.contentBlockStop["p"];
-                    ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, "", "stop") + "\n\n");
-                }
+                // if (item.contentBlockStop) {
+                //     const p = item.contentBlockStop["p"];
+                //     ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, "", "stop") + "\n\n");
+                // }
                 if (item.metadata) {
                     // console.log(item);
                     const input_tokens = item.metadata.usage.inputTokens;
                     const output_tokens = item.metadata.usage.outputTokens;
                     const first_byte_latency = item.metadata.metrics.latencyMs;
+
+                    ctx.res.write("data:" + WebResponse.wrap(index, chatRequest.model, "", "stop", output_tokens, input_tokens) + "\n\n");
                     const response: ResponseData = {
                         text: responseText,
                         input_tokens,

@@ -18,8 +18,9 @@ export default {
         content = content || "";
         const data: any = {
             id, created,
-            "object": "chat.completion.chunk",
-            system_fingerprint: null
+            // "object": "chat.completion.chunk",
+            "object": "text_completion"
+            // system_fingerprint: null
             // finish_reason: null,
             // usage: {
             //     completion_tokens,
@@ -35,10 +36,23 @@ export default {
                 { "index": 0, delta: {}, finish_reason, logprobs: null }
             ];
         } else {
-            data.choices = [
-                { "index": 0, delta: { content }, finish_reason, logprobs: null }
-            ];
+            if (id == 0) {
+                data.choices = [
+                    { "index": 0, delta: { role: "assistant", content }, finish_reason, logprobs: null }
+                ];
 
+            } else {
+                data.choices = [
+                    { "index": 0, delta: { content }, finish_reason, logprobs: null }
+                ];
+            }
+        }
+        if (completion_tokens > 0) {
+            data.usage = {
+                completion_tokens,
+                prompt_tokens,
+                total_tokens: completion_tokens + prompt_tokens
+            }
         }
 
         if (model) {
