@@ -16,6 +16,13 @@
           </Tooltip>
         </Space>
       </template>
+
+      <template v-slot:updated_at="c, row">
+        <Space>
+          {{ format_date(row) }}
+        </Space>
+      </template>
+      
       <template v-slot:action="c, row">
         <Space>
           <Button size="small" @click="recharge(row)">{{ $t('keys.btn_recharge') }}</Button>
@@ -113,6 +120,7 @@ export default {
         { key: 'balance', title: this.$t('keys.col_balance') },
         { key: 'month_fee', title: this.$t('keys.col_month_fee') },
         { key: 'month_quota', title: this.$t('keys.col_month_quota') },
+        { key: 'updated_at', title: this.$t('keys.col_updated_at') },
         { key: 'action', title: this.$t('keys.col_action'), fixed: "right", width: 300 },
       ],
       form: { name: '', email: '', role: 'user', month_quota: 0, balance: 0, group_id: 0 },
@@ -183,6 +191,10 @@ export default {
       }, e => {
         this.$Message.error('Copied faild.')
       })
+    },
+    format_date({ updated_at }) {
+      const date = new Date(updated_at);
+      return date.toLocaleString();
     },
     format_key({ api_key }) {
       return api_key ? api_key.substr(0, 5) + '...' + api_key.substr(-3) : ""

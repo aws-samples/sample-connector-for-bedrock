@@ -75,6 +75,7 @@ export default {
     op_admin: '管理员',
 
     tip_copy_key: '复制Key',
+    col_updated_at: '最新访问',
     col_name: '名称',
     col_key: '密钥',
     col_email: '邮箱',

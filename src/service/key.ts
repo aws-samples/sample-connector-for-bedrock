@@ -44,7 +44,7 @@ export default {
             cols: "*",
             limit: limit,
             offset: offset,
-            orderBy: "id desc"
+            orderBy: "updated_at desc"
         }
 
         for (const key of keys) {

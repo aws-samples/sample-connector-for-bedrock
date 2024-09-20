@@ -76,6 +76,7 @@ export default {
     op_admin: 'Admin',
 
     tip_copy_key: 'Copy Key',
+    col_updated_at: 'Last Active',
     col_name: 'Name',
     col_key: 'Key',
     col_email: 'Email',
