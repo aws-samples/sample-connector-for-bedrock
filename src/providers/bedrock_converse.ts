@@ -125,7 +125,9 @@ export default class BedrockConverse extends AbstractProvider {
 
         if (response.stream) {
             let responseText = "";
-            let index = 0;
+            ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, "", null) + "\n\n");
+
+            let index = 1;
             for await (const item of response.stream) {
                 // console.log(item);
                 if (item.contentBlockDelta) {
