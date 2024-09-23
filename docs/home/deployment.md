@@ -132,11 +132,12 @@ You could choose to deploy PostgreSQL in container on ECR or in RDS directly, he
 ```sh
 docker exec -it postgres psql -U postgres
 postgres=> \l # list databases
+postgres=>
 
 ```
-- dump db
+- dump full db 
 ```sh
-docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
+docker exec -i postgres pg_dump -U postgres -d brproxy_dbname > db.sql
 
 ```
 - Find your PG endpoint in RDS
@@ -148,37 +149,28 @@ docker run --name postgres-client \
     -d postgres:${POSTGRES_VERSION}
 
 ```
-- import to brconnector_db 
+- copy full db sql to container's /tmp folder
 ```sh
-docker exec -i postgres-client \
-    psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com \
-    -d brconnector_db < db.sql
+docker cp db.sql postgres-client:/tmp/
 
+```
+- create target database in RDS and import data
+```
+docker exec -it postgres-client sh 
+#
+# psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
+Password for user postgres:
+postgres=> CREATE DATABASE brconnector_db;
+postgres=> ^D
+# psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com -d brconnector_db </tmp/db.sql
+Password for user postgres:
+# 
 ```
 - clean temporary docker on local
 ```sh
 docker rm -f postgres-client
 
 ```
-
-### Migrating BRConnector data from PG container on EC2 to new EC2
-- list your database name
-```sh
-docker exec -it postgres psql -U postgres
-postgres=> \l # list databases
-
-```
-- dump db
-```sh
-docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
-
-```
-- import to brconnector_db
-```sh
-docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
-
-```
-
 
 
 

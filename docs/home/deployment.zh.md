@@ -131,11 +131,12 @@ docker restart brconnector
 ```sh
 docker exec -it postgres psql -U postgres
 postgres=> \l # 列出数据库
+postgres=>
 
 ```
-- dump db
+- dump 整库
 ```sh
-docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
+docker exec -i postgres pg_dump -U postgres -d brproxy_dbname > db.sql
 
 ```
 - 在 RDS 中找到您的 PG 端点 (Endpoint)
@@ -147,34 +148,26 @@ docker run --name postgres-client \
 -d postgres:${POSTGRES_VERSION}
 
 ```
-- 导入到 brconnector_db
+- 复制整库导出的文件到新的容器中
 ```sh
-docker exec -i postgres-client \
-psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com \
--d brconnector_db < db.sql
+docker cp db.sql postgres-client:/tmp/
 
 ```
-- clean temporary docker on local
+- 创建目标数据库，然后导入数据
+```
+docker exec -it postgres-client sh 
+# 
+# psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
+Password for user postgres:
+postgres=> CREATE DATABASE brconnector_db;
+postgres=> ^D
+# psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com -d brconnector_db </tmp/db.sql
+Password for user postgres:
+# 
+```
+- 清理临时 docker on local
 ```sh
 docker rm -f postgres-client
-
-```
-
-### 将 BRConnector 数据从 EC2 上的 PG 容器迁移到新的 EC2
-- 列出数据库名称
-```sh
-docker exec -it postgres psql -U postgres
-postgres=> \l # 列出数据库
-
-```
-- dump db
-```sh
-docker exec -i postgres pg_dump -U postgres -d brproxy_dbname -a > db.sql
-
-```
-- 导入到 brconnector_db
-```sh
-docker exec -i postgres psql -U postgres -d brconnector_db < db.sql
 
 ```
 
