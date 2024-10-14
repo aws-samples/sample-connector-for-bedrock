@@ -250,6 +250,7 @@ export default class BedrockConverse extends AbstractProvider {
         //     }
         // })
         return {
+            model: chatRequest.model,
             choices, usage: {
                 completion_tokens: outputTokens,
                 prompt_tokens: inputTokens,
