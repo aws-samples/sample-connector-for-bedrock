@@ -340,10 +340,8 @@ class MessageConverter {
                         name: contentItem.doc.source.name + (new Date()).getTime(),
                         format: contentItem.doc.source.format
                     }
-
                 }
             }
-
         }
         return contentItem;
     }
