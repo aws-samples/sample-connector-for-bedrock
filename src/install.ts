@@ -5,7 +5,7 @@ import config from './config';
 export default async function () {
     if (!config.pgsql.host || !config.pgsql.database) {
         console.error("❌ Postgres not configured, skip installation.");
-        console.log("💡 You can only access BRConnector using the value of the environment variable ADMIN_API_KEY");
+        console.log("💡 You can only access BRConnector using the API key stored in the ADMIN_API_KEY environment variable.");
         return;
     }
 

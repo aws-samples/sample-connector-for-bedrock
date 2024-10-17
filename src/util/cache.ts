@@ -5,6 +5,7 @@ import config from '../config';
 const cache = {
   models: [],
   api_keys: [],
+  connectors: [],
   run: () => {
     let db: any;
     if (config.pgsql.host && config.pgsql.database) {
@@ -25,6 +26,7 @@ const cache = {
   loadData: async (db: any) => {
     cache.api_keys = await db.list("eiai_key", { limit: 2000 });
     cache.models = await db.list("eiai_model", { limit: 2000 });
+    cache.connectors = await db.list("eiai_bot_connector", { limit: 2000 });
     // console.log(cache.models);
     return true;
   },

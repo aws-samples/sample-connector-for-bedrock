@@ -15,9 +15,9 @@ install();
 
 import cache from './util/cache';
 
-if (config.performanceMode) {
-    cache.run();
-}
+// if (config.performanceMode) {
+cache.run();
+// }
 
 const app = new Koa();
 

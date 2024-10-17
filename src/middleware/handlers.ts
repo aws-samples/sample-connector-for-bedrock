@@ -60,7 +60,7 @@ const authHandler = async (ctx: any, next: any) => {
         } else if (ctx.cache) {
             //auth data from cache.
             const keys = ctx.cache.api_keys.filter((e: any) => e.api_key === api_key);
-            console.log(keys);
+            // console.log(keys);
             if (!keys || keys.length < 1) {
                 throw new Error("Unauthorized: api key error");
             }
@@ -146,6 +146,7 @@ const dataCacheHandler = async (ctx: any, next: any) => {
         ctx.cache = {
             models: Cache.models,
             api_keys: Cache.api_keys,
+            connectors: Cache.connectors
         }
     }
     await next();
