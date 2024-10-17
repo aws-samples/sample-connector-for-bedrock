@@ -4,7 +4,7 @@
 
 #### Completions
 
-```http request
+```
 POST /v1/chat/completions
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -25,7 +25,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### List models
 
-```http request
+```
 GET /v1/models
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
@@ -36,7 +36,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Create an api key
 
-```http request
+```
 POST /admin/api-key/apply
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -52,7 +52,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Create an api key with admin role
 
-```http request
+```
 POST /admin/api-key/apply
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -67,7 +67,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Update and api key's info
 
-```http request
+```
 POST /admin/api-key/update
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -81,7 +81,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Recharge up an API key
 
-```http request
+```
 POST /admin/api-key/recharge
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -94,21 +94,21 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Recharge history
 
-```http request
+```
 GET /admin/payment/list?key_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### List api keys
 
-```http request
+```
 GET /admin/api-key/list?q=&name=&group_id=&role=&limit=10&offset=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### Delete an api key
 
-```http request
+```
 POST /admin/api-key/delete
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -122,14 +122,14 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### List models
 
-```http request
+```
 GET /admin/model/list?q=&limit=10&offset=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### Create a model
 
-```http request
+```
 POST /admin/model/save
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -147,7 +147,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Update a model
 
-```http request
+```
 POST /admin/model/save
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -166,7 +166,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Delete a model
 
-```http request
+```
 POST /admin/model/delete
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -180,14 +180,14 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### List webhook
 
-```http request
+```
 GET /admin/bot/feishu/list?q=&limit=10&offset=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### Create a webhook
 
-```http request
+```
 POST /admin/bot/feishu/save
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -201,7 +201,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Update a webhook
 
-```http request
+```
 POST /admin/bot/feishu/save
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -216,7 +216,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Delete a webhook
 
-```http request
+```
 POST /admin/bot/feishu/delete
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -230,14 +230,14 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### List groups
 
-```http request
+```
 GET /admin/group/list?q=&limit=10&offset=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### Delete a group
 
-```http request
+```
 POST /admin/group/delete
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -260,14 +260,14 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### List sessions
 
-```http request
+```
 GET /admin/session/list?q=&limit=10&offset=&key_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 List threads / histories
 
-```http request
+```
 GET /admin/thread/list?q=&limit=10&offset=&key_id=&session_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
@@ -276,28 +276,28 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### My sessions
 
-```http request
+```
 GET /user/session/list?q=&limit=10&offset=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### My session detail
 
-```http request
+```
 GET /user/session/detail/1
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### My threads / histories
 
-```http request
+```
 GET /user/thread/list?q=&limit=10&offset=&session_id=
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 #### My thread detail
 
-```http request
+```shell
 GET /user/thread/detail/1
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```

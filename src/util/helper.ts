@@ -44,6 +44,13 @@ const helper = {
         return null;
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any): Promise<ModelData> => {
+        if (ctx.cache && ctx.db) {
+            const models = ctx.cache.models.filter((e: any) => e.name === chatRequest.model);
+            if (models.length > 0) {
+                return models[0];
+            }
+            throw new Error(`The model [${chatRequest.model}] is not found.`);
+        }
         if (ctx.db) {
             let rtn = await modelService.loadByName(ctx.db, chatRequest.model);
             if (!rtn) {
@@ -94,113 +101,111 @@ const helper = {
                 return {
                     name: 'claude-3-haiku',
                     config: {
-                        model_id: "anthropic.claude-3-haiku-20240307-v1:0",
-                        anthropic_version: "bedrock-2023-05-31"
+                        modelId: "anthropic.claude-3-haiku-20240307-v1:0"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 0.25e-6,
                     price_out: 1.25e-6,
                     currency: "USD",
-                    provider: 'bedrock-claude3'
+                    provider: 'bedrock-converse'
                 };
             case 'claude-3-opus':
                 return {
                     name: 'claude-3-opus',
                     config: {
-                        model_id: "anthropic.claude-3-opus-20240229-v1:0",
-                        anthropic_version: "bedrock-2023-05-31"
+                        modelId: "anthropic.claude-3-opus-20240229-v1:0"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 15e-6,
                     price_out: 75e-6,
                     currency: "USD",
-                    provider: 'bedrock-claude3'
+                    provider: 'bedrock-converse'
                 };
             case 'mistral-7b':
                 return {
                     name: 'mistral-7b',
                     config: {
-                        model_id: "mistral.mistral-7b-instruct-v0:2"
+                        modelId: "mistral.mistral-7b-instruct-v0:2"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 0.15e-6,
                     price_out: 0.2e-6,
                     currency: "USD",
-                    provider: 'bedrock-mistral'
+                    provider: 'bedrock-converse'
                 };
             case 'mistral-8x7b':
                 return {
                     name: 'mistral-8x7b',
                     config: {
-                        model_id: "mistral.mixtral-8x7b-instruct-v0:1"
+                        modelId: "mistral.mixtral-8x7b-instruct-v0:1"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 0.45e-6,
                     price_out: 0.7e-6,
                     currency: "USD",
-                    provider: 'bedrock-mistral'
+                    provider: 'bedrock-converse'
                 };
             case 'mistral-large':
                 return {
                     name: 'mistral-large',
                     config: {
-                        model_id: "mistral.mistral-large-2402-v1:0"
+                        modelId: "mistral.mistral-large-2402-v1:0"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 8e-6,
                     price_out: 24e-6,
                     currency: "USD",
-                    provider: 'bedrock-mistral'
+                    provider: 'bedrock-converse'
                 };
             case 'mistral-small':
                 return {
                     name: 'mistral-small',
                     config: {
-                        model_id: "mistral.mistral-small-2402-v1:0"
+                        modelId: "mistral.mistral-small-2402-v1:0"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 1e-6,
                     price_out: 3e-6,
                     currency: "USD",
-                    provider: 'bedrock-mistral'
+                    provider: 'bedrock-converse'
                 };
             case 'llama3-8b':
                 return {
                     name: 'llama3-8b',
                     config: {
-                        model_id: "meta.llama3-8b-instruct-v1:0"
+                        modelId: "meta.llama3-8b-instruct-v1:0"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 0.4e-6,
                     price_out: 0.6e-6,
                     currency: "USD",
-                    provider: 'bedrock-llama3'
+                    provider: 'bedrock-converse'
                 };
             case 'llama3-70b':
                 return {
                     name: 'llama3-70b',
                     config: {
-                        model_id: "meta.llama3-70b-instruct-v1:0"
+                        modelId: "meta.llama3-70b-instruct-v1:0"
                     },
                     multiple: 1,
                     model_type: 1,
                     price_in: 2.65e-6,
                     price_out: 3.5e-6,
                     currency: "USD",
-                    provider: 'bedrock-llama3'
+                    provider: 'bedrock-converse'
                 };
             default:
                 return {
                     name: 'claude-3-haiku',
                     config: {
-                        model_id: "anthropic.claude-3-haiku-20240307-v1:0",
+                        modelId: "anthropic.claude-3-haiku-20240307-v1:0",
                         anthropic_version: "bedrock-2023-05-31"
                     },
                     multiple: 1,
@@ -208,7 +213,7 @@ const helper = {
                     price_in: 0.25e-6,
                     price_out: 1.25e-6,
                     currency: "USD",
-                    provider: 'bedrock-claude3'
+                    provider: 'bedrock-converse'
                 };
         }
     },

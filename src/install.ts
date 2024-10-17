@@ -5,7 +5,7 @@ import config from './config';
 export default async function () {
     if (!config.pgsql.host || !config.pgsql.database) {
         console.error("❌ Postgres not configured, skip installation.");
-        console.log("💡 You can use any fake api key to access this proxy's llm api.")
+        console.log("💡 You can only access BRConnector using the value of the environment variable ADMIN_API_KEY");
         return;
     }
 

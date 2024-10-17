@@ -14,8 +14,8 @@ export default {
         aws_secret_key: process.env.AWS_SECRET_ACCESS_KEY,
         region: process.env.AWS_DEFAULT_REGION || "us-east-1"
     },
-    ollama:{
-        host : process.env.OLLAMA_HOST||"http://localhost:11434"
+    ollama: {
+        host: process.env.OLLAMA_HOST || "http://localhost:11434"
     },
     admin_api_key: process.env.ADMIN_API_KEY,
     debugMode: process.env.DEBUG_MODE || false, // set DEBUG_MODE=<empty> to disable
@@ -26,6 +26,7 @@ export default {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
         from: process.env.SMPT_FROM
-    }
+    },
+    performanceMode: process.env.PERFORMANCE_MODE || false
 
 }

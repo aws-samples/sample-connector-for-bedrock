@@ -1,6 +1,7 @@
 import response from '../util/response';
 import config from '../config';
 import DB from '../util/postgres';
+import Cache from '../util/cache';
 import { createLogger, format, transports } from 'winston';
 // const = require('winston');
 
@@ -56,6 +57,13 @@ const authHandler = async (ctx: any, next: any) => {
                 name: "amdin",
                 role: "admin"
             };
+        } else if (ctx.cache) {
+            //auth data from cache.
+            const keys = ctx.cache.api_keys.filter((e: any) => e.api_key === api_key);
+            console.log(keys);
+            if (!keys || keys.length < 1) {
+                throw new Error("Unauthorized: api key error");
+            }
         } else if (ctx.db) {
             //TODO: refactor this to your cache service if too many accesses.
             const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
@@ -132,4 +140,15 @@ const loggerHandler = async (ctx: any, next: any) => {
     await next();
 }
 
-export { errorHandler, authHandler, databaseHandler, loggerHandler };
+
+const dataCacheHandler = async (ctx: any, next: any) => {
+    if (config.performanceMode) {
+        ctx.cache = {
+            models: Cache.models,
+            api_keys: Cache.api_keys,
+        }
+    }
+    await next();
+}
+
+export { errorHandler, authHandler, databaseHandler, loggerHandler, dataCacheHandler };

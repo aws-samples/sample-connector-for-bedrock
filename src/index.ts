@@ -5,15 +5,19 @@ import Koa from "koa";
 // import { bodyParser } from "@koa/bodyparser"
 import { koaBody as bodyParser } from 'koa-body';
 import cors from "@koa/cors"
-import { authHandler, errorHandler, databaseHandler, loggerHandler } from './middleware/handlers'
+import { authHandler, errorHandler, databaseHandler, loggerHandler, dataCacheHandler } from './middleware/handlers'
 import { router } from "./routes";
 import serve from "koa-static-server";
 import config from './config';
 
 import install from './install';
-
 install();
 
+import cache from './util/cache';
+
+if (config.performanceMode) {
+    cache.run();
+}
 
 const app = new Koa();
 
@@ -45,6 +49,8 @@ app.use(bodyParser({
 app.use(cors());
 
 app.use(databaseHandler);
+
+app.use(dataCacheHandler);
 
 app.use(authHandler);
 

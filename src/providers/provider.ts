@@ -34,7 +34,7 @@ class Provider {
     }
 
     async init(ctx: any) {
-        if (ctx.db) {
+        if (ctx.db && !ctx.cache) {
             if (ctx.user && ctx.user.id > 0) {
                 await this.checkFee(ctx, ctx.user);
             }
@@ -46,9 +46,13 @@ class Provider {
 
         const session_id = ctx.headers["session-id"];
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
-        const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
-        if (!canAccessModel) {
-            throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
+
+        if (!ctx.cache) {
+            // If use cache, will skip this check
+            const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
+            if (!canAccessModel) {
+                throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
+            }
         }
 
         chatRequest.currency = modelData.config.currency || "USD";
