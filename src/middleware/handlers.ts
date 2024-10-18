@@ -142,7 +142,8 @@ const loggerHandler = async (ctx: any, next: any) => {
 
 
 const dataCacheHandler = async (ctx: any, next: any) => {
-    if (config.performanceMode) {
+    if (config.performanceMode && config.pgsql.host && config.pgsql.database) {
+        // console.log("HHHH")
         ctx.cache = {
             models: Cache.models,
             api_keys: Cache.api_keys,

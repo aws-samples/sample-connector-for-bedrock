@@ -47,7 +47,7 @@ class Provider {
         const session_id = ctx.headers["session-id"];
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
 
-        if (!ctx.cache) {
+        if (!ctx.cache && ctx.db) {
             // If use cache, will skip this check
             const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
             if (!canAccessModel) {
