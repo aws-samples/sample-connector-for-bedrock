@@ -20,6 +20,7 @@ Metadata:
           default: "Compute settings for BRConnector"
       - Parameters:
           - ComputeType
+          - PerformanceMode
 
       - Label: 
           default: "For EC2 settings" 
@@ -36,7 +37,7 @@ Metadata:
       - Label: 
           default: "Settings for RDS PostgreSQL"
       - Parameters:
-          - StandaloneDB
+          - DatabaseMode
           - PGDatabase
           - PGUser
           - PGPassword
@@ -86,6 +87,14 @@ Parameters:
       - ec2
     Default: lambda
 
+  PerformanceMode:
+    Description: If set to true, chat history will not be saved. 
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+
   EC2InstanceType:
     Description: Choose EC2 instance type, OS will be Amazon Linux 2023
     Type: String
@@ -117,15 +126,18 @@ Parameters:
       - arm64
     Default: arm64
 
-  StandaloneDB:
+  DatabaseMode:
     Description: >-
-      If true, deploy RDS PostgreSQL (db.t4g.small with 20GB storage) instead of PostgreSQL container in EC2
-      If ComputeType set to `lambda`, this value always be true.
+      Choose database mode:
+      'Standalone' - Deploy RDS PostgreSQL
+      'EC2Integrated' - Deploy PostgreSQL container in EC2
     Type: String
     AllowedValues:
-      - true
-      - false
-    Default: false
+      - Standalone
+      - EC2Integrated
+      #'NoDB' - Do not deploy any database
+      #- NoDB
+    Default: EC2Integrated
 
   PGDatabase:
     Description: PostgreSQL default database name
@@ -166,10 +178,14 @@ Parameters:
 
 Conditions:
   IsNewVpc: !Equals [!Ref NewVpc, 'true']
-  IsStandaloneDB: !Or
-    - !Equals [!Ref StandaloneDB, 'true']
-    - !Condition IsLambda
+  IsPerformanceMode: !Equals [!Ref PerformanceMode, 'true']
+  IsNoDB: !Equals [!Ref DatabaseMode, 'NoDB']
+  DeployDB: !Not [!Condition IsNoDB]
   IsLambda: !Equals [!Ref ComputeType, 'lambda']
+  IsStandaloneDB: !Or
+    - !Equals [!Ref DatabaseMode, 'Standalone']
+    - !And [!Condition IsLambda, !Condition DeployDB]
+  IsEC2IntegratedDB: !Equals [!Ref DatabaseMode, 'EC2Integrated']
   IsEc2: !Equals [!Ref ComputeType, 'ec2']
   NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
   IsEnableCloudfrontEc2: !Condition IsEc2
@@ -431,19 +447,30 @@ Resources:
             docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres:16
             sleep 10; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
           fi
+          # if set to nodb then set HOST and DATABASE to empty string
+          if [[ $PGHOST == "nodb" ]];then
+            PGHOST=""
+          fi
 
+          # defaultSetTo empty string means false
+          PerformanceModeStr=""
+          if [[ ${PerformanceMode} == "true" ]];then
+            PerformanceModeStr="true"
+          fi
           # start brconnector container in ECR
           IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:latest
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=$PerformanceModeStr -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:latest
 
           # create first user
           sleep 10;
-          curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
-
-          # list users
-          curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
-          USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
-          aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
+          # if set dbmode to nodb donnot generate first userkey
+          if [[ $PGHOST != "" ]];then
+            curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
+            # list users
+            curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
+            USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
+            aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
+          fi
           aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite
 
           # add health check script to root's crontab
@@ -641,7 +668,13 @@ Resources:
     Properties:
       Name: !Join ["", ["/brconnector/pgdb-", !Ref AWS::StackName]]
       Type: String
-      Value: !If [IsStandaloneDB, !GetAtt MyPG.Endpoint.Address, "172.17.0.1"]
+      Value: !If 
+        - IsStandaloneDB
+        - !GetAtt MyPG.Endpoint.Address
+        - !If 
+          - IsEC2IntegratedDB
+          - "172.17.0.1"
+          - 'nodb'
       Description: A parameter created by CloudFormation and updated by RDS PostgreSQL
       Tier: Standard
       DataType: text
@@ -739,8 +772,9 @@ Resources:
       Environment:
         Variables:
           ADMIN_API_KEY: !GetAtt MySSMParameterAdminKey.Value
-          PGSQL_HOST: !GetAtt MyPG.Endpoint.Address
-          PGSQL_DATABASE: !Ref PGDatabase
+          PERFORMANCE_MODE: !If [ IsPerformanceMode, "true", "" ]
+          PGSQL_HOST: !If [ IsNoDB, "", !GetAtt MyPG.Endpoint.Address ]
+          PGSQL_DATABASE: !If [ IsNoDB, "", !Ref PGDatabase ]
           PGSQL_USER: !Ref PGUser
           PGSQL_PASSWORD: !Ref PGPassword
       VpcConfig:
