@@ -131,12 +131,12 @@ Parameters:
       Choose database mode:
       'Standalone' - Deploy RDS PostgreSQL
       'EC2Integrated' - Deploy PostgreSQL container in EC2
+      'NoDB' - Do not deploy any database, in this mode you can not access web console
     Type: String
     AllowedValues:
       - Standalone
       - EC2Integrated
-      #'NoDB' - Do not deploy any database
-      #- NoDB
+      - NoDB
     Default: EC2Integrated
 
   PGDatabase:
@@ -1119,7 +1119,10 @@ Outputs:
     Value: !Ref MyEC2Instance
   MySSMParameterFirstUserKey:
     Description: First User API Key
-    Value: !GetAtt MySSMParameterFirstUserKey.Value
+    Value: !If 
+        - IsNoDB
+        - !GetAtt MySSMParameterAdminKey.Value
+        - !GetAtt MySSMParameterFirstUserKey.Value
   # MySSMParameterAdminKey:
   #   Description: Admin Key
   #   Value: !GetAtt MySSMParameterAdminKey.Value
