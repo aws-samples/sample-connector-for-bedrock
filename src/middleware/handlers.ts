@@ -46,7 +46,7 @@ const authHandler = async (ctx: any, next: any) => {
         || pathName.indexOf("/v1") === 0
     ) {
         const authorization = ctx.header.authorization || "";
-        const api_key = authorization.length > 20 ? authorization.substring(7) : null;
+        const api_key = authorization.length > 10 ? authorization.substring(7) : null;
         if (!api_key) {
             throw new Error("Unauthorized: api key required");
         }
@@ -74,8 +74,9 @@ const authHandler = async (ctx: any, next: any) => {
             ctx.user = key;
         } else {
             // Anonymous access...
-            ctx.logger.info("Fake api key, anonymous access...");
-            ctx.user = null;
+            // ctx.logger.info("Fake api key, anonymous access...");
+            // ctx.user = null;
+            throw new Error("Unauthorized: api key error");
         }
 
         if (pathName.indexOf("/admin") >= 0) {
