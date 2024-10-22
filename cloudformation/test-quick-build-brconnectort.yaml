@@ -19,6 +19,7 @@ Metadata:
       - Label: 
           default: "Compute settings for BRConnector"
       - Parameters:
+          - ImageVersion
           - ComputeType
           - PerformanceMode
 
@@ -79,6 +80,13 @@ Parameters:
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
 
+  ImageVersion:
+    Description: Input the target image version
+    Type: String
+    Default: 0.0.14
+    AllowedValues:
+      - latest
+      - 0.0.14
   ComputeType:
     Description: Choose using Lambda or EC2 to running BRConnector
     Type: String
@@ -437,8 +445,8 @@ Resources:
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
           
           if [[ ${ComputeType} == "lambda" ]]; then
-            AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:latest)
-            ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:latest)
+            AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:${ImageVersion})
+            ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:${ImageVersion})
             regctl image copy public.ecr.aws/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
             regctl image copy public.ecr.aws/$IMG_LAMBDA@$ARM64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:arm64
           fi
@@ -461,7 +469,7 @@ Resources:
           fi
           # start brconnector container in ECR
           IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=$PerformanceModeStr -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:latest
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=$PerformanceModeStr -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:${ImageVersion}
 
           # create first user
           sleep 10;
@@ -913,12 +921,12 @@ Resources:
                 - 
                 - # pull local
                 - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
-                - # docker pull ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:latest
+                - # docker pull ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:${ImageVersion}
                 - 
                 - # tag amd64 / arm64
                 - regctl tag ls public.ecr.aws/${DOCKERHUB_REPO} |sort -t '.' -k3n
-                - AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/${DOCKERHUB_REPO}:latest)
-                - ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/${DOCKERHUB_REPO}:latest)
+                - AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/${DOCKERHUB_REPO}:${ImageVersion})
+                - ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/${DOCKERHUB_REPO}:${ImageVersion})
                 - regctl image copy public.ecr.aws/${DOCKERHUB_REPO}@${AMD64_DIG} ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:amd64
                 - regctl image copy public.ecr.aws/${DOCKERHUB_REPO}@${ARM64_DIG} ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:arm64
                 - 
@@ -1019,7 +1027,7 @@ Resources:
             runCommand:
             - "#!/bin/bash -x"
             - BRC_DIGEST=$(docker images --digests public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock |grep -v -e DIGEST -e grep |awk '{print $3}')
-            - BRC_REG_DIGEST=$(regctl image digest public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock:latest)
+            - BRC_REG_DIGEST=$(regctl image digest public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock:${ImageVersion})
             - |
               if [[ $BRC_REG_DIGEST != $BRC_DIGEST ]]; then
                 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
