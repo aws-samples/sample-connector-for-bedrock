@@ -178,8 +178,10 @@ Parameters:
 
 Conditions:
   IsNewVpc: !Equals [!Ref NewVpc, 'true']
-  IsPerformanceMode: !Equals [!Ref PerformanceMode, 'true']
   IsNoDB: !Equals [!Ref DatabaseMode, 'NoDB']
+  IsPerformanceMode: !Or
+    - !Equals [!Ref PerformanceMode, 'true']
+    - !Condition IsNoDB
   DeployDB: !Not [!Condition IsNoDB]
   IsLambda: !Equals [!Ref ComputeType, 'lambda']
   IsStandaloneDB: !Or
@@ -454,7 +456,7 @@ Resources:
 
           # defaultSetTo empty string means false
           PerformanceModeStr=""
-          if [[ ${PerformanceMode} == "true" ]];then
+          if [[ ${PerformanceMode} == "true" || $PGHOST == "" ]];then
             PerformanceModeStr="true"
           fi
           # start brconnector container in ECR
