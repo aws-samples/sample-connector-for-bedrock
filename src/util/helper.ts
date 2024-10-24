@@ -84,6 +84,32 @@ const helper = {
     },
     getModelDataWithoutDB: (model?: string): ModelData => {
         switch (model) {
+            case 'claude-3.5-sonnet-v2':
+                return {
+                    name: 'claude-3.5-sonnet-v2',
+                    config: {
+                        modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+                    },
+                    multiple: 1,
+                    model_type: 1,
+                    price_in: 3e-6,
+                    price_out: 15e-6,
+                    currency: "USD",
+                    provider: 'bedrock-converse'
+                };
+            case 'claude-3.5-sonnet':
+                return {
+                    name: 'claude-3.5-sonnet',
+                    config: {
+                        modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+                    },
+                    multiple: 1,
+                    model_type: 1,
+                    price_in: 3e-6,
+                    price_out: 15e-6,
+                    currency: "USD",
+                    provider: 'bedrock-converse'
+                };
             case 'claude-3-sonnet':
                 return {
                     name: 'claude-3-sonnet',
