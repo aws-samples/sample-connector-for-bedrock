@@ -55,6 +55,9 @@ const helper = {
             let rtn = await modelService.loadByName(ctx.db, chatRequest.model);
             if (!rtn) {
                 rtn = await modelService.loadByName(ctx.db, "default");
+                if (rtn) {
+                    rtn.name = "default";
+                }
                 // rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
                 // throw new Error(`The model [${chatRequest.model}] is not found. You may refresh to get new models.`);
             }

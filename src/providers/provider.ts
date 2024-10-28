@@ -47,6 +47,7 @@ class Provider {
         const session_id = ctx.headers["session-id"];
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
 
+
         if (!ctx.cache && ctx.db) {
             // If use cache, will skip this check
             const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
@@ -58,6 +59,7 @@ class Provider {
         chatRequest.currency = modelData.config.currency || "USD";
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
+        chatRequest.model = modelData.name;
         const provider: AbstractProvider = this[modelData.provider];
         if (!provider) {
             throw new Error("You need to configure the provider correctly.");
