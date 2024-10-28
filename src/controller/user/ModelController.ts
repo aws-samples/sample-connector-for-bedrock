@@ -1,5 +1,6 @@
 import service from "../../service/key";
 import serviceGroup from "../../service/group";
+import models from "../../models_data"
 import AbstractController from "../AbstractController";
 
 class ModelController extends AbstractController {
@@ -30,31 +31,47 @@ class ModelController extends AbstractController {
     async listForBRClient(ctx: any) {
         const myself = ctx.user;
         // const myself = await service.loadById(ctx.db, id);
+        let customModels = [];
+        if (myself && ctx.db) {
+            const keyModels = await service.listModels(ctx.db, { key_id: myself.id, limit: 1000 });
+            const groupModels = await serviceGroup.listModels(ctx.db, { group_id: myself.group_id, limit: 1000 });
+            const keyItems = keyModels.items;
+            const groupItems = groupModels.items;
+            const mapFun = (item: any) => ({
+                name: item.model_name,
+                available: true,
+                modelId: item.model_name,
+                multiple: item.multiple === 1,
+                displayName: item.model_name,
+                provider: {
+                    id: "aws",
+                    name: "AWS",
+                    providerName: "BRConnector"
+                }
+            });
 
-        const keyModels = await service.listModels(ctx.db, { key_id: myself.id, limit: 1000 });
-        const groupModels = await serviceGroup.listModels(ctx.db, { group_id: myself.group_id, limit: 1000 });
-        const keyItems = keyModels.items;
-        const groupItems = groupModels.items;
-        const mapFun = (item: any) => ({
-            name: item.model_name,
-            available: true,
-            modelId: item.model_name,
-            multiple: item.multiple === 1,
-            displayName: item.model_name,
-            provider: {
-                id: "aws",
-                name: "AWS",
-                providerName: "BRConnector"
-            }
-        });
-
-        keyItems.map((kmd: any) => {
-            const contains = groupItems.some((gmd: any) => gmd.model_id == kmd.model_id);
-            if (!contains) {
-                groupItems.push(kmd);
-            }
-        });
-        const customModels = groupItems.map(mapFun);
+            keyItems.map((kmd: any) => {
+                const contains = groupItems.some((gmd: any) => gmd.model_id == kmd.model_id);
+                if (!contains) {
+                    groupItems.push(kmd);
+                }
+            });
+            customModels = groupItems.map(mapFun);
+        } else {
+            const mapFun = (item: any) => ({
+                name: item.id,
+                available: true,
+                modelId: item.id,
+                multiple: item.multiple,
+                displayName: item.id,
+                provider: {
+                    id: "aws",
+                    name: "AWS",
+                    providerName: "BRConnector"
+                }
+            });
+            customModels = models.map(mapFun);
+        }
 
         return super.ok(ctx, customModels);
     }
