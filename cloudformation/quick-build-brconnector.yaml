@@ -20,7 +20,6 @@ Metadata:
           default: "Compute settings for BRConnector"
       - Parameters:
           - ComputeType
-          - PerformanceMode
 
       - Label: 
           default: "For EC2 settings" 
@@ -37,6 +36,7 @@ Metadata:
       - Label: 
           default: "Settings for RDS PostgreSQL"
       - Parameters:
+          - PerformanceMode
           - DatabaseMode
           - PGDatabase
           - PGUser
@@ -85,7 +85,7 @@ Parameters:
     AllowedValues:
       - lambda
       - ec2
-    Default: lambda
+    Default: ec2
 
   PerformanceMode:
     Description: If set to true, chat history will not be saved. 
@@ -131,7 +131,7 @@ Parameters:
       Choose database mode:
       'Standalone' - Deploy RDS PostgreSQL
       'EC2Integrated' - Deploy PostgreSQL container in EC2
-      'NoDB' - Do not deploy any database, in this mode you can not access web console
+      'NoDB' - Do not deploy any backend database, in this mode only ADMIN KEY could access default models
     Type: String
     AllowedValues:
       - Standalone
@@ -178,23 +178,25 @@ Parameters:
 
 Conditions:
   IsNewVpc: !Equals [!Ref NewVpc, 'true']
-  IsNoDB: !Equals [!Ref DatabaseMode, 'NoDB']
-  IsPerformanceMode: !Or
-    - !Equals [!Ref PerformanceMode, 'true']
-    - !Condition IsNoDB
+  IsNoDB: !Or
+    - !Equals [!Ref DatabaseMode, 'NoDB']
+    - !And [!Condition IsLambda, !Equals [!Ref DatabaseMode, 'EC2Integrated']]
+  # IsPerformanceMode: !Or
+  #   - !Equals [!Ref PerformanceMode, 'true']
+  #   - !Condition IsNoDB
   DeployDB: !Not [!Condition IsNoDB]
-  IsLambda: !Equals [!Ref ComputeType, 'lambda']
   IsStandaloneDB: !Or
     - !Equals [!Ref DatabaseMode, 'Standalone']
     - !And [!Condition IsLambda, !Condition DeployDB]
   IsEC2IntegratedDB: !Equals [!Ref DatabaseMode, 'EC2Integrated']
+  IsLambda: !Equals [!Ref ComputeType, 'lambda']
   IsEc2: !Equals [!Ref ComputeType, 'ec2']
-  NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
   IsEnableCloudfrontEc2: !Condition IsEc2
   IsEnableCloudfrontLambda: !And
     - !Equals [!Ref EnableCloudfront, 'true']
     - !Condition IsLambda
   IsAutoUpdate: !Equals [!Ref AutoUpdateBRConnector, 'true']
+  NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
 
 Mappings:
   ArchitectureMapping:
@@ -444,29 +446,32 @@ Resources:
           fi
 
           # start postgress db
-          PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
+          # PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
+          PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text)
           if [[ $PGHOST == "172.17.0.1" ]]; then
             docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres:16
-            sleep 10; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
+            sleep 30; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
           fi
-          # if set to nodb then set HOST and DATABASE to empty string
-          if [[ $PGHOST == "nodb" ]];then
+          # if set to NoDB then set HOST and DATABASE to empty string
+          if [[ $PGHOST == "NoDB" ]]; then
             PGHOST=""
           fi
 
-          # defaultSetTo empty string means false
-          PerformanceModeStr=""
-          if [[ ${PerformanceMode} == "true" || $PGHOST == "" ]];then
-            PerformanceModeStr="true"
-          fi
+          # # defaultSetTo empty string means false
+          # PerformanceModeStr=""
+          # if [[ ${PerformanceMode} == "true" || $PGHOST == "" ]];then
+          #   PerformanceModeStr="true"
+          # fi
           # start brconnector container in ECR
           IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=$PerformanceModeStr -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:latest
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:latest
 
           # create first user
-          sleep 10;
-          # if set dbmode to nodb donnot generate first userkey
-          if [[ $PGHOST != "" ]];then
+          sleep 60
+          curl "http://localhost:8866/"
+          curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY"
+          # if set dbmode to NoDB donnot generate first userkey
+          if [[ $PGHOST != "" ]]; then
             curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
             # list users
             curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
@@ -676,7 +681,10 @@ Resources:
         - !If 
           - IsEC2IntegratedDB
           - "172.17.0.1"
-          - 'nodb'
+          - !If 
+            - IsNoDB
+            - "NoDB"
+            - "NULL"
       Description: A parameter created by CloudFormation and updated by RDS PostgreSQL
       Tier: Standard
       DataType: text
@@ -774,7 +782,7 @@ Resources:
       Environment:
         Variables:
           ADMIN_API_KEY: !GetAtt MySSMParameterAdminKey.Value
-          PERFORMANCE_MODE: !If [ IsPerformanceMode, "true", "" ]
+          PERFORMANCE_MODE: !Ref PerformanceMode
           PGSQL_HOST: !If [ IsNoDB, "", !GetAtt MyPG.Endpoint.Address ]
           PGSQL_DATABASE: !If [ IsNoDB, "", !Ref PGDatabase ]
           PGSQL_USER: !Ref PGUser

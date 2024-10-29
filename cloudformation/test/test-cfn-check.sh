@@ -23,14 +23,15 @@ done
 # get cloudfront url and api key
 cp /dev/null api-check.txt
 cat $filename |while read i j ; do
+    echo -e "$j \c"
     aws cloudformation describe-stacks --region ${i} --stack-name ${j} \
-        --query 'Stacks[].Outputs[?(OutputKey==`CloudFrontEc2URL` || OutputKey==`CloudFrontLambdaURL` || OutputKey==`MySSMParameterFirstUserKey`)].OutputValue' --output text |tee -a api-check.txt
-done
+        --query 'Stacks[].Outputs[?(OutputKey==`CloudFrontEc2URL` || OutputKey==`CloudFrontLambdaURL` || OutputKey==`MySSMParameterFirstUserKey`)].OutputValue' --output text 
+done |tee -a api-check.txt
 
 # test keys are valid
-cat api-check.txt |while read i j ; do
+cat api-check.txt |while read k i j ; do
     echo ======================================================================
-    echo $i $j
+    echo $k $i $j
     echo ======================================================================
     time curl -sL ${j}/v1/chat/completions \
       -H "Content-Type: application/json" \
