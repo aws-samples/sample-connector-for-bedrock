@@ -46,7 +46,9 @@ const authHandler = async (ctx: any, next: any) => {
         || pathName.indexOf("/v1") === 0
     ) {
         const authorization = ctx.header.authorization || "";
+
         const api_key = authorization.length > 10 ? authorization.substring(7) : null;
+        console.log("authorization", authorization, api_key, ctx.cache);
         if (!api_key) {
             throw new Error("Unauthorized: api key required");
         }
@@ -60,10 +62,10 @@ const authHandler = async (ctx: any, next: any) => {
         } else if (ctx.cache) {
             //auth data from cache.
             const keys = ctx.cache.api_keys.filter((e: any) => e.api_key === api_key);
-            // console.log(keys);
             if (!keys || keys.length < 1) {
                 throw new Error("Unauthorized: api key error");
             }
+            ctx.user = keys[0];
         } else if (ctx.db) {
             //TODO: refactor this to your cache service if too many accesses.
             const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
@@ -73,9 +75,6 @@ const authHandler = async (ctx: any, next: any) => {
             }
             ctx.user = key;
         } else {
-            // Anonymous access...
-            // ctx.logger.info("Fake api key, anonymous access...");
-            // ctx.user = null;
             throw new Error("Unauthorized: api key error");
         }
 
