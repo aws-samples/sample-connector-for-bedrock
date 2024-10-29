@@ -36,8 +36,8 @@ Metadata:
       - Label: 
           default: "Settings for RDS PostgreSQL"
       - Parameters:
-          - PerformanceMode
           - DatabaseMode
+          - PerformanceMode
           - PGDatabase
           - PGUser
           - PGPassword
@@ -113,7 +113,7 @@ Parameters:
 
   EcrRepo:
     Description: >-
-      Prefix of private repo name , repo full name will be brc-<Last part of AWS::StackId>/x6u9o2u4/sample-connector-for-bedrock-lambda
+      Prefix of private repo name , repo full name will be brc-<Random String>/x6u9o2u4/sample-connector-for-bedrock-lambda
     Type: String
     Default: brc
 

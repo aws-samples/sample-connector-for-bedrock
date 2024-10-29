@@ -19,7 +19,7 @@ Following key components will be included in this Cloudformation template:
 
 - Cloudfront
 - BRConnector on Lambda or EC2
-- RDS PostgreSQL or PostgreSQL container on EC2
+- RDS PostgreSQL or PostgreSQL container on EC2 or without database
 - ECR with pull through cache enabled
 
 ## Deploy Guide
@@ -32,37 +32,40 @@ Following key components will be included in this Cloudformation template:
   - Choose to create a new VPC or a existing VPC
   - Choose one PUBLIC subnet for EC2 and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)
 
-![attachments/deployment/IMG-deployment-1.png](attachments/deployment/IMG-deployment-1.png)
+![attachments/deployment/IMG-deployment-6.png](attachments/deployment/IMG-deployment-6.png)
 
 - Compute parameters
   - Choose ComputeType for BRConnector, Lambda or EC2
   - For EC2 settings
     - Now only support Amazon Linux 2023
-    - You could choose to create PostgreSQL as container in same EC2 (`StandaloneDB` to false), or create standalone RDS PostgreSQL as backend (`StandaloneDB` to true)
+    - You could choose to create PostgreSQL as container in same EC2 (DatabaseMode to `EC2Integrated`), or create standalone RDS PostgreSQL as backend (DatabaseMode to `Standalone`)
   - For Lambda settings
     - <mark style="background: #ADCCFFA6;">PUBLIC Function URL</mark> will be used. Please ensure this security setting is acceptable
     - Define your private repository name prefix string
-    - Always create RDS PostgreSQL (`StandaloneDB` to true)
+    - You could choose to create RDS PostgreSQL (DatabaseMode to `Standalone`) or without database (DatabaseMode to `NoDB`)
 
-![attachments/deployment/IMG-deployment-2.png](attachments/deployment/IMG-deployment-2.png)
+![[attachments/deployment/IMG-deployment-7.png]]
 
 - PostgreSQL parameters
+  - DatabaseMode choose:
+    - `EC2Integrated` -- Deploy PostgreSQL container in EC2
+    - `Standalone` -- Deploy RDS PostgreSQL
+    - `NoDB` -- Do not deploy any backend database, in this mode only ADMIN KEY could access default models
+  - Set PerformanceMode to true, chat history will not be saved.
   - Default PostgreSQL password is `mysecretpassword`
-  - If you choose `StandaloneDB` to false, PostgreSQL will running on EC2 as container. RDS PostgreSQL will be create if this option is true.
-  - Keep others as default
 
-![attachments/deployment/IMG-deployment-3.png](attachments/deployment/IMG-deployment-3.png)
+![[attachments/deployment/IMG-deployment-13.png]]
 
 - Debugging parameters
   - If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.
   - Don't delete EC2 if you choose EC2 as ComputeType
   - If you set `true` to AutoUpdateBRConnector, one script will be add to ec2 crontab
 
-![attachments/deployment/IMG-deployment-4.png](attachments/deployment/IMG-deployment-4.png)
+![[attachments/deployment/IMG-deployment-14.png]]
 
 - Until deploy successfully, go to output page and copy Cloudfront URL and first user key to your bedrock client settings page.
 
-![attachments/deployment/IMG-deployment-5.png](attachments/deployment/IMG-deployment-5.png)
+![attachments/deployment/IMG-deployment-11.png](attachments/deployment/IMG-deployment-11.png)
 
 - Also you could connect to `BRConnector` EC2 instance with SSM Session Manager ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 
