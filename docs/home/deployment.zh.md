@@ -19,7 +19,7 @@ Cloudformation 模板已在以下区域验证：
 
 - Cloudfront
 - Lambda 或 EC2 上的 BRConnector
-- EC2 上的 RDS PostgreSQL 或 PostgreSQL 容器
+- EC2 上的 RDS PostgreSQL 或 PostgreSQL 容器 或者 不需要数据库
 - 启用了拉取缓存的 ECR
 
 ## 部署指南
@@ -32,37 +32,40 @@ Cloudformation 模板已在以下区域验证：
   - 选择创建新 VPC 或现有 VPC
   - 为 EC2 选择一个公共子网，为 Lambda 和 RDS 选择一个私有子网（ RDS 子网组至少需要 2 个可用区）
 
-![attachments/deployment/IMG-deployment-1.png](attachments/deployment/IMG-deployment-1.png)
+![attachments/deployment/IMG-deployment-6.png](attachments/deployment/IMG-deployment-6.png)
 
 - 计算参数
   - 选择 BRConnector、Lambda 或 EC2 的计算类型
   - 对于EC2 设置
     - 现在仅支持 Amazon Linux 2023
-    - 您可以选择在同一 EC2 中创建 PostgreSQL 作为容器（`StandaloneDB` 为 false），或创建独立的 RDS PostgreSQL 作为后端（`StandaloneDB` 为 true）
+    - 您可以选择在同一个 EC2 实例中以容器方式创建 PostgreSQL（DatabaseMode 设置为 `EC2Integrated`），或者创建独立的 RDS PostgreSQL 作为后端数据库（DatabaseMode 设置为 `Standalone`）
   - 对于 Lambda 设置
     - 将使用 <mark style="background: #ADCCFFA6;">PUBLIC 函数 URL</mark>。请确保此安全设置是可接受的
     - 定义您的私有存储库名称前缀字符串
-    - 始终创建 RDS PostgreSQL（`StandaloneDB` 为 true）
+    - 您可以选择创建 RDS PostgreSQL 数据库（DatabaseMode 设置为 `Standalone`），或者不使用数据库（DatabaseMode 设置为 `NoDB`）
 
-![attachments/deployment/IMG-deployment-2.png](attachments/deployment/IMG-deployment-2.png)
+![attachments/deployment/IMG-deployment-7.png](attachments/deployment/IMG-deployment-7.png)
 
 - PostgreSQL 参数
+  - DatabaseMode选择：
+    - `EC2Integrated` -- 在 EC2 中部署 PostgreSQL 容器
+    - `Standalone` -- 部署 RDS PostgreSQL
+    - `NoDB` -- 不部署任何后端数据库，在此模式下只有 ADMIN KEY 可以访问默认模型
+  - 将 PerformanceMode 设置为 `true`，聊天历史将不会被保存
   - 默认 PostgreSQL 密码为 `mysecretpassword`
-  - 如果您选择 `StandaloneDB` 为 false，PostgreSQL 将作为容器在 EC2 上运行。如果此选项为 true，将创建 RDS PostgreSQL。
-  - 其他保持默认
 
-![attachments/deployment/IMG-deployment-3.png](attachments/deployment/IMG-deployment-3.png)
+![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
 - 调试参数
   - 如果选择 Lambda 作为 ComputeType，则可以选择在所有资源部署成功后删除 EC2。此 EC2 暂时用于编译和构建 BRConnector 容器。
   - 如果选择 EC2 作为 ComputeType，请不要删除 EC2
   - 如果将 AutoUpdateBRConnector 设置为 `true`，则会将一个脚本添加到 codebuild 中
 
-![attachments/deployment/IMG-deployment-4.png](attachments/deployment/IMG-deployment-4.png)
+![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
 - 直到部署成功，转到输出页面并将 Cloudfront URL 和 First User Key 复制到您的 Bedrock 客户端设置页面。
 
-![attachments/deployment/IMG-deployment-5.png](attachments/deployment/IMG-deployment-5.png)
+![attachments/deployment/IMG-deployment-11.png](attachments/deployment/IMG-deployment-11.png)
 
 - 您还可以使用 SSM 会话管理器连接到 `BRConnector` EC2 实例 ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 
