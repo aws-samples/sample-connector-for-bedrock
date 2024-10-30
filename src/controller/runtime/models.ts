@@ -46,7 +46,7 @@ export default {
                 created: Math.ceil(model.created_at * 1e-3),
                 owned_by: model.provider
             });
-            console.log(ctx.cache.models)
+            // console.log(ctx.cache.models)
             const customModels = ctx.cache.models.map(mapFun);
 
             ctx.body = {

@@ -48,7 +48,7 @@ const authHandler = async (ctx: any, next: any) => {
         const authorization = ctx.header.authorization || "";
 
         const api_key = authorization.length > 10 ? authorization.substring(7) : null;
-        console.log("authorization", authorization, api_key, ctx.cache);
+        // console.log("authorization", authorization, api_key, ctx.cache);
         if (!api_key) {
             throw new Error("Unauthorized: api key required");
         }
