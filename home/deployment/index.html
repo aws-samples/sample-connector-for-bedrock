@@ -1307,7 +1307,7 @@
 <ul>
 <li>Cloudfront</li>
 <li>BRConnector on Lambda or EC2</li>
-<li>RDS PostgreSQL or PostgreSQL container on EC2</li>
+<li>RDS PostgreSQL or PostgreSQL container on EC2 or without database</li>
 <li>ECR with pull through cache enabled</li>
 </ul>
 <h2 id="deploy-guide">Deploy Guide<a class="headerlink" href="#deploy-guide" title="Permanent link">&para;</a></h2>
@@ -1320,41 +1320,46 @@
 <li>Choose to create a new VPC or a existing VPC</li>
 <li>Choose one PUBLIC subnet for EC2 and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)</li>
 </ul>
-<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-1.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-1.png" src="../attachments/deployment/IMG-deployment-1.png" /></a></p>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-6.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-6.png" src="../attachments/deployment/IMG-deployment-6.png" /></a></p>
 <ul>
 <li>Compute parameters</li>
 <li>Choose ComputeType for BRConnector, Lambda or EC2</li>
 <li>For EC2 settings<ul>
 <li>Now only support Amazon Linux 2023</li>
-<li>You could choose to create PostgreSQL as container in same EC2 (<code>StandaloneDB</code> to false), or create standalone RDS PostgreSQL as backend (<code>StandaloneDB</code> to true)</li>
+<li>You could choose to create PostgreSQL as container in same EC2 (DatabaseMode to <code>EC2Integrated</code>), or create standalone RDS PostgreSQL as backend (DatabaseMode to <code>Standalone</code>)</li>
 </ul>
 </li>
 <li>For Lambda settings<ul>
 <li><mark style="background: #ADCCFFA6;">PUBLIC Function URL</mark> will be used. Please ensure this security setting is acceptable</li>
 <li>Define your private repository name prefix string</li>
-<li>Always create RDS PostgreSQL (<code>StandaloneDB</code> to true)</li>
+<li>You could choose to create RDS PostgreSQL (DatabaseMode to <code>Standalone</code>) or without database (DatabaseMode to <code>NoDB</code>)</li>
 </ul>
 </li>
 </ul>
-<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-2.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-2.png" src="../attachments/deployment/IMG-deployment-2.png" /></a></p>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-7.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-7.png" src="../attachments/deployment/IMG-deployment-7.png" title="attachments/deployment/IMG-deployment-7.png" /></a></p>
 <ul>
 <li>PostgreSQL parameters</li>
-<li>Default PostgreSQL password is <code>mysecretpassword</code></li>
-<li>If you choose <code>StandaloneDB</code> to false, PostgreSQL will running on EC2 as container. RDS PostgreSQL will be create if this option is true.</li>
-<li>Keep others as default</li>
+<li>DatabaseMode choose:<ul>
+<li><code>EC2Integrated</code> &ndash; Deploy PostgreSQL container in EC2</li>
+<li><code>Standalone</code> &ndash; Deploy RDS PostgreSQL</li>
+<li><code>NoDB</code> &ndash; Do not deploy any backend database, in this mode only ADMIN KEY could access default models</li>
 </ul>
-<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-3.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-3.png" src="../attachments/deployment/IMG-deployment-3.png" /></a></p>
+</li>
+<li>Set PerformanceMode to true, chat history will not be saved.</li>
+<li>Default PostgreSQL password is <code>mysecretpassword</code></li>
+</ul>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-13.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-13.png" src="../attachments/deployment/IMG-deployment-13.png" title="attachments/deployment/IMG-deployment-13.png" /></a></p>
 <ul>
 <li>Debugging parameters</li>
 <li>If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.</li>
 <li>Don&rsquo;t delete EC2 if you choose EC2 as ComputeType</li>
 <li>If you set <code>true</code> to AutoUpdateBRConnector, one script will be add to ec2 crontab</li>
 </ul>
-<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-4.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-4.png" src="../attachments/deployment/IMG-deployment-4.png" /></a></p>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-14.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-14.png" src="../attachments/deployment/IMG-deployment-14.png" title="attachments/deployment/IMG-deployment-14.png" /></a></p>
 <ul>
 <li>Until deploy successfully, go to output page and copy Cloudfront URL and first user key to your bedrock client settings page.</li>
 </ul>
-<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-5.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-5.png" src="../attachments/deployment/IMG-deployment-5.png" /></a></p>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-11.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-11.png" src="../attachments/deployment/IMG-deployment-11.png" /></a></p>
 <ul>
 <li>Also you could connect to <code>BRConnector</code> EC2 instance with SSM Session Manager (<a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console">docs</a>)</li>
 </ul>
@@ -1480,7 +1485,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-19T17:19:00+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-10-29T21:56:47+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-10-29</span>
   </span>
 
     
