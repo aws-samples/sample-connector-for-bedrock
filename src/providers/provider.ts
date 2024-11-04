@@ -15,11 +15,13 @@ import WebMiner from "./web_miner";
 import AWSExecutor from "./aws_executor"
 import UrlsReader from "./urls_reader";
 import ContinueCoder from "./continue_coder";
+import SmartRouter from "./smart_router";
 
 
 class Provider {
     constructor() {
         this["bedrock-converse"] = new BedrockConverse();
+        this["smart-router"] = new SmartRouter();
         this["sagemaker-lmi"] = new SagemakerLMI();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
         this["painter"] = new Painter();
