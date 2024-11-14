@@ -4,6 +4,8 @@
 
 #### Completions
 
+An ordinary request.
+
 ```
 POST /v1/chat/completions
 Content-Type: application/json
@@ -20,6 +22,125 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   "stream": true,
   "temperature": 1,
   "max_tokens": 4096
+}
+```
+
+An example of including a picture in the request.
+
+```
+POST /v1/chat/completions
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "model": "claude-3-sonnet",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type":"text": 
+          "text":"Describe this picture."
+        },
+        {
+          "type": "image_url",
+          "image_url": { 
+            "url": "data:image/webp;base64,...."
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- image url can be a base64 string or a http(s) url.
+
+An example of including a docuement in the request:
+
+```
+POST /v1/chat/completions
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "model": "claude-3-sonnet",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type":"text": 
+          "text":"Describe this document."
+        },
+        {
+          "type":"doc",
+          "doc": { 
+            "name": "xxx",
+            "format": "pdf",
+            "size": 900,
+            "source": {
+              "bytes": {
+                0:35,1:35,2:37,...
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Function calling (tool use) sample:
+
+```
+POST /v1/chat/completions
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "model": "claude-3-sonnet",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "bookFlight",
+        "description": "Book a flight",
+        "parameters": {
+          "type": "object",
+          "departure": {
+            "type": "string",
+            "description": "departure airport"
+          },
+          "arrival": {
+            "type": "string",
+            "description": "arrival airport"
+          },
+          "departureDate": {
+            "type": "string",
+            "description": "departure time"
+          }
+        },
+        "required": [
+          "departure",
+          "arrival",
+          "departureDate"
+        ]
+      }
+    }
+  ],
+  "tool_choice": "auto",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an experienced business ticket agent, and your role is to help corporate customers purchase tickets, so please ask the necessary information for each user. If you have complete information, repeat the information and ask the user to confirm it, and make sure to return the result in the tooluse after the user confirms. Otherwise, don't return a tooluse result. You need to answer the customer's questions in Chinese. Note: Be sure to ask for information on a case-by-case basis and use clear language for the user to confirm the information. The current time is 2024-11-13T08:13:17.778Z."
+    },
+    {
+      "role": "user",
+      "content": "I want to book a ticket from Tokyo to New York.\n    Required parameters are:\n\n    \ndeparture: \narrival: \ndepartureDate: \n\n"
+    }
+  ]
 }
 ```
 
@@ -249,12 +370,12 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ### Model Authorization
 
-* List models of a group
-* Authorize the model to a group
-* Deauthorize the model from a group
-* List models of an api key
-* Authorize the model to an api key
-* Deauthorize the model from an api key
+- List models of a group
+- Authorize the model to a group
+- Deauthorize the model from a group
+- List models of an api key
+- Authorize the model to an api key
+- Deauthorize the model from an api key
 
 ### Chat records
 
