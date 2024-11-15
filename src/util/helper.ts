@@ -100,6 +100,20 @@ const helper = {
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
+
+            case 'claude-3.5-haiku':
+                return {
+                    name: 'claude-3.5-haiku',
+                    config: {
+                        modelId: 'anthropic.claude-3-5-haiku-20241022-v1:0'
+                    },
+                    multiple: 1,
+                    model_type: 1,
+                    price_in: 1e-6,
+                    price_out: 5e-6,
+                    currency: "USD",
+                    provider: 'bedrock-converse'
+                };
             case 'claude-3.5-sonnet':
                 return {
                     name: 'claude-3.5-sonnet',

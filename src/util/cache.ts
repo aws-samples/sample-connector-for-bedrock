@@ -17,7 +17,7 @@ const cache = {
     cache.loadData(db);
     setInterval(() => {
       cache.loadData(db).then(res => {
-        console.log("cache flushed...", res)
+        // console.log("cache flushed...", res)
       }, (err) => {
         console.log("err", err);
       });

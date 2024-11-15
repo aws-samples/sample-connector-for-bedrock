@@ -16,6 +16,14 @@ export default [
         "owned_by": "aws-bedrock"
     },
     {
+        "id": "claude-3.5-haiku",
+        "object": "model",
+        "created": 1712297572,
+        "multiple": true,
+        "deleted": false,
+        "owned_by": "aws-bedrock"
+    },
+    {
         "id": "claude-3-sonnet",
         "object": "model",
         "created": 1712297572,
