@@ -15,6 +15,7 @@ export default class BedrockConverse extends AbstractProvider {
     client: BedrockRuntimeClient;
     chatMessageConverter: MessageConverter;
     modelId: string;
+    maxTokens: number;
     constructor() {
         super();
         this.chatMessageConverter = new MessageConverter();
@@ -25,6 +26,10 @@ export default class BedrockConverse extends AbstractProvider {
         if (!this.modelId) {
             throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
+        this.maxTokens = this.modelData.config && this.modelData.config.maxTokens;
+        if (!this.maxTokens || isNaN(this.maxTokens)) {
+            this.maxTokens = 1024;
+        }
         let regions: any = this.modelData.config && this.modelData.config.regions;
         const region = helper.selectRandomRegion(regions);
         this.client = new BedrockRuntimeClient({ region });
@@ -33,7 +38,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        const payload = await this.chatMessageConverter.toPayload(chatRequest);
+        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.maxTokens);
         payload["modelId"] = this.modelId;
 
         ctx.status = 200;
@@ -58,11 +63,11 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        console.log("--payload-------------", JSON.stringify(chatRequest, null, 2));
 
-        const payload = await this.chatMessageConverter.toPayload(chatRequest);
+        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.maxTokens);
         payload["modelId"] = this.modelId;
 
+        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
 
@@ -325,8 +330,6 @@ class MessageConverter {
     async convertConverseSingleType(contentItem: any): Promise<any> {
         if (contentItem.type === "image_url") {
             const url = contentItem.image_url.url;
-            // For testing
-            // const url = "https://plugins-media.makeupar.com/smb/blog/post/2023-12-19/47b45fb5-63dd-40c9-aed0-4425c7aa265b.jpg";
             const image = await this.parseImageUrl(url);
             return {
                 image
@@ -353,7 +356,7 @@ class MessageConverter {
     }
 
 
-    async toPayload(chatRequest: ChatRequest): Promise<any> {
+    async toPayload(chatRequest: ChatRequest, maxTokens: number): Promise<any> {
         const messages = chatRequest.messages;
         const tools = chatRequest.tools;
         const tool_choice = chatRequest.tool_choice;
@@ -362,7 +365,7 @@ class MessageConverter {
         let stopSequences = chatRequest.stop;
 
         const inferenceConfig: any = {
-            maxTokens: chatRequest.max_tokens || 1024,
+            maxTokens: chatRequest.max_tokens || maxTokens,
             temperature: chatRequest.temperature || 0.7,
             topP: chatRequest.top_p || 0.7
         };

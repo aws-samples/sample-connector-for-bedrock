@@ -16,12 +16,14 @@ import AWSExecutor from "./aws_executor"
 import UrlsReader from "./urls_reader";
 import ContinueCoder from "./continue_coder";
 import SmartRouter from "./smart_router";
+import SimpleAction from "./simple_action";
 
 
 class Provider {
     constructor() {
         this["bedrock-converse"] = new BedrockConverse();
-        this["smart-router"] = new SmartRouter();
+        // this["smart-router"] = new SmartRouter();
+        // this["simple-action"] = new SimpleAction();
         this["sagemaker-lmi"] = new SagemakerLMI();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
         this["painter"] = new Painter();

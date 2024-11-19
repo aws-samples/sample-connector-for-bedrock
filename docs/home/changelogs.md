@@ -1,6 +1,16 @@
-# Change Logs
+# Changelogs
 
-### 0.0.14
+## 0.0.16
+
+1. Added a new configuration option for bedrock-converse: maxTokens
+
+## 0.0.15
+
+1. Added haiku 3.5 model in NoDB mode.
+
+2. Removed some unnecessary log outputs.
+
+## 0.0.14
 
 1. Added caching mechanism, with the following details:
 

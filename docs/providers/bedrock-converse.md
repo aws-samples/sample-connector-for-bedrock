@@ -18,6 +18,7 @@ It is recommended to use this provider, which can uniformly configure Bedrock mo
 | ------------- | -------| ------------- | ------------- | ------------- |
 | modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
 | regions  | string[] or string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
+| maxTokens  |  number   | N     | 1024 | The default maximum number of tokens, corresponding to the max_tokens parameter in the standard API. If not specified in the API, this value will be used.   |
 
 The configuration example:
 
@@ -27,6 +28,7 @@ The configuration example:
   "regions": [
     "us-east-1",
     "us-west-2"
-  ]
+  ],
+  "maxTokens": 4000
 }
 ```

@@ -19,6 +19,8 @@ import cache from './util/cache';
 cache.run();
 // }
 
+
+
 const app = new Koa();
 
 // disable auth for the statis files
