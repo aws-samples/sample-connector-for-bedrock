@@ -48,7 +48,7 @@ const authHandler = async (ctx: any, next: any) => {
         const authorization = ctx.header.authorization || "";
 
         const api_key = authorization.length > 10 ? authorization.substring(7) : null;
-        // console.log("authorization", authorization, api_key, ctx.cache);
+        console.log("authorization", authorization, api_key, ctx.cache);
         if (!api_key) {
             throw new Error("Unauthorized: api key required");
         }
@@ -63,7 +63,7 @@ const authHandler = async (ctx: any, next: any) => {
             //auth data from cache.
             const keys = ctx.cache.api_keys.filter((e: any) => e.api_key === api_key);
             if (!keys || keys.length < 1) {
-                throw new Error("Unauthorized: api key error");
+                throw new Error("Unauthorized 0: api key error");
             }
             ctx.user = keys[0];
         } else if (ctx.db) {
@@ -71,11 +71,11 @@ const authHandler = async (ctx: any, next: any) => {
             const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
 
             if (!key) {
-                throw new Error("Unauthorized: api key error");
+                throw new Error("Unauthorized 1: api key error");
             }
             ctx.user = key;
         } else {
-            throw new Error("Unauthorized: api key error");
+            throw new Error("Unauthorized 2: api key error");
         }
 
         if (pathName.indexOf("/admin") >= 0) {
