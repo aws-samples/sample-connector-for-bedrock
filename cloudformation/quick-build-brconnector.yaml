@@ -46,6 +46,7 @@ Metadata:
           default: "Others Settings"
       - Parameters:
           - EnableCloudfront
+          - BRConnectorVersion
           - AutoUpdateBRConnector
 
       - Label: 
@@ -161,12 +162,22 @@ Parameters:
     Default: true
 
   AutoUpdateBRConnector:
-    Description: auto update BRConnector image to Lambda & EC2
+    Description: Auto update BRConnector image to newest version on Lambda & EC2
     Type: String
     AllowedValues:
       - true
       - false
     Default: true
+
+  # put a parameters to choose version
+  BRConnectorVersion:
+    Description: choose BR Connector Version
+    Type: String
+    AllowedValues:
+      - latest
+      - "0.0.16"
+      - "0.0.14"
+    Default: latest
 
   KeepEc2:
     Description: keep EC2 instance for debugging when you deploy brconnector on Lambda
@@ -196,6 +207,12 @@ Conditions:
     - !Equals [!Ref EnableCloudfront, 'true']
     - !Condition IsLambda
   IsAutoUpdate: !Equals [!Ref AutoUpdateBRConnector, 'true']
+  IsAutoUpdateEc2: !And
+    - !Equals [!Ref AutoUpdateBRConnector, 'true']
+    - !Condition IsEc2
+  IsAutoUpdateLambda: !And
+    - !Equals [!Ref AutoUpdateBRConnector, 'true']
+    - !Condition IsLambda
   NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
 
 Mappings:
@@ -373,7 +390,7 @@ Resources:
       - MySSMParameterFirstUserKey 
       - MySSMParameterAdminKey
       - MySSMParameterPGDB
-      - PrivateECRRepository
+      # - PrivateECRRepository
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: 
@@ -439,8 +456,8 @@ Resources:
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
           
           if [[ ${ComputeType} == "lambda" ]]; then
-            AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:latest)
-            ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:latest)
+            AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
+            ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
             regctl image copy public.ecr.aws/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
             regctl image copy public.ecr.aws/$IMG_LAMBDA@$ARM64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:arm64
           fi
@@ -464,7 +481,7 @@ Resources:
           # fi
           # start brconnector container in ECR
           IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:latest
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:${BRConnectorVersion}
 
           # create first user
           sleep 60
@@ -528,6 +545,7 @@ Resources:
   #     UpstreamRegistry: "ecr-public"
 
   PrivateECRRepository:
+    Condition: IsLambda
     Type: AWS::ECR::Repository
     Properties:
       EmptyOnDelete: true
@@ -858,7 +876,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
 
   CodeBuildSecurityGroup:
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateLambda
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub "codebuild-security-group-${AWS::StackName}"
@@ -866,7 +884,7 @@ Resources:
       VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
 
   CodeBuildRole:
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateLambda
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -885,7 +903,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
 
   CodeBuildProject:
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateLambda
     Type: AWS::CodeBuild::Project
     Properties:
       Name: !Sub MyCodeBuildProject-${AWS::StackName}
@@ -919,8 +937,10 @@ Resources:
                 - ECR_REPO=${REPO_PREFIX%%/*}/${DOCKERHUB_REPO}
                 - FUNCTION_NAME=$(cat /tmp/cfn.yaml |jq -r '.Stacks[].Outputs[] | select (.OutputKey == "MyFunctionName") | .OutputValue')
                 - 
+                - # login ecr
+                - aws ecr-public get-login-password --region us-east-1 |regctl registry login --user AWS --pass-stdin public.ecr.aws
+                - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | regctl registry login --user AWS --pass-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
                 - # pull local
-                - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
                 - # docker pull ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:latest
                 - 
                 - # tag amd64 / arm64
@@ -960,7 +980,7 @@ Resources:
 
   # EventBridge Rule for codecommit build trigger
   CodeBuildEventRule: 
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateLambda
     Type: AWS::Events::Rule
     Properties: 
       Name: !Sub "codebuild-${AWS::StackName}"
@@ -974,7 +994,7 @@ Resources:
           RoleArn: !GetAtt CodeBuildEventRole.Arn
 
   CodeBuildEventRole:
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateLambda
     Type: AWS::IAM::Role
     Properties:
       Tags:
@@ -1002,14 +1022,14 @@ Resources:
             Resource: !GetAtt CodeBuildProject.Arn
 
   S3Bucket:
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateEc2
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
     Properties:
       BucketName: !Sub "ssmlogbucket-${MyEC2Instance}"
 
   EC2AutoUpdateSSMDocument: 
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateEc2
     Type: AWS::SSM::Document
     Properties: 
       Tags:
@@ -1019,7 +1039,7 @@ Resources:
       DocumentFormat: YAML
       Content: 
         schemaVersion: '2.2'
-        description: Bootstrap Cloud9 Instance
+        description: Bootstrap EC2 Instance
         mainSteps:
         - action: aws:runShellScript
           name: AutoUpdateBrConnectorInEc2
@@ -1033,12 +1053,12 @@ Resources:
                 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
                 docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
                 docker rm -f brconnector
-                cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sh
+                cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh
               fi
             - echo "Bootstrap Complete"
 
   EC2AutoUpdateAssociation: 
-    Condition: IsAutoUpdate
+    Condition: IsAutoUpdateEc2
     Type: AWS::SSM::Association
     Properties: 
       Name: !Ref EC2AutoUpdateSSMDocument
