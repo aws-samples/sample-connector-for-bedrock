@@ -256,6 +256,7 @@ export default class WebMiner extends AbstractProvider {
     if (config.host) {
       const url = config.host.endsWith('/') ? config.host : config.host + '/';
       const result = await fetch(url + "?format=json&q=" + q, {
+        mode: 'cors',
         method: 'GET',
         headers: {
           'Accept': 'application/json',
