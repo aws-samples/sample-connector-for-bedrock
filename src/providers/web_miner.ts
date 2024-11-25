@@ -234,6 +234,7 @@ export default class WebMiner extends AbstractProvider {
 
       url += "&" + qKey + "=" + q;
       const result = await fetch(url, {
+        mode: 'cors',
         method: 'GET',
         headers: {
           'Accept': 'application/json',
