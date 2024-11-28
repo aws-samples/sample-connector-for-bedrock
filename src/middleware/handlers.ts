@@ -95,6 +95,13 @@ const authHandler = async (ctx: any, next: any) => {
 };
 
 const errorHandler = async (ctx: any, next: any) => {
+    ctx.res.on('close', () => {
+        // To ensure the response is properly ended.
+        if (!ctx.res.finished) {
+            ctx.res.end();
+        }
+    });
+
     try {
         await next();
     } catch (ex: any) {
@@ -104,6 +111,7 @@ const errorHandler = async (ctx: any, next: any) => {
         }
         ctx.body = response.error(ex.message);
     }
+
 };
 
 
