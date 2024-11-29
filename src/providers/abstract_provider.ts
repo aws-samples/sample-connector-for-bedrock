@@ -1,4 +1,5 @@
 import { ChatRequest, ResponseData } from "../entity/chat_request";
+import Cache from '../util/cache';
 
 export default abstract class AbstractProvider {
     keyData: any;
@@ -114,8 +115,8 @@ export default abstract class AbstractProvider {
 
     // save session to db
     async saveThread(ctx: any, session_id: string, chatRequest: ChatRequest, response: ResponseData) {
-        // If db not set or use default admin user, will not save info.
-        if (!this.keyData || ctx.user.id == -1) {
+        // If the performanceMode is set, then chat history will not be saved.
+        if (ctx.performanceMode) {
             return null;
         }
         const input_tokens = response.input_tokens;
@@ -190,9 +191,11 @@ export default abstract class AbstractProvider {
         } else {
             keyDataUpdate.month_fee = month_fee + fee; // Balance spending does not count as month_fee  
         }
+
         const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
         ctx.user = keyDataUpdate;
         this.keyData = keyResult;
+        Cache.updateKeyFee(ctx.user.id, keyDataUpdate.month_fee);
         return {
             session_updated: session_id ? true : false,
             thread_updated: true,

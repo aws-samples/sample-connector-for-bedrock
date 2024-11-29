@@ -6,6 +6,15 @@ import { createLogger, format, transports } from 'winston';
 // const = require('winston');
 
 
+const getUserFromCache = (cache: any, api_key: string) => {
+    const keys = cache.api_keys.filter((e: any) => e.api_key === api_key);
+    if (!keys || keys.length < 1) {
+        throw new Error("Your key does not exist. If it was just created, please try again after a short wait.");
+    }
+    return keys[0];
+}
+
+
 const authHandler = async (ctx: any, next: any) => {
 
     let pathName = ctx.path;
@@ -19,6 +28,7 @@ const authHandler = async (ctx: any, next: any) => {
     }
     pathName = pathName.toLowerCase();
 
+    // console.log(pathName);
 
     // skip cognito
     // if (pathName.indexOf("/aws_cognito_configuration") === 0) {
@@ -49,33 +59,46 @@ const authHandler = async (ctx: any, next: any) => {
 
         const api_key = authorization.length > 10 ? authorization.substring(7) : null;
         if (!api_key) {
-            throw new Error("Unauthorized: api key required");
+            throw new Error("Unauthorized: api key required.");
         }
         if (api_key === config.admin_api_key) {
             ctx.user = {
                 id: -1,
                 api_key: config.admin_api_key,
                 name: "amdin",
+                month_fee: '0',
+                month_quota: '1',
+                updated_at: new Date(),
                 role: "admin"
             };
         } else if (ctx.cache) {
-            //auth data from cache.
-            const keys = ctx.cache.api_keys.filter((e: any) => e.api_key === api_key);
-            if (!keys || keys.length < 1) {
-                throw new Error("Unauthorized 0: api key error");
-            }
-            ctx.user = keys[0];
-        } else if (ctx.db) {
-            //TODO: refactor this to your cache service if too many accesses.
-            const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
-
-            if (!key) {
-                throw new Error("Unauthorized 1: api key error");
-            }
-            ctx.user = key;
+            ctx.user = getUserFromCache(ctx.cache, api_key);
         } else {
-            throw new Error("Unauthorized 2: api key error");
+            throw new Error("Unauthorized: api key error.");
         }
+
+        // console.log(ctx.user);
+
+
+
+        // else if (ctx.cache) {
+        //     //auth data from cache.
+        //     const keys = ctx.cache.api_keys.filter((e: any) => e.api_key === api_key);
+        //     if (!keys || keys.length < 1) {
+        //         throw new Error("Unauthorized 0: api key error");
+        //     }
+        //     ctx.user = keys[0];
+        // } else if (ctx.db) {
+        //     //TODO: refactor this to your cache service if too many accesses.
+        //     const key = await ctx.db.loadByKV("eiai_key", "api_key", api_key);
+
+        //     if (!key) {
+        //         throw new Error("Unauthorized 1: api key error");
+        //     }
+        //     ctx.user = key;
+        // } else {
+        //     throw new Error("Unauthorized 2: api key error");
+        // }
 
         if (pathName.indexOf("/admin") >= 0) {
             if (!ctx.user || ctx.user.role !== "admin") {
@@ -114,7 +137,6 @@ const errorHandler = async (ctx: any, next: any) => {
 
 };
 
-
 const databaseHandler = async (ctx: any, next: any) => {
     if (config.pgsql.host && config.pgsql.database) {
         ctx.db = DB.build(config.pgsql);
@@ -137,25 +159,29 @@ const loggerHandler = async (ctx: any, next: any) => {
         ],
     });
 
-    if (config.debugMode) {
-        logger.level = 'silly';
-        logger.add(new transports.Console({
-            format: format.splat(),
-        }));
-    }
+    // if (config.debugMode) {
+    logger.level = 'silly';
+    logger.add(new transports.Console({
+        format: format.splat(),
+    }));
+    // }
     ctx.logger = logger;
     await next();
 }
 
 
 const dataCacheHandler = async (ctx: any, next: any) => {
-    if (config.performanceMode && config.pgsql.host && config.pgsql.database) {
-        // console.log("HHHH")
+    if (config.pgsql.host && config.pgsql.database) {
         ctx.cache = {
             models: Cache.models,
             api_keys: Cache.api_keys,
             connectors: Cache.connectors
         }
+    }
+    if (config.performanceMode) {
+        ctx.performanceMode = true;
+    } else {
+        ctx.performanceMode = false;
     }
     await next();
 }

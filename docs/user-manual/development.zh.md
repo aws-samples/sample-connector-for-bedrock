@@ -52,6 +52,7 @@ yarn
 | SMTP_USER | no |  | SMTP server username |
 | SMTP_PASS | no |  |  SMTP server password |
 | SMPT_FROM | no |  | SMTP sender email address, your SMTP server maybe verify this |
+| PERFORMANCE_MODE | no |  | 如果您设置了这个环境变量，那么将不再保存聊天记录和更新消费了。意味着控费功能将失效。 |
 
 ### 启动后台
 

@@ -14,10 +14,12 @@ const cache = {
     if (!db) {
       return false;
     }
+
+    console.log("Loading models and api keys data to cache.");
     cache.loadData(db);
     setInterval(() => {
       cache.loadData(db).then(res => {
-        // console.log("cache flushed...", res)
+        console.log("The cache has been flushed.")
       }, (err) => {
         console.log("err", err);
       });
@@ -31,6 +33,14 @@ const cache = {
     // console.log(cache.models);
     return true;
   },
+  updateKeyFee: (id: number, month_fee: number) => {
+    for (let item of cache.api_keys) {
+      if (item.id === id) {
+        item.month_fee = month_fee;
+        break;
+      }
+    }
+  }
 }
 
 export default cache;

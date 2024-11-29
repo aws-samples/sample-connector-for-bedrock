@@ -22,9 +22,9 @@ cache.run();
 
 const app = new Koa();
 
-app.on("error", (err, ctx) => {
-    console.error('server error', err, ctx);
-});
+// app.on("error", (err, ctx) => {
+//     console.error('server error', err, ctx);
+// });
 
 
 // disable auth for the statis files
