@@ -175,8 +175,9 @@ Parameters:
     Type: String
     AllowedValues:
       - latest
+      - "0.0.17"
       - "0.0.16"
-      - "0.0.14"
+      - "0.0.15"
     Default: latest
 
   KeepEc2:
@@ -806,11 +807,15 @@ Resources:
           PGSQL_USER: !Ref PGUser
           PGSQL_PASSWORD: !Ref PGPassword
       VpcConfig:
-        SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
-          - !Ref RdsSecurityGroup
-        SubnetIds:
-          - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet1Id, !Ref PrivateSubnet1Id ]
+        !If
+          - IsNoDB
+          - {}
+          - 
+            SecurityGroupIds:
+              - !Ref LambdaSecurityGroup
+              - !Ref RdsSecurityGroup
+            SubnetIds:
+              - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet1Id, !Ref PrivateSubnet1Id ]
 
   BRConnectorLambdaVersion:
     Condition: IsLambda	
@@ -1169,5 +1174,9 @@ Outputs:
     Description: EcrRepo Name (needed by AutoUpdate)
     Value: !Ref PrivateECRRepository
 
+  MyFunctionUrl:
+    Condition: IsLambda
+    Description: Lambda URL (debug)
+    Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
 
 
