@@ -1,6 +1,6 @@
 <template>
   <div class="my-keys">
-    <Space direction="vertical" style="width: 100%; margin-bottom: 16px;">
+    <div class="toolbar">
       <Space>
         <Input 
           v-model="searchText" 
@@ -9,10 +9,12 @@
           @keyup.enter="search"
         />
         <Button @click="search">{{ $t('keys.btn_query') }}</Button>
+      </Space>
+      <Space>
         <Button @click="add">{{ $t('keys.btn_new') }}</Button>
         <Button :icon="CloudUpload" @click="importUser">{{ $t('keys.btn_import') }}</Button>
       </Space>
-    </Space>
+    </div>
     <Table :data="items" :columns="columns" :loading="loading" :width="1900">
       <template v-slot:api_key="c, row">
         <Space>
@@ -350,6 +352,12 @@ export default {
   th {
     word-break: keep-all !important;
   }
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 .k-btn-group {
