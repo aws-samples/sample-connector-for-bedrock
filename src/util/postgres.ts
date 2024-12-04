@@ -36,6 +36,10 @@ export default class PGClient {
       console.log("------------", new Date(), "----------------------------");
       console.log("sql: ", sql);
       console.log("params: ", params);
+      console.log("pool.totalCount:", this.pool.totalCount,
+        "| pool.idleCount:", this.pool.idleCount,
+        "| pool.waitingCount:", this.pool.waitingCount,
+      )
       console.log("----------------------------------------");
     }
     const result = await this.pool.query(sql, params);

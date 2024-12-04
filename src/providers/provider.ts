@@ -23,7 +23,7 @@ class Provider {
     constructor() {
         this["bedrock-converse"] = new BedrockConverse();
         // this["smart-router"] = new SmartRouter();
-        // this["simple-action"] = new SimpleAction();
+        this["simple-action"] = new SimpleAction();
         this["sagemaker-lmi"] = new SagemakerLMI();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
         this["painter"] = new Painter();
@@ -38,11 +38,10 @@ class Provider {
     }
 
     async init(ctx: any) {
-        if (ctx.db && !ctx.cache) {
-            if (ctx.user && ctx.user.id > 0) {
-                await this.checkFee(ctx, ctx.user);
-            }
+        if (ctx.user && ctx.user.id > 0) {
+            await this.checkFee(ctx, ctx.user);
         }
+
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const chatRequest: ChatRequest = ctx.request.body;
@@ -52,8 +51,8 @@ class Provider {
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
 
 
-        if (!ctx.cache && ctx.db) {
-            // If use cache, will skip this check
+        if (ctx.db) {
+            // If the db parameter is not set, then access permissions will not be verified.
             const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
             if (!canAccessModel) {
                 throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);

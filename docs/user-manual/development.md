@@ -54,6 +54,7 @@ The connector supports the following environment variables:
 | SMTP_USER | no |  | SMTP server username |
 | SMTP_PASS | no |  |  SMTP server password |
 | SMPT_FROM | no |  | SMTP sender email address, your SMTP server maybe verify this |
+| PERFORMANCE_MODE | no |  | If you set this environment variable, then chat logs and billing updates will no longer be saved. This means the cost control feature will be disabled.|
 
 ### Run backend
 

@@ -16,12 +16,16 @@ install();
 import cache from './util/cache';
 
 // if (config.performanceMode) {
-cache.run();
+setTimeout(() => cache.run(), 5000);
 // }
 
 
-
 const app = new Koa();
+
+// app.on("error", (err, ctx) => {
+//     console.error('server error', err, ctx);
+// });
+
 
 // disable auth for the statis files
 if (!config.disableUI) {
