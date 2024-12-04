@@ -22,6 +22,54 @@ export default {
 
         const limit = ~~(options.limit) || 20;
         const offset = ~~(options.offset) || 0;
+        let orderBy = options.orderBy || "update-1"
+
+        switch (orderBy) {
+            case "id-0":
+                orderBy = "id";
+                break;
+            case "id-1":
+                orderBy = "id desc";
+                break;
+            case "month-0":
+                orderBy = "month_fee";
+                break;
+            case "month-1":
+                orderBy = "month_fee desc";
+                break;
+            case "name-0":
+                orderBy = "name";
+                break;
+            case "name-1":
+                orderBy = "name desc";
+                break;
+            case "total-0":
+                orderBy = "total_fee";
+                break;
+            case "total-1":
+                orderBy = "total_fee desc";
+                break;
+            case "quota-0":
+                orderBy = "month_quota";
+                break;
+            case "quota-1":
+                orderBy = "month_quota desc";
+                break;
+            case "balance-0":
+                orderBy = "balance";
+                break;
+            case "balance-1":
+                orderBy = "balance desc";
+                break;
+            case "update-0":
+                orderBy = "updated_at";
+                break;
+            case "update-1":
+                orderBy = "updated_at desc";
+                break;
+            default:
+                orderBy = "updated_at desc";
+        }
 
         let where = "1=1";
         let params = [];
@@ -44,7 +92,7 @@ export default {
             cols: "*",
             limit: limit,
             offset: offset,
-            orderBy: "updated_at desc"
+            orderBy
         }
 
         for (const key of keys) {
