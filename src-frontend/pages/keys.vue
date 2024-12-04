@@ -15,7 +15,7 @@
         <Button :icon="CloudUpload" @click="importUser">{{ $t('keys.btn_import') }}</Button>
       </Space>
     </div>
-    <Table :data="items" :columns="columns" :loading="loading" :width="1900">
+    <Table :data="items" :columns="columns" :loading="loading" :width="1900" @change="handleTableChange">
       <template v-slot:api_key="c, row">
         <Space>
           {{ format_key(row) }}
@@ -120,16 +120,16 @@ export default {
       searchText: '',
       title: '',
       columns: [
-        { key: 'name', title: this.$t('keys.col_name'), fixed: "left" },
+        { key: 'name', title: this.$t('keys.col_name'), fixed: "left", sorter: true, sortKey: 'id' },
         { key: 'api_key', title: this.$t('keys.col_key'), fixed: "left" },
         { key: 'email', title: this.$t('keys.col_email') },
         { key: 'role', title: this.$t('keys.col_role') },
         { key: 'group_name', title: this.$t('keys.col_group') },
-        { key: 'total_fee', title: this.$t('keys.col_total_fee') },
-        { key: 'balance', title: this.$t('keys.col_balance') },
-        { key: 'month_fee', title: this.$t('keys.col_month_fee') },
-        { key: 'month_quota', title: this.$t('keys.col_month_quota') },
-        { key: 'updated_at', title: this.$t('keys.col_updated_at') },
+        { key: 'total_fee', title: this.$t('keys.col_total_fee'), sorter: true, sortKey: 'total' },
+        { key: 'balance', title: this.$t('keys.col_balance'), sorter: true, sortKey: 'balance' },
+        { key: 'month_fee', title: this.$t('keys.col_month_fee'), sorter: true, sortKey: 'month' },
+        { key: 'month_quota', title: this.$t('keys.col_month_quota'), sorter: true, sortKey: 'quota' },
+        { key: 'updated_at', title: this.$t('keys.col_updated_at'), sorter: true, sortKey: 'update' },
         { key: 'action', title: this.$t('keys.col_action'), fixed: "right", width: 300 },
       ],
       form: { name: '', email: '', role: 'user', month_quota: 0, balance: 0, group_id: 0 },
@@ -157,13 +157,39 @@ export default {
       current_key_id: 0,
       uploadEndpoint: url,
       uploadHeaders: { authorization: "Bearer " + key },
-      importFileName: ''
+      importFileName: '',
+      currentSort: {
+        key: '',
+        order: ''
+      }
     }
   },
   mounted() {
     this.get_data()
+    this.loadGroups()
   },
   methods: {
+    handleTableChange(filters, sorter) {
+      if (sorter) {
+        // 当order为null时，表示取消排序，此时清除排序状态
+        if (sorter.order === null) {
+          this.currentSort = {
+            key: '',
+            order: ''
+          };
+        } else {
+          // 使用sortKey作为orderBy的前缀
+          const column = this.columns.find(col => col.key === sorter.key);
+          if (column && column.sortKey) {
+            this.currentSort = {
+              key: column.sortKey,
+              order: sorter.order === 'asc' ? '0' : '1'
+            };
+          }
+        }
+        this.get_data();
+      }
+    },
     search() {
       this.page = 1;
       this.get_data();
@@ -216,13 +242,33 @@ export default {
       this.page = page
       this.get_data()
     },
+    loadGroups() {
+      this.$http.get('/admin/group/list', { limit: 1000, offset: 0 }).then(res => {
+        let items = res.data.items;
+        this.groups = items.map(it => ({
+          label: it.name,
+          value: it.id
+        }));
+      });
+    },
     listModels(row) {
       this.current_key_id = row.id;
       this.title = this.$t('group.title_set_models');
+      
+      // 只在打开模型列表时加载模型数据
       this.$http.get('/admin/api-key/list-model', { key_id: this.current_key_id, limit: 1000, offset: 0 }).then(res => {
         let items = res.data.items;
         this.checked_models = items.map(it => it.model_id);
-        this.modelsShown = true;
+        
+        // 加载所有可用模型
+        this.$http.get('/admin/model/list', { limit: 1000, offset: 0 }).then(res => {
+          let items = res.data.items;
+          this.models = items.map(it => ({
+            label: it.name,
+            value: it.id
+          }));
+          this.modelsShown = true;
+        });
       }).finally(() => {
         this.loading = false;
       });
@@ -237,12 +283,19 @@ export default {
     },
     get_data() {
       this.loading = true;
-      let { page, size, searchText } = this;
-      this.$http.get('/admin/api-key/list', { 
+      let { page, size, searchText, currentSort } = this;
+      let params = { 
         limit: size, 
         offset: (page - 1) * size,
         q: searchText
-      }).then(res => {
+      };
+      
+      // 只有当有排序时才添加orderBy参数
+      if (currentSort.key && currentSort.order) {
+        params.orderBy = `${currentSort.key}-${currentSort.order}`;
+      }
+      
+      this.$http.get('/admin/api-key/list', params).then(res => {
         let items = res.data.items
         items.map(item => {
           item.total_fee = parseFloat(item.total_fee)
@@ -255,24 +308,6 @@ export default {
         this.items = items
       }).finally(() => {
         this.loading = false
-      });
-      this.$http.get('/admin/model/list', { limit: 1000, offset: 0 }).then(res => {
-        let items = res.data.items;
-        this.models = items.map(it => ({
-          label: it.name,
-          value: it.id
-        }));
-      }).finally(() => {
-        this.loading = false;
-      });
-      this.$http.get('/admin/group/list', { limit: 1000, offset: 0 }).then(res => {
-        let items = res.data.items;
-        this.groups = items.map(it => ({
-          label: it.name,
-          value: it.id
-        }));
-      }).finally(() => {
-        this.loading = false;
       });
     },
     edit(row) {
