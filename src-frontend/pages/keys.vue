@@ -1,11 +1,17 @@
 <template>
   <div class="my-keys">
-    <Space>
-      <Button @click="get_data">{{ $t('keys.btn_query') }}</Button>
-      <Button @click="add">{{ $t('keys.btn_new') }}</Button>
-
-      <Button :icon="CloudUpload" @click="importUser">{{ $t('keys.btn_import') }}</Button>
-
+    <Space direction="vertical" style="width: 100%; margin-bottom: 16px;">
+      <Space>
+        <Input 
+          v-model="searchText" 
+          placeholder="Search by name or key..." 
+          style="width: 300px;"
+          @keyup.enter="search"
+        />
+        <Button @click="search">{{ $t('keys.btn_query') }}</Button>
+        <Button @click="add">{{ $t('keys.btn_new') }}</Button>
+        <Button :icon="CloudUpload" @click="importUser">{{ $t('keys.btn_import') }}</Button>
+      </Space>
     </Space>
     <Table :data="items" :columns="columns" :loading="loading" :width="1900">
       <template v-slot:api_key="c, row">
@@ -109,6 +115,7 @@ export default {
       CloudUpload,
       FolderOpen,
       items: [],
+      searchText: '',
       title: '',
       columns: [
         { key: 'name', title: this.$t('keys.col_name'), fixed: "left" },
@@ -155,6 +162,10 @@ export default {
     this.get_data()
   },
   methods: {
+    search() {
+      this.page = 1;
+      this.get_data();
+    },
     importUser() {
       this.showImport = true;
     },
@@ -224,8 +235,12 @@ export default {
     },
     get_data() {
       this.loading = true;
-      let { page, size } = this;
-      this.$http.get('/admin/api-key/list', { limit: size, offset: (page - 1) * size }).then(res => {
+      let { page, size, searchText } = this;
+      this.$http.get('/admin/api-key/list', { 
+        limit: size, 
+        offset: (page - 1) * size,
+        q: searchText
+      }).then(res => {
         let items = res.data.items
         items.map(item => {
           item.total_fee = parseFloat(item.total_fee)
