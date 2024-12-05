@@ -60,7 +60,8 @@ export default {
     col_fee: 'Fee',
   },
   keys: {
-    btn_query: "Reload",
+    search_q: "Search by name or email",
+    btn_query: "Search",
     btn_new: "New",
     btn_import: "Import",
     btn_recharge: "Recharge",
@@ -101,7 +102,8 @@ export default {
     price_out: "Price-Out",
     provider: "Provider",
     tip_delete: "The deletion operation will delete the model and its associated resources.",
-    config: "Config"
+    config: "Config",
+    search_q: "Search model name"
   },
   group: {
     name: "Name",

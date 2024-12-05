@@ -1,9 +1,18 @@
 <template>
   <div class="container">
-    <Space>
-      <Button @click="get_data">{{ $t('keys.btn_query') }}</Button>
-      <Button @click="add">{{ $t('keys.btn_new') }}</Button>
-    </Space>
+      <Space>
+        <Button @click="add">{{ $t('keys.btn_new') }}</Button>
+        <InputGroup>
+        <Input 
+          v-model="searchText" 
+          :placeholder="$t('model.search_q')" 
+          style="width: 300px;"
+          @keyup.enter="get_data"
+          clearable
+        />
+        <Button @click="get_data">{{ $t('keys.btn_query') }}</Button>
+      </InputGroup>
+      </Space>
     <Table :data="items" :columns="columns" :loading="loading">
       <template v-slot:price_in="c,row">
         <div style="text-align:right" >
@@ -81,6 +90,7 @@ export default {
         provider: [{ required: true }]
       },
       action: "add",
+      searchText: '',
       show: false,
       page: 1,
       size: 15,
@@ -99,8 +109,8 @@ export default {
     },
     get_data() {
       this.loading = true
-      let { page, size } = this
-      this.$http.get('/admin/model/list', { limit: size, offset: (page - 1) * size }).then(res => {
+      let { page, size, searchText } = this;
+      this.$http.get('/admin/model/list', { limit: size, offset: (page - 1) * size, q: searchText }).then(res => {
         let items = res.data.items
         items.map(item => {
           item.price_in =( item.price_in * 1e6).toFixed(2);

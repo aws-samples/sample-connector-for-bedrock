@@ -1,18 +1,18 @@
 <template>
   <div class="my-keys">
-    <div class="toolbar">
-      <Space>
-        <Input 
-          v-model="searchText" 
-          placeholder="Search by name or key..." 
-          style="width: 300px;"
-          @keyup.enter="search"
-        />
-        <Button @click="search">{{ $t('keys.btn_query') }}</Button>
-      </Space>
+    <div >
       <Space>
         <Button @click="add">{{ $t('keys.btn_new') }}</Button>
         <Button :icon="CloudUpload" @click="importUser">{{ $t('keys.btn_import') }}</Button>
+        <InputGroup>
+          <Input 
+            v-model="searchText" 
+            :placeholder="$t('keys.search_q')" 
+            style="width: 300px;"
+            @keyup.enter="search"
+          />
+          <Button @click="search">{{ $t('keys.btn_query') }}</Button>
+        </InputGroup>
       </Space>
     </div>
     <Table :data="items" :columns="columns" :loading="loading" :width="1900" @change="handleTableChange">
@@ -387,12 +387,6 @@ export default {
   th {
     word-break: keep-all !important;
   }
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
 }
 
 .k-btn-group {

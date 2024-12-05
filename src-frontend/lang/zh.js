@@ -58,7 +58,8 @@ export default {
     col_fee: '费用',
   },
   keys: {
-    btn_query: "刷新",
+    search_q: "搜索名字或 email",
+    btn_query: "搜索",
     btn_new: "新增",
     btn_import: "导入",
     btn_recharge: "充值",
@@ -100,7 +101,8 @@ export default {
     price_out: "输出价格",
     provider: "提供器",
     tip_delete: "删除操作将会删除模型及其关联资源。",
-    config: "配置"
+    config: "配置",
+    search_q: "搜索模型名字"
   },
   group: {
     name: "名称",
