@@ -23,15 +23,15 @@
     "@larksuiteoapi/node-sdk": "^1.40.1",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.4.7",
-    "googleapis": "^140.0.1",
+    "googleapis": "^144.0.0",
     "koa": "^2.15.1",
     "koa-body": "^6.0.1",
     "koa-router": "^13.0.1",
     "koa-static-server": "^1.5.2",
     "nodemailer": "^6.9.16",
-    "ollama": "^0.5.1",
+    "ollama": "^0.5.11",
     "pg": "^8.13.1",
-    "winston": "^3.13.0"
+    "winston": "^3.17.0"
   },
   "compilerOptions": {
     "module": "NodeNext",
@@ -56,7 +56,7 @@
     "nodemon": "^3.1.0",
     "path-browserify": "^1.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.2",
+    "typescript": "^5.7.2",
     "vue": "^2.7.16",
     "vue-clipboard2": "^0.3.3",
     "vue-i18n": "^8.28.2",

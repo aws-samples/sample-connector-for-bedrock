@@ -489,7 +489,7 @@ const helper = {
                 from: config.smpt.from,
                 to: email,
                 subject: "[BRConnector]Bedrock Connector Api Key",
-                html: "Your Bedrock Connector's API keys is: <div style='margin:10px;padding:20px 0px;border:1px solid #ccc;width:400px;text-align:center'>" + api_key + "</div>",
+                html: "Your Bedrock Connector's API key is: <div style='margin:10px;padding:20px 0px;border:1px solid #ccc;width:400px;text-align:center'>" + api_key + "</div>",
             });
 
             console.log("Message sent: %s", info.messageId);
