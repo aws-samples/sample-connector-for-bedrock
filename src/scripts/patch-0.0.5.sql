@@ -27,7 +27,17 @@ ALTER TABLE eiai_model ADD CONSTRAINT model_name_uniqe UNIQUE (name);
 ALTER TABLE eiai_group_model ADD CONSTRAINT model_group_id_uniqe UNIQUE (model_id, group_id);
 
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
+VALUES ('amazon-nova-pro', 1, 'bedrock-converse', '{"modelId": "amazon.nova-pro-v1:0"}', 0.8e-6, 3.2e-6 ) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
+VALUES ('amazon-nova-lite', 1, 'bedrock-converse', '{"modelId": "amazon.nova-lite-v1:0"}', 0.06e-6, 0.24e-6 ) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
+VALUES ('amazon-nova-micro', 1, 'bedrock-converse', '{"modelId": "amazon.nova-micro-v1:0"}', 0.035e-6, 0.14e-6 ) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
+VALUES ('claude-3-5-sonnet-v2', 1, 'bedrock-converse', '{"modelId": "anthropic.claude-3-5-sonnet-20241022-v2:0"}', 3e-6, 15e-6 ) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
 VALUES ('claude-3-5-sonnet', 1, 'bedrock-converse', '{"modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"}', 3e-6, 15e-6 ) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
+VALUES ('claude-3-5-haiku', 1, 'bedrock-converse', '{"modelId": "anthropic.claude-3-5-haiku-20241022-v1:0"}', 0.8e-6, 4e-6 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
 VALUES ('claude-3-sonnet', 1, 'bedrock-converse', '{"modelId": "anthropic.claude-3-sonnet-20240229-v1:0"}', 3e-6, 15e-6 ) ON CONFLICT (name) DO NOTHING;
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 

@@ -7,6 +7,10 @@ export default {
 
   completions: async (ctx: any) => {
     return provider.complete(ctx);
+  },
+
+  embeddings: async (ctx: any) => {
+    return provider.embed(ctx);
   }
 
 }

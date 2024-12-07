@@ -220,7 +220,7 @@ export default {
             where: "key_id=$1 and model_id=$2",
             params: [key_id, model_id]
         });
-        console.log(existsDB);
+
 
         if (existsDB) {
             await db.deleteMulti("eiai_key_model", {

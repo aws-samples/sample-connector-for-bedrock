@@ -20,6 +20,13 @@ interface ChatRequest {
     [key: string]: any; // refined parameters
 }
 
+interface EmbeddingRequest {
+    model: string;
+    input: string;
+    encoding_format?: string;
+    [key: string]: any;
+}
+
 // class RequestData {
 //   model: string;
 //   messages: Message[];
@@ -55,4 +62,4 @@ interface ModelData {
 }
 
 
-export { ChatRequest, ResponseData, ModelData };
+export { ChatRequest, ResponseData, ModelData, EmbeddingRequest };

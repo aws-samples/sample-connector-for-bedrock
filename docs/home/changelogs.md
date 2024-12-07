@@ -1,5 +1,18 @@
 # Changelogs
 
+## 0.0.18
+
+1. Added model and API key queries to the backend management web interface.
+2. Added configuration for the Amazon Nova models in NoDB mode. As the Nova models are relatively new and only available in certain regions, please note to use them in conjunction with the AWS_DEFAULT_REGION environment variable.
+3. Fixed a backend error that attempted to save database data even in NoDB mode.
+4. Changed the output type of 'id' from number to string during streaming output, now it can be correctly deserialized by aider.
+5. Downgraded Node.js version to v18 (as v20 may cause an EMFILE error).
+
+## 0.0.17
+
+1. When the client actively stops output, the application now actively closes the server-side response.
+2. Cost control now works correctly.
+
 ## 0.0.16
 
 1. Added a new configuration option for bedrock-converse: maxTokens

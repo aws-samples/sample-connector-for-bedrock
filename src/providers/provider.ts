@@ -1,4 +1,4 @@
-import { ChatRequest } from "../entity/chat_request"
+import { ChatRequest, EmbeddingRequest } from "../entity/chat_request"
 import helper from '../util/helper';
 import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
@@ -17,6 +17,7 @@ import UrlsReader from "./urls_reader";
 import ContinueCoder from "./continue_coder";
 import SmartRouter from "./smart_router";
 import SimpleAction from "./simple_action";
+import TitanEmbeddings from "./titan_embedings";
 
 
 class Provider {
@@ -35,6 +36,46 @@ class Provider {
         this["bedrock-claude3"] = new BedrockClaude();
         this["bedrock-mistral"] = new BedrockMixtral();
         this["bedrock-llama3"] = new BedrockLlama3();
+        this["titan-embeddings"] = new TitanEmbeddings();
+    }
+
+    async initForEmbeddings(ctx: any) {
+        if (ctx.user && ctx.user.id > 0) {
+            await this.checkFee(ctx, ctx.user);
+        }
+
+        // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
+
+        const embeddingRequest: EmbeddingRequest = ctx.request.body;
+
+
+        const session_id = ctx.headers["session-id"];
+        const modelData = await helper.refineModelParameters(embeddingRequest, ctx);
+
+
+        if (ctx.db) {
+            // If the db parameter is not set, then access permissions will not be verified.
+            const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
+            if (!canAccessModel) {
+                throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
+            }
+        }
+
+        embeddingRequest.currency = modelData.config.currency || "USD";
+        embeddingRequest.price_in = modelData.price_in || 0;
+        embeddingRequest.price_out = modelData.price_out || 0;
+        embeddingRequest.model = modelData.name;
+        const provider: AbstractProvider = this[modelData.provider];
+        if (!provider) {
+            throw new Error("You need to configure the provider correctly.");
+        }
+        provider.setModelData(modelData);
+        provider.setKeyData(ctx.user);
+
+        return {
+            provider, embeddingRequest, session_id
+        }
+
     }
 
     async init(ctx: any) {
@@ -86,6 +127,12 @@ class Provider {
         // let keyData = null;
         const res = await this.init(ctx);
         return res.provider.complete(res.chatRequest, res.session_id, ctx);
+    }
+
+    async embed(ctx: any) {
+        // let keyData = null;
+        const res = await this.initForEmbeddings(ctx);
+        return res.provider.embed(res.embeddingRequest, res.session_id, ctx);
     }
 
 

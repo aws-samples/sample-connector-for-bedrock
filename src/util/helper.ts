@@ -87,6 +87,45 @@ const helper = {
     },
     getModelDataWithoutDB: (model?: string): ModelData => {
         switch (model) {
+            case 'amazon-nova-pro':
+                return {
+                    name: 'amazon-nova-pro',
+                    config: {
+                        modelId: 'amazon.nova-pro-v1:0'
+                    },
+                    multiple: 1,
+                    model_type: 1,
+                    price_in: 0.8e-6,
+                    price_out: 3.2e-6,
+                    currency: "USD",
+                    provider: 'bedrock-converse'
+                };
+            case 'amazon-nova-lite':
+                return {
+                    name: 'amazon-nova-lite',
+                    config: {
+                        modelId: 'amazon.nova-lite-v1:0'
+                    },
+                    multiple: 1,
+                    model_type: 1,
+                    price_in: 0.06e-6,
+                    price_out: 0.24e-6,
+                    currency: "USD",
+                    provider: 'bedrock-converse'
+                };
+            case 'amazon-nova-micro':
+                return {
+                    name: 'amazon-nova-micro',
+                    config: {
+                        modelId: 'amazon.nova-micro-v1:0'
+                    },
+                    multiple: 1,
+                    model_type: 1,
+                    price_in: 0.035e-6,
+                    price_out: 0.14e-6,
+                    currency: "USD",
+                    provider: 'bedrock-converse'
+                };
             case 'claude-3.5-sonnet-v2':
                 return {
                     name: 'claude-3.5-sonnet-v2',

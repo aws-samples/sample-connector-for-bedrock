@@ -1,5 +1,29 @@
 export default [
     {
+        "id": "amazon-nova-pro",
+        "object": "model",
+        "created": 1712297572,
+        "multiple": true,
+        "deleted": false,
+        "owned_by": "aws-bedrock"
+    },
+    {
+        "id": "amazon-nova-lite",
+        "object": "model",
+        "created": 1712297572,
+        "multiple": true,
+        "deleted": false,
+        "owned_by": "aws-bedrock"
+    },
+    {
+        "id": "amazon-nova-micro",
+        "object": "model",
+        "created": 1712297572,
+        "multiple": true,
+        "deleted": false,
+        "owned_by": "aws-bedrock"
+    },
+    {
         "id": "claude-3.5-sonnet-v2",
         "object": "model",
         "created": 1712297572,

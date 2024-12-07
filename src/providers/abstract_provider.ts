@@ -1,4 +1,4 @@
-import { ChatRequest, ResponseData } from "../entity/chat_request";
+import { ChatRequest, ResponseData, EmbeddingRequest } from "../entity/chat_request";
 import Cache from '../util/cache';
 
 export default abstract class AbstractProvider {
@@ -20,6 +20,10 @@ export default abstract class AbstractProvider {
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
         console.log("This method is not implemented.");
     };
+
+    async embed(embedingRequest: EmbeddingRequest, session_id: string, ctx: any) {
+        console.log("This method is not implemented.");
+    }
 
     async localCompleteStream(ctx: any, openAIRequest: any, session_id: string) {
         ctx.set({
@@ -112,13 +116,41 @@ export default abstract class AbstractProvider {
         return await response.json();
     }
 
+    async saveThreadForEmebeddings(ctx: any, session_id: string, embeddingRequese: EmbeddingRequest, response: ResponseData) {
+        if (ctx.performanceMode || !ctx.db) {
+            return null;
+        }
+
+        const input_tokens = response.input_tokens;
+        const fee_in = input_tokens * this.modelData.price_in;
+        // const fee_out = 0;
+        const fee: number = fee_in;
+
+        const threadData: any = {
+            prompt: embeddingRequese.input,
+            completion: "",
+            whole_prompt: "",
+            key_id: ctx.user.id,
+            session_key: session_id,
+            tokens_in: input_tokens,
+            tokens_out: 0,
+            price_in: this.modelData.price_in,
+            price_out: this.modelData.price_out,
+            fee,
+            session_id: 0
+        }
+        threadData.thread_type = 0;
+        await ctx.db.insert("eiai_thread", threadData);
+        return await this.updateKeyFee(ctx, fee);
+    }
 
     // save session to db
     async saveThread(ctx: any, session_id: string, chatRequest: ChatRequest, response: ResponseData) {
         // If the performanceMode is set, then chat history will not be saved.
-        if (ctx.performanceMode) {
+        if (ctx.performanceMode || !ctx.db) {
             return null;
         }
+
         const input_tokens = response.input_tokens;
         const output_tokens = response.output_tokens;
         const fee_in = input_tokens * this.modelData.price_in;
@@ -172,7 +204,41 @@ export default abstract class AbstractProvider {
         threadData.thread_type = chatRequest.stream ? 0 : 1;
 
         await ctx.db.insert("eiai_thread", threadData);
+        let result: any = await this.updateKeyFee(ctx, fee);
+        result.session_updated = session_id ? true : false;
+        return result;
 
+        // const month_fee = this.keyData.month_fee * 1.0;
+        // const month_quota = this.keyData.month_quota * 1.0;
+        // const balance = this.keyData.balance * 1.0;
+        // // Update keyData fee
+        // const keyDataUpdate: any = {
+        //     id: this.keyData.id,
+        //     total_fee: this.keyData.total_fee * 1.0 + fee,
+        //     updated_at: new Date()
+        // };
+
+        // if (month_fee + fee >= month_quota) { // The balance will be consumed
+        //     const balanceCost = month_fee + fee - month_quota;
+        //     keyDataUpdate.balance = balance - balanceCost;
+        //     // keyDataUpdate.month_fee = (month_fee > month_quota ? month_quota : month_fee); // Month quota may be modified in the middle of the process
+        //     keyDataUpdate.month_fee = month_quota;
+        // } else {
+        //     keyDataUpdate.month_fee = month_fee + fee; // Balance spending does not count as month_fee  
+        // }
+
+        // const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
+        // ctx.user = keyDataUpdate;
+        // this.keyData = keyResult;
+        // Cache.updateKeyFee(ctx.user.id, keyDataUpdate.month_fee);
+        // return {
+        //     session_updated: session_id ? true : false,
+        //     thread_updated: true,
+        //     key_updated: true
+        // };
+    }
+
+    async updateKeyFee(ctx: any, fee: number) {
         const month_fee = this.keyData.month_fee * 1.0;
         const month_quota = this.keyData.month_quota * 1.0;
         const balance = this.keyData.balance * 1.0;
@@ -197,10 +263,11 @@ export default abstract class AbstractProvider {
         this.keyData = keyResult;
         Cache.updateKeyFee(ctx.user.id, keyDataUpdate.month_fee);
         return {
-            session_updated: session_id ? true : false,
+            // session_updated: session_id ? true : false,
             thread_updated: true,
             key_updated: true
         };
+
     }
 }
 
