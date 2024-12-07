@@ -2,9 +2,9 @@
 
 ## LLM API
 
-#### Completions
+### Completions
 
-An ordinary request.
+#### An ordinary request
 
 ```
 POST /v1/chat/completions
@@ -25,7 +25,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-An example of including a picture in the request.
+#### Including a picture in the request
 
 ```
 POST /v1/chat/completions
@@ -56,7 +56,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 - image url can be a base64 string or a http(s) url.
 
-An example of including a docuement in the request:
+#### Including a docuement in the request
 
 ```
 POST /v1/chat/completions
@@ -92,7 +92,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-Function calling (tool use) sample:
+#### Function calling (tool use)
 
 ```
 POST /v1/chat/completions
@@ -144,7 +144,20 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 }
 ```
 
-#### List models
+### Embeddings
+
+```
+POST {{hostLocal}}/v1/embeddings
+Content-Type: application/json
+Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+{
+  "model": "your-embedding-model",
+  "input": "Hello world."
+}
+```
+
+### List models
 
 ```
 GET /v1/models

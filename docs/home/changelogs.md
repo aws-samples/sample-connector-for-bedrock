@@ -4,9 +4,11 @@
 
 1. Added model and API key queries to the backend management web interface.
 2. Added configuration for the Amazon Nova models in NoDB mode. As the Nova models are relatively new and only available in certain regions, please note to use them in conjunction with the AWS_DEFAULT_REGION environment variable.
-3. Fixed a backend error that attempted to save database data even in NoDB mode.
-4. Changed the output type of 'id' from number to string during streaming output, now it can be correctly deserialized by aider.
-5. Downgraded Node.js version to v18 (as v20 may cause an EMFILE error).
+3. The nova model has been added to the initialization script in the database, but it will only take effect in the newly created databases of BRConnector.
+4. Fixed a backend error that attempted to save database data even in NoDB mode.
+5. Changed the output type of 'id' from number to string during streaming output, now it can be correctly deserialized by aider.
+6. Downgraded Node.js version to v18 (as v20 may cause an EMFILE error).
+7. Added support for the embedding API, now it can adapt to the titan embeddings model. [You need to configure a new model using the titan_embeddings Provider](../providers/titan_embedings.md), and use the API ([/v1/embeddings](../user-manual/apis.md#embeddings)) to call it.
 
 ## 0.0.17
 
