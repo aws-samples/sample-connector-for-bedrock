@@ -839,6 +839,8 @@
       
         
       
+        
+      
     
     
       
@@ -1047,6 +1049,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../providers/titan_embedings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    titan_embedings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../providers/urls-reader/" class="md-nav__link">
         
   
@@ -1201,9 +1224,11 @@
 <ol>
 <li>Added model and API key queries to the backend management web interface.</li>
 <li>Added configuration for the Amazon Nova models in NoDB mode. As the Nova models are relatively new and only available in certain regions, please note to use them in conjunction with the AWS_DEFAULT_REGION environment variable.</li>
+<li>The nova model has been added to the initialization script in the database, but it will only take effect in the newly created databases of BRConnector.</li>
 <li>Fixed a backend error that attempted to save database data even in NoDB mode.</li>
 <li>Changed the output type of &lsquo;id&rsquo; from number to string during streaming output, now it can be correctly deserialized by aider.</li>
 <li>Downgraded Node.js version to v18 (as v20 may cause an EMFILE error).</li>
+<li>Added support for the embedding API, now it can adapt to the titan embeddings model. <a href="../../providers/titan_embedings/">You need to configure a new model using the titan_embeddings Provider</a>, and use the API (<a href="../../user-manual/apis/#embeddings">/v1/embeddings</a>) to call it.</li>
 </ol>
 <h2 id="0017">0.0.17<a class="headerlink" href="#0017" title="Permanent link">&para;</a></h2>
 <ol>
@@ -1311,7 +1336,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-07T23:57:07+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-07</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-08T01:26:32+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-08</span>
   </span>
 
     

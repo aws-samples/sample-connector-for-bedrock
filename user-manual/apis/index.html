@@ -748,6 +748,57 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Completions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#an-ordinary-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      An ordinary request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#including-a-picture-in-the-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Including a picture in the request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#including-a-docuement-in-the-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Including a docuement in the request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#function-calling-tool-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      Function calling (tool use)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#embeddings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Embeddings
+    </span>
+  </a>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1121,6 +1172,8 @@
       
         
       
+        
+      
     
     
       
@@ -1329,6 +1382,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../providers/titan_embedings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    titan_embedings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../providers/urls-reader/" class="md-nav__link">
         
   
@@ -1411,6 +1485,57 @@
   <a href="#completions" class="md-nav__link">
     <span class="md-ellipsis">
       Completions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Completions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#an-ordinary-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      An ordinary request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#including-a-picture-in-the-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Including a picture in the request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#including-a-docuement-in-the-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Including a docuement in the request
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#function-calling-tool-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      Function calling (tool use)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#embeddings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Embeddings
     </span>
   </a>
   
@@ -1762,8 +1887,8 @@
 
 <h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
 <h2 id="llm-api">LLM API<a class="headerlink" href="#llm-api" title="Permanent link">&para;</a></h2>
-<h4 id="completions">Completions<a class="headerlink" href="#completions" title="Permanent link">&para;</a></h4>
-<p>An ordinary request.</p>
+<h3 id="completions">Completions<a class="headerlink" href="#completions" title="Permanent link">&para;</a></h3>
+<h4 id="an-ordinary-request">An ordinary request<a class="headerlink" href="#an-ordinary-request" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>POST /v1/chat/completions
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Content-Type: application/json
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1781,7 +1906,7 @@
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  &quot;max_tokens&quot;: 4096
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>}
 </code></pre></div>
-<p>An example of including a picture in the request.</p>
+<h4 id="including-a-picture-in-the-request">Including a picture in the request<a class="headerlink" href="#including-a-picture-in-the-request" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>POST /v1/chat/completions
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Content-Type: application/json
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1810,7 +1935,7 @@
 <ul>
 <li>image url can be a base64 string or a http(s) url.</li>
 </ul>
-<p>An example of including a docuement in the request:</p>
+<h4 id="including-a-docuement-in-the-request">Including a docuement in the request<a class="headerlink" href="#including-a-docuement-in-the-request" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>POST /v1/chat/completions
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Content-Type: application/json
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1843,7 +1968,7 @@
 <a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>  ]
 <a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>}
 </code></pre></div>
-<p>Function calling (tool use) sample:</p>
+<h4 id="function-calling-tool-use">Function calling (tool use)<a class="headerlink" href="#function-calling-tool-use" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>POST /v1/chat/completions
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Content-Type: application/json
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1892,170 +2017,180 @@
 <a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a>  ]
 <a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>}
 </code></pre></div>
-<h4 id="list-models">List models<a class="headerlink" href="#list-models" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>GET /v1/models
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<h3 id="embeddings">Embeddings<a class="headerlink" href="#embeddings" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>POST {{hostLocal}}/v1/embeddings
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Content-Type: application/json
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>{
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  &quot;model&quot;: &quot;your-embedding-model&quot;,
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>  &quot;input&quot;: &quot;Hello world.&quot;
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>}
+</code></pre></div>
+<h3 id="list-models">List models<a class="headerlink" href="#list-models" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>GET /v1/models
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
 <h2 id="admin-api">Admin API<a class="headerlink" href="#admin-api" title="Permanent link">&para;</a></h2>
 <h3 id="api-key">API key<a class="headerlink" href="#api-key" title="Permanent link">&para;</a></h3>
 <h4 id="create-an-api-key">Create an api key<a class="headerlink" href="#create-an-api-key" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>POST /admin/api-key/apply
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Content-Type: application/json
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>{
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>  &quot;name&quot;: &quot;jack&quot;,
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>  &quot;group_id&quot;: 1,
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>  &quot;role&quot;: &quot;user&quot;,
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  &quot;email&quot;: &quot;&quot;,
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>  &quot;month_quota&quot;: 1.00
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>}
-</code></pre></div>
-<h4 id="create-an-api-key-with-admin-role">Create an api key with admin role<a class="headerlink" href="#create-an-api-key-with-admin-role" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>POST /admin/api-key/apply
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Content-Type: application/json
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>{
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>  &quot;name&quot;: &quot;rob&quot;,
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>  &quot;name&quot;: &quot;jack&quot;,
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>  &quot;group_id&quot;: 1,
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>  &quot;role&quot;: &quot;admin&quot;,
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>  &quot;email&quot;: &quot;&quot;
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>}
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>  &quot;role&quot;: &quot;user&quot;,
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>  &quot;email&quot;: &quot;&quot;,
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>  &quot;month_quota&quot;: 1.00
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>}
 </code></pre></div>
-<h4 id="update-and-api-keys-info">Update and api key&rsquo;s info<a class="headerlink" href="#update-and-api-keys-info" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>POST /admin/api-key/update
+<h4 id="create-an-api-key-with-admin-role">Create an api key with admin role<a class="headerlink" href="#create-an-api-key-with-admin-role" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>POST /admin/api-key/apply
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Content-Type: application/json
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>{
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  &quot;id&quot;: 2,
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  &quot;name&quot;: &quot;jack&quot;,
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  &quot;month_quota&quot;: 10.00
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>}
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  &quot;name&quot;: &quot;rob&quot;,
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  &quot;group_id&quot;: 1,
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  &quot;role&quot;: &quot;admin&quot;,
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  &quot;email&quot;: &quot;&quot;
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>}
 </code></pre></div>
-<h4 id="recharge-up-an-api-key">Recharge up an API key<a class="headerlink" href="#recharge-up-an-api-key" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>POST /admin/api-key/recharge
+<h4 id="update-and-api-keys-info">Update and api key&rsquo;s info<a class="headerlink" href="#update-and-api-keys-info" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>POST /admin/api-key/update
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>Content-Type: application/json
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>{
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>  &quot;api_key&quot;: &quot;br-xxxxxxxxxxxxxxx&quot;,
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>  &quot;balance&quot;: 0.23
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>}
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>  &quot;id&quot;: 2,
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>  &quot;name&quot;: &quot;jack&quot;,
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>  &quot;month_quota&quot;: 10.00
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>}
+</code></pre></div>
+<h4 id="recharge-up-an-api-key">Recharge up an API key<a class="headerlink" href="#recharge-up-an-api-key" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>POST /admin/api-key/recharge
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Content-Type: application/json
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>{
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>  &quot;api_key&quot;: &quot;br-xxxxxxxxxxxxxxx&quot;,
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>  &quot;balance&quot;: 0.23
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>}
 </code></pre></div>
 <h4 id="recharge-history">Recharge history<a class="headerlink" href="#recharge-history" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>GET /admin/payment/list?key_id=
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div>
-<h4 id="list-api-keys">List api keys<a class="headerlink" href="#list-api-keys" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>GET /admin/api-key/list?q=&amp;name=&amp;group_id=&amp;role=&amp;limit=10&amp;offset=
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>GET /admin/payment/list?key_id=
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
+<h4 id="list-api-keys">List api keys<a class="headerlink" href="#list-api-keys" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>GET /admin/api-key/list?q=&amp;name=&amp;group_id=&amp;role=&amp;limit=10&amp;offset=
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+</code></pre></div>
 <h4 id="delete-an-api-key">Delete an api key<a class="headerlink" href="#delete-an-api-key" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>POST /admin/api-key/delete
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>Content-Type: application/json
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>{
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>  &quot;id&quot;: 1
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>}
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>POST /admin/api-key/delete
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>Content-Type: application/json
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>{
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  &quot;id&quot;: 1
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>}
 </code></pre></div>
 <h3 id="model">Model<a class="headerlink" href="#model" title="Permanent link">&para;</a></h3>
 <h4 id="list-models_1">List models<a class="headerlink" href="#list-models_1" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>GET /admin/model/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>GET /admin/model/list?q=&amp;limit=10&amp;offset=
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
 <h4 id="create-a-model">Create a model<a class="headerlink" href="#create-a-model" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>POST /admin/model/save
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>Content-Type: application/json
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>{
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>  &quot;name&quot;: &quot;xxxx&quot;,
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>  &quot;group_id&quot;: 1,
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>  &quot;multiple&quot;: false, 
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>  &quot;config&quot;: &quot;{\&quot;modelId\&quot;: \&quot;somevalue\&quot;}&quot;, 
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>  &quot;provider&quot;: &quot;bedrock-converse&quot;,
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>  &quot;price_in&quot;: 1,
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>  &quot;price_out&quot;:3
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>}
-</code></pre></div>
-<h4 id="update-a-model">Update a model<a class="headerlink" href="#update-a-model" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>POST /admin/model/save
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>Content-Type: application/json
 <a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 <a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
 <a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>{
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>  &quot;id&quot;: 1,
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>  &quot;name&quot;: &quot;xxxx&quot;,
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>  &quot;group_id&quot;: 1,
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>  &quot;multiple&quot;: false, 
-<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>  &quot;config&quot;: &quot;{\&quot;modelId\&quot;: \&quot;somevalue\&quot;}&quot;, 
-<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>  &quot;provider&quot;: &quot;bedrock-converse&quot;,
-<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>  &quot;price_in&quot;: 1,
-<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>  &quot;price_out&quot;:3
-<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>}
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>  &quot;name&quot;: &quot;xxxx&quot;,
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>  &quot;group_id&quot;: 1,
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>  &quot;multiple&quot;: false, 
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>  &quot;config&quot;: &quot;{\&quot;modelId\&quot;: \&quot;somevalue\&quot;}&quot;, 
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>  &quot;provider&quot;: &quot;bedrock-converse&quot;,
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>  &quot;price_in&quot;: 1,
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>  &quot;price_out&quot;:3
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>}
 </code></pre></div>
-<h4 id="delete-a-model">Delete a model<a class="headerlink" href="#delete-a-model" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>POST /admin/model/delete
+<h4 id="update-a-model">Update a model<a class="headerlink" href="#update-a-model" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>POST /admin/model/save
 <a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>Content-Type: application/json
 <a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 <a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
 <a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>{
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>  &quot;id&quot;: 1
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>}
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>  &quot;id&quot;: 1,
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>  &quot;name&quot;: &quot;xxxx&quot;,
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>  &quot;group_id&quot;: 1,
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>  &quot;multiple&quot;: false, 
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>  &quot;config&quot;: &quot;{\&quot;modelId\&quot;: \&quot;somevalue\&quot;}&quot;, 
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>  &quot;provider&quot;: &quot;bedrock-converse&quot;,
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>  &quot;price_in&quot;: 1,
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>  &quot;price_out&quot;:3
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>}
+</code></pre></div>
+<h4 id="delete-a-model">Delete a model<a class="headerlink" href="#delete-a-model" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>POST /admin/model/delete
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>Content-Type: application/json
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>{
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>  &quot;id&quot;: 1
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>}
 </code></pre></div>
 <h3 id="webhook">Webhook<a class="headerlink" href="#webhook" title="Permanent link">&para;</a></h3>
 <h4 id="list-webhook">List webhook<a class="headerlink" href="#list-webhook" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>GET /admin/bot/feishu/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>GET /admin/bot/feishu/list?q=&amp;limit=10&amp;offset=
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
 <h4 id="create-a-webhook">Create a webhook<a class="headerlink" href="#create-a-webhook" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>POST /admin/bot/feishu/save
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>Content-Type: application/json
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>{
-<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>  &quot;name&quot;: &quot;xxxx&quot;,
-<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>  &quot;config&quot;: &quot;{\&quot;appId\&quot;: \&quot;cli_xxxxx\&quot;, \&quot;apiKey\&quot;: \&quot;br-xxxxx\&quot;, \&quot;modelId\&quot;: \&quot;claude-3-sonnet\&quot;, \&quot;appSecret\&quot;: \&quot;xxxxx\&quot; }&quot;, 
-<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>  &quot;provider&quot;: &quot;bedrock-converse&quot;
-<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>}
-</code></pre></div>
-<h4 id="update-a-webhook">Update a webhook<a class="headerlink" href="#update-a-webhook" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>POST /admin/bot/feishu/save
 <a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>Content-Type: application/json
 <a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 <a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>{ 
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>  &quot;appId&quot;: &quot;cli_xxxxx&quot;, 
-<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>  &quot;apiKey&quot;: &quot;br-xxxxx&quot;, 
-<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>  &quot;modelId&quot;: &quot;claude-3-sonnet&quot;, 
-<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>  &quot;appSecret&quot;: &quot;xxxxx&quot; 
-<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>}
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>{
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>  &quot;name&quot;: &quot;xxxx&quot;,
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>  &quot;config&quot;: &quot;{\&quot;appId\&quot;: \&quot;cli_xxxxx\&quot;, \&quot;apiKey\&quot;: \&quot;br-xxxxx\&quot;, \&quot;modelId\&quot;: \&quot;claude-3-sonnet\&quot;, \&quot;appSecret\&quot;: \&quot;xxxxx\&quot; }&quot;, 
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>  &quot;provider&quot;: &quot;bedrock-converse&quot;
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>}
 </code></pre></div>
-<h4 id="delete-a-webhook">Delete a webhook<a class="headerlink" href="#delete-a-webhook" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>POST /admin/bot/feishu/delete
+<h4 id="update-a-webhook">Update a webhook<a class="headerlink" href="#update-a-webhook" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>POST /admin/bot/feishu/save
 <a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>Content-Type: application/json
 <a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 <a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>{
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>  &quot;id&quot;: 1
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>}
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>{ 
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>  &quot;appId&quot;: &quot;cli_xxxxx&quot;, 
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>  &quot;apiKey&quot;: &quot;br-xxxxx&quot;, 
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>  &quot;modelId&quot;: &quot;claude-3-sonnet&quot;, 
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>  &quot;appSecret&quot;: &quot;xxxxx&quot; 
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>}
+</code></pre></div>
+<h4 id="delete-a-webhook">Delete a webhook<a class="headerlink" href="#delete-a-webhook" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>POST /admin/bot/feishu/delete
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>Content-Type: application/json
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>{
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>  &quot;id&quot;: 1
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>}
 </code></pre></div>
 <h3 id="group">Group<a class="headerlink" href="#group" title="Permanent link">&para;</a></h3>
 <h4 id="list-groups">List groups<a class="headerlink" href="#list-groups" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>GET /admin/group/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>GET /admin/group/list?q=&amp;limit=10&amp;offset=
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
 <h4 id="delete-a-group">Delete a group<a class="headerlink" href="#delete-a-group" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>POST /admin/group/delete
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>Content-Type: application/json
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>
-<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>{
-<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>  &quot;id&quot;: 1
-<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>}
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>POST /admin/group/delete
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>Content-Type: application/json
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>{
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>  &quot;id&quot;: 1
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>}
 </code></pre></div>
 <h3 id="model-authorization">Model Authorization<a class="headerlink" href="#model-authorization" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2068,29 +2203,29 @@
 </ul>
 <h3 id="chat-records">Chat records<a class="headerlink" href="#chat-records" title="Permanent link">&para;</a></h3>
 <h4 id="list-sessions">List sessions<a class="headerlink" href="#list-sessions" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>GET /admin/session/list?q=&amp;limit=10&amp;offset=&amp;key_id=
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>GET /admin/session/list?q=&amp;limit=10&amp;offset=&amp;key_id=
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
 <p>List threads / histories</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>GET /admin/thread/list?q=&amp;limit=10&amp;offset=&amp;key_id=&amp;session_id=
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>GET /admin/thread/list?q=&amp;limit=10&amp;offset=&amp;key_id=&amp;session_id=
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
 <h2 id="user-api">User API<a class="headerlink" href="#user-api" title="Permanent link">&para;</a></h2>
 <h4 id="my-sessions">My sessions<a class="headerlink" href="#my-sessions" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>GET /user/session/list?q=&amp;limit=10&amp;offset=
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-</code></pre></div>
-<h4 id="my-session-detail">My session detail<a class="headerlink" href="#my-session-detail" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>GET /user/session/detail/1
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>GET /user/session/list?q=&amp;limit=10&amp;offset=
 <a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
-<h4 id="my-threads-histories">My threads / histories<a class="headerlink" href="#my-threads-histories" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>GET /user/thread/list?q=&amp;limit=10&amp;offset=&amp;session_id=
+<h4 id="my-session-detail">My session detail<a class="headerlink" href="#my-session-detail" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>GET /user/session/detail/1
 <a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
+<h4 id="my-threads-histories">My threads / histories<a class="headerlink" href="#my-threads-histories" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>GET /user/thread/list?q=&amp;limit=10&amp;offset=&amp;session_id=
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+</code></pre></div>
 <h4 id="my-thread-detail">My thread detail<a class="headerlink" href="#my-thread-detail" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>GET<span class="w"> </span>/user/thread/detail/1
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>Authorization:<span class="w"> </span>Bearer<span class="w"> </span>br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>GET<span class="w"> </span>/user/thread/detail/1
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>Authorization:<span class="w"> </span>Bearer<span class="w"> </span>br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 </code></pre></div>
 
 
@@ -2114,7 +2249,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-11-19T22:44:14+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-11-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-08T01:26:32+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-08</span>
   </span>
 
     

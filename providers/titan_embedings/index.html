@@ -6,15 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Since Docker image version 0.0.10">
+        <meta name="description" content="Since Docker image version 0.0.18">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/web-miner/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/titan_embedings/">
       
       
-        <link rel="prev" href="../urls-reader/">
+        <link rel="prev" href="../sagemaker-lmi/">
       
+      
+        <link rel="next" href="../urls-reader/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -22,7 +24,7 @@
     
     
       
-        <title>web-miner - Sample Connector for Bedrock</title>
+        <title>titan_embedings - Sample Connector for Bedrock</title>
       
     
     
@@ -87,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#web-miner" class="md-skip">
+        <a href="#titan_embedings" class="md-skip">
           Skip to content
         </a>
       
@@ -123,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              web-miner
+              titan_embedings
             
           </span>
         </div>
@@ -176,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../zh/providers/web-miner/" hreflang="zh" class="md-select__link">
+            <a href="../../zh/providers/titan_embedings/" hreflang="zh" class="md-select__link">
               简体中文
             </a>
           </li>
@@ -941,10 +943,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../titan_embedings/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    titan_embedings
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -953,6 +975,35 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#parameter-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameter Configuration
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -983,30 +1034,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    web-miner
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../web-miner/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1015,86 +1046,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#model-configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Model configuration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#search-engines" class="md-nav__link">
-    <span class="md-ellipsis">
-      Search engines
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Search engines">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#searxng" class="md-nav__link">
-    <span class="md-ellipsis">
-      searxng
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#serpapi" class="md-nav__link">
-    <span class="md-ellipsis">
-      SerpAPI
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#google" class="md-nav__link">
-    <span class="md-ellipsis">
-      Google
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#screenshots-in-brclient" class="md-nav__link">
-    <span class="md-ellipsis">
-      Screenshots in BRClient
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1134,60 +1085,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#model-configuration" class="md-nav__link">
+  <a href="#parameter-configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      Model configuration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#search-engines" class="md-nav__link">
-    <span class="md-ellipsis">
-      Search engines
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Search engines">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#searxng" class="md-nav__link">
-    <span class="md-ellipsis">
-      searxng
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#serpapi" class="md-nav__link">
-    <span class="md-ellipsis">
-      SerpAPI
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#google" class="md-nav__link">
-    <span class="md-ellipsis">
-      Google
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#screenshots-in-brclient" class="md-nav__link">
-    <span class="md-ellipsis">
-      Screenshots in BRClient
+      Parameter Configuration
     </span>
   </a>
   
@@ -1211,116 +1111,62 @@
   
 
 
-<h1 id="web-miner">web-miner<a class="headerlink" href="#web-miner" title="Permanent link">&para;</a></h1>
+<h1 id="titan_embedings">titan_embedings<a class="headerlink" href="#titan_embedings" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>Since Docker image version 0.0.10</p>
+<p>Since Docker image version 0.0.18</p>
 </blockquote>
-<p>Seach the internet.</p>
-<p>This Provider can turn your question into search keywords, obtain results through search engines, and then summarize them into corresponding answers.</p>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>Do not ask too many rounds of questions, because this Provider will summarize your previous prompts to keywords for searching.</p>
-<p>In BRClient, too long information is summarized into a single history, losing the earliest user input, which results in the AI answering a far cry from what you want.</p>
-</div>
-<h2 id="model-configuration">Model configuration<a class="headerlink" href="#model-configuration" title="Permanent link">&para;</a></h2>
-<p>The parameter configuration is as follows:</p>
-<p>Name: some-model</p>
-<p>Provider: web-miner</p>
-<p>Configuration:</p>
+<p>Using this Provider, you can use the Titan text embeddings model to output embeddings (float arrays) for text. The model configuration can be referenced in this document: <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-embed-text.html">Amazon Titan Embeddings Text</a></p>
+<h2 id="parameter-configuration">Parameter Configuration<a class="headerlink" href="#parameter-configuration" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>modelId</td>
+<td>string</td>
+<td>Y</td>
+<td></td>
+<td>Model id, <code>amazon.titan-embed-text-v2:0</code> or <code>amazon.titan-embed-text-v1</code></td>
+</tr>
+<tr>
+<td>regions</td>
+<td>string[] or string</td>
+<td>N</td>
+<td>Same as the AWS_DEFAULT_REGION environment variable</td>
+<td>If you have applied for and specified multiple regions, one region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.</td>
+</tr>
+<tr>
+<td>dimensions</td>
+<td>number</td>
+<td>N</td>
+<td>1024</td>
+<td>Output dimension, only applicable to the <code>amazon.titan-embed-text-v2:0</code> model.</td>
+</tr>
+<tr>
+<td>normalize</td>
+<td>boolean</td>
+<td>N</td>
+<td>true</td>
+<td>Flag indicating whether or not to normalize the output embeddings, only applicable to the <code>amazon.titan-embed-text-v2:0</code> model</td>
+</tr>
+</tbody>
+</table>
+<p>An example configuration for titan_embeddings is as follows:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;sites&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="s2">&quot;aws.amazon.com&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="s2">&quot;www.amazonaws.cn&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="s2">&quot;repost.aws&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="s2">&quot;stackoverflow.com&quot;</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">&quot;localLlmModel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;claude-3-sonnet&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">&quot;searxng&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nt">&quot;host&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8081/&quot;</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">&quot;serpapi&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nt">&quot;apiKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xxx......&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nt">&quot;engine&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;google&quot;</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="nt">&quot;google&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="nt">&quot;googleAPIKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AIxxxxxx_xxxxxxxx&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="nt">&quot;googleCSECX&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;00xxxc000a2xxxxx&quot;</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">}</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;modelId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;amazon.titan-embed-text-v2:0&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;regions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="s2">&quot;us-east-1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="s2">&quot;us-west-2&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">}</span>
 </code></pre></div>
-<ul>
-<li>sites: Limit the search to these websites, you can leave this parameter unspecified.</li>
-<li>localLlmModel: must be configured as a model that supports function calling and already exists in BRConnector.</li>
-<li>the search tools below are supported in order:<br />
-  1. searxng<br />
-  2. SerpAPI<br />
-  3. google</li>
-</ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You need to configure localLlmModel as a claude3+ model provided by the bedrock-converse provider, as other models do not yet have the capability for function calling. The early default claude3 model in the system is not driven by converse. If you use these models, you need to update the original configuration to the bedrock-converse provider. Please note to modify the key &lsquo;model_id&rsquo; to &lsquo;modelId&rsquo;.</p>
-</div>
-<h2 id="search-engines">Search engines<a class="headerlink" href="#search-engines" title="Permanent link">&para;</a></h2>
-<h3 id="searxng">searxng<a class="headerlink" href="#searxng" title="Permanent link">&para;</a></h3>
-<blockquote>
-<p>Since Docker image version 0.0.11</p>
-</blockquote>
-<p>Visit <a href="https://docs.searxng.org/">https://docs.searxng.org/</a> for more information.</p>
-<p>Create a file: <code>settings.yml</code> to support json。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">use_default_settings</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">server</span><span class="p">:</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">secret_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;some-Other-PWD&quot;</span><span class="w">   </span><span class="c1"># change this!</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">bind_address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nt">search</span><span class="p">:</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">formats</span><span class="p">:</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">html</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">json</span>
-</code></pre></div>
-<p>Start searxng:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">8081</span>:8080<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;BASE_URL=http://localhost:8081/&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;INSTANCE_NAME=searxng&quot;</span><span class="w"> </span>searxng/searxng
-</code></pre></div>
-<p>Then you will get the searxng endpoint: <a href="http://127.0.0.1:8081/">http://127.0.0.1:8081/</a>, configure it to searxng&rsquo;s host node.</p>
-<h3 id="serpapi">SerpAPI<a class="headerlink" href="#serpapi" title="Permanent link">&para;</a></h3>
-<blockquote>
-<p>Since Docker image version 0.0.11</p>
-</blockquote>
-<p>For more information, visit <a href="https://serpapi.com/">https://serpapi.com/</a>.</p>
-<p>Once you&rsquo;re logged in, you can see Api key in a prominent place on it.</p>
-<p>The engine parameter supports the following, and the default is google:</p>
-<ul>
-<li>google</li>
-<li>bing</li>
-<li>baidu</li>
-<li>duckduckgo</li>
-<li>yahoo</li>
-<li>yandex</li>
-<li>yelp</li>
-<li>naver</li>
-</ul>
-<div class="admonition warning">
-<p class="admonition-title">SerpAPI is not free</p>
-<p>Exceeding the monthly free limit will be charged.</p>
-</div>
-<h3 id="google">Google<a class="headerlink" href="#google" title="Permanent link">&para;</a></h3>
-<p>To use the Google Custom Search Engine, you need the following 2 keys, click the link to create them:</p>
-<ul>
-<li>
-<p><a href="https://console.cloud.google.com/apis/credentials">Google API Key</a></p>
-</li>
-<li>
-<p><a href="https://programmablesearchengine.google.com/controlpanel/create">Google CSECX</a></p>
-</li>
-</ul>
-<div class="admonition warning">
-<p class="admonition-title">Google CSE is not free</p>
-<p>Exceeding the daily free limit will be charged.</p>
-</div>
-<h2 id="screenshots-in-brclient">Screenshots in BRClient<a class="headerlink" href="#screenshots-in-brclient" title="Permanent link">&para;</a></h2>
-<p><a class="glightbox" href="../../user-manual/screenshots/web-1.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Web 1" src="../../user-manual/screenshots/web-1.png" /></a></p>
-<p><a class="glightbox" href="../../user-manual/screenshots/web-2.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Web 2" src="../../user-manual/screenshots/web-2.png" /></a></p>
 
 
 
@@ -1343,7 +1189,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-08-05T13:24:02+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-08-05</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-08T01:26:32+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-08</span>
   </span>
 
     
@@ -1353,7 +1199,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-23T16:00:53+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-23</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-08T01:26:32+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-08</span>
   </span>
 
     
