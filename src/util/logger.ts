@@ -11,7 +11,7 @@ export default createLogger({
   ),
   defaultMeta: { service: 'brconnector' },
   transports: [
-    new transports.File({ filename: '/tmp/combined.log' }),
+    // new transports.File({ filename: '/tmp/combined.log' }),
     new transports.Console({
       format: format.splat(),
     })

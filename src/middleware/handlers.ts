@@ -16,7 +16,6 @@ const authHandler = async (ctx: any, next: any) => {
 
     let pathName = ctx.path;
     if (pathName == "/") {
-        ctx.logger.info("Hello");
         ctx.body = "ok";
         return;
     }
