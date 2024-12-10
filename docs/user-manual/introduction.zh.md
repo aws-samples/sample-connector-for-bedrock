@@ -3,7 +3,7 @@
 您可以使用如下的方法来访问 BRConnector。
 
 - [直接访问 API](./apis.md)
-- [使用 Sample Client for Bedrock(BRClient)](./sample-client-for-bedrock.md)
+- [使用 Sample Client for Bedrock(BRClient)](scenarios/sample-client-for-bedrock.md)
 - 使用其他与 OpenAI 兼容的客户端
 
 现在市面上已经有很多 OpenAI 的客户端，有些客户端可以设置 Host 和 API key，您可以直接复用这些客户端。
