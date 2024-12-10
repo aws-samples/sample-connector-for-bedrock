@@ -44,5 +44,5 @@ title: Continue
 ```
 
 - configure provider for continue
-    - https://aws-samples.github.io/sample-connector-for-bedrock/providers/continue_coder/
+    - [[../../providers/continue_coder|continue_coder]]
 
