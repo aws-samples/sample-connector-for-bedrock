@@ -18,7 +18,7 @@ If you have deployed the BRConnector project, you can start it directly through 
 
 After entering the web interface, you need to enable BRConnector in the settings.
 
-![BRConnector setting](./screenshots/brclient-01.png)
+![BRConnector setting](attachments/sample-client-for-bedrock/IMG-sample-client-for-bedrock.png)
 
 For the BRConnector Endpoint, simply fill in the root path of your BRConnector.
 

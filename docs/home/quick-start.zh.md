@@ -119,7 +119,7 @@ curl -X POST "http://localhost:8866/admin/api-key/apply" \
 如果一切顺利,您就可以开始聊天了。
 
 !!!note
-    您可以使用这个 <https://github.com/aws-samples/sample-client-for-amazon-bedrock> 客户端来测试，[请查看如何配置](../user-manual/sample-client-for-bedrock.md)。
+    您可以使用这个 <https://github.com/aws-samples/sample-client-for-amazon-bedrock> 客户端来测试，[请查看如何配置](../user-manual/scenarios/sample-client-for-bedrock.md)。
 
     Since 0.0.8, this client has been built into the docker image. The access address is: `http(s)://your-endpoint/brclient/`
 
