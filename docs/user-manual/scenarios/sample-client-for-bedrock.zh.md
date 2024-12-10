@@ -18,7 +18,7 @@ Sample client for Bedrock (BRClient) 是一个样例项目，用于展示如何�
 
 进入 Web 界面后，您需要在设置中启用 BRConnector。
 
-![BRConnector setting](./screenshots/brclient-01.png)
+![BRConnector setting](attachments/sample-client-for-bedrock/IMG-sample-client-for-bedrock.png)
 
 其中 BRConnector Endpoint 填写您的 BRConnector 的路径的根即可。
 

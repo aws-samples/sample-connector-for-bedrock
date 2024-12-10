@@ -122,7 +122,7 @@ Then, open a new chat to test.
 If every thing goes well, you can start to chat.
 
 !!!note
-    You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project, [View how to config](../user-manual/sample-client-for-bedrock.md).
+    You can use the sample client provided by <https://github.com/aws-samples/sample-client-for-amazon-bedrock> to test this project, [View how to config](../user-manual/scenarios/sample-client-for-bedrock.md).
 
     Since 0.0.8, this client has been built into the docker image. The access address is: `http(s)://your-endpoint/brclient/`
 
