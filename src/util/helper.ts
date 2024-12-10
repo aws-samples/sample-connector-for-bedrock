@@ -4,6 +4,7 @@ import modelService from "../service/model"
 import config from '../config';
 import nodemailer from 'nodemailer';
 import { exec } from 'child_process';
+import logger from './logger';
 const crypto = require('crypto');
 
 const helper = {
@@ -510,7 +511,7 @@ const helper = {
         const randomIndex = Math.floor(Math.random() * regions.length);
         selectRegion = regions[randomIndex]
         if (config.debugMode) {
-            console.log(`[selectRandomRegion]: isMultipleRegion: ${regions.length > 1}, ${selectRegion}`)
+            logger.info(`${regions.length > 1 ? "multi-region" : "single-region"}, choose: ${selectRegion}`)
         }
         return selectRegion;
 

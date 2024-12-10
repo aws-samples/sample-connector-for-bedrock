@@ -2,9 +2,7 @@ import response from '../util/response';
 import config from '../config';
 import DB from '../util/postgres';
 import Cache from '../util/cache';
-import { createLogger, format, transports } from 'winston';
-// const = require('winston');
-
+import logger from '../util/logger';
 
 const getUserFromCache = (cache: any, api_key: string) => {
     const keys = cache.api_keys.filter((e: any) => e.api_key === api_key);
@@ -14,11 +12,11 @@ const getUserFromCache = (cache: any, api_key: string) => {
     return keys[0];
 }
 
-
 const authHandler = async (ctx: any, next: any) => {
 
     let pathName = ctx.path;
     if (pathName == "/") {
+        ctx.logger.info("Hello");
         ctx.body = "ok";
         return;
     }
@@ -128,10 +126,11 @@ const errorHandler = async (ctx: any, next: any) => {
     try {
         await next();
     } catch (ex: any) {
-        ctx.logger.error(ex.message);
-        if (config.debugMode) {
-            console.log(ex);
-        }
+        ctx.logger.error(ex);
+        // if (config.debugMode) {
+        //     console.log(ex);
+        // }
+        ctx.status = ex.$metadata?.httpStatusCode || 400;
         ctx.body = response.error(ex.message);
     }
 
@@ -144,27 +143,11 @@ const databaseHandler = async (ctx: any, next: any) => {
     await next();
 };
 
+
+
 const loggerHandler = async (ctx: any, next: any) => {
-
-    const logger = createLogger({
-        level: 'info',
-        format: format.combine(
-            format.timestamp(),
-            format.prettyPrint(),
-        ),
-        defaultMeta: { service: 'brconnector', path: ctx.path },
-        transports: [
-            new transports.File({ filename: '/tmp/error.log', level: 'error' }),
-            new transports.File({ filename: '/tmp/combined.log' }),
-        ],
-    });
-
-    // if (config.debugMode) {
     logger.level = 'silly';
-    logger.add(new transports.Console({
-        format: format.splat(),
-    }));
-    // }
+    logger.defaultMeta.path = ctx.path;
     ctx.logger = logger;
     await next();
 }

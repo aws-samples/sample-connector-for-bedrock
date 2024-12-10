@@ -1,6 +1,7 @@
 
 import DB from './postgres';
 import config from '../config';
+import logger from './logger';
 
 const cache = {
   models: [],
@@ -15,13 +16,16 @@ const cache = {
       return false;
     }
 
-    console.log("Loading models and api keys data to cache.");
+    logger.defaultMeta.path = "global";
+    logger.info("Loading models and api keys data to cache.");
     cache.loadData(db);
     setInterval(() => {
       cache.loadData(db).then(res => {
-        console.log("The cache has been flushed.")
+        logger.defaultMeta.path = "global";
+        logger.info("The cache has been flushed.")
       }, (err) => {
-        console.log("err", err);
+        logger.defaultMeta.path = "global";
+        logger.error("err", err);
       });
     }, 60000);
   },
