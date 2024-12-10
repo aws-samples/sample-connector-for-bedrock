@@ -6,32 +6,32 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Docs for Bedrock Connector">
+        <meta name="description" content="在 vscode 中安装 cline 插件">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/sample-client-for-bedrock/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/scenarios/vscode-plugin-cline/">
       
       
-        <link rel="prev" href="../feishu-bot/">
+        <link rel="prev" href="../sample-client-for-bedrock/">
       
       
-        <link rel="next" href="../development/">
+        <link rel="next" href="../vscode-plugin-continue/">
       
       
-      <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.47">
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
-        <title>Sample client for Bedrock - Sample Connector for Bedrock</title>
+        <title>Cline - Sample Connector for Bedrock</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.6f8fc17f.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.6f8fc17f.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -50,20 +50,20 @@
       
     
     
-      <link rel="stylesheet" href="../../../css/timeago.css">
+      <link rel="stylesheet" href="../../../../css/timeago.css">
     
-      <link rel="stylesheet" href="../../../css/timeago.css">
+      <link rel="stylesheet" href="../../../../css/timeago.css">
     
-      <link rel="stylesheet" href="../../../extra.css">
+      <link rel="stylesheet" href="../../../../extra.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
     
-   <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+   <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
     html.glightbox-open { overflow: initial; height: 100%; }
     .gslide-title { margin-top: 0px; user-select: text; }
     .gslide-desc { color: #666; user-select: text; }
@@ -72,7 +72,7 @@
     .gdesc-inner { font-size: 0.75rem; }
     body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
     body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
-    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../assets/javascripts/glightbox.min.js"></script></head>
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../../assets/javascripts/glightbox.min.js"></script></head>
   
   
     
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sample-client-for-bedrock" class="md-skip">
+        <a href="#vscode-plugin-cline" class="md-skip">
           跳转至
         </a>
       
@@ -107,7 +107,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="页眉">
-    <a href="../../.." title="Sample Connector for Bedrock" class="md-header__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
+    <a href="../../../.." title="Sample Connector for Bedrock" class="md-header__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Sample client for Bedrock
+              Cline
             
           </span>
         </div>
@@ -174,7 +174,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../user-manual/sample-client-for-bedrock/" hreflang="en" class="md-select__link">
+            <a href="../../../../user-manual/scenarios/vscode-plugin-cline/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -258,7 +258,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../home/" class="md-tabs__link">
+        <a href="../../../home/" class="md-tabs__link">
           
   
     
@@ -280,7 +280,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../introduction/" class="md-tabs__link">
+        <a href="../../introduction/" class="md-tabs__link">
           
   
     
@@ -300,7 +300,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../providers/introduction/" class="md-tabs__link">
+        <a href="../../../providers/introduction/" class="md-tabs__link">
           
   
     
@@ -341,7 +341,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="Sample Connector for Bedrock" class="md-nav__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
+    <a href="../../../.." title="Sample Connector for Bedrock" class="md-nav__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -402,7 +402,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../home/" class="md-nav__link ">
+            <a href="../../../home/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -435,7 +435,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/quick-start/" class="md-nav__link">
+      <a href="../../../home/quick-start/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -456,7 +456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/deployment/" class="md-nav__link">
+      <a href="../../../home/deployment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -477,7 +477,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/faq/" class="md-nav__link">
+      <a href="../../../home/faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -498,7 +498,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/changelogs/" class="md-nav__link">
+      <a href="../../../home/changelogs/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -529,8 +529,6 @@
   
     
     
-      
-        
       
         
       
@@ -583,7 +581,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../introduction/" class="md-nav__link">
+      <a href="../../introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -604,7 +602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../management/" class="md-nav__link">
+      <a href="../../management/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -617,6 +615,56 @@
   
 
               
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Scenarios
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Scenarios
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -643,6 +691,27 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample-client-for-bedrock/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sample client for Bedrock
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -655,72 +724,15 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Sample client for Bedrock
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Sample client for Bedrock
+    Cline
   </span>
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="目录">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      简介
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      快速启动
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      设置
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -734,7 +746,36 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
+      <a href="../vscode-plugin-continue/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Continue
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -755,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../apis/" class="md-nav__link">
+      <a href="../../apis/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -847,7 +888,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/introduction/" class="md-nav__link">
+      <a href="../../../providers/introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -868,7 +909,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/aws-executor/" class="md-nav__link">
+      <a href="../../../providers/aws-executor/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -889,7 +930,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/bedrock-converse/" class="md-nav__link">
+      <a href="../../../providers/bedrock-converse/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -910,7 +951,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/bedrock-knowledge-base/" class="md-nav__link">
+      <a href="../../../providers/bedrock-knowledge-base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -931,7 +972,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/continue_coder/" class="md-nav__link">
+      <a href="../../../providers/continue_coder/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -952,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/ollama/" class="md-nav__link">
+      <a href="../../../providers/ollama/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -973,7 +1014,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/painter/" class="md-nav__link">
+      <a href="../../../providers/painter/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -994,7 +1035,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/sagemaker-lmi/" class="md-nav__link">
+      <a href="../../../providers/sagemaker-lmi/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1015,7 +1056,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/titan_embedings/" class="md-nav__link">
+      <a href="../../../providers/titan_embedings/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1036,7 +1077,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/urls-reader/" class="md-nav__link">
+      <a href="../../../providers/urls-reader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1057,7 +1098,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/web-miner/" class="md-nav__link">
+      <a href="../../../providers/web-miner/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1098,41 +1139,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      简介
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      快速启动
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      设置
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1149,20 +1155,17 @@
   
 
 
-<h1 id="sample-client-for-bedrock">Sample client for Bedrock<a class="headerlink" href="#sample-client-for-bedrock" title="Permanent link">&para;</a></h1>
-<h2 id="_1">简介<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<p>Sample client for Bedrock (BRClient) 是一个样例项目，用于展示如何构建一个连接 Bedrock 大语言模型的客户端。</p>
-<p>他除了可以在客户端直接发起对 Bedrock 的调用，还可以设置本项目(BRConnector)成为他的 API 后端。</p>
-<p>项目地址: <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock/">aws-samples/sample-client-for-amazon-bedrock</a></p>
-<h2 id="_2">快速启动<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
-<p>您可以直接通过源代码启动 BRClient，也可以<a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock/releases">下载各个平台的安装程序</a>。</p>
-<p>如果您部署了本项目（BRConnector），可以直接通过这个 URL 启动：http(s)://your-endpoint/brclient/。</p>
-<h2 id="_3">设置<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<p>进入 Web 界面后，您需要在设置中启用 BRConnector。</p>
-<p><a class="glightbox" href="../../../user-manual/screenshots/brclient-01.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="BRConnector setting" src="../../../user-manual/screenshots/brclient-01.png" /></a></p>
-<p>其中 BRConnector Endpoint 填写您的 BRConnector 的路径的根即可。</p>
-<p>API Key 填写 BRConnector 颁发的 Key。</p>
-<p>设置好之后，您可以刷新页面，从 BRConnector 中获取模型列表。以后每次设置好新的模型后，都可以通过刷新页面获取新模型的列表。</p>
+<h1 id="vscode-plugin-cline">vscode-plugin-cline<a class="headerlink" href="#vscode-plugin-cline" title="Permanent link">&para;</a></h1>
+<ul>
+<li>
+<p>在 vscode 中安装 cline 插件<br />
+<a class="glightbox" href="../../../../user-manual/scenarios/attachments/vscode-plugin-cline/IMG-vscode-plugin-cline.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="900" src="../../../../user-manual/scenarios/attachments/vscode-plugin-cline/IMG-vscode-plugin-cline.png" title="900" /></a></p>
+</li>
+<li>
+<p>配置插件<br />
+<a class="glightbox" href="../../../../user-manual/scenarios/attachments/vscode-plugin-cline/IMG-vscode-plugin-cline-1.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="500" src="../../../../user-manual/scenarios/attachments/vscode-plugin-cline/IMG-vscode-plugin-cline-1.png" title="500" /></a></p>
+</li>
+</ul>
 
 
 
@@ -1185,7 +1188,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-10T10:27:17+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-10</span>
   </span>
 
     
@@ -1195,7 +1198,7 @@
     <span class="md-icon" title="创建日期">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-10T10:27:17+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-10</span>
   </span>
 
     
@@ -1247,18 +1250,18 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.indexes", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.expand", "search.suggest", "search.highlight", "toc.follow", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}}</script>
+    <script id="__config" type="application/json">{"base": "../../../..", "features": ["navigation.indexes", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.expand", "search.suggest", "search.highlight", "toc.follow", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
-        <script src="../../../js/timeago.min.js"></script>
+        <script src="../../../../js/timeago.min.js"></script>
       
-        <script src="../../../js/timeago_mkdocs_material.js"></script>
+        <script src="../../../../js/timeago_mkdocs_material.js"></script>
       
-        <script src="../../../js/timeago.min.js"></script>
+        <script src="../../../../js/timeago.min.js"></script>
       
-        <script src="../../../js/timeago_mkdocs_material.js"></script>
+        <script src="../../../../js/timeago_mkdocs_material.js"></script>
       
     
   <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": false, "loop": false, "zoomable": true, "draggable": false, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});

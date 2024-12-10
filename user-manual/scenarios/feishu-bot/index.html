@@ -6,32 +6,32 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Docs for Bedrock Connector">
+        <meta name="description" content="Since Docker image version 0.0.13">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/sample-client-for-bedrock/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/feishu-bot/">
       
       
-        <link rel="prev" href="../feishu-bot/">
+        <link rel="prev" href="../../management/">
       
       
-        <link rel="next" href="../development/">
+        <link rel="next" href="../sample-client-for-bedrock/">
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.47">
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
-        <title>Sample client for Bedrock - Sample Connector for Bedrock</title>
+        <title>Feishu Bot - Sample Connector for Bedrock</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.6f8fc17f.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -50,18 +50,18 @@
       
     
     
-      <link rel="stylesheet" href="../../css/timeago.css">
+      <link rel="stylesheet" href="../../../css/timeago.css">
     
-      <link rel="stylesheet" href="../../extra.css">
+      <link rel="stylesheet" href="../../../extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
     
-   <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+   <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
     html.glightbox-open { overflow: initial; height: 100%; }
     .gslide-title { margin-top: 0px; user-select: text; }
     .gslide-desc { color: #666; user-select: text; }
@@ -70,7 +70,7 @@
     .gdesc-inner { font-size: 0.75rem; }
     body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
     body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
-    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../assets/javascripts/glightbox.min.js"></script></head>
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../../assets/javascripts/glightbox.min.js"></script></head>
   
   
     
@@ -89,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sample-client-for-bedrock" class="md-skip">
+        <a href="#feishu-bot" class="md-skip">
           Skip to content
         </a>
       
@@ -105,7 +105,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Sample Connector for Bedrock" class="md-header__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
+    <a href="../../.." title="Sample Connector for Bedrock" class="md-header__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -125,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Sample client for Bedrock
+              Feishu Bot
             
           </span>
         </div>
@@ -178,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../zh/user-manual/sample-client-for-bedrock/" hreflang="zh" class="md-select__link">
+            <a href="../../../zh/user-manual/scenarios/feishu-bot/" hreflang="zh" class="md-select__link">
               简体中文
             </a>
           </li>
@@ -256,7 +256,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../home/" class="md-tabs__link">
+        <a href="../../../home/" class="md-tabs__link">
           
   
     
@@ -278,7 +278,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../introduction/" class="md-tabs__link">
+        <a href="../../introduction/" class="md-tabs__link">
           
   
     
@@ -298,7 +298,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../providers/introduction/" class="md-tabs__link">
+        <a href="../../../providers/introduction/" class="md-tabs__link">
           
   
     
@@ -339,7 +339,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Sample Connector for Bedrock" class="md-nav__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
+    <a href="../../.." title="Sample Connector for Bedrock" class="md-nav__button md-logo" aria-label="Sample Connector for Bedrock" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -400,7 +400,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../home/" class="md-nav__link ">
+            <a href="../../../home/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -433,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/quick-start/" class="md-nav__link">
+      <a href="../../../home/quick-start/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -454,7 +454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/deployment/" class="md-nav__link">
+      <a href="../../../home/deployment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -475,7 +475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/faq/" class="md-nav__link">
+      <a href="../../../home/faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -496,7 +496,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../home/changelogs/" class="md-nav__link">
+      <a href="../../../home/changelogs/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -527,8 +527,6 @@
   
     
     
-      
-        
       
         
       
@@ -581,7 +579,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../introduction/" class="md-nav__link">
+      <a href="../../introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -602,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../management/" class="md-nav__link">
+      <a href="../../management/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -620,22 +618,51 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../feishu-bot/" class="md-nav__link">
+  
+    
+    
+      
         
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
   
   <span class="md-ellipsis">
-    Feishu Bot
+    Scenarios
   </span>
   
 
-      </a>
-    </li>
-  
-
-              
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Scenarios
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -653,72 +680,15 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Sample client for Bedrock
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Sample client for Bedrock
+    Feishu Bot
   </span>
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Introduction
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quick Start
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#settings" class="md-nav__link">
-    <span class="md-ellipsis">
-      Settings
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -732,7 +702,78 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
+      <a href="../sample-client-for-bedrock/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sample client for Bedrock
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vscode-plugin-cline/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cline
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vscode-plugin-continue/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Continue
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -753,7 +794,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../apis/" class="md-nav__link">
+      <a href="../../apis/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -845,7 +886,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/introduction/" class="md-nav__link">
+      <a href="../../../providers/introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -866,7 +907,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/aws-executor/" class="md-nav__link">
+      <a href="../../../providers/aws-executor/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -887,7 +928,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/bedrock-converse/" class="md-nav__link">
+      <a href="../../../providers/bedrock-converse/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -908,7 +949,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/bedrock-knowledge-base/" class="md-nav__link">
+      <a href="../../../providers/bedrock-knowledge-base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -929,7 +970,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/continue_coder/" class="md-nav__link">
+      <a href="../../../providers/continue_coder/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -950,7 +991,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/ollama/" class="md-nav__link">
+      <a href="../../../providers/ollama/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -971,7 +1012,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/painter/" class="md-nav__link">
+      <a href="../../../providers/painter/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -992,7 +1033,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/sagemaker-lmi/" class="md-nav__link">
+      <a href="../../../providers/sagemaker-lmi/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1013,7 +1054,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/titan_embedings/" class="md-nav__link">
+      <a href="../../../providers/titan_embedings/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1034,7 +1075,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/urls-reader/" class="md-nav__link">
+      <a href="../../../providers/urls-reader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1055,7 +1096,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/web-miner/" class="md-nav__link">
+      <a href="../../../providers/web-miner/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1096,41 +1137,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Introduction
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quick Start
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#settings" class="md-nav__link">
-    <span class="md-ellipsis">
-      Settings
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1147,20 +1153,51 @@
   
 
 
-<h1 id="sample-client-for-bedrock">Sample client for Bedrock<a class="headerlink" href="#sample-client-for-bedrock" title="Permanent link">&para;</a></h1>
-<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
-<p>The Sample Client for Bedrock (BRClient) is a sample project that demonstrates how to build a client that connects to the Bedrock large language model.</p>
-<p>In addition to being able to directly invoke Bedrock from the client, it can also set up this project (BRConnector) as its API backend.</p>
-<p>Project URL: <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock/">aws-samples/sample-client-for-amazon-bedrock</a></p>
-<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<p>You can start BRClient directly from the source code or <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock/releases">download the installer for various platforms</a>.</p>
-<p>If you have deployed the BRConnector project, you can start it directly through this URL: http(s)://your-endpoint/brclient/.</p>
-<h2 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h2>
-<p>After entering the web interface, you need to enable BRConnector in the settings.</p>
-<p><a class="glightbox" href="../screenshots/brclient-01.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="BRConnector setting" src="../screenshots/brclient-01.png" /></a></p>
-<p>For the BRConnector Endpoint, simply fill in the root path of your BRConnector.</p>
-<p>Fill in the API Key issued by BRConnector.</p>
-<p>After setting it up, you can refresh the page to get the model list from BRConnector. Whenever you set up a new model, you can refresh the page to get the list of new models.</p>
+<h1 id="feishu-bot">Feishu Bot<a class="headerlink" href="#feishu-bot" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Since Docker image version 0.0.13</p>
+</blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently version only supports Feishu, does not support Lark(Feishu international version).</p>
+</div>
+<ol>
+<li>
+<p>Enterprise administrator logs into the <a href="https://open.feishu.cn/app/">Feishu Open Platform</a></p>
+</li>
+<li>
+<p>Create a custom application for the enterprise<br />
+<a class="glightbox" href="attachments/feishu-bot.zh/IMG-feishu-bot.zh.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-3.png" src="attachments/feishu-bot.zh/IMG-feishu-bot.zh.jpg" /></a></p>
+</li>
+<li>
+<p>Fill in the name and description<br />
+<a class="glightbox" href="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-1.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-4.png" src="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-1.jpg" /></a></p>
+</li>
+<li>
+<p>Add the <code>Bot</code> capability<br />
+<a class="glightbox" href="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-2.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-5.png" src="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-2.jpg" /></a></p>
+</li>
+<li>
+<p>On the bot configuration page, click on <code>Events and Callbacks</code><br />
+<a class="glightbox" href="../attachments/feishu-bot/IMG-feishu-bot.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-6.png" src="../attachments/feishu-bot/IMG-feishu-bot.jpg" /></a></p>
+</li>
+<li>
+<p>Edit the <code>Subscription Method</code> and modify the request URL. The request URL is related to the server-side webhook name, such as <code>https://&lt;yourdomain&gt;/bot/feishu/&lt;webhook-name&gt;/webhook/event</code>. For specific address details, refer to <a href="../../management/#webhook-configuration">Webhook Configuration</a><br />
+<a class="glightbox" href="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-4.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-7.png" src="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-4.jpg" /></a></p>
+</li>
+<li>
+<p>Add permissions<br />
+<a class="glightbox" href="../attachments/feishu-bot/IMG-feishu-bot.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="IMG-feishu-bot.png" src="../attachments/feishu-bot/IMG-feishu-bot.png" /></a></p>
+</li>
+<li>
+<p>Then switch to the corresponding enterprise in Feishu and search for the application (the application name from step 3)<br />
+<a class="glightbox" href="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-5.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-8.png" src="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-5.jpg" /></a></p>
+</li>
+<li>
+<p>Now we can test by sending questions and let the large language model answer them<br />
+<a class="glightbox" href="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-6.jpg" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="feishu-9.png" src="../attachments/feishu-bot.zh/IMG-feishu-bot.zh-6.jpg" /></a></p>
+</li>
+</ol>
 
 
 
@@ -1183,7 +1220,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-29T17:24:11+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-29</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-10T09:32:23+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-10</span>
   </span>
 
     
@@ -1193,7 +1230,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-07-26T12:28:21+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-07-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-09T10:54:06+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-09</span>
   </span>
 
     
@@ -1245,14 +1282,14 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.indexes", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.expand", "search.suggest", "search.highlight", "toc.follow", "content.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.indexes", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.expand", "search.suggest", "search.highlight", "toc.follow", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
-        <script src="../../js/timeago.min.js"></script>
+        <script src="../../../js/timeago.min.js"></script>
       
-        <script src="../../js/timeago_mkdocs_material.js"></script>
+        <script src="../../../js/timeago_mkdocs_material.js"></script>
       
     
   <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": false, "loop": false, "zoomable": true, "draggable": false, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
