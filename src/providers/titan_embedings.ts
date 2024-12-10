@@ -28,7 +28,7 @@ class TitanEmbeddings extends AbstractProvider {
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any): Promise<void> {
-    console.log("Chat method is not implemented for TitanEmbeddings.");
+    ctx.logger.warn("The 'titan-embeddings' provider does not support chat.");
     ctx.body = "Sorry, this model is only for embeddings.";
   }
 

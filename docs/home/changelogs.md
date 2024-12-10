@@ -7,8 +7,7 @@
 3. The nova model has been added to the initialization script in the database, but it will only take effect in the newly created databases of BRConnector.
 4. Fixed a backend error that attempted to save database data even in NoDB mode.
 5. Changed the output type of 'id' from number to string during streaming output, now it can be correctly deserialized by aider.
-6. Downgraded Node.js version to v18 (as v20 may cause an EMFILE error).
-7. Added support for the embedding API, now it can adapt to the titan embeddings model. [You need to configure a new model using the titan_embeddings Provider](../providers/titan_embedings.md), and use the API ([/v1/embeddings](../user-manual/apis.md#embeddings)) to call it.
+6. Added support for the embedding API, now it can adapt to the titan embeddings model. [You need to configure a new model using the titan_embeddings Provider](../providers/titan_embedings.md), and use the API ([/v1/embeddings](../user-manual/apis.md#embeddings)) to call it.
 
 ## 0.0.17
 
