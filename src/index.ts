@@ -26,6 +26,7 @@ const app = new Koa();
 //     console.error('server error', err, ctx);
 // });
 
+console.log(config);
 
 // disable auth for the statis files
 if (!config.disableUI) {

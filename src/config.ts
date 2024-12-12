@@ -5,7 +5,7 @@ export default {
         database: process.env.PGSQL_DATABASE,
         user: process.env.PGSQL_USER,
         password: process.env.PGSQL_PASSWORD,
-        debugMode: process.env.PGSQL_DEBUG_MODE || false, // set PGSQL_DEBUG_MODE=<empty> to disable
+        debugMode: process.env.PGSQL_DEBUG_MODE === "true" || process.env.PGSQL_DEBUG_MODE === "1" || false,
         max: process.env.PGSQL_MAX || 80
     },
     bedrock: {
@@ -15,8 +15,8 @@ export default {
         region: process.env.AWS_DEFAULT_REGION || "us-east-1"
     },
     admin_api_key: process.env.ADMIN_API_KEY,
-    debugMode: process.env.DEBUG_MODE || false, // set DEBUG_MODE=<empty> to disable
-    disableUI: process.env.DISABLE_UI || false,
+    debugMode: process.env.DEBUG_MODE === "true" || process.env.DEBUG_MODE === "1" || false,
+    disableUI: process.env.DISABLE_UI === "true" || process.env.DISABLE_UI === "1" || false,
     smpt: {
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT,
@@ -24,6 +24,5 @@ export default {
         pass: process.env.SMTP_PASS,
         from: process.env.SMPT_FROM
     },
-    performanceMode: process.env.PERFORMANCE_MODE || false
-
+    performanceMode: process.env.PERFORMANCE_MODE === "true" || process.env.PERFORMANCE_MODE === "1" || false
 }
