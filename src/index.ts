@@ -26,9 +26,8 @@ const app = new Koa();
 //     console.error('server error', err, ctx);
 // });
 
-console.log(config);
 
-// disable auth for the statis files
+// disable UI for the static files
 if (!config.disableUI) {
     app.use(serve({
         rootDir: './public',

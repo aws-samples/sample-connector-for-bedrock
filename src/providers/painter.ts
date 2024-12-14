@@ -10,6 +10,7 @@ import helper from "../util/helper";
 // import config from "../config";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
+import logger from "../util/logger";
 
 /**
 * Use llm and sdxl to chat with openai completions api
@@ -94,7 +95,7 @@ export default class Painter extends AbstractProvider {
       });
       ctx.res.write("data:" + WebResponse.wrap(0, null, content || "No content found in the prompt.", null) + "\n\n");
       prompt && ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null) + "\n\n");
-      prompt && ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null) + "\n\n");
+      negative_prompt && ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null) + "\n\n");
 
       const responseImage = await this.draw(paintModelId, {
         prompt,
@@ -149,11 +150,11 @@ export default class Painter extends AbstractProvider {
               },
               width: {
                 type: "number",
-                description: "Round the number to an integer, must be devided by 64, less than 6000, default is 768. "
+                description: "Round the number to an integer, must be devided by 64, less than 3840, default is 768. "
               },
               height: {
                 type: "number",
-                description: "Round the number to an integer, must be devided by 64, less than 6000, default is 768. "
+                description: "Round the number to an integer, must be devided by 64, less than 3840, default is 768. "
               }
             },
             required: [
@@ -188,10 +189,13 @@ export default class Painter extends AbstractProvider {
       },
       body: JSON.stringify(kRequest)
     });
-    if (!response.ok)
+    if (!response.ok) {
       throw new Error(await response.text());
+    }
 
     const jRes: any = await response.json();
+
+    // console.log(JSON.stringify(jRes, null, 2));
 
     if ("success" in jRes && jRes.success === false) {
       throw new Error(jRes.data);
@@ -308,7 +312,6 @@ export default class Painter extends AbstractProvider {
         "cfgScale": 8.0,
         "width": size.width,
         "height": size.height,
-
       }
     }
 
@@ -323,6 +326,41 @@ export default class Painter extends AbstractProvider {
     const jsonString = new TextDecoder().decode(response.body);
     const parsedResponse = JSON.parse(jsonString);
     const base64ImageData = parsedResponse.images[0];
+    const base64Data = base64ImageData.replace(/^data:image\/\w+;base64,/, "");
+    return base64Data;
+  }
+
+  async drawByNova(modelId: string, input: any): Promise<string> {
+    let inputBody: any = {
+      "taskType": "TEXT_IMAGE",
+      "textToImageParams": {
+        "text": input.prompt,
+        "negativeText": input.negative_prompt
+      },
+      "imageGenerationConfig": {
+        "width": input.width,
+        "height": input.height,
+        "quality": "standard",
+        "numberOfImages": 1,
+        "seed": Math.ceil(Math.random() * 858993459),
+      }
+    }
+
+    const req = {
+      body: JSON.stringify(inputBody),
+      contentType: "application/json",
+      accept: "application/json",
+      modelId: modelId
+    };
+    const command = new InvokeModelCommand(req);
+    const response = await this.client.send(command);
+    const jsonString = new TextDecoder().decode(response.body);
+    const parsedResponse = JSON.parse(jsonString);
+
+    let base64ImageData = parsedResponse.images && parsedResponse.images[0];
+    if (!base64ImageData) {
+      base64ImageData = parsedResponse.images[0];
+    }
     const base64Data = base64ImageData.replace(/^data:image\/\w+;base64,/, "");
     return base64Data;
   }
@@ -359,6 +397,7 @@ export default class Painter extends AbstractProvider {
         ]
       }
     }
+    // console.log(JSON.stringify(inputBody, null, 2))
     const req = {
       body: JSON.stringify(inputBody),
       contentType: "application/json",
@@ -393,10 +432,13 @@ export default class Painter extends AbstractProvider {
         base64Data = await this.drawBySD(modelId, input);
       } else if (modelId.startsWith("amazon.titan-image-generator")) {
         base64Data = await this.drawByTitan(modelId, input);
+      } else if (modelId.startsWith("amazon.nova-canvas")) {
+        base64Data = await this.drawByNova(modelId, input);
       } else {
         return "> Error: Unsupported paint modelId";
       }
     } catch (e) {
+      logger.error(e);
       return "> Error: " + e.message;
     }
 

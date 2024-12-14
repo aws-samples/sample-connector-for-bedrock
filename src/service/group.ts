@@ -145,7 +145,7 @@ export default {
             where: "group_id=$1 and model_id=$2",
             params: [group_id, model_id]
         });
-        console.log(existsDB);
+        // console.log(existsDB);
 
         if (existsDB) {
             await db.deleteMulti("eiai_group_model", {
