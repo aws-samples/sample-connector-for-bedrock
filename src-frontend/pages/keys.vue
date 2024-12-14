@@ -32,17 +32,30 @@
       </template>
       
       <template v-slot:action="c, row">
-        <Space>
-          <Button size="small" @click="recharge(row)">{{ $t('keys.btn_recharge') }}</Button>
-          <Button size="small" @click="edit(row)">{{ $t('keys.btn_edit') }}</Button>
-          <Popconfirm :title="$t('keys.tip_reset')" @ok="rest(row)" :width="260">
-            <Button size="small">{{ $t('keys.btn_reset') }}</Button>
-          </Popconfirm>
-          <Popconfirm :title="$t('keys.tip_delete')" @ok="del(row)" :width="260">
-            <Button size="small">{{ $t('common.btn_delete') }}</Button>
-          </Popconfirm>
-          <Button size="small" @click="listModels(row)">{{ $t('keys.btn_models') }}</Button>
-        </Space>
+        <Dropdown show-placement-arrow>
+          <Button theme="normal" :icon="SettingsOutline" />
+          <Menu slot="content">
+            <MenuItem>
+              <a @click="recharge(row)">{{ $t('keys.btn_recharge') }}</a>
+            </MenuItem>
+            <MenuItem>
+              <a @click="edit(row)">{{ $t('keys.btn_edit') }}</a>
+            </MenuItem>
+            <MenuItem>
+              <Popconfirm :title="$t('keys.tip_reset')" @ok="rest(row)" :width="260">
+                <a>{{ $t('keys.btn_reset') }}</a>
+              </Popconfirm>
+            </MenuItem>
+            <MenuItem>
+              <Popconfirm :title="$t('keys.tip_delete')" @ok="del(row)" :width="260">
+                <a size="small">{{ $t('common.btn_delete') }}</a>
+              </Popconfirm>
+            </MenuItem>
+            <MenuItem>
+              <a @click="listModels(row)">{{ $t('keys.btn_models') }}</a>
+            </MenuItem>
+          </Menu>
+        </Dropdown>
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
@@ -130,7 +143,7 @@ export default {
         { key: 'month_fee', title: this.$t('keys.col_month_fee'), sorter: true, sortKey: 'month' },
         { key: 'month_quota', title: this.$t('keys.col_month_quota'), sorter: true, sortKey: 'quota' },
         { key: 'updated_at', title: this.$t('keys.col_updated_at'), sorter: true, sortKey: 'update' },
-        { key: 'action', title: this.$t('keys.col_action'), fixed: "right", width: 300 },
+        { key: 'action', title: this.$t('keys.col_action'), width:64, fixed: "right" },
       ],
       form: { name: '', email: '', role: 'user', month_quota: 0, balance: 0, group_id: 0 },
       rules: {
