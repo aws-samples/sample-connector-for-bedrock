@@ -33,17 +33,17 @@ export default {
 
         if (finish_reason) {
             data.choices = [
-                { "index": "0", delta: {}, finish_reason, logprobs: null }
+                { "index": 0, delta: {}, finish_reason, logprobs: null }
             ];
         } else {
             if (id == 0) {
                 data.choices = [
-                    { "index": "0", delta: { role: "assistant", content }, finish_reason, logprobs: null }
+                    { "index": 0, delta: { role: "assistant", content }, finish_reason, logprobs: null }
                 ];
 
             } else {
                 data.choices = [
-                    { "index": "0", delta: { content }, finish_reason, logprobs: null }
+                    { "index": 0, delta: { content }, finish_reason, logprobs: null }
                 ];
             }
         }
@@ -81,7 +81,7 @@ export default {
 
 
         data.choices = [
-            { "index": "0", text: content, finish_reason: finish_reason || null }
+            { "index": 0, text: content, finish_reason: finish_reason || null }
         ];
 
         if (model) {

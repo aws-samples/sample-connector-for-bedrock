@@ -187,9 +187,10 @@ export default class BedrockConverse extends AbstractProvider {
         }
         await this.saveThread(ctx, session_id, chatRequest, response);
 
-        const choices = content.map((c: any) => {
+        const choices = content.map((c: any, index: number) => {
             if (c.text) {
                 return {
+                    index,
                     text: c.text
                 }
             }
@@ -222,9 +223,10 @@ export default class BedrockConverse extends AbstractProvider {
         }
         await this.saveThread(ctx, session_id, chatRequest, response);
 
-        const choices = content.map((c: any) => {
+        const choices = content.map((c: any, index: number) => {
             if (c.text) {
                 return {
+                    index,
                     message: {
                         content: c.text,
                         role: "assistant"
