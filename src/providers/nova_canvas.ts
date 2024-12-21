@@ -140,7 +140,6 @@ export default class NovaCanvas extends AbstractProvider {
   }
 
   async colorize(input: any) {
-
     if (!input.image_url) {
       return {
         message: "No image url."
@@ -157,7 +156,7 @@ export default class NovaCanvas extends AbstractProvider {
         negativeText: input.negative_prompt
       },
       "imageGenerationConfig": {
-        "width": input.width,
+        width: input.width,
         "height": input.height,
         "numberOfImages": input.quantity || 1,
         "seed": Math.ceil(Math.random() * 858993459),
@@ -202,7 +201,7 @@ export default class NovaCanvas extends AbstractProvider {
         images: imageDatas
       },
       "imageGenerationConfig": {
-        "width": input.width,
+        width: input.width,
         "height": input.height,
         "numberOfImages": input.quantity || 1,
         "seed": Math.ceil(Math.random() * 858993459),
@@ -276,17 +275,17 @@ export default class NovaCanvas extends AbstractProvider {
     }
     const imageData = await helper.downloadImageToBase64(input.image_url, this.s3Client);
     let inputBody: any = {
-      "taskType": "INPAINTING",
-      "inPaintingParams": {
+      taskType: "INPAINTING",
+      inPaintingParams: {
         text: input.prompt,
         negativeText: input.negative_prompt,
         maskPrompt: input.mask_prompt,
         image: imageData
       },
-      "imageGenerationConfig": {
-        "quality": "standard",
-        "numberOfImages": input.quantity || 1,
-        "seed": Math.ceil(Math.random() * 858993459),
+      imageGenerationConfig: {
+        quality: "standard",
+        numberOfImages: input.quantity || 1,
+        seed: Math.ceil(Math.random() * 858993459),
       }
     }
     // console.log("args:", inputBody);
@@ -342,19 +341,63 @@ export default class NovaCanvas extends AbstractProvider {
     }
   }
 
+
+  async img2img(input: any) {
+    if (!input.image_url) {
+      return {
+        message: "No image url."
+      }
+    }
+    const imageData = await helper.downloadImageToBase64(input.image_url, this.s3Client);
+
+    let inputBody: any = {
+      taskType: "TEXT_IMAGE",
+      textToImageParams: {
+        conditionImage: imageData,
+        controlMode: input.control_mode,
+        text: input.prompt,
+        negativeText: input.negative_prompt
+      },
+      imageGenerationConfig: {
+        width: input.width,
+        height: input.height,
+        quality: "standard",
+        numberOfImages: input.quantity || 1,
+        seed: Math.ceil(Math.random() * 858993459),
+      }
+    }
+
+    const req = {
+      body: JSON.stringify(inputBody),
+      contentType: "application/json",
+      accept: "application/json",
+      modelId: this.paintModelId
+    };
+    const command = new InvokeModelCommand(req);
+    const response = await this.client.send(command);
+    const jsonString = new TextDecoder().decode(response.body);
+    const parsedResponse = JSON.parse(jsonString);
+    if (parsedResponse.images) {
+      return parsedResponse.images;
+    }
+    return {
+      message: "No content."
+    }
+  }
+
   async txt2img(input: any) {
     let inputBody: any = {
-      "taskType": "TEXT_IMAGE",
-      "textToImageParams": {
-        "text": input.prompt,
-        "negativeText": input.negative_prompt
+      taskType: "TEXT_IMAGE",
+      textToImageParams: {
+        text: input.prompt,
+        negativeText: input.negative_prompt
       },
-      "imageGenerationConfig": {
-        "width": input.width,
-        "height": input.height,
-        "quality": "standard",
-        "numberOfImages": input.quantity || 1,
-        "seed": Math.ceil(Math.random() * 858993459),
+      imageGenerationConfig: {
+        width: input.width,
+        height: input.height,
+        quality: "standard",
+        numberOfImages: input.quantity || 1,
+        seed: Math.ceil(Math.random() * 858993459),
       }
     }
     // console.log("txt2img args:", inputBody);
