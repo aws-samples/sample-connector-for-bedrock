@@ -1,10 +1,9 @@
-// A\
 import { ChatRequest } from "../entity/chat_request";
 import {
   BedrockRuntimeClient,
   InvokeModelCommand
 } from "@aws-sdk/client-bedrock-runtime";
-import { S3Client, PutObjectCommand, GetObjectCommand, EncodingType } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 import helper from "../util/helper";
 // import config from "../config";
@@ -85,7 +84,6 @@ export default class Painter extends AbstractProvider {
             }
           }
         }
-
       }
 
       ctx.set({
@@ -443,7 +441,7 @@ export default class Painter extends AbstractProvider {
     }
 
     const now = new Date();
-    const key = `${this.s3Prefix}/${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate() + 1}/${now.getTime()}.jpg`;
+    const key = `${this.s3Prefix}/${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}/${now.getTime()}.jpg`;
 
     const bufferData = Buffer.from(base64Data, 'base64');
 

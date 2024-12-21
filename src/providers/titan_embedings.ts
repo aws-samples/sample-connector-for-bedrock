@@ -34,6 +34,7 @@ class TitanEmbeddings extends AbstractProvider {
 
   async embed(embeddingRequest: EmbeddingRequest, session_id: string, ctx: any): Promise<void> {
     await this.init();
+    console.log(embeddingRequest);
     try {
       let request: any = {
         inputText: embeddingRequest.input

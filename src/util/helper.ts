@@ -5,6 +5,7 @@ import config from '../config';
 import nodemailer from 'nodemailer';
 import { exec } from 'child_process';
 import logger from './logger';
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 const crypto = require('crypto');
 
 const helper = {
@@ -20,7 +21,35 @@ const helper = {
             key += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return "br-" + key;
+    },
 
+    async downloadImageToBase64(url: string, client: S3Client): Promise<any> {
+        if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
+            const imageReq = await fetch(url);
+            const blob = await imageReq.blob();
+            let buffer = Buffer.from(await blob.arrayBuffer());
+            return buffer.toString('base64');
+        } else if (url.indexOf('s3://') >= 0) {
+            const urlParts = url.replace('s3://', '').split('/');
+            const bucketName = urlParts.shift();
+            const key = urlParts.join('/');
+            const params = {
+                Bucket: bucketName,
+                Key: key,
+            };
+
+            try {
+                const command = new GetObjectCommand(params);
+                const response = await client.send(command);
+                const byteArray = await response.Body.transformToByteArray();
+                return Buffer.from(byteArray).toString('base64');
+
+            } catch (error) {
+                // console.error("Error downloading and converting image:", error);
+                throw error;
+            }
+
+        }
     },
     async parseImageUrl(url: string): Promise<any> {
         if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {

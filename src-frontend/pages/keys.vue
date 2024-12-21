@@ -32,27 +32,27 @@
       </template>
       
       <template v-slot:action="c, row">
-        <Dropdown show-placement-arrow>
-          <Button theme="normal" :icon="SettingsOutline" />
+        <Dropdown>
+          <Button theme="light"  type="primary" :icon="Settings" />
           <Menu slot="content">
             <MenuItem>
-              <a @click="recharge(row)">{{ $t('keys.btn_recharge') }}</a>
+              <div @click="recharge(row)">{{ $t('keys.btn_recharge') }}</div>
             </MenuItem>
             <MenuItem>
-              <a @click="edit(row)">{{ $t('keys.btn_edit') }}</a>
+              <div @click="edit(row)">{{ $t('keys.btn_edit') }}</div>
             </MenuItem>
             <MenuItem>
               <Popconfirm :title="$t('keys.tip_reset')" @ok="rest(row)" :width="260">
-                <a>{{ $t('keys.btn_reset') }}</a>
+                <div>{{ $t('keys.btn_reset') }}</div>
               </Popconfirm>
             </MenuItem>
             <MenuItem>
               <Popconfirm :title="$t('keys.tip_delete')" @ok="del(row)" :width="260">
-                <a size="small">{{ $t('common.btn_delete') }}</a>
+                <div >{{ $t('common.btn_delete') }}</div>
               </Popconfirm>
             </MenuItem>
             <MenuItem>
-              <a @click="listModels(row)">{{ $t('keys.btn_models') }}</a>
+              <div @click="listModels(row)">{{ $t('keys.btn_models') }}</div>
             </MenuItem>
           </Menu>
         </Dropdown>
@@ -115,7 +115,7 @@
   </div>
 </template>
 <script>
-import { Copy, CloudUpload,FolderOpen } from 'kui-icons'
+import { Copy, CloudUpload,FolderOpen, Settings } from 'kui-icons'
 export default {
   name: 'AdminKeys',
   data() {
@@ -129,6 +129,7 @@ export default {
       Copy,
       CloudUpload,
       FolderOpen,
+      Settings,
       items: [],
       searchText: '',
       title: '',

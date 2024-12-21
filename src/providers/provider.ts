@@ -18,7 +18,7 @@ import ContinueCoder from "./continue_coder";
 import SmartRouter from "./smart_router";
 import SimpleAction from "./simple_action";
 import TitanEmbeddings from "./titan_embedings";
-
+import NovaCanvas from "./nova_canvas";
 
 class Provider {
     constructor() {
@@ -28,6 +28,7 @@ class Provider {
         this["sagemaker-lmi"] = new SagemakerLMI();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
         this["painter"] = new Painter();
+        this["nova-canvas"] = new NovaCanvas();
         this["ollama"] = new OllamaAProvider();
         this["web-miner"] = new WebMiner();
         this["continue-coder"] = new ContinueCoder();
@@ -47,6 +48,7 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const embeddingRequest: EmbeddingRequest = ctx.request.body;
+        console.log(embeddingRequest, ctx.request.body);
 
 
         const session_id = ctx.headers["session-id"];

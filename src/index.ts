@@ -15,10 +15,11 @@ install();
 
 import cache from './util/cache';
 
-// if (config.performanceMode) {
-setTimeout(() => cache.run(), 5000);
-// }
+try {
+    cache.run()
+} catch {
 
+}
 
 const app = new Koa();
 
