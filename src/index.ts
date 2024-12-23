@@ -17,8 +17,7 @@ import cache from './util/cache';
 
 try {
     cache.run()
-} catch {
-
+} catch (err) {
 }
 
 const app = new Koa();

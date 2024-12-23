@@ -4,8 +4,9 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand
 } from "@aws-sdk/client-bedrock-runtime";
-import { S3Client, PutObjectCommand, GetObjectCommand, EncodingType } from "@aws-sdk/client-s3";
-import helper from "../util/helper";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import preprocess from "../util/preprocess";
+import helper from '../util/helper';
 // import config from "../config";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
@@ -65,6 +66,7 @@ export default class NovaCanvas extends AbstractProvider {
     chatRequest.model = localLlmModel;
     ctx.status = 200;
     const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
+    // console.log(JSON.stringify(promptResult, null, 2));
 
     let content: string, args: any, funName: string, imgs: [any]
     for (const c of promptResult.choices) {
@@ -145,21 +147,21 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await helper.downloadImageToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
 
     let inputBody: any = {
-      "taskType": "COLOR_GUIDED_GENERATION",
-      "colorGuidedGenerationParams": {
+      taskType: "COLOR_GUIDED_GENERATION",
+      colorGuidedGenerationParams: {
         colors: input.colors,
         referenceImage: imageData,
         text: input.prompt,
         negativeText: input.negative_prompt
       },
-      "imageGenerationConfig": {
+      imageGenerationConfig: {
         width: input.width,
-        "height": input.height,
-        "numberOfImages": input.quantity || 1,
-        "seed": Math.ceil(Math.random() * 858993459),
+        height: input.height,
+        numberOfImages: input.quantity || 1,
+        seed: Math.ceil(Math.random() * 858993459),
       }
     }
 
@@ -190,21 +192,21 @@ export default class NovaCanvas extends AbstractProvider {
     const imageDatas = [];
 
     for (const imgUrl of input.image_urls) {
-      imageDatas.push(await helper.downloadImageToBase64(imgUrl, this.s3Client));
+      imageDatas.push(await preprocess.downloadImageForNovaToBase64(imgUrl, this.s3Client));
     }
 
     let inputBody: any = {
-      "taskType": "IMAGE_VARIATION",
-      "imageVariationParams": {
+      taskType: "IMAGE_VARIATION",
+      imageVariationParams: {
         text: input.prompt,
         negativeText: input.negative_prompt,
         images: imageDatas
       },
-      "imageGenerationConfig": {
+      imageGenerationConfig: {
         width: input.width,
-        "height": input.height,
-        "numberOfImages": input.quantity || 1,
-        "seed": Math.ceil(Math.random() * 858993459),
+        height: input.height,
+        numberOfImages: input.quantity || 1,
+        seed: Math.ceil(Math.random() * 858993459),
       }
     }
 
@@ -232,19 +234,21 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await helper.downloadImageToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
+    console.log("VVVVVV", imageData);
+
     let inputBody: any = {
-      "taskType": "OUTPAINTING",
-      "outPaintingParams": {
+      taskType: "OUTPAINTING",
+      outPaintingParams: {
         text: input.prompt,
         negativeText: input.negative_prompt,
         maskPrompt: input.mask_prompt,
         image: imageData
       },
-      "imageGenerationConfig": {
-        "quality": "standard",
-        "numberOfImages": input.quantity || 1,
-        "seed": Math.ceil(Math.random() * 858993459),
+      imageGenerationConfig: {
+        quality: "standard",
+        numberOfImages: input.quantity || 1,
+        seed: Math.ceil(Math.random() * 858993459),
       }
     }
     // console.log("args:", inputBody);
@@ -273,7 +277,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await helper.downloadImageToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
     let inputBody: any = {
       taskType: "INPAINTING",
       inPaintingParams: {
@@ -314,7 +318,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await helper.downloadImageToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
     let inputBody: any = {
       "taskType": "BACKGROUND_REMOVAL",
       "backgroundRemovalParams": {
@@ -348,7 +352,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await helper.downloadImageToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
 
     let inputBody: any = {
       taskType: "TEXT_IMAGE",
@@ -485,7 +489,8 @@ export default class NovaCanvas extends AbstractProvider {
               prompt: promptProp,
               negative_prompt: negativePromptProp,
               width: widthProp,
-              height: heightProp
+              height: heightProp,
+              quantity: quantityProp
             },
             required: [
               "prompt",
@@ -540,6 +545,7 @@ export default class NovaCanvas extends AbstractProvider {
               },
               prompt: promptProp,
               negative_prompt: negativePromptProp,
+              quantity: quantityProp
             },
             required: [
               "image_url",
@@ -564,7 +570,8 @@ export default class NovaCanvas extends AbstractProvider {
               prompt: promptProp,
               negative_prompt: negativePromptProp,
               width: widthProp,
-              height: heightProp
+              height: heightProp,
+              quantity: quantityProp
             },
             required: [
               "image_urls",
@@ -591,7 +598,8 @@ export default class NovaCanvas extends AbstractProvider {
               prompt: promptProp,
               negative_prompt: negativePromptProp,
               width: widthProp,
-              height: heightProp
+              height: heightProp,
+              quantity: quantityProp
             },
             required: [
               "colors",
@@ -663,101 +671,6 @@ In the context provided, you will encounter numerous Markdown-formatted files. W
       throw new Error(jRes.data);
     }
     return jRes;
-  }
-  getImageRatio(width: number, height: number) {
-    const aspectRatios = [
-      { ratio: '16:9', value: 16 / 9 },
-      { ratio: '1:1', value: 1 },
-      { ratio: '21:9', value: 21 / 9 },
-      { ratio: '2:3', value: 2 / 3 },
-      { ratio: '3:2', value: 3 / 2 },
-      { ratio: '4:5', value: 4 / 5 },
-      { ratio: '5:4', value: 5 / 4 },
-      { ratio: '9:16', value: 9 / 16 },
-      { ratio: '9:21', value: 9 / 21 },
-    ];
-
-    const aspectRatio = width / height;
-
-    const closestRatio = aspectRatios.reduce((prev, curr) =>
-      Math.abs(curr.value - aspectRatio) < Math.abs(prev.value - aspectRatio) ? curr : prev
-    );
-
-    return closestRatio.ratio;
-  }
-
-  scaleTitanRatio(width: number, height: number) {
-    const allowedSizes = [
-      { width: 1024, height: 1024, ratio: "1:1", price: "1024 x 1024" },
-      { width: 768, height: 768, ratio: "1:1", price: "512 x 512" },
-      { width: 512, height: 512, ratio: "1:1", price: "512 x 512" },
-      { width: 768, height: 1152, ratio: "2:3", price: "1024 x 1024" },
-      { width: 384, height: 576, ratio: "2:3", price: "512 x 512" },
-      { width: 1152, height: 768, ratio: "3:2", price: "1024 x 1024" },
-      { width: 576, height: 384, ratio: "3:2", price: "512 x 512" },
-      { width: 768, height: 1280, ratio: "3:5", price: "1024 x 1024" },
-      { width: 384, height: 640, ratio: "3:5", price: "512 x 512" },
-      { width: 1280, height: 768, ratio: "5:3", price: "1024 x 1024" },
-      { width: 640, height: 384, ratio: "5:3", price: "512 x 512" },
-      { width: 896, height: 1152, ratio: "7:9", price: "1024 x 1024" },
-      { width: 448, height: 576, ratio: "7:9", price: "512 x 512" },
-      { width: 1152, height: 896, ratio: "9:7", price: "1024 x 1024" },
-      { width: 576, height: 448, ratio: "9:7", price: "512 x 512" },
-      { width: 768, height: 1408, ratio: "6:11", price: "1024 x 1024" },
-      { width: 384, height: 704, ratio: "6:11", price: "512 x 512" },
-      { width: 1408, height: 768, ratio: "11:6", price: "1024 x 1024" },
-      { width: 704, height: 384, ratio: "11:6", price: "512 x 512" },
-      { width: 640, height: 1408, ratio: "5:11", price: "1024 x 1024" },
-      { width: 320, height: 704, ratio: "5:11", price: "512 x 512" },
-      { width: 1408, height: 640, ratio: "11:5", price: "1024 x 1024" },
-      { width: 704, height: 320, ratio: "11:5", price: "512 x 512" },
-      { width: 1152, height: 640, ratio: "9:5", price: "1024 x 1024" },
-      { width: 1173, height: 640, ratio: "16:9", price: "1024 x 1024" }
-    ];
-
-    let nearestSize = null;
-    let minDifference = Infinity;
-
-    for (const size of allowedSizes) {
-      const difference = Math.abs(size.width - width) + Math.abs(size.height - height);
-      if (difference < minDifference) {
-        minDifference = difference;
-        nearestSize = size;
-      }
-    }
-
-    return nearestSize;
-  }
-
-
-  // scaleTitanRatio(width: number, height: number) {
-  //   //TODO: fit the titan's ratio: https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-image.html
-  //   return {
-  //     width: 768,
-  //     height: 768
-  //   };
-  // }
-
-  nearestMultiplesOf64AndScaleDown(num1: number, num2: number) {
-
-    const max = Math.max(num1, num2);
-
-    if (max > 1536) {
-      const scaleFactor = 1536 / max;
-      return [
-        this.nearestMultipleOf64(Math.round(num1 * scaleFactor)),
-        this.nearestMultipleOf64(Math.round(num2 * scaleFactor))
-      ];
-    }
-    const nearest1 = this.nearestMultipleOf64(num1);
-    const nearest2 = this.nearestMultipleOf64(num2);
-    return [nearest1, nearest2];
-  }
-
-  nearestMultipleOf64(num: number) {
-    const lowerMultiple = Math.floor(num / 64) * 64;
-    const diff = num - lowerMultiple;
-    return diff < 32 ? lowerMultiple : lowerMultiple + 64;
   }
 
 }
