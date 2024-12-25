@@ -91,10 +91,12 @@ export default class NovaCanvas extends AbstractProvider {
         'Content-Type': 'text/event-stream',
       });
       content && ctx.res.write("data:" + WebResponse.wrap(0, null, content, null) + "\n\n");
-      args && ctx.res.write("data:" +
-        WebResponse.wrap(0,
-          null,
-          "\n\n tool: " + funName + "\n\nparameters:\n\n```\n" + JSON.stringify(args, null, 2) + "\n```", null) + "\n\n");
+
+      args && logger.info("parameters:" + JSON.stringify(args, null, 2));
+      // args && ctx.res.write("data:" +
+      //   WebResponse.wrap(0,
+      //     null,
+      //     "\n\n tool: " + funName + "\n\nparameters:\n\n```\n" + JSON.stringify(args, null, 2) + "\n```", null) + "\n\n");
     }
 
     if (this[funName]) {
