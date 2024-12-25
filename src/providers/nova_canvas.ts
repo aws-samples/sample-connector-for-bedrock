@@ -235,7 +235,7 @@ export default class NovaCanvas extends AbstractProvider {
       }
     }
     const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
-    console.log("VVVVVV", imageData);
+    // console.log("VVVVVV", imageData);
 
     let inputBody: any = {
       taskType: "OUTPAINTING",
@@ -647,7 +647,7 @@ If the user's request falls outside of your capabilities, politely inform them a
 
 Maintain a professional and helpful demeanor throughout the interaction. Do not attempt tasks that are beyond your abilities or violate ethical principles. If you are unsure about a request, seek clarification from the user before proceeding.
 
-In the context provided, you will encounter numerous Markdown-formatted files. When processing these Markdown inputs, please disregard their formatting. I want you to focus on extracting the parameters you understand and incorporate them into the 'tool_calls' node's parameters, rather than directly outputting these parameters. Prioritize parameter inclusion within the 'tool_calls' structure over standalone output.
+You must return all parameters through function calls only. Do not output parameters directly as Markdown or JSON text. Always use the tool_calls structure for parameter passing.
 `
     });
 
