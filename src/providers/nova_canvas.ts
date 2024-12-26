@@ -104,8 +104,6 @@ export default class NovaCanvas extends AbstractProvider {
       imgs = await this[funName](args);
     }
 
-    console.log(imgs);
-
     if (chatRequest.stream) {
       if (imgs && Array.isArray(imgs)) {
         for (const img of imgs) {
@@ -410,7 +408,6 @@ export default class NovaCanvas extends AbstractProvider {
         seed: Math.ceil(Math.random() * 858993459),
       }
     }
-    // console.log("txt2img args:", inputBody);
 
     const req = {
       body: JSON.stringify(inputBody),
@@ -433,11 +430,11 @@ export default class NovaCanvas extends AbstractProvider {
   async toPaintPrompt(chatRequest: ChatRequest, session_id: string, ctx: any) {
     const widthProp = {
       type: "number",
-      description: "The desired width of the generated image in pixels. It should be an integer divisible by 64 and less than 3840. The default value is 512."
+      description: "The desired width of the generated image in pixels. It should be an integer divisible by 64 and less than 2048. The default value is 512."
     };
     const heightProp = {
       type: "number",
-      description: "The desired height of the generated image in pixels. It should be an integer divisible by 64 and less than 3840. The default value is 512."
+      description: "The desired height of the generated image in pixels. It should be an integer divisible by 64 and less than 2048. The default value is 512."
     };
     const promptProp = {
       type: "string",
