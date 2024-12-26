@@ -3,6 +3,7 @@
 > Since Docker image version 0.0.9
 > Updated in Docker image version 0.0.12
 > Updated in Docker image version 0.0.13
+> Updated in Docker image version 0.0.19
 
 Draw using the bedrock paint model.
 
@@ -33,6 +34,7 @@ Draw using the bedrock paint model.
 
 paintModelId options:
 
+- amazon.nova-canvas-v1:0
 - stability.stable-image-core-v1:0
 - stability.sd3-large-v1:0
 - stability.stable-image-ultra-v1:0
