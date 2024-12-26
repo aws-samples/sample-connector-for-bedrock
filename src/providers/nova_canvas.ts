@@ -116,14 +116,14 @@ export default class NovaCanvas extends AbstractProvider {
       ctx.set({
         'Content-Type': 'application/json',
       });
-      const imgs = [];
       if (imgs && Array.isArray(imgs)) {
         for (const img of imgs) {
           const url = await this.uploadImage(img);
           imgs.push(url);
         }
       }
-      ctx.body = imgs;
+      imgs && (promptResult.images = imgs);
+      ctx.body = promptResult;
     }
   }
 

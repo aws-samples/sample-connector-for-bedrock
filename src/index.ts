@@ -68,4 +68,13 @@ app.listen(port, () => {
     const pJson = require("../package.json");
     console.log(`🚀 BRConnector is running on port http://0.0.0.0:${port}/`);
     console.log(`📖 Version ${pJson.version}`);
+    if (config.performanceMode) {
+        console.log(`Performance mode is ${config.performanceMode}.`);
+    }
+    if (config.debugMode) {
+        console.log(`Debug mode is ${config.performanceMode}.`);
+    }
+    if (config.pgsql.debugMode) {
+        console.log(`Sql mode is on.`);
+    }
 });
