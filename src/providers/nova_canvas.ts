@@ -84,6 +84,8 @@ export default class NovaCanvas extends AbstractProvider {
       }
     }
 
+    args && ctx.logger.info(`func: ${funName}` + ", parameters: \n" + JSON.stringify(args, null, 2));
+
     if (chatRequest.stream) {
       ctx.set({
         'Connection': 'keep-alive',
@@ -92,7 +94,6 @@ export default class NovaCanvas extends AbstractProvider {
       });
       content && ctx.res.write("data:" + WebResponse.wrap(0, null, content, null) + "\n\n");
 
-      args && logger.info("parameters:" + JSON.stringify(args, null, 2));
       // args && ctx.res.write("data:" +
       //   WebResponse.wrap(0,
       //     null,
@@ -102,6 +103,8 @@ export default class NovaCanvas extends AbstractProvider {
     if (this[funName]) {
       imgs = await this[funName](args);
     }
+
+    console.log(imgs);
 
     if (chatRequest.stream) {
       if (imgs && Array.isArray(imgs)) {
@@ -116,13 +119,14 @@ export default class NovaCanvas extends AbstractProvider {
       ctx.set({
         'Content-Type': 'application/json',
       });
+      let images = [];
       if (imgs && Array.isArray(imgs)) {
         for (const img of imgs) {
           const url = await this.uploadImage(img);
-          imgs.push(url);
+          images.push(url);
         }
       }
-      imgs && (promptResult.images = imgs);
+      promptResult.images = images;
       ctx.body = promptResult;
     }
   }
