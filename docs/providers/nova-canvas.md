@@ -1,5 +1,3 @@
-Here's the English translation of the optimized feature description:
-
 # nova-canvas
 
 > Applicable for Docker image version 0.0.20 and above
