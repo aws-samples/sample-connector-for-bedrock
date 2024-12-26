@@ -35,7 +35,7 @@ Supports multi-turn image processing dialogues using natural language. Main feat
 | Text-to-Image | TEXT_IMAGE | "Generate a cute kitten" | - |
 | Image-to-Image | TEXT_IMAGE | "Generate a kitten based on this image: https(s3)://url..." | May trigger IMAGE_VARIATION |
 | Background Removal | BACKGROUND_REMOVAL | "Remove the background from this image: https(s3)://url..." | - |
-| Change Foreground | INPAINTING | "Replace the female model in the image with an Asian model" | Clearly specify the foreground object to change |
+| Change Foreground | INPAINTING | "Replace the female model in the image with an Asian model" | Clearly specify the foreground object to change. In multi-turn conversations, if the foreground can be inferred, it doesn't need to be specified. |
 | Change Background | OUTPAINTING | "Change the background of the female model to an indoor scene" | - |
 | Generate Variations | IMAGE_VARIATION | "Generate some variations based on the above image" | - |
 | Image Colorization | COLOR_GUIDED_GENERATION | "Add red and orange tones to the image" | - |
@@ -46,7 +46,7 @@ For detailed examples, please refer to: <https://docs.aws.amazon.com/nova/latest
 
 ## Additional Notes
 
-When making API requests, if the stream parameter is set to false, the output will be in the following format:
+When making API requests, if the `stream` parameter is set to `false`, the output will be in the following format:
 
 ```json
 {

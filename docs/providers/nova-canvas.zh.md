@@ -36,7 +36,7 @@
 | 文生图 | TEXT_IMAGE | "生成一只可爱的小猫" | - |
 | 图生图 | TEXT_IMAGE | "参考此图生成一只小猫：https(s3)://url..." | 可能触发 IMAGE_VARIATION |
 | 去除背景 | BACKGROUND_REMOVAL | "移除此图片背景：https(s3)://url..." | - |
-| 更改前景 | INPAINTING | "将图中的女性模特换成亚洲模特" | 需明确指出要更改的前景对象 |
+| 更改前景 | INPAINTING | "将图中的女性模特换成亚洲模特" | 需明确指出要更改的前景对象。多轮对话中如果可以推测出前景，可以无需指定 |
 | 更改背景 | OUTPAINTING | "将图中女性模特的背景换成室内场景" | - |
 | 生成变体 | IMAGE_VARIATION | "基于上图生成一些变体" | - |
 | 图片上色 | COLOR_GUIDED_GENERATION | "给图片添加红橙色调" | - |
@@ -47,7 +47,7 @@
 
 ## 其他说明
 
-API 请求的时候，如果 stream 是 false 的话，会输入如下的格式：
+API 请求的时候，如果 stream 是 false 的话，会输出如下的格式：
 
 ```json
 {
