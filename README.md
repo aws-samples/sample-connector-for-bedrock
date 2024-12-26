@@ -44,15 +44,20 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
-## 0.0.16
+## 0.0.20
 
-1. Added a new configuration option for bedrock-converse: maxTokens
+1. Fixed the representation of boolean types in environment variables. Now only "false" and "0" are considered as false.
+2. Added support for nova-canvas in the painter plugin (text-to-image only).
+3. Collapsed the display of operation buttons in the API key list.
+4. Modified the data type of the index in the output result choices to integer.
+5. Added a new Provider: nova-canvas, which allows image manipulation through natural language (including the following tools: text-to-image, image-to-image, foreground replacement/inpaint, background replacement/outpaint, background removal, variations, and color guidance). <https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/nova-canvas/>
 
-## 0.0.15
+## 0.0.19
 
-1. Added haiku 3.5 model in NoDB mode.
+1. Fixed a critical bug: log file handles were filling up the system, causing it to become unresponsive after a period of time.
+2. Rewrote the logging system, aiming to unify the format as much as possible.
 
-2. Removed some unnecessary log outputs.
+More: <https://aws-samples.github.io/sample-connector-for-bedrock/zh/home/changelogs/>
 
 ## Disclaimer
 
