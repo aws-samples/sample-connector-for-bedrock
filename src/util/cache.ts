@@ -18,16 +18,18 @@ const cache = {
 
     logger.defaultMeta.path = "global";
     logger.info("Loading models and api keys data to cache.");
-    cache.loadData(db);
-    setInterval(() => {
+
+    function load() {
       cache.loadData(db).then(res => {
         logger.defaultMeta.path = "global";
         logger.info("The cache has been flushed.")
-      }, (err) => {
+      }).catch((err) => {
         logger.defaultMeta.path = "global";
         logger.error("err", err);
       });
-    }, 60000);
+    }
+    load();
+    setInterval(load, 60000);
   },
   loadData: async (db: any) => {
 

@@ -26,43 +26,32 @@ export default class SmartRouter extends AbstractProvider {
     }
     chatRequest.model = localLlmModel;
     ctx.status = 200;
-    // console.log(chatRequest)
-    const toolRes = await this.toToolUse(chatRequest, session_id, ctx);
 
-    console.log("toole", toolRes)
+    const the_model = await this.chooseModel(chatRequest, session_id, ctx);
+    ctx.logger.info(`[smart-router]choosed model: ${the_model}`);
 
+    chatRequest.model = the_model;
 
-    // if (chatRequest.stream) {
+    ctx.status = 200;
 
+    if (chatRequest.stream) {
+      ctx.set({
+        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/event-stream',
+      });
 
-
-    //   ctx.set({
-    //     'Connection': 'keep-alive',
-    //     'Cache-Control': 'no-cache',
-    //     'Content-Type': 'text/event-stream',
-    //   });
-    //   ctx.res.write("data:" + WebResponse.wrap(0, null, content || "No content found in the prompt.", null) + "\n\n");
-    //   prompt && ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null) + "\n\n");
-    //   prompt && ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null) + "\n\n");
-
-    //   const responseImage = await this.draw(paintModelId, {
-    //     prompt,
-    //     negative_prompt,
-    //     width,
-    //     height
-    //   });
-    //   ctx.res.write("data:" + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null) + "\n\n");
-    //   ctx.res.write("data: [DONE]\n\n")
-    // } else {
-    //   ctx.set({
-    //     'Content-Type': 'application/json',
-    //   });
-    //   ctx.body = await this.chatSync(ctx, chatRequest, session_id);
-    // }
+      await this.localChatStream(ctx, chatRequest, session_id);
+    } else {
+      ctx.set({
+        'Content-Type': 'application/json',
+      });
+      ctx.body = await this.localChatSync(ctx, chatRequest, session_id);
+    }
   }
 
 
-  async toToolUse(chatRequest: ChatRequest, session_id: string, ctx: any) {
+  async chooseModel(chatRequest: ChatRequest, session_id: string, ctx: any) {
     const tools = [
       {
         type: "function",
@@ -85,28 +74,24 @@ export default class SmartRouter extends AbstractProvider {
       }
     ];
 
-    const lastQ = chatRequest.messages[chatRequest.messages.length - 1];
-
     const kRequest = {
       model: chatRequest.model,
-      messages: [
-        {
-          role: "user", content: `现在有如下的路由规则：
-
-          ${JSON.stringify(this.modelData.config.rules, null, 2)}
-
-          用户的问题是：${lastQ.content}
-          
-          请根据路由规则判断用户的意图，为了节约 token，请给出最简短的回答，不要分析过程，不要引导词，只要在 tool use 里给出结果即可。
-
-          如果用户没有明确的意图，请直接返回 default 这个单词作为模型的名字。
-          `}
-      ],
+      messages: chatRequest.messages,
       tools,
       tool_choice: "auto"
     }
 
-    // console.log(JSON.stringify(kRequest, null, 2));
+
+
+    kRequest.messages.push({
+      role: "system",
+      content: `You are a model router. Based on the following rules, determine the appropriate model for user queries:
+
+${JSON.stringify(this.modelData.config.rules, null, 2)}
+
+Analyze user intent and output only the selected model in toolUse node. Provide shortest possible response without analysis or leading words.
+`
+    });
 
     const response = await fetch("http://localhost:8866/v1/chat/completions", {
       method: 'POST',
@@ -141,9 +126,7 @@ export default class SmartRouter extends AbstractProvider {
           }
         }
       }
-
     }
-
     return modelId;
   }
 }

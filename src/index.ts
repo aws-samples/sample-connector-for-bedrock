@@ -15,10 +15,8 @@ install();
 
 import cache from './util/cache';
 
-try {
-    cache.run()
-} catch (err) {
-}
+
+cache.run()
 
 const app = new Koa();
 

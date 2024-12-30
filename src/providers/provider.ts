@@ -23,8 +23,8 @@ import NovaCanvas from "./nova_canvas";
 class Provider {
     constructor() {
         this["bedrock-converse"] = new BedrockConverse();
-        // this["smart-router"] = new SmartRouter();
-        this["simple-action"] = new SimpleAction();
+        this["smart-router"] = new SmartRouter();
+        // this["simple-action"] = new SimpleAction();
         this["sagemaker-lmi"] = new SagemakerLMI();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
         this["painter"] = new Painter();
