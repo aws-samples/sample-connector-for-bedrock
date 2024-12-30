@@ -30,6 +30,7 @@
     "koa-static-server": "^1.5.2",
     "nodemailer": "^6.9.16",
     "ollama": "^0.5.11",
+    "openai": "^4.77.0",
     "pg": "^8.13.1",
     "sharp": "^0.33.5",
     "winston": "^3.17.0"

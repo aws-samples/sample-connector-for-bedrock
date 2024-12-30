@@ -19,6 +19,7 @@ import SmartRouter from "./smart_router";
 import SimpleAction from "./simple_action";
 import TitanEmbeddings from "./titan_embedings";
 import NovaCanvas from "./nova_canvas";
+import OpenAICompatible from "./openai_compatible";
 
 class Provider {
     constructor() {
@@ -38,6 +39,7 @@ class Provider {
         this["bedrock-mistral"] = new BedrockMixtral();
         this["bedrock-llama3"] = new BedrockLlama3();
         this["titan-embeddings"] = new TitanEmbeddings();
+        this["openai-compatible"] = new OpenAICompatible();
     }
 
     async initForEmbeddings(ctx: any) {
