@@ -99,6 +99,13 @@
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/ollama/"/>
     </url>
     <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/openai-compatible/</loc>
+        <lastmod>2024-12-31</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/openai-compatible/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/openai-compatible/"/>
+    </url>
+    <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/</loc>
         <lastmod>2024-12-31</lastmod>
         <changefreq>daily</changefreq>
@@ -288,6 +295,13 @@
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/ollama/"/>
     </url>
     <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/openai-compatible/</loc>
+        <lastmod>2024-12-31</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/openai-compatible/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/openai-compatible/"/>
+    </url>
+    <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/painter/</loc>
         <lastmod>2024-12-31</lastmod>
         <changefreq>daily</changefreq>
@@ -300,6 +314,12 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/sagemaker-lmi/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/sagemaker-lmi/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/smart-router/</loc>
+        <lastmod>2024-12-31</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/smart-router/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/titan_embedings/</loc>
