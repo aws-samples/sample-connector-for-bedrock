@@ -65,14 +65,16 @@ export default class OpenAICompatible extends AbstractProvider {
     let responseText = "";
     let i = 0;
     for await (const part of chatResponse) {
-      // console.log(part);
       const content = part.choices[0]?.delta?.content || '';
       responseText += content;
       i++;
       if (part.choices[0].finish_reason === "stop") {
         const {
-          completion_tokens, prompt_tokens,
-        } = part.usage;
+          completion_tokens = 0,
+          prompt_tokens = 0
+        } = part.usage ?? {};
+
+        // console.log("response:" + responseText);
 
         const response: ResponseData = {
           text: responseText,
@@ -82,8 +84,7 @@ export default class OpenAICompatible extends AbstractProvider {
         await this.saveThread(ctx, session_id, chatRequest, response);
 
       }
-      ctx.res.write(part);
-
+      ctx.res.write("data: " + JSON.stringify(part) + "\n\n");
     }
     ctx.res.write("data: [DONE]\n\n")
     ctx.res.end();
@@ -97,7 +98,7 @@ export default class OpenAICompatible extends AbstractProvider {
       messages: messages
     });
 
-    console.log("xxxxxxxxxxxxxxx", chatResponse);
+    // console.log("xxxxxxxxxxxxxxx", chatResponse);
     if (chatResponse.usage) {
       const {
         completion_tokens, prompt_tokens,

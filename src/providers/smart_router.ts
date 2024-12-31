@@ -1,7 +1,5 @@
-import { ChatRequest, ResponseData } from "../entity/chat_request"
-import WebResponse from "../util/response";
+import { ChatRequest, ResponseData } from "../entity/chat_request";
 import AbstractProvider from "./abstract_provider";
-import helper from '../util/helper';
 
 
 export default class SmartRouter extends AbstractProvider {
@@ -32,6 +30,8 @@ export default class SmartRouter extends AbstractProvider {
 
     chatRequest.model = the_model;
 
+    console.log("the_request:", JSON.stringify(chatRequest, null, 2))
+
     ctx.status = 200;
 
     if (chatRequest.stream) {
@@ -57,7 +57,7 @@ export default class SmartRouter extends AbstractProvider {
         type: "function",
         function: {
           name: "chooseModel",
-          description: `Choose a model from the instruct.`,
+          description: `Choose a model from user intent.`,
           parameters: {
             type: "object",
             properties: {
@@ -76,7 +76,7 @@ export default class SmartRouter extends AbstractProvider {
 
     const kRequest = {
       model: chatRequest.model,
-      messages: chatRequest.messages,
+      messages: JSON.parse(JSON.stringify(chatRequest.messages)),
       tools,
       tool_choice: "auto"
     }
@@ -85,11 +85,18 @@ export default class SmartRouter extends AbstractProvider {
 
     kRequest.messages.push({
       role: "system",
-      content: `You are a model router. Based on the following rules, determine the appropriate model for user queries:
+      content: `You are a model router. Your task is to:
+1. Analyze user intent
+2. Match it against these routing rules:
 
 ${JSON.stringify(this.modelData.config.rules, null, 2)}
 
-Analyze user intent and output only the selected model in toolUse node. Provide shortest possible response without analysis or leading words.
+3. Output ONLY the model name in toolUse node
+4. If uncertain, randomly select any model from the rules
+5. You MUST select a model for every request - no exceptions
+
+Respond with model name only. No explanation or additional text.
+
 `
     });
 

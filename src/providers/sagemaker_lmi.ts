@@ -53,7 +53,6 @@ export default class SagemakerLMI extends AbstractProvider {
         delete clonedRequest.currency;
         delete clonedRequest.price_in;
         delete clonedRequest.price_out;
-        // clonedRequest["stop_token_ids"] = [151329, 151336, 151338];
         const CustomAttributes = this.getHeaderString(ctx);
         const input = {
             EndpointName: endpointName, // required
@@ -190,7 +189,6 @@ export default class SagemakerLMI extends AbstractProvider {
         await this.saveThread(ctx, session_id, chatRequest, response);
 
         content = this.cleanContent(content);
-
 
         return {
             choices: [{
