@@ -1,7 +1,6 @@
 import { ChatRequest, ResponseData } from "../entity/chat_request";
 import AbstractProvider from "./abstract_provider";
 import ChatMessageConverter from './chat_message';
-import config from '../config';
 import helper from "../util/helper";
 import WebResponse from "../util/response";
 
@@ -55,14 +54,17 @@ export default class SagemakerLMI extends AbstractProvider {
         delete clonedRequest.price_in;
         delete clonedRequest.price_out;
         // clonedRequest["stop_token_ids"] = [151329, 151336, 151338];
+        const CustomAttributes = this.getHeaderString(ctx);
         const input = {
             EndpointName: endpointName, // required
             Body: Buffer.from(JSON.stringify(clonedRequest)), //new Uint8Array(), // e.g. Buffer.from("") or new TextEncoder().encode("")   // required
             ContentType: "application/json",
             Accept: "application/json",
+            CustomAttributes
         };
 
-        // console.log(JSON.stringify(clonedRequest, null, 2));
+        // console.log(CustomAttributes);
+        // console.log(JSON.stringify(input, null, 2));
 
         ctx.status = 200;
 
@@ -80,6 +82,18 @@ export default class SagemakerLMI extends AbstractProvider {
             });
             ctx.body = await this.chatSync(ctx, input, chatRequest, session_id);
         }
+    }
+    getHeaderString(ctx: any) {
+        const headers = { ...ctx.headers };
+        delete headers.host;
+        delete headers['content-length'];
+        return Object.entries(headers)
+            .map(([key, value]) => {
+                const encodedValue = encodeURIComponent(String(value));
+                return `${key}:${encodedValue}`;
+            })
+            .join(',');
+
     }
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         const command = new InvokeEndpointWithResponseStreamCommand(input);
