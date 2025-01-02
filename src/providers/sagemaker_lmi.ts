@@ -127,7 +127,7 @@ export default class SagemakerLMI extends AbstractProvider {
                                 !this.isQwen2Prefix(content, i)) {
                                 if (content) {
                                     responseText += content;
-                                    ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, content, finish_reason) + "\n\n");
+                                    ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, content, finish_reason) + "\n\n");
                                 }
                             }
 

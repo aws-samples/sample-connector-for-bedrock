@@ -126,7 +126,7 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
         // console.log(item);
         if (item.contentBlockDelta) {
           responseText += item.contentBlockDelta.delta.text;
-          ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+          ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
         }
         if (item.metadata) {
           // console.log(item);
@@ -161,7 +161,7 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
     //       if (responseBody.delta?.type === "text_delta") {
     //         i++;
     //         responseText += responseBody.delta.text;
-    //         ctx.res.write("data:" + WebResponse.wrap(i, modelId, responseBody.delta.text, "") + "\n\n");
+    //         ctx.res.write("data: " + WebResponse.wrap(i, modelId, responseBody.delta.text, "") + "\n\n");
     //         // ctx.res.write("id: " + i + "\n");
     //         // ctx.res.write("event: message\n");
     //         // ctx.res.write("data: " + JSON.stringify({
@@ -192,14 +192,14 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
     //   throw new Error("No response.");
     // }
 
-    ctx.res.write("data:" + WebResponse.wrap(i, null, "\n\n---\n\n", null) + "\n\n");
+    ctx.res.write("data: " + WebResponse.wrap(i, null, "\n\n---\n\n", null) + "\n\n");
 
     const citaStrings = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
     for (let j = 0; j < files.length; j++) {
       const citaIndex = j + 1;
       i = i + 1 + citaIndex;
       const citaContent = "\n\n" + citaStrings[j] + " " + files[j];
-      ctx.res.write("data:" + WebResponse.wrap(i, null, citaContent, null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(i, null, citaContent, null) + "\n\n");
     }
     ctx.res.write("data: [DONE]\n\n")
     ctx.res.end();

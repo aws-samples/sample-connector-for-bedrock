@@ -58,7 +58,7 @@ export default class SimpleAction extends AbstractProvider {
       // console.log("response", JSON.stringify({ message, data }, null, 2));
       const hasData = Object.keys(data).length !== 0;
       if (message && !hasData) {
-        ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, message, null) + "\n\n");
+        ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, message, null) + "\n\n");
       }
       if (hasData) {
         // console.log(schema, entryPointApi);
@@ -70,7 +70,7 @@ export default class SimpleAction extends AbstractProvider {
         }
         // console.log(url, method, data);
 
-        // ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, "## Result", null) + "\n\n");
+        // ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, "## Result", null) + "\n\n");
         const options: any = {
           method: method,
           headers: {
@@ -96,7 +96,7 @@ export default class SimpleAction extends AbstractProvider {
         const sumRes = await this.summarizeResult(chatRequest, lastResult, session_id, ctx);
         console.log(JSON.stringify(sumRes, null, 2));
 
-        ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, sumRes.choices[0]["message"]["content"], null) + "\n\n");
+        ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, sumRes.choices[0]["message"]["content"], null) + "\n\n");
       }
 
       ctx.res.end();

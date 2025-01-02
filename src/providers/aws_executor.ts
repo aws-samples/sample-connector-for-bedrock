@@ -46,13 +46,13 @@ export default class AWSExecutor extends AbstractProvider {
       }
 
       text = (text || "I will use this command:") + "\n\n";
-      ctx.res.write("data:" + WebResponse.wrap(0, null, "## Prepare the command\n\n", null) + "\n\n");
-      ctx.res.write("data:" + WebResponse.wrap(0, null, text, null) + "\n\n");
-      ctx.res.write("data:" + WebResponse.wrap(0, null, "```shell\n", null) + "\n\n");
-      ctx.res.write("data:" + WebResponse.wrap(0, null, (cli || "# No command extracted.") + "\n", null) + "\n\n");
-      ctx.res.write("data:" + WebResponse.wrap(0, null, "```\n\n", null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, "## Prepare the command\n\n", null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, text, null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, "```shell\n", null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, (cli || "# No command extracted.") + "\n", null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, "```\n\n", null) + "\n\n");
 
-      ctx.res.write("data:" + WebResponse.wrap(0, null, "## Execution result\n\n", null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, "## Execution result\n\n", null) + "\n\n");
 
       // console.log(JSON.stringify(cliResponse, null, 2), cli);
       let isValidCmd = cli && cli.indexOf("aws") == 0;
@@ -150,7 +150,7 @@ export default class AWSExecutor extends AbstractProvider {
   }
 
   outputWrong(ctx: any, cli: any) {
-    ctx.res.write("data:" + WebResponse.wrap(0, null, `Sorry, I can't execute your command, maybe the command was wrong. Please re-inquire or continue.\n\n`, null) + "\n\n");
+    ctx.res.write("data: " + WebResponse.wrap(0, null, `Sorry, I can't execute your command, maybe the command was wrong. Please re-inquire or continue.\n\n`, null) + "\n\n");
     ctx.res.end();
 
   }

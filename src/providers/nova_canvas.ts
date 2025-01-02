@@ -10,9 +10,10 @@ import helper from '../util/helper';
 // import config from "../config";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
-import logger from "../util/logger";
+// import logger from "../util/logger";
 
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+// const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 export default class NovaCanvas extends AbstractProvider {
   s3Client: S3Client;
@@ -92,9 +93,9 @@ export default class NovaCanvas extends AbstractProvider {
         'Cache-Control': 'no-cache',
         'Content-Type': 'text/event-stream',
       });
-      content && ctx.res.write("data:" + WebResponse.wrap(0, null, content, null) + "\n\n");
+      content && ctx.res.write("data: " + WebResponse.wrap(0, null, content, null) + "\n\n");
 
-      // args && ctx.res.write("data:" +
+      // args && ctx.res.write("data: " +
       //   WebResponse.wrap(0,
       //     null,
       //     "\n\n tool: " + funName + "\n\nparameters:\n\n```\n" + JSON.stringify(args, null, 2) + "\n```", null) + "\n\n");
@@ -109,7 +110,7 @@ export default class NovaCanvas extends AbstractProvider {
         for (const img of imgs) {
           const url = await this.uploadImage(img);
           const mdImg = `![](${url})`
-          ctx.res.write("data:" + WebResponse.wrap(0, this.paintModelId, `\n\n${mdImg}`, null) + "\n\n");
+          ctx.res.write("data: " + WebResponse.wrap(0, this.paintModelId, `\n\n${mdImg}`, null) + "\n\n");
         }
       }
       ctx.res.write("data: [DONE]\n\n");

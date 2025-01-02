@@ -106,7 +106,7 @@ export default class BedrockConverse extends AbstractProvider {
             for await (const item of response.stream) {
                 if (item.contentBlockDelta) {
                     responseText += item.contentBlockDelta.delta.text;
-                    ctx.res.write("data:" + WebResponse.wrap2(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                    ctx.res.write("data: " + WebResponse.wrap2(0, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
                 }
                 if (item.metadata) {
                     // console.log("resp----", responseText);
@@ -139,7 +139,7 @@ export default class BedrockConverse extends AbstractProvider {
 
         if (response.stream) {
             let responseText = "";
-            ctx.res.write("data:" + WebResponse.wrap(0, chatRequest.model, "", null) + "\n\n");
+            ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, "", null) + "\n\n");
 
             let index = 1;
             for await (const item of response.stream) {
@@ -147,13 +147,13 @@ export default class BedrockConverse extends AbstractProvider {
                 if (item.contentBlockDelta) {
                     responseText += item.contentBlockDelta.delta.text;
                     // const p = item.contentBlockDelta["p"];
-                    ctx.res.write("data:" + WebResponse.wrap(index, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
 
                     index++;
                 }
                 // if (item.contentBlockStop) {
                 //     const p = item.contentBlockStop["p"];
-                //     ctx.res.write("data:" + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, "", "stop") + "\n\n");
+                //     ctx.res.write("data: " + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, "", "stop") + "\n\n");
                 // }
                 if (item.metadata) {
                     // console.log(item);
@@ -161,7 +161,7 @@ export default class BedrockConverse extends AbstractProvider {
                     const output_tokens = item.metadata.usage.outputTokens;
                     const first_byte_latency = item.metadata.metrics.latencyMs;
 
-                    ctx.res.write("data:" + WebResponse.wrap(index, chatRequest.model, "", "stop", output_tokens, input_tokens) + "\n\n");
+                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", "stop", output_tokens, input_tokens) + "\n\n");
                     const response: ResponseData = {
                         text: responseText,
                         input_tokens,

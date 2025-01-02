@@ -104,7 +104,7 @@ export default class BedrockClaude extends AbstractProvider {
                         completion_tokens = 0;
                         prompt_tokens = 0;
                         finish_reason = null;
-                        ctx.res.write("data:" + WebResponse.wrap(i, model, content, finish_reason) + "\n\n");
+                        ctx.res.write("data: " + WebResponse.wrap(i, model, content, finish_reason) + "\n\n");
                     } else if (responseBody.type === "message_delta") {
                         content = null;
                         completion_tokens = responseBody.usage?.output_tokens;

@@ -93,7 +93,7 @@ export default class WebMiner extends AbstractProvider {
       }
     }
 
-    ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\n---\n\n", null) + "\n\n");
+    ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\n---\n\n", null) + "\n\n");
 
     const citaStrings = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
     let i = 0;
@@ -101,7 +101,7 @@ export default class WebMiner extends AbstractProvider {
       const citaIndex = j + 1;
       i = i + 1 + citaIndex;
       const citaContent = "\n\n[" + citaStrings[j] + " " + refItems[j]["title"] + "](" + refItems[j]["url"] + ")";
-      ctx.res.write("data:" + WebResponse.wrap(i, null, citaContent, null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(i, null, citaContent, null) + "\n\n");
     }
     ctx.res.write("data: [DONE]\n\n")
 

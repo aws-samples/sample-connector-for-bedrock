@@ -80,7 +80,7 @@ export default class OllamaAProvider extends AbstractProvider {
                 }
                 await this.saveThread(ctx, session_id, chatRequest, response);
             } else {
-                ctx.res.write("data:" + WebResponse.wrap(i, chatRequest.model_id, content, null) + "\n\n");
+                ctx.res.write("data: " + WebResponse.wrap(i, chatRequest.model_id, content, null) + "\n\n");
             }
 
         }

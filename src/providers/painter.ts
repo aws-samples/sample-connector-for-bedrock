@@ -4,7 +4,8 @@ import {
   InvokeModelCommand
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+// const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import helper from "../util/helper";
 // import config from "../config";
 import WebResponse from "../util/response";
@@ -91,9 +92,9 @@ export default class Painter extends AbstractProvider {
         'Cache-Control': 'no-cache',
         'Content-Type': 'text/event-stream',
       });
-      ctx.res.write("data:" + WebResponse.wrap(0, null, content || "No content found in the prompt.", null) + "\n\n");
-      prompt && ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null) + "\n\n");
-      negative_prompt && ctx.res.write("data:" + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, content || "No content found in the prompt.", null) + "\n\n");
+      prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null) + "\n\n");
+      negative_prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null) + "\n\n");
 
       const responseImage = await this.draw(paintModelId, {
         prompt,
@@ -101,7 +102,7 @@ export default class Painter extends AbstractProvider {
         width,
         height
       });
-      ctx.res.write("data:" + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null) + "\n\n");
       ctx.res.write("data: [DONE]\n\n")
     } else {
       ctx.set({
