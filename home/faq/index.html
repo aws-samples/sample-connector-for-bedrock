@@ -530,6 +530,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="How to support documents in chat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-configure-default-model-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to Configure Default Model Support?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-you-draw-diagrams" class="md-nav__link">
+    <span class="md-ellipsis">
+      Can You Draw Diagrams?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-wildcard" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Wildcard
+    </span>
+  </a>
+  
 </li>
       
     </ul>
@@ -889,6 +922,8 @@
       
         
       
+        
+      
     
     
       
@@ -1080,7 +1115,7 @@
         
   
   <span class="md-ellipsis">
-    openai-compatible
+    Openai compatible
   </span>
   
 
@@ -1123,6 +1158,27 @@
   
   <span class="md-ellipsis">
     sagemaker-lmi
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../providers/smart-router/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Smart router
   </span>
   
 
@@ -1235,6 +1291,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="How to support documents in chat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-configure-default-model-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to Configure Default Model Support?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-you-draw-diagrams" class="md-nav__link">
+    <span class="md-ellipsis">
+      Can You Draw Diagrams?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-wildcard" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Wildcard
+    </span>
+  </a>
+  
 </li>
       
     </ul>
@@ -1291,6 +1380,36 @@
 <a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>  &quot;max_tokens&quot;:4000
 <a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>}
 </code></pre></div>
+<h3 id="how-to-configure-default-model-support">How to Configure Default Model Support?<a class="headerlink" href="#how-to-configure-default-model-support" title="Permanent link">&para;</a></h3>
+<p>You just need to create a new model named <code>default</code>.</p>
+<h3 id="can-you-draw-diagrams">Can You Draw Diagrams?<a class="headerlink" href="#can-you-draw-diagrams" title="Permanent link">&para;</a></h3>
+<p>Yes, you can draw diagrams by configuring and using models with providers such as <code>painter</code> or <code>nova-canvas</code>.</p>
+<h2 id="model-wildcard">Model Wildcard<a class="headerlink" href="#model-wildcard" title="Permanent link">&para;</a></h2>
+<p>You can now configure a custom model and use slashes in the model name within API calls.</p>
+<p>Here is an example of an API call:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="err">POST</span><span class="w"> </span><span class="p">{{</span><span class="err">baseURL</span><span class="p">}}</span><span class="err">/cha</span><span class="kc">t</span><span class="err">/comple</span><span class="kc">t</span><span class="err">io</span><span class="kc">ns</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="err">Au</span><span class="kc">t</span><span class="err">horiza</span><span class="kc">t</span><span class="err">io</span><span class="kc">n</span><span class="p">:</span><span class="w"> </span><span class="err">Bearer</span><span class="w"> </span><span class="p">{{</span><span class="err">key</span><span class="p">}}</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="err">Co</span><span class="kc">ntent</span><span class="mi">-</span><span class="err">Type</span><span class="p">:</span><span class="w"> </span><span class="err">applica</span><span class="kc">t</span><span class="err">io</span><span class="kc">n</span><span class="err">/jso</span><span class="kc">n</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">{</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bedrock/us.amazon.nova-micro-v1:0&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">&quot;messages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="p">{</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">            </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">            </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tell me a joke that only programmers would understand&quot;</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="p">],</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">&quot;max_tokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5120</span><span class="p">,</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="nt">&quot;stream&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">}</span>
+</code></pre></div>
+<p>To use this method, you must:</p>
+<ol>
+<li>Configure a custom model with the model name <code>bedrock</code> in the backend.</li>
+<li>The model name after the slash can be customized but must match the original vendor&rsquo;s model name.</li>
+<li>The provider will prioritize the model name after the slash, then consider the model name configured in the backend, and finally fall back to the original name if necessary.</li>
+</ol>
+<p>Currently, providers that support this usage include: <code>bedrock_converse</code>, <code>openai_compatiable</code>.</p>
 
 
 
@@ -1313,7 +1432,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-09T16:56:30+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-01-02T13:04:20+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-01-02</span>
   </span>
 
     

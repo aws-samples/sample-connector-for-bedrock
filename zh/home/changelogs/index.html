@@ -547,6 +547,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.21
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0020" class="md-nav__link">
     <span class="md-ellipsis">
       0.0.20
@@ -1326,6 +1335,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.21
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0020" class="md-nav__link">
     <span class="md-ellipsis">
       0.0.20
@@ -1425,6 +1443,17 @@
 
 
 <h1 id="changelogs">Changelogs<a class="headerlink" href="#changelogs" title="Permanent link">&para;</a></h1>
+<h2 id="0021">0.0.21<a class="headerlink" href="#0021" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>New Provider: openai-compatible</strong> – This provider is designed to integrate APIs of models compatible with the OpenAI chat schema (tested with: deepseek, Doudao/Volcano platform, Qwen/Alibaba). <a href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/openai-compatible/">Detail</a>.</li>
+<li><strong>New Provider: smart-router</strong> – This provider analyzes the semantics of user input and selects an appropriate model to query.  <a href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/smart-router/">Detail</a>.</li>
+<li><strong>New Model Configuration Mechanism</strong>: You can now configure a custom model to adapt to all models provided by a specific model provider. <a href="https://aws-samples.github.io/sample-connector-for-bedrock/home/faq/#model-wildcard">Detail</a>.</li>
+<li><strong>Bugfix</strong>: Corrected the cache loading logic, which previously caused a program crash upon the first run of BRConnector.</li>
+<li><strong>Headers Value Pass-through in sagemaker-lmi Provider</strong>: Now, values in the headers are URL-encoded and included in the <code>CustomAttributes</code> tag of the SageMaker SDK.</li>
+<li><strong>BRClient Update to Version 1.2.5</strong>: Key updates include:<br />
+   - In AKSK mode, users can now customize the Bedrock endpoint.<br />
+   - Fixed a bug where pressing Enter in Chinese input methods would send the message immediately.</li>
+</ol>
 <h2 id="0020">0.0.20<a class="headerlink" href="#0020" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Fixed the representation of boolean types in environment variables. Now only &ldquo;false&rdquo; and &ldquo;0&rdquo; are considered as false.</li>
@@ -1553,7 +1582,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-26T16:10:08+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-01-02T13:04:20+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-01-02</span>
   </span>
 
     
