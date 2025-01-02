@@ -50,7 +50,11 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const embeddingRequest: EmbeddingRequest = ctx.request.body;
-        console.log(embeddingRequest, ctx.request.body);
+        const modelRes = helper.parseModelString(embeddingRequest.model);
+        if (modelRes) {
+            embeddingRequest.model = modelRes.model;
+            embeddingRequest.model_id = modelRes.model_id;
+        }
 
 
         const session_id = ctx.headers["session-id"];
@@ -90,6 +94,12 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const chatRequest: ChatRequest = ctx.request.body;
+
+        const modelRes = helper.parseModelString(chatRequest.model);
+        if (modelRes) {
+            chatRequest.model = modelRes.model;
+            chatRequest.model_id = modelRes.model_id;
+        }
 
 
         const session_id = ctx.headers["session-id"];

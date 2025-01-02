@@ -22,6 +22,18 @@ const helper = {
         }
         return "br-" + key;
     },
+    parseModelString(input: string) {
+        const slashIndex = input.indexOf('/');
+
+        if (slashIndex !== -1) {
+            const model = input.substring(0, slashIndex);
+            const model_id = input.substring(slashIndex + 1);
+
+            return { model: model, model_id: model_id };
+        } else {
+            return null;
+        }
+    },
 
     async downloadImageToBase64(url: string, client: S3Client): Promise<any> {
         if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
@@ -74,15 +86,16 @@ const helper = {
         return null;
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any): Promise<ModelData> => {
+        const model = chatRequest.model;
         if (ctx.cache && ctx.db) {
-            const models = ctx.cache.models.filter((e: any) => e.name === chatRequest.model);
+            const models = ctx.cache.models.filter((e: any) => e.name === model);
             if (models.length > 0) {
                 return models[0];
             }
-            throw new Error(`The model [${chatRequest.model}] is not found.`);
+            throw new Error(`The model [${model}] not found.`);
         }
         if (ctx.db) {
-            let rtn = await modelService.loadByName(ctx.db, chatRequest.model);
+            let rtn = await modelService.loadByName(ctx.db, model);
             if (!rtn) {
                 rtn = await modelService.loadByName(ctx.db, "default");
                 if (rtn) {
@@ -93,12 +106,12 @@ const helper = {
             }
             if (!rtn) {
                 // rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
-                throw new Error(`The model [${chatRequest.model}] is not found.`);
+                throw new Error(`The model [${model}] not found.`);
             }
 
             return rtn;
         }
-        return helper.getModelDataWithoutDB(chatRequest.model);
+        return helper.getModelDataWithoutDB(model);
     },
     convertImageExt: (mime?: string) => {
         if (mime.indexOf('image/jpeg') >= 0 || mime.indexOf('image/jpg') >= 0) {

@@ -1,5 +1,16 @@
 # Changelogs
 
+## 0.0.21
+
+1. **New Provider: openai-compatible** – This provider is designed to integrate APIs of models compatible with the OpenAI chat schema (tested with: deepseek, Doudao/Volcano platform, Qwen/Alibaba). [Detail](https://aws-samples.github.io/sample-connector-for-bedrock/providers/openai-compatible/).
+2. **New Provider: smart-router** – This provider analyzes the semantics of user input and selects an appropriate model to query.  [Detail](https://aws-samples.github.io/sample-connector-for-bedrock/providers/smart-router/).
+3. **New Model Configuration Mechanism**: You can now configure a custom model to adapt to all models provided by a specific model provider. [Detail](https://aws-samples.github.io/sample-connector-for-bedrock/home/faq/#model-wildcard).
+4. **Bugfix**: Corrected the cache loading logic, which previously caused a program crash upon the first run of BRConnector.
+5. **Headers Value Pass-through in sagemaker-lmi Provider**: Now, values in the headers are URL-encoded and included in the `CustomAttributes` tag of the SageMaker SDK.
+6. **BRClient Update to Version 1.2.5**: Key updates include:
+   - In AKSK mode, users can now customize the Bedrock endpoint.
+   - Fixed a bug where pressing Enter in Chinese input methods would send the message immediately.
+
 ## 0.0.20
 
 1. Fixed the representation of boolean types in environment variables. Now only "false" and "0" are considered as false.

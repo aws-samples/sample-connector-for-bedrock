@@ -2,6 +2,7 @@
 import OpenAI from 'openai';
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import AbstractProvider from "./abstract_provider";
+import helper from '../util/helper';
 
 
 export default class OpenAICompatible extends AbstractProvider {
@@ -20,16 +21,19 @@ export default class OpenAICompatible extends AbstractProvider {
     if (!apiKey) {
       throw new Error("You must specify the parameters 'apiKey' in the backend model configuration.")
     }
-    if (!model) {
-      throw new Error("You must specify the parameters 'model' in the backend model configuration.")
-    }
-    if (!this.client) {
+    // if (!model) {
+    //   throw new Error("You must specify the parameters 'model' in the backend model configuration.")
+    // }
+    if (!this.client || this.client.baseURL != baseURL) {
       this.client = new OpenAI({
         baseURL,
         apiKey
       });
     }
-    chatRequest.model_id = model;
+
+    if (!chatRequest.model_id && model) {
+      chatRequest.model_id = model;
+    }
 
     ctx.status = 200;
 
@@ -49,18 +53,16 @@ export default class OpenAICompatible extends AbstractProvider {
   }
 
   async chatStream(ctx: any, chatRequest: ChatRequest, session_id: string) {
-    const options = {
-      "temperature": chatRequest.temperature || 1.0,
-      "top_p": chatRequest.top_p || 1.0,
-    };
 
-    // const messages = JSON.parse(JSON.stringify(chatRequest.messages))
-    // const messages:ChatCompletionFunctionMessageParam  =  chatRequest.messages;
     const chatResponse = await this.client.chat.completions.create({
       model: chatRequest.model_id,
       messages: JSON.parse(JSON.stringify(chatRequest.messages)),
+      temperature: chatRequest.temperature || 1.0,
+      top_p: chatRequest.top_p || 1.0,
+      max_tokens: chatRequest.max_tokens,
       stream: true
-    })
+    });
+
 
     let responseText = "";
     let i = 0;
@@ -95,27 +97,29 @@ export default class OpenAICompatible extends AbstractProvider {
     const messages = JSON.parse(JSON.stringify(chatRequest.messages));
     const chatResponse = await this.client.chat.completions.create({
       model: chatRequest.model_id,
+      temperature: chatRequest.temperature || 1.0,
+      top_p: chatRequest.top_p || 1.0,
+      max_tokens: chatRequest.max_tokens,
       messages: messages
     });
 
-    // console.log("xxxxxxxxxxxxxxx", chatResponse);
-    if (chatResponse.usage) {
-      const {
-        completion_tokens, prompt_tokens,
-      } = chatResponse.usage;
+    const {
+      completion_tokens = 0,
+      prompt_tokens = 0
+    } = chatResponse.usage ?? {};
 
-      // console.log(chatResponse);
+    // console.log(chatResponse);
 
-      const content = chatResponse.choices[0].message.content || "";
+    const content = chatResponse.choices[0].message.content || "";
 
-      const response: ResponseData = {
-        text: content,
-        input_tokens: prompt_tokens,
-        output_tokens: completion_tokens,
-      }
-
-      await this.saveThread(ctx, session_id, chatRequest, response);
+    const response: ResponseData = {
+      text: content,
+      input_tokens: prompt_tokens,
+      output_tokens: completion_tokens,
     }
+
+    await this.saveThread(ctx, session_id, chatRequest, response);
+
     return chatResponse;
 
   }

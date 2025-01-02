@@ -92,7 +92,6 @@ export default class SagemakerLMI extends AbstractProvider {
                 return `${key}:${encodedValue}`;
             })
             .join(',');
-
     }
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         const command = new InvokeEndpointWithResponseStreamCommand(input);
