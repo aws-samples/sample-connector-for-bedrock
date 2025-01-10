@@ -245,6 +245,7 @@ export default class BedrockConverse extends AbstractProvider {
             if (c.toolUse) {
                 return {
                     message: {
+                        role: "assistant",
                         tool_calls: [
                             {
                                 type: "function",
