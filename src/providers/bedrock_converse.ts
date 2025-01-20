@@ -251,7 +251,8 @@ export default class BedrockConverse extends AbstractProvider {
                                 type: "function",
                                 function: {
                                     name: c.toolUse.name,
-                                    arguments: c.toolUse.input
+                                    // arguments: c.toolUse.input //fix to fit openai schema.
+                                    arguments: JSON.stringify(c.toolUse.input) //fix to fit openai schema.
                                 }
                             }
                         ]
