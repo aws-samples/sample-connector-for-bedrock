@@ -190,9 +190,9 @@ Parameters:
     Default: true
 
   LambdaEdgeVersionArn:
-    Description: ARN of the Lambda@Edge version
+    Description: Lambda@Edge version ARN. 
     Type: String
-    AllowedPattern: .*us-east-1.*
+    AllowedPattern: (^$|.*us-east-1.*)
     ConstraintDescription: The Lambda@Edge version ARN must include 'us-east-1'
 
 Conditions:
@@ -655,7 +655,10 @@ Resources:
         Origins:
           - Id: LambdaOrigin
             DomainName: !Select [2, !Split ["/", !GetAtt BRConnectorLambdaUrl.FunctionUrl]]
-            OriginAccessControlId: !Ref LambdaCloudFrontDistributionOac
+            OriginAccessControlId: !If 
+              - IsPrivateLambdaPermission
+              - !Ref LambdaCloudFrontDistributionOac
+              - !Ref AWS::NoValue
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
@@ -682,10 +685,13 @@ Resources:
           #   Cookies:
           #     Forward: none
           ViewerProtocolPolicy: redirect-to-https
-          LambdaFunctionAssociations:
-            - EventType: viewer-request
-              LambdaFunctionARN: !Ref LambdaEdgeVersionArn
-              IncludeBody: true
+          LambdaFunctionAssociations: !If 
+            - IsPrivateLambdaPermission
+            - 
+              - EventType: viewer-request
+                LambdaFunctionARN: !Ref LambdaEdgeVersionArn
+                IncludeBody: true
+            - !Ref AWS::NoValue
         ViewerCertificate:
           CloudFrontDefaultCertificate: 'true'
 
@@ -831,7 +837,7 @@ Resources:
       Timeout: 60 
       Environment:
         Variables:
-          AWS_LWA_AUTHORIZATION_SOURCE: saved-authorization # header name
+          AWS_LWA_AUTHORIZATION_SOURCE: !If [ IsPrivateLambdaPermission, "saved-authorization", "" ]
           ADMIN_API_KEY: !GetAtt MySSMParameterAdminKey.Value
           PERFORMANCE_MODE: !Ref PerformanceMode
           PGSQL_HOST: !If [ IsNoDB, "", !GetAtt MyPG.Endpoint.Address ]
