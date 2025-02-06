@@ -23,6 +23,10 @@ Following key components will be included in this Cloudformation template:
 - ECR with pull through cache enabled
 
 ## Deploy Guide
+- deploy lambda@edge at us-east-1 for cloudfront viewer request
+
+[![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
+
 
 - Download [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
 

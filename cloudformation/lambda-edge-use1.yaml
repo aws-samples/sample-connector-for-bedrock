@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda@Edge resources
+
+Resources:
+  LambdaEdgeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaEdgeRole.Arn
+      Code:
+        ZipFile: |
+          // File: index.js
+          // export const handler = async (event) => {
+          const crypto = require('crypto');
+
+          exports.handler = async (event) => {
+              const request = event.Records[0].cf.request;
+              const headers = request.headers;
+
+              console.log(`request: ${JSON.stringify(request)}`);
+
+              const headerNameSrc = 'authorization';
+              const headerNameDst = 'saved-authorization';
+
+              if (headers[headerNameSrc]) {
+                  headers[headerNameDst] = [{
+                      key: headerNameDst,
+                      value: headers[headerNameSrc][0].value,
+                  }];
+                  console.log(`request header "${headerNameDst}" was set to ` +
+                              `"${headers[headerNameDst][0].value}"`);
+                  // delete headers[headerNameSrc];
+                  console.log(`request: ${JSON.stringify(headers)}`);
+              }
+
+              if (request.method === 'POST' || request.method === 'PUT') {
+                  if (request.body && request.body.data) {
+                      const bodyBuffer = Buffer.from(request.body.data, 'base64');
+                      const hash = crypto.createHash('sha256').update(bodyBuffer).digest('hex');
+                      
+                      request.headers['x-amz-content-sha256'] = [{
+                          key: 'x-amz-content-sha256',
+                          value: hash
+                      }];
+                  } else {
+                      // using this sha256 if request body empty
+                      request.headers['x-amz-content-sha256'] = [{
+                          key: 'x-amz-content-sha256',
+                          value: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+                      }];
+                  }
+              }
+
+              return request;
+          };
+
+      Runtime: nodejs18.x
+      Timeout: 5
+
+  LambdaEdgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - edgelambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+
+  LambdaEdgeVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref LambdaEdgeFunction
+      Description: v1
+
+Outputs:
+  LambdaEdgeVersionArn:
+    Value: !Ref LambdaEdgeVersion
