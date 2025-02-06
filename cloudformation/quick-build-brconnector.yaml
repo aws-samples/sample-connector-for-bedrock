@@ -28,7 +28,7 @@ Metadata:
           # - EC2InstanceAMI
 
       - Label: 
-          default: "For Lambda settings (!!! PUBLIC FUNCTION URL will be used. !!!)"
+          default: "For Lambda settings (!!! If LambdaEdgeVersionArn is NULL, PUBLIC FUNCTION URL will be used. !!!)"
       - Parameters:
           - EcrRepo
           - LambdaArch
