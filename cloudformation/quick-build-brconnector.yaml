@@ -32,6 +32,7 @@ Metadata:
       - Parameters:
           - EcrRepo
           - LambdaArch
+          - LambdaEdgeVersionArn
 
       - Label: 
           default: "Settings for RDS PostgreSQL"
@@ -175,7 +176,7 @@ Parameters:
     Type: String
     AllowedValues:
       - latest
-      - "0.0.17"
+      - "0.0.19"
       - "0.0.16"
       - "0.0.15"
     Default: latest
@@ -187,6 +188,12 @@ Parameters:
       - true
       - false
     Default: true
+
+  LambdaEdgeVersionArn:
+    Description: ARN of the Lambda@Edge version
+    Type: String
+    AllowedPattern: .*us-east-1.*
+    ConstraintDescription: The Lambda@Edge version ARN must include 'us-east-1'
 
 Conditions:
   IsNewVpc: !Equals [!Ref NewVpc, 'true']
@@ -215,6 +222,12 @@ Conditions:
     - !Equals [!Ref AutoUpdateBRConnector, 'true']
     - !Condition IsLambda
   NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
+  IsPublicLambdaPermission: !And
+    - !Condition IsLambda
+    - !Equals [!Ref LambdaEdgeVersionArn, '']
+  IsPrivateLambdaPermission: !And
+    - !Condition IsLambda
+    - !Not [!Equals [!Ref LambdaEdgeVersionArn, '']]
 
 Mappings:
   ArchitectureMapping:
@@ -378,7 +391,7 @@ Resources:
       DBName: !Ref PGDatabase
       DBInstanceClass: db.t4g.small
       Engine: postgres
-      EngineVersion: "16"
+      EngineVersion: "16.3"
       MasterUsername: postgres
       MasterUserPassword: !Ref PGPassword
       DBParameterGroupName: !Ref MyPGParameterGroup
@@ -642,12 +655,15 @@ Resources:
         Origins:
           - Id: LambdaOrigin
             DomainName: !Select [2, !Split ["/", !GetAtt BRConnectorLambdaUrl.FunctionUrl]]
+            OriginAccessControlId: !Ref LambdaCloudFrontDistributionOac
             CustomOriginConfig:
               HTTPPort: 80
               HTTPSPort: 443
               OriginProtocolPolicy: https-only
+              OriginSSLProtocols: 
+                - TLSv1.2
         Enabled: 'true'
-        Comment: CloudFront distribution in front of EC2
+        Comment: CloudFront distribution in front of Lambda
         # ViewerProtocolPolicy: https-only
         DefaultCacheBehavior:
           AllowedMethods:
@@ -666,8 +682,23 @@ Resources:
           #   Cookies:
           #     Forward: none
           ViewerProtocolPolicy: redirect-to-https
+          LambdaFunctionAssociations:
+            - EventType: viewer-request
+              LambdaFunctionARN: !Ref LambdaEdgeVersionArn
+              IncludeBody: true
         ViewerCertificate:
           CloudFrontDefaultCertificate: 'true'
+
+  LambdaCloudFrontDistributionOac:
+    Condition: IsEnableCloudfrontLambda
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties: 
+      OriginAccessControlConfig: 
+          Description: An optional description for the origin access control
+          Name: !Sub LambdaOAC-${RandomString}
+          OriginAccessControlOriginType: lambda
+          SigningBehavior: always
+          SigningProtocol: sigv4
 
   MySSMParameterFirstUserKey:
     Type: AWS::SSM::Parameter
@@ -800,6 +831,7 @@ Resources:
       Timeout: 60 
       Environment:
         Variables:
+          AWS_LWA_AUTHORIZATION_SOURCE: saved-authorization # header name
           ADMIN_API_KEY: !GetAtt MySSMParameterAdminKey.Value
           PERFORMANCE_MODE: !Ref PerformanceMode
           PGSQL_HOST: !If [ IsNoDB, "", !GetAtt MyPG.Endpoint.Address ]
@@ -817,16 +849,10 @@ Resources:
             SubnetIds:
               - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet1Id, !Ref PrivateSubnet1Id ]
 
-  BRConnectorLambdaVersion:
-    Condition: IsLambda	
-    Type: AWS::Lambda::Version
-    Properties:
-      FunctionName: !Ref BRConnectorLambda
-      # ProvisionedConcurrencyConfiguration:
-      # ProvisionedConcurrentExecutions: 3
-
-  BRConnectorLambdaPermission:
-    Condition: IsLambda	
+  BRConnectorLambdaPermission1:
+    Condition: IsPublicLambdaPermission
+    DependsOn:
+      - LambdaCloudFrontDistribution
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref BRConnectorLambda
@@ -834,12 +860,35 @@ Resources:
       Principal: "*"
       FunctionUrlAuthType: NONE
 
+  BRConnectorLambdaPermission2:
+    Condition: IsPrivateLambdaPermission
+    DependsOn:
+      - LambdaCloudFrontDistribution
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref BRConnectorLambda
+      Action: lambda:InvokeFunctionUrl
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${LambdaCloudFrontDistribution}"
+      FunctionUrlAuthType: AWS_IAM
+
+  BRConnectorLambdaVersion:
+    Condition: IsLambda	
+    # DependsOn:
+    #   - BRConnectorLambdaPermission1
+    #   - BRConnectorLambdaPermission2
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref BRConnectorLambda
+      # ProvisionedConcurrencyConfiguration:
+      # ProvisionedConcurrentExecutions: 3
+
   BRConnectorLambdaUrl:
     Condition: IsLambda	
     Type: AWS::Lambda::Url
     Properties:
       TargetFunctionArn: !Ref BRConnectorLambda
-      AuthType: NONE
+      AuthType:  !If [ IsPublicLambdaPermission, 'NONE', 'AWS_IAM']
       InvokeMode: RESPONSE_STREAM
 
   DeleteEC2Lambda:
@@ -1178,5 +1227,3 @@ Outputs:
     Condition: IsLambda
     Description: Lambda URL (debug)
     Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
-
-
