@@ -688,7 +688,7 @@ Resources:
           LambdaFunctionAssociations: !If 
             - IsPrivateLambdaPermission
             - 
-              - EventType: viewer-request
+              - EventType: origin-request # viewer-request has 53KB limit, it's too small
                 LambdaFunctionARN: !Ref LambdaEdgeVersionArn
                 IncludeBody: true
             - !Ref AWS::NoValue
@@ -701,7 +701,7 @@ Resources:
     Properties: 
       OriginAccessControlConfig: 
           Description: An optional description for the origin access control
-          Name: !Sub LambdaOAC-${RandomString}
+          Name: !Sub LambdaOAC-${AWS::StackName}
           OriginAccessControlOriginType: lambda
           SigningBehavior: always
           SigningProtocol: sigv4
