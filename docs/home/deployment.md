@@ -15,17 +15,25 @@ Enable Claude 3 Sonnet or Haiku in your region - If you are new to using Anthrop
 ## Components
 
 Following key components will be included in this Cloudformation template:
+
 - Cloudfront
 - BRConnector on Lambda or EC2
 - RDS PostgreSQL or PostgreSQL container on EC2 or without database
 - ECR with pull through cache enabled
 
+## Deploy Patterns
+
+Here are some recommend deployment patterns:
+
+- Deploy BRConnector on EC2 with integrated database, put Cloudfront in front of EC2
+- Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of public Lambda function URL
+- Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of Lambda function URL with AWS_IAM authorization type
+
 ## Deploy Guide
-- Deploy lambda@edge at us-east-1 region for cloudfront viewer request
+
+- (Option) If you need lambda function URL with AWS_IAM auth type, deploy lambda@edge at us-east-1 region for Cloudfront viewer request. After deploy successfully, get lambda version ARN from outputs page. 
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
-
-- After lambda@edge deployed successfully, get lambda version ARN from outputs page. This will be needed when you deploy BRConnector using Lambda URL with AWS_IAM auth type.
 
 - Deploy BRConnector in any supported region. Download [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
 
