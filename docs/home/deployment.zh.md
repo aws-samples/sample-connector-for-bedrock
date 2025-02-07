@@ -22,9 +22,22 @@ Cloudformation 模板已在以下区域验证：
 - EC2 上的 RDS PostgreSQL 或 PostgreSQL 容器 或者 不需要数据库
 - 启用了拉取缓存的 ECR
 
+## 部署模式
+
+以下是一些推荐的部署模式:
+
+- 在 EC2 上部署 BRConnector ，并集成数据库，在 EC2 前面放置 Cloudfront
+- 在 Lambda 上部署 BRConnector ，使用独立数据库(或无数据库)，在公开的 Lambda 函数 URL 前面放置 Cloudfront
+- 在 Lambda 上部署 BRConnector ，使用独立数据库(或无数据库)，在使用 AWS_IAM 授权类型的 Lambda 函数 URL 前面放置Cloudfront
+- 
+
 ## 部署指南
 
-- 下载 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 并上传到 Cloudformation 控制台或单击此按钮直接启动。
+- （可选）如果需要使用 AWS_IAM 授权类型的 Lambda 函数 URL ，部署 lambda@edge 在 us-east-1 区域，用于 Cloudfront viewer request。成功部署后，从输出页面获取 Lambda 版本 ARN。
+
+[![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
+
+- 部署 BRConnector 在任何支持的区域。下载 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 并上传到 Cloudformation 控制台或单击此按钮直接启动。
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
@@ -40,11 +53,12 @@ Cloudformation 模板已在以下区域验证：
     - 现在仅支持 Amazon Linux 2023
     - 您可以选择在同一个 EC2 实例中以容器方式创建 PostgreSQL（DatabaseMode 设置为 `EC2Integrated`），或者创建独立的 RDS PostgreSQL 作为后端数据库（DatabaseMode 设置为 `Standalone`）
   - 对于 Lambda 设置
-    - 将使用 <mark style="background: #ADCCFFA6;">PUBLIC 函数 URL</mark>。请确保此安全设置是可接受的
-    - 定义您的私有存储库名称前缀字符串
-    - 您可以选择创建 RDS PostgreSQL 数据库（DatabaseMode 设置为 `Standalone`），或者不使用数据库（DatabaseMode 设置为 `NoDB`）
+    - `EcrRepo` 定义您的私有存储库名称前缀字符串
+    - `LambdaArch` 定义 Lambda 架构是 arm64 或 amd64 
+    - 如果 `LambdaEdgeVersionArn` 为空，将使用 <mark style="background: #ADCCFFA6;">PUBLIC 函数 URL</mark>。请确保此安全设置是可接受的
+    - 另外，您可以选择创建 RDS PostgreSQL 数据库（DatabaseMode 设置为 `Standalone`），或者不使用数据库（DatabaseMode 设置为 `NoDB`）
 
-![attachments/deployment/IMG-deployment-7.png](attachments/deployment/IMG-deployment-7.png)
+![attachments/deployment/IMG-deployment-8.png](attachments/deployment/IMG-deployment-8.png)
 
 - PostgreSQL 参数
   - DatabaseMode选择：

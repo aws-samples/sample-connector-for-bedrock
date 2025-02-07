@@ -22,9 +22,22 @@ Following key components will be included in this Cloudformation template:
 - RDS PostgreSQL or PostgreSQL container on EC2 or without database
 - ECR with pull through cache enabled
 
+## Deploy Patterns
+
+Here are some recommend deployment patterns:
+
+- Deploy BRConnector on EC2 with integrated database, put Cloudfront in front of EC2
+- Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of public Lambda function URL
+- Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of Lambda function URL with AWS_IAM authorization type
+- 
+
 ## Deploy Guide
 
-- Download [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
+- (Option) If you need lambda function URL with AWS_IAM auth type, deploy lambda@edge at us-east-1 region for Cloudfront viewer request. After deploy successfully, get lambda version ARN from outputs page. 
+
+[![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
+
+- Deploy BRConnector in any supported region. Download [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
@@ -40,11 +53,12 @@ Following key components will be included in this Cloudformation template:
     - Now only support Amazon Linux 2023
     - You could choose to create PostgreSQL as container in same EC2 (DatabaseMode to `EC2Integrated`), or create standalone RDS PostgreSQL as backend (DatabaseMode to `Standalone`)
   - For Lambda settings
-    - <mark style="background: #ADCCFFA6;">PUBLIC Function URL</mark> will be used. Please ensure this security setting is acceptable
-    - Define your private repository name prefix string
-    - You could choose to create RDS PostgreSQL (DatabaseMode to `Standalone`) or without database (DatabaseMode to `NoDB`)
+    - `EcrRepo` Define your private repository name prefix string
+    - `LambdaArch` Define using arm64 or amd64 for your lambda architecture
+    - <mark style="background: #ADCCFFA6;">PUBLIC Function URL</mark> will be used if `LambdaEdgeVersionArn` is NULL. Please ensure this security setting is acceptable
+    - And you could choose to create RDS PostgreSQL (DatabaseMode to `Standalone`) or without database (DatabaseMode to `NoDB`)
 
-![[attachments/deployment/IMG-deployment-7.png]]
+![attachments/deployment/IMG-deployment-8.png](attachments/deployment/IMG-deployment-8.png)
 
 - PostgreSQL parameters
   - DatabaseMode choose:
@@ -54,14 +68,14 @@ Following key components will be included in this Cloudformation template:
   - Set PerformanceMode to true, chat history will not be saved.
   - Default PostgreSQL password is `mysecretpassword`
 
-![[attachments/deployment/IMG-deployment-13.png]]
+![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
 - Debugging parameters
   - If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.
   - Don't delete EC2 if you choose EC2 as ComputeType
   - If you set `true` to AutoUpdateBRConnector, one script will be add to ec2 crontab
 
-![[attachments/deployment/IMG-deployment-14.png]]
+![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
 - Until deploy successfully, go to output page and copy Cloudfront URL and first user key to your bedrock client settings page.
 
