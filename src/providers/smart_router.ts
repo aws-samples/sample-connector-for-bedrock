@@ -118,22 +118,25 @@ Respond with model name only. No explanation or additional text.
     if ("success" in jRes && jRes.success === false) {
       throw new Error(jRes.data);
     }
-    console.log(JSON.stringify(jRes, null, 2));
-
+    // console.log(JSON.stringify(jRes, null, 2));
 
     let modelId = "default";
-    for (const c of jRes.choices) {
-      // if (c.message.content) {
-      //   content = c.message.content;
-      // }
-      if (c.message.tool_calls) {
-        for (const tool of c.message.tool_calls) {
-          if (tool["function"]["name"] == "chooseModel") {
-            modelId = tool["function"]["arguments"]["modelId"];
-          }
+
+    for (const choice of jRes.choices) {
+      const { message } = choice;
+
+      if (message.tool_calls) {
+        const chooseModelTool = message.tool_calls.find(
+          tool => tool["function"]["name"] === "chooseModel"
+        );
+
+        if (chooseModelTool) {
+          const args = JSON.parse(chooseModelTool["function"]["arguments"]);
+          modelId = args.modelId || "default";
         }
       }
     }
+
     return modelId;
   }
 }

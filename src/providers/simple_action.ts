@@ -235,24 +235,29 @@ ${JSON.stringify(result, null, 2)}
 
     return await response.json();
   }
-
   toPostData(res: any) {
     let message = "";
-    let data: any = {};
+    const data: Record<string, any> = {};
+
     if (res.choices) {
-      for (const c of res.choices) {
-        if (c.message.content) {
-          message += c.message.content;
+      for (const choice of res.choices) {
+        const { message: choiceMessage, tool_calls } = choice.message;
+
+        if (choiceMessage.content) {
+          message += choiceMessage.content;
         }
-        if (c.message.tool_calls) {
-          for (const t of c.message.tool_calls) {
-            if (t.function && t.function.arguments) {
-              data = { ...data, ...t.function.arguments };
+
+        if (tool_calls) {
+          for (const tool of tool_calls) {
+            if (tool.function && tool.function.arguments) {
+              const args = JSON.parse(tool.function.arguments);
+              Object.assign(data, args);
             }
           }
         }
       }
     }
+
     return { message, data };
   }
 

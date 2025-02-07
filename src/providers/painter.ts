@@ -69,23 +69,54 @@ export default class Painter extends AbstractProvider {
     if (chatRequest.stream) {
       const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
 
-      let content: string, prompt: string, negative_prompt: string, width: number, height: number;
+      const { choices } = promptResult;
 
-      for (const c of promptResult.choices) {
-        if (c.message.content) {
-          content = c.message.content;
+      let content: string;
+      let prompt: string;
+      let negative_prompt: string;
+      let width: number;
+      let height: number;
+
+      for (const choice of choices) {
+        const { message } = choice;
+
+        if (message.content) {
+          content = message.content;
         }
-        if (c.message.tool_calls) {
-          for (const tool of c.message.tool_calls) {
-            if (tool["function"]["name"] == "draw") {
-              prompt = tool["function"]["arguments"]["prompt"];
-              negative_prompt = tool["function"]["arguments"]["negative_prompt"];
-              width = tool["function"]["arguments"]["width"];
-              height = tool["function"]["arguments"]["height"];
-            }
+
+        if (message.tool_calls) {
+          const drawTool = message.tool_calls.find(tool => tool["function"]["name"] === "draw");
+
+          if (drawTool) {
+            const args = JSON.parse(drawTool["function"]["arguments"]);
+            prompt = args.prompt;
+            negative_prompt = args.negative_prompt;
+            width = args.width;
+            height = args.height;
           }
         }
       }
+
+
+
+      // let content: string, prompt: string, negative_prompt: string, width: number, height: number;
+
+      // for (const c of promptResult.choices) {
+      //   if (c.message.content) {
+      //     content = c.message.content;
+      //   }
+      //   if (c.message.tool_calls) {
+      //     for (const tool of c.message.tool_calls) {
+      //       if (tool["function"]["name"] == "draw") {
+      //         const jArgs = JSON.parse(tool["function"]["arguments"]);
+      //         prompt = tool["function"]["arguments"]["prompt"];
+      //         negative_prompt = jArgs["negative_prompt"];
+      //         width = jArgs["width"];
+      //         height = jArgs["height"];
+      //       }
+      //     }
+      //   }
+      // }
 
       ctx.set({
         'Connection': 'keep-alive',
@@ -96,13 +127,15 @@ export default class Painter extends AbstractProvider {
       prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null) + "\n\n");
       negative_prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null) + "\n\n");
 
-      const responseImage = await this.draw(paintModelId, {
-        prompt,
-        negative_prompt,
-        width,
-        height
-      });
-      ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null) + "\n\n");
+      if (prompt) {
+        const responseImage = await this.draw(paintModelId, {
+          prompt,
+          negative_prompt,
+          width,
+          height
+        });
+        ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null) + "\n\n");
+      }
       ctx.res.write("data: [DONE]\n\n")
     } else {
       ctx.set({

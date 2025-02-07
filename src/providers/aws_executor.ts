@@ -30,18 +30,23 @@ export default class AWSExecutor extends AbstractProvider {
       });
 
       const cliResponse = await this.extractCli(ctx, chatRequest);
-      let cli: string, text: string;
+      let cli: string | undefined;
+      let text: string | undefined;
 
       for (const c of cliResponse.choices) {
-        if (c.message.tool_calls) {
-          for (const tool of c.message.tool_calls) {
-            if (tool["function"]["name"] == "extractCli") {
-              cli = tool["function"]["arguments"]["cli"];
-            }
+        const { message } = c;
+        const { tool_calls, content } = message;
+
+        if (tool_calls) {
+          for (const tool of tool_calls) {
+            const { function: { name, arguments: args } = {} } = tool || {};
+            cli = name === "extractCli" ? JSON.parse(args)?.cli : undefined;
+            if (cli) break;
           }
         }
-        if (c.message.content) {
-          text = c.message.content;
+
+        if (content) {
+          text = content;
         }
       }
 

@@ -29,16 +29,21 @@ export default class WebMiner extends AbstractProvider {
     if (chatRequest.stream) {
       const keywordsResponse = await this.extractKeywords(chatRequest, session_id, ctx);
       let keyword: string;
-      for (const c of keywordsResponse.choices) {
-        if (c.message.tool_calls) {
-          for (const tool of c.message.tool_calls) {
-            if (tool["function"]["name"] == "extractKeywords") {
-              keyword = tool["function"]["arguments"]["keywords"];
-            }
+
+      for (const choice of keywordsResponse.choices) {
+        const { message } = choice;
+
+        if (message.tool_calls) {
+          const extractKeywordsTool = message.tool_calls.find(
+            (tool: any) => tool["function"]["name"] === "extractKeywords"
+          );
+
+          if (extractKeywordsTool) {
+            const args = JSON.parse(extractKeywordsTool["function"]["arguments"]);
+            keyword = args.keywords;
           }
         }
       }
-
 
       const lastQ = chatRequest.messages[chatRequest.messages.length - 1];
       const q = lastQ.content;

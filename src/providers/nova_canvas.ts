@@ -69,23 +69,48 @@ export default class NovaCanvas extends AbstractProvider {
     const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
     // console.log(JSON.stringify(promptResult, null, 2));
 
-    let content: string, args: any, funName: string, imgs: [any]
-    for (const c of promptResult.choices) {
-      if (c.message.content) {
-        content = c.message.content;
-      }
-      if (c.message.tool_calls) {
-        for (const tool of c.message.tool_calls) {
-          if (tool["function"]["name"]) {
-            funName = tool["function"]["name"];
-            args = tool["function"]["arguments"];
-            break;
-          }
-        }
+
+    const { choices } = promptResult;
+    const choice = choices.find(c => c.message.content || c.message.tool_calls);
+
+    if (!choice) {
+      // 处理没有找到合适的选择的情况
+      return;
+    }
+
+    const { content, tool_calls } = choice.message;
+    let funName, args, imgs;
+
+    if (content) {
+      // 处理 content 的情况
+    }
+
+    if (tool_calls) {
+      const tool = tool_calls.find(t => t["function"]["name"]);
+      if (tool) {
+        funName = tool["function"]["name"];
+        args = tool["function"]["arguments"];
+        // 处理 funName 和 args 的情况
       }
     }
 
-    args && ctx.logger.info(`func: ${funName}` + ", parameters: \n" + JSON.stringify(args, null, 2));
+    // let content: string, args: any, funName: string, imgs: [any]
+    // for (const c of promptResult.choices) {
+    //   if (c.message.content) {
+    //     content = c.message.content;
+    //   }
+    //   if (c.message.tool_calls) {
+    //     for (const tool of c.message.tool_calls) {
+    //       if (tool["function"]["name"]) {
+    //         funName = tool["function"]["name"];
+    //         args = tool["function"]["arguments"];
+    //         break;
+    //       }
+    //     }
+    //   }
+    // }
+
+    // args && ctx.logger.info(`func: ${funName}` + ", parameters: \n" + JSON.stringify(args, null, 2));
 
     if (chatRequest.stream) {
       ctx.set({
@@ -101,9 +126,21 @@ export default class NovaCanvas extends AbstractProvider {
       //     "\n\n tool: " + funName + "\n\nparameters:\n\n```\n" + JSON.stringify(args, null, 2) + "\n```", null) + "\n\n");
     }
 
-    if (this[funName]) {
-      imgs = await this[funName](args);
+    if (funName && typeof this[funName] === 'function') {
+      try {
+        const jArgs = JSON.parse(args);
+        imgs = await this[funName](jArgs);
+      } catch (error) {
+        throw new Error("Error: " + error);
+      }
     }
+
+
+
+    // if (this[funName]) {
+    //   const jArgs = JSON.parse(args);
+    //   imgs = await this[funName](jArgs);
+    // }
 
     if (chatRequest.stream) {
       if (imgs && Array.isArray(imgs)) {
