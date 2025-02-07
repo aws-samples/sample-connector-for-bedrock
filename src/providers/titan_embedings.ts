@@ -32,37 +32,59 @@ class TitanEmbeddings extends AbstractProvider {
     ctx.body = "Sorry, this model is only for embeddings.";
   }
 
+  async getEmbedding(inputText: string): Promise<any> {
+    let request: any = {
+      inputText
+    };
+
+    if (this.normalize === false) {
+      request.normalize = false;
+    }
+    if (this.dimensions) {
+      request.dimensions = this.dimensions;
+    }
+
+    const command = new InvokeModelCommand({
+      modelId: this.modelId,
+      body: JSON.stringify(request)
+    });
+
+    const response = await this.client.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    let embedding = responseBody.embedding || [];
+
+    return {
+      embedding,
+      input_tokens: responseBody.inputTextTokenCount || 0,
+    }
+  }
+
   async embed(embeddingRequest: EmbeddingRequest, session_id: string, ctx: any): Promise<void> {
     await this.init();
 
+
     try {
-      let request: any = {
-        inputText: embeddingRequest.input
-      };
 
-      if (this.normalize === false) {
-        request.normalize = false;
+      const inputs = Array.isArray(embeddingRequest.input) ? embeddingRequest.input : [embeddingRequest.input]
+
+      let sumInputTokens = 0;
+      let data = [];
+      for (const [index, input] of inputs.entries()) {
+        // console.log(index, input);
+        const embRes = await this.getEmbedding(input.toString());
+        sumInputTokens += embRes.input_tokens;
+        data.push({
+          object: "embedding",
+          index,
+          embedding: embRes.embedding
+        });
       }
-      if (this.dimensions) {
-        request.dimensions = this.dimensions;
-      }
 
-      const command = new InvokeModelCommand({
-        modelId: this.modelId,
-        body: JSON.stringify(request)
-      });
-
-      const response = await this.client.send(command);
-      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-
-      if (!responseBody.embedding) {
-        responseBody.embedding = [];
-      }
 
       // console.log(responseBody);
       const responseData: ResponseData = {
         text: "",
-        input_tokens: responseBody.inputTextTokenCount,
+        input_tokens: sumInputTokens,
         output_tokens: 0,
         invocation_latency: 0
       }
@@ -72,13 +94,9 @@ class TitanEmbeddings extends AbstractProvider {
       ctx.body = {
         object: "list",
         model: this.modelId,
-        data: {
-          "object": "embedding",
-          embedding: responseBody.embedding,
-          index: 0,
-        },
+        data,
         usage: {
-          prompt_tokens: responseBody.inputTextTokenCount
+          prompt_tokens: sumInputTokens
         }
       };
     } catch (error) {

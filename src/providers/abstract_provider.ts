@@ -126,8 +126,11 @@ export default abstract class AbstractProvider {
         // const fee_out = 0;
         const fee: number = fee_in;
 
+        const prompt = Array.isArray(embeddingRequese.input) ?
+            JSON.stringify(embeddingRequese.input) : embeddingRequese.input;
+
         const threadData: any = {
-            prompt: embeddingRequese.input,
+            prompt,
             completion: "",
             whole_prompt: "",
             key_id: ctx.user.id,

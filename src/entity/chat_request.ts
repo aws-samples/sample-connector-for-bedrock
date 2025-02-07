@@ -22,7 +22,7 @@ interface ChatRequest {
 
 interface EmbeddingRequest {
     model: string;
-    input: string;
+    input: any;
     encoding_format?: string;
     [key: string]: any;
 }
