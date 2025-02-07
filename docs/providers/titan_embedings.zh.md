@@ -24,3 +24,50 @@ titan_embedings 的配置示例如下：
   ]
 }
 ```
+
+## API 使用方法
+
+embeddings API 遵循 OpenAI 兼容格式：
+
+```http
+POST /v1/embeddings
+Authorization: Bearer {{key}}
+Content-Type: application/json
+
+{
+  "model": "{{model}}", 
+  "input": "我是谁"
+}
+```
+
+对于批量处理，您可以传入字符串数组：
+
+```http
+POST /v1/embeddings
+Authorization: Bearer {{key}}
+Content-Type: application/json
+
+{
+  "model": "{{model}}", 
+  "input": ["我是谁", "hero"]
+}
+```
+
+API 将返回如下格式的响应：
+
+```json
+{
+  "object": "list",
+  "model": "amazon.titan-embed-text-v2:0",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": [
+        -0.03824065253138542,
+        0.0244449749588,
+        // ... (剩余的 embedding 值)
+      ]
+    }
+  ]
+}

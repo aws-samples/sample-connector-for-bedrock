@@ -1,5 +1,9 @@
 # Changelogs
 
+## 0.0.22 (releasing)
+
+1. **API Update: titan_embeddings** – Updated the embeddings API to follow OpenAI-compatible format. The API now accepts both single string and array inputs through `/v1/embeddings` endpoint. [Detail](../providers/titan_embedings.md).
+
 ## 0.0.21
 
 1. **New Provider: openai-compatible** – This provider is designed to integrate APIs of models compatible with the OpenAI chat schema (tested with: deepseek, Doudao/Volcano platform, Qwen/Alibaba). [Detail](https://aws-samples.github.io/sample-connector-for-bedrock/providers/openai-compatible/).

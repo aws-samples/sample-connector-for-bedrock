@@ -24,3 +24,50 @@ An example configuration for titan_embeddings is as follows:
   ]
 }
 ```
+
+## API Usage
+
+The embeddings API follows the OpenAI-compatible format:
+
+```http
+POST /v1/embeddings
+Authorization: Bearer {{key}}
+Content-Type: application/json
+
+{
+  "model": "{{model}}", 
+  "input": "我是谁"
+}
+```
+
+For batch processing, you can pass an array of strings:
+
+```http
+POST /v1/embeddings
+Authorization: Bearer {{key}}
+Content-Type: application/json
+
+{
+  "model": "{{model}}", 
+  "input": ["我是谁", "hero"]
+}
+```
+
+The API will return a response in the following format:
+
+```json
+{
+  "object": "list",
+  "model": "amazon.titan-embed-text-v2:0",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": [
+        -0.03824065253138542,
+        0.0244449749588,
+        // ... (remaining embedding values)
+      ]
+    }
+  ]
+}
