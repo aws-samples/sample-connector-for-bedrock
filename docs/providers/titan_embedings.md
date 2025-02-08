@@ -36,7 +36,7 @@ Content-Type: application/json
 
 {
   "model": "{{model}}", 
-  "input": "我是谁"
+  "input": "你好"
 }
 ```
 
@@ -49,7 +49,7 @@ Content-Type: application/json
 
 {
   "model": "{{model}}", 
-  "input": ["我是谁", "hero"]
+  "input": ["你好", "hero"]
 }
 ```
 
@@ -71,3 +71,4 @@ The API will return a response in the following format:
     }
   ]
 }
+```
