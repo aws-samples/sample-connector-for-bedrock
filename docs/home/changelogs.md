@@ -6,6 +6,8 @@
 
 2. **Function-Calling Format Update:** bedrock-converse – Changed the function-calling arguments parameter type from JSON to string to align with OpenAI's format. Updated all related providers to ensure compatibility. 
 
+3. **Auto-login Feature for BRClient:** Added an automatic login mechanism. If a user named `__shared-api-key__` exists in the backend, the `/portal-for-brclient.html` entry point will automatically configure both the URL and key for BRClient. Note: This feature is intended for internal company use only. If `__shared-api-key__` does not exist, only the API URL will be set, and the key must be manually configured in BRClient.
+
 ## 0.0.21
 
 1. **New Provider: openai-compatible** – This provider is designed to integrate APIs of models compatible with the OpenAI chat schema (tested with: deepseek, Doudao/Volcano platform, Qwen/Alibaba). [Detail](https://aws-samples.github.io/sample-connector-for-bedrock/providers/openai-compatible/).
