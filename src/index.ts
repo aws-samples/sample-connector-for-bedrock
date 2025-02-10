@@ -6,6 +6,7 @@ import Koa from "koa";
 import { koaBody as bodyParser } from 'koa-body';
 import cors from "@koa/cors"
 import { authHandler, errorHandler, databaseHandler, loggerHandler, dataCacheHandler } from './middleware/handlers'
+import autoLoginHandler from './middleware/portal_for_brclient'
 import { router } from "./routes";
 import serve from "koa-static-server";
 import config from './config';
@@ -41,6 +42,7 @@ if (!config.disableUI) {
 
 app.use(loggerHandler);
 
+
 app.use(errorHandler);
 
 app.use(bodyParser({
@@ -59,6 +61,8 @@ app.use(dataCacheHandler);
 app.use(authHandler);
 
 app.use(router.routes());
+
+app.use(autoLoginHandler);
 
 const port = 8866;
 

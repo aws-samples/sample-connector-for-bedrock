@@ -4,6 +4,9 @@ export default {
     loadById: async (db: any, id: number) => {
         return await db.loadById("eiai_key", ~~id);
     },
+    loadByName: async (db: any, name: string) => {
+        return await db.loadByKV("eiai_key", "name", name);
+    },
 
     detail: async (db: any, options: any) => {
         const id = options.id;
