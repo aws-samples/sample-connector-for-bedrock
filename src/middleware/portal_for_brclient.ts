@@ -8,6 +8,7 @@ const autoLoginHandler = async (ctx: any, next: any) => {
         if (!sharedKey) {
             ctx.body = "404";
             ctx.status = 404;
+            return;
         }
         ctx.body = {
             "success": true,
@@ -62,7 +63,7 @@ const autoLoginHandler = async (ctx: any, next: any) => {
                         localStorage.setItem('state', JSON.stringify(newState));
                     
                         // 重定向到 /brclient/
-                        // window.location.href = '/brclient/';
+                        window.location.href = '/brclient/';
                     } catch (error) {
                         console.error('Error:', error);
                         document.body.innerHTML = '<div style="color: red;">Error: Failed to initialize. Please try again later.</div>';
