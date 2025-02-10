@@ -1,6 +1,6 @@
 # Changelogs
 
-## 0.0.22 (releasing)
+## 0.0.22
 
 1. **API Update: titan_embeddings** – Updated the embeddings API to follow OpenAI-compatible format. The API now accepts both single string and array inputs through `/v1/embeddings` endpoint. [Detail](../providers/titan_embedings.md).
 
