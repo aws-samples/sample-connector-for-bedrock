@@ -54,7 +54,7 @@ export default class SagemakerLMI extends AbstractProvider {
         delete clonedRequest.price_in;
         delete clonedRequest.price_out;
         const CustomAttributes = this.getHeaderString(ctx);
-        console.log(CustomAttributes)
+
         const input: any = {
             EndpointName: endpointName, // required
             Body: Buffer.from(JSON.stringify(clonedRequest)), //new Uint8Array(), // e.g. Buffer.from("") or new TextEncoder().encode("")   // required
@@ -66,8 +66,7 @@ export default class SagemakerLMI extends AbstractProvider {
             input.CustomAttributes = CustomAttributes;
         }
 
-        // console.log(CustomAttributes);
-        console.log(JSON.stringify(input, null, 2));
+        // console.log(JSON.stringify(input, null, 2));
 
         ctx.status = 200;
 
@@ -108,19 +107,18 @@ export default class SagemakerLMI extends AbstractProvider {
             let responseText = "";
             let lineText = "";
             for await (const item of response.Body) {
-                // console.log(item);
                 if (item.PayloadPart?.Bytes) {
                     let chunk = new TextDecoder().decode(
                         item.PayloadPart.Bytes,
                     );
-                    // console.log(chunk);
+
                     chunk = chunk.trim();
                     if (chunk) {
                         lineText += chunk;
                         lineText = lineText.trim();
                         // Sometimes, output is half json string...
                         if (lineText.startsWith("{") && lineText.endsWith("}]}")) {
-                            console.log(lineText);
+                            // console.log(lineText);
                             // try {
                             const chunkObj = JSON.parse(lineText);
                             if (chunkObj.error) {

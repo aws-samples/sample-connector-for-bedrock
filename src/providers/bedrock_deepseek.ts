@@ -47,19 +47,7 @@ export default class BedrockDeepSeek extends AbstractProvider {
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
     await this.init();
 
-    // const payload = await this.chatMessageConverter.toLlama3Payload(chatRequest);
-
-    // const prompt = await this.chatMessageConverter.toMistralPayload(chatRequest)
-    // const prompt = await this.chatMessageConverter.toLlama3Payload(chatRequest) + (chatRequest.stream ? "<think>" : "")
-    let prompt = "";
-    // Llama 格式
-    if (this.promptFormat === "llama") {
-      prompt = await this.chatMessageConverter.toLlama3Payload(chatRequest)
-    } else {
-      prompt = await this.chatMessageConverter.toMistralPayload(chatRequest)
-    }
-    prompt += "<think>";
-
+    const prompt = await this.chatMessageConverter.toLlama3Payload(chatRequest) + "<think>"
 
     let max_new_tokens = chatRequest.max_tokens || this.maxTokens;
     let top_p = chatRequest.top_p || 0.9;
@@ -68,15 +56,11 @@ export default class BedrockDeepSeek extends AbstractProvider {
 
 
     const body: any = {
-      // messages: chatRequest.messages,
       max_new_tokens,
       prompt,
       temperature: chatRequest.temperature || 1.0,
       top_p,
-      // stop: "[]"
     };
-
-    console.log(body);
 
     const input = {
       body: JSON.stringify(body),
@@ -180,9 +164,6 @@ export default class BedrockDeepSeek extends AbstractProvider {
     const apiResponse = await this.client.send(command);
     const decodedResponseBody = new TextDecoder().decode(apiResponse.body);
     const responseBody = JSON.parse(decodedResponseBody);
-
-    console.log(responseBody);
-
 
     const { choices: [{ text }], usage: { prompt_tokens, completion_tokens, total_tokens } = {} } = responseBody;
 
