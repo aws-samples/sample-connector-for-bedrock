@@ -60,7 +60,7 @@ export default class SagemakerLMI extends AbstractProvider {
             Body: Buffer.from(JSON.stringify(clonedRequest)), //new Uint8Array(), // e.g. Buffer.from("") or new TextEncoder().encode("")   // required
             ContentType: "application/json",
             Accept: "application/json",
-            CustomAttributes
+            // CustomAttributes
         };
         if (CustomAttributes.length <= 1024) {
             input.CustomAttributes = CustomAttributes;
