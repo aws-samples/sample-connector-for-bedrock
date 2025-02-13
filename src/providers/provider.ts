@@ -20,6 +20,7 @@ import SimpleAction from "./simple_action";
 import TitanEmbeddings from "./titan_embedings";
 import NovaCanvas from "./nova_canvas";
 import OpenAICompatible from "./openai_compatible";
+import BedrockDeepSeek from "./bedrock_deepseek";
 
 class Provider {
     constructor() {
@@ -40,6 +41,7 @@ class Provider {
         this["bedrock-llama3"] = new BedrockLlama3();
         this["titan-embeddings"] = new TitanEmbeddings();
         this["openai-compatible"] = new OpenAICompatible();
+        this["bedrock-deepseek"] = new BedrockDeepSeek();
     }
 
     async initForEmbeddings(ctx: any) {

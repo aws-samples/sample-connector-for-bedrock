@@ -183,5 +183,9 @@ export default class ChatMessageConverter {
         return prompts.join("\n") + "<|start_header_id|>assistant<|end_header_id|>";
     }
 
+    // toDeepseekPayload(chatRequest: ChatRequest) {
+
+    // }
+
 
 }
