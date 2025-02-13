@@ -62,6 +62,9 @@ export default class SagemakerLMI extends AbstractProvider {
             Accept: "application/json",
             CustomAttributes
         };
+        if (CustomAttributes.length <= 1024) {
+            input.CustomAttributes = CustomAttributes;
+        }
 
         // console.log(CustomAttributes);
         // console.log(JSON.stringify(input, null, 2));
