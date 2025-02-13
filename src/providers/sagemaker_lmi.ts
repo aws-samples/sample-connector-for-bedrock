@@ -54,7 +54,7 @@ export default class SagemakerLMI extends AbstractProvider {
         delete clonedRequest.price_in;
         delete clonedRequest.price_out;
         const CustomAttributes = this.getHeaderString(ctx);
-        // console.log(CustomAttributes)
+        console.log(CustomAttributes)
         const input = {
             EndpointName: endpointName, // required
             Body: Buffer.from(JSON.stringify(clonedRequest)), //new Uint8Array(), // e.g. Buffer.from("") or new TextEncoder().encode("")   // required
