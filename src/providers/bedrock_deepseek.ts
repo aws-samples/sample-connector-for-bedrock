@@ -15,7 +15,7 @@ export default class BedrockDeepSeek extends AbstractProvider {
   chatMessageConverter: ChatMessageConverter;
   modelId: string;
   maxTokens: number;
-  promptFormat: string;
+  // promptFormat: string;
   constructor() {
     super();
     this.chatMessageConverter = new ChatMessageConverter();
@@ -30,10 +30,10 @@ export default class BedrockDeepSeek extends AbstractProvider {
     if (!this.maxTokens || isNaN(this.maxTokens)) {
       this.maxTokens = 1024;
     }
-    this.promptFormat = this.modelData.config && this.modelData.config.promptFormat;
-    if (!this.promptFormat) {
-      this.promptFormat = "mistral";
-    }
+    // this.promptFormat = this.modelData.config && this.modelData.config.promptFormat;
+    // if (!this.promptFormat) {
+    //   this.promptFormat = "mistral";
+    // }
     let regions: any = this.modelData.config && this.modelData.config.regions;
     const region = helper.selectRandomRegion(regions);
     this.client = new BedrockRuntimeClient({ region });
