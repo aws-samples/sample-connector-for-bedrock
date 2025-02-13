@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Since Docker image version 0.0.12">
+        <meta name="description" content="自 Docker 镜像版本 0.0.23 起可用">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/urls-reader/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-deepseek/">
       
       
-        <link rel="prev" href="../titan_embedings/">
+        <link rel="prev" href="../bedrock-converse/">
       
       
-        <link rel="next" href="../web-miner/">
+        <link rel="next" href="../bedrock-knowledge-base/">
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>urls-reader - Sample Connector for Bedrock</title>
+        <title>bedrock-deepseek - Sample Connector for Bedrock</title>
       
     
     
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#urls-reader" class="md-skip">
+        <a href="#bedrock-deepseek" class="md-skip">
           跳转至
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              urls-reader
+              bedrock-deepseek
             
           </span>
         </div>
@@ -174,7 +174,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../providers/urls-reader/" hreflang="en" class="md-select__link">
+            <a href="../../../providers/bedrock-deepseek/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -965,10 +965,31 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../bedrock-deepseek/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    bedrock-deepseek
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -978,6 +999,35 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      配置
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1185,31 +1235,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    urls-reader
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../urls-reader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1219,44 +1248,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="目录">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      模型配置
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#brclient" class="md-nav__link">
-    <span class="md-ellipsis">
-      在 BRClient 中的截图
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1320,16 +1311,7 @@
         <li class="md-nav__item">
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
-      模型配置
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#brclient" class="md-nav__link">
-    <span class="md-ellipsis">
-      在 BRClient 中的截图
+      配置
     </span>
   </a>
   
@@ -1354,25 +1336,57 @@
   
 
 
-<h1 id="urls-reader">urls-reader<a class="headerlink" href="#urls-reader" title="Permanent link">&para;</a></h1>
+<h1 id="bedrock-deepseek">bedrock-deepseek<a class="headerlink" href="#bedrock-deepseek" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>Since Docker image version 0.0.12</p>
+<p>自 Docker 镜像版本 0.0.23 起可用</p>
 </blockquote>
-<p>可以使用本提供器读取对话中的 url 的文字内容，可以支持多个 url 的读取。</p>
-<h2 id="_1">模型配置<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<p>参数配置如下:</p>
-<p>Name: some-model</p>
-<p>Provider: urls-reader</p>
-<p>Configuration:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;localLlmModel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sonnet3.5&quot;</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">}</span>
-</code></pre></div>
-<ul>
-<li>localLlmModel: 必须配置为支持函数调用的模型，并且已存在于 BRConnector 中。</li>
-</ul>
-<h2 id="brclient">在 BRClient 中的截图<a class="headerlink" href="#brclient" title="Permanent link">&para;</a></h2>
-<p><a class="glightbox" href="../../../providers/screenshots/url-reader-1.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Url reader 1" src="../../../providers/screenshots/url-reader-1.png" /></a></p>
+<p>LLM 统一接口。</p>
+<p>用于向部署在 Amazon Bedrock 上的 DeepSeek 模型发送消息。此提供程序支持 Think 标签，这些标签在输出中会被渲染为 markdown 引用块。</p>
+<h2 id="_1">配置<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>通过 Amazon Bedrock API 调用 DeepSeek 模型。此提供程序允许您配置和使用部署在 Bedrock 上的 DeepSeek 模型。</p>
+<table>
+<thead>
+<tr>
+<th>键</th>
+<th>类型</th>
+<th>是否必需</th>
+<th>默认值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>modelId</td>
+<td>string</td>
+<td>是</td>
+<td></td>
+<td>部署的 DeepSeek 模型的 ARN</td>
+</tr>
+<tr>
+<td>regions</td>
+<td>string[] 或 string</td>
+<td>否</td>
+<td>[&ldquo;us-east-1&rdquo;]</td>
+<td>如果您已申请并指定了多个区域，则会随机选择一个区域进行调用。此功能可以有效缓解性能瓶颈。</td>
+</tr>
+<tr>
+<td>maxTokens</td>
+<td>number</td>
+<td>否</td>
+<td>8192</td>
+<td>默认的最大令牌数，对应标准 API 中的 max_tokens 参数。如果在 API 中未指定，将使用此值。</td>
+</tr>
+</tbody>
+</table>
+<p>配置示例：</p>
+<p>```json<br />
+{<br />
+  &ldquo;modelId&rdquo;: &ldquo;arn:aws:sagemaker:region:xxxxx:endpoint/ds-endpoint&rdquo;,<br />
+  &ldquo;regions&rdquo;: [<br />
+    &ldquo;us-west-2&rdquo;<br />
+  ],<br />
+  &ldquo;maxTokens&rdquo;: 8192<br />
+}</p>
 
 
 
@@ -1395,7 +1409,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-08-19T16:47:14+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-08-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-13T22:25:55+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-13</span>
   </span>
 
     
@@ -1405,7 +1419,7 @@
     <span class="md-icon" title="创建日期">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-08-19T16:47:14+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-08-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-13T22:25:55+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-13</span>
   </span>
 
     
