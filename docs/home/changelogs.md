@@ -1,10 +1,14 @@
 # Changelogs
 
+## 0.0.23
+
+1. **New Provider: bedrock-deepseek** – Added support for DeepSeek models deployed on Amazon Bedrock. This provider supports Think tags which are rendered as markdown blockquotes in the output. [Detail](../providers/bedrock-deepseek.md).
+
 ## 0.0.22
 
 1. **API Update: titan_embeddings** – Updated the embeddings API to follow OpenAI-compatible format. The API now accepts both single string and array inputs through `/v1/embeddings` endpoint. [Detail](../providers/titan_embedings.md).
 
-2. **Function-Calling Format Update:** bedrock-converse – Changed the function-calling arguments parameter type from JSON to string to align with OpenAI's format. Updated all related providers to ensure compatibility. 
+2. **Function-Calling Format Update:** bedrock-converse – Changed the function-calling arguments parameter type from JSON to string to align with OpenAI's format. Updated all related providers to ensure compatibility.
 
 3. **Auto-login Feature for BRClient:** Added an automatic login mechanism. If a user named `__shared-api-key__` exists in the backend, the `/portal-for-brclient.html` entry point will automatically configure both the URL and key for BRClient. Note: This feature is intended for internal company use only. If `__shared-api-key__` does not exist, only the API URL will be set, and the key must be manually configured in BRClient.
 
