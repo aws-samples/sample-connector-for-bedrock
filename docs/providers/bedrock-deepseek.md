@@ -26,3 +26,4 @@ The configuration example:
   ],
   "maxTokens": 8192
 }
+```
