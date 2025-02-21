@@ -116,6 +116,7 @@ export default class SagemakerLMI extends AbstractProvider {
                     if (chunk) {
                         lineText += chunk;
                         lineText = lineText.trim();
+                        // console.log(lineText);
                         // Sometimes, output is half json string...
                         if (lineText.startsWith("{") && lineText.endsWith("}]}")) {
                             // console.log(lineText);
@@ -131,7 +132,7 @@ export default class SagemakerLMI extends AbstractProvider {
                                 !this.isQwen2Prefix(content, i)) {
                                 if (content) {
                                     responseText += content;
-                                    ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, content, finish_reason) + "\n\n");
+                                    ctx.res.write("data: " + WebResponse.wrap(i, chatRequest.model, content, finish_reason) + "\n\n");
                                 }
                             }
 
@@ -139,6 +140,7 @@ export default class SagemakerLMI extends AbstractProvider {
                                 throw new Error("djl generate error.");
                             }
                             if (finish_reason) {
+                                ctx.res.write("data: " + WebResponse.wrap(i++, chatRequest.model, "", finish_reason) + "\n\n");
                                 const response: ResponseData = {
                                     text: responseText,
                                     input_tokens: 0,
