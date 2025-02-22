@@ -2,8 +2,13 @@
 import OpenAI from 'openai';
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import AbstractProvider from "./abstract_provider";
-import helper from '../util/helper';
+// import helper from '../util/helper';
 
+
+interface ExtendedDelta {
+  content?: string;
+  reasoning_content?: string;
+}
 
 export default class OpenAICompatible extends AbstractProvider {
 
@@ -65,11 +70,15 @@ export default class OpenAICompatible extends AbstractProvider {
 
 
     let responseText = "";
-    let i = 0;
+    // let i = 0;
     for await (const part of chatResponse) {
+      // console.log(JSON.stringify(part));
+      const reasoning_content = (part.choices[0]?.delta as ExtendedDelta)?.reasoning_content || '';
+      // process.stdout.write(reasoning_content);
+      responseText += reasoning_content;
       const content = part.choices[0]?.delta?.content || '';
       responseText += content;
-      i++;
+      // i++;
       if (part.choices[0].finish_reason === "stop") {
         const {
           completion_tokens = 0,

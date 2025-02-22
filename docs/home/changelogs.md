@@ -1,5 +1,12 @@
 # Changelogs
 
+## 0.0.24
+
+1. **Bugfix: sagemaker-lmi finish_reason Output** - This update addresses an issue where the `finish_reason` output from the sagemaker-lmi provider was returning an empty string. Now, it will correctly output a non-empty string, providing accurate information about the completion status.
+
+2. **Feature: Display Model Reasoning in BRClient** - Enhanced BRConnector to support and display the `reasoning_content` field from the new API, which shows the model's step-by-step reasoning process. This update allows the frontend to properly recognize and render the model's thought process in a think block format.
+
+
 ## 0.0.23
 
 1. **New Provider: bedrock-deepseek** – Added support for DeepSeek models deployed on Amazon Bedrock. This provider supports Think tags which are rendered as markdown blockquotes in the output. [Detail](../providers/bedrock-deepseek.md).
