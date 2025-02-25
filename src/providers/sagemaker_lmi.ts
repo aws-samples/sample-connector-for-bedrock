@@ -127,7 +127,7 @@ export default class SagemakerLMI extends AbstractProvider {
                             }
                             const choice = chunkObj.choices.length > 0 ? chunkObj.choices[0] : null;
                             const content = choice && choice.delta?.content;
-                            const finish_reason = choice && choice.finish_reason;
+                            let finish_reason = choice && choice.finish_reason;
                             if (!this.isLlama3Prefix(content, i) &&
                                 !this.isQwen2Prefix(content, i)) {
                                 if (content) {
@@ -140,6 +140,7 @@ export default class SagemakerLMI extends AbstractProvider {
                                 throw new Error("djl generate error.");
                             }
                             if (finish_reason) {
+                                finish_reason = "stop"
                                 ctx.res.write("data: " + WebResponse.wrap(i++, chatRequest.model, "", finish_reason) + "\n\n");
                                 const response: ResponseData = {
                                     text: responseText,
