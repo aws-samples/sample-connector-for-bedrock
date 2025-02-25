@@ -19,15 +19,29 @@ Amazon Bedrock LLM 统一调用。
 | modelId  | string   | Y    |  |   Model id, [点这里查看列表](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
 | regions  | string[] or string   | N     | ["us-east-1"] |   如果您已经申请并指定了多个地区,那么将会随机选择一个地区进行调用。这个功能可以有效缓解性能瓶颈。  |
 | maxTokens  |  number   | N     | 1024 | 默认最大 tokens 数量，对应标准 API 的 max_tokens 参数。 如果 API 请求中不指定，则使用此值。  |
+| thinking  |  boolen   | N     | false | 是否开启 reason/think 功能  |
+| thinkBudget  |  number   | N     | 1024 | 在开启 thinking 的情况下，推理部分允许的最大 tokens 数量 |
 
 bedrock-converse 的配置示例如下：
 
 ```json
 {
-  "modelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+  "modelId": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
   "regions": [
-    "us-east-1",
-    "us-west-2"
-  ]
+    "us-east-1"
+  ],
+  "thinking": true,
+  "maxTokens": 64000,
+  "thinkBudget": 32000
 }
+```
+
+## 输出结果
+
+输出中增加了 reasoning_content 字段，与 deepseek 的输出保持一致。如下：
+
+```json
+data: {"id":"3","created":1740468210,"object":"text_completion","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"你好"},"finish_reason":null,"logprobs":null}],"model":"sonnet37-think"}
+...
+
 ```

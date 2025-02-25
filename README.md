@@ -44,17 +44,19 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
+## 0.0.25
+
+1. **Feature: Claude Sonnet 3.7 Thinking/Reasoning Support** - Added support for thinking/reasoning capabilities with Claude Sonnet 3.7 on the bedrock-converse provider. For more details, refer to [the documentation](../providers/bedrock-converse.md).
+
+2. **Bugfix: Deepseek Format Reasoning Content** - Fixed support for reasoning content in deepseek format within the built-in BRClient.
+
+3. **Standardization: sagemaker-lmi finish_reason Value** - Modified the `finish_reason` value in the sagemaker-lmi provider to consistently return "stop".
+
 ## 0.0.24
 
 1. **Bugfix: sagemaker-lmi finish_reason Output** - This update addresses an issue where the `finish_reason` output from the sagemaker-lmi provider was returning an empty string. Now, it will correctly output a non-empty string, providing accurate information about the completion status.
 
 2. **Feature: Display Model Reasoning in BRClient** - Enhanced BRConnector to support and display the `reasoning_content` field from the new API, which shows the model's step-by-step reasoning process. This update allows the frontend to properly recognize and render the model's thought process in a think block format.
-
-
-## 0.0.23
-
-1. **New Provider: bedrock-deepseek** – Added support for DeepSeek models deployed on Amazon Bedrock. This provider supports Think tags which are rendered as markdown blockquotes in the output. [Detail](../providers/bedrock-deepseek.md).
-
 
 ## Disclaimer
 
