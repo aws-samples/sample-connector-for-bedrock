@@ -6,7 +6,7 @@
 
 ## 2. 使用 Docker 运行 Postgres
 
-使用以下shell命令启动一个Docker容器来托管Postgres. 请注意使用您自己的密码来替换`XXX`:
+使用以下shell命令启动一个Docker容器来托管Postgres。请注意使用您自己的密码来替换`XXX`:
 
 ```shell
 docker run --name postgres \
