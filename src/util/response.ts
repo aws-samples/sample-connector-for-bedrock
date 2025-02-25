@@ -90,7 +90,27 @@ export default {
 
 
         return JSON.stringify(data);
-    }
+    },
+
+    wrapReasoning: (id: any, model: any, reasoning_content?: any,) => {
+        const created = Math.floor((new Date().getTime()) / 1000);
+        const data: any = {
+            id: String(id), created,
+            "object": "text_completion"
+        };
+
+        data.choices = [
+            { "index": 0, delta: { role: "assistant", content: "", reasoning_content }, finish_reason: null, logprobs: null }
+        ];
+
+        if (model) {
+            data.model = model;
+        }
+
+        // console.log(JSON.stringify(data));
+
+        return JSON.stringify(data);
+    },
 }
 
 

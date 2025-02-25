@@ -16,6 +16,8 @@ export default class BedrockConverse extends AbstractProvider {
     chatMessageConverter: MessageConverter;
     modelId: string;
     maxTokens: number;
+    thinking: boolean;
+
     constructor() {
         super();
         this.chatMessageConverter = new MessageConverter();
@@ -26,10 +28,6 @@ export default class BedrockConverse extends AbstractProvider {
         if (!this.modelId) {
             throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
-        this.maxTokens = this.modelData.config && this.modelData.config.maxTokens;
-        if (!this.maxTokens || isNaN(this.maxTokens)) {
-            this.maxTokens = 1024;
-        }
         let regions: any = this.modelData.config && this.modelData.config.regions;
         const region = helper.selectRandomRegion(regions);
         this.client = new BedrockRuntimeClient({ region });
@@ -38,7 +36,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.maxTokens);
+        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
         if (chatRequest.model_id) {
             payload["modelId"] = chatRequest.model_id;
         } else {
@@ -68,7 +66,7 @@ export default class BedrockConverse extends AbstractProvider {
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
 
-        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.maxTokens);
+        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
         if (chatRequest.model_id) {
             payload["modelId"] = chatRequest.model_id;
         } else {
@@ -142,13 +140,30 @@ export default class BedrockConverse extends AbstractProvider {
             ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, "", null) + "\n\n");
 
             let index = 1;
+            let think_end = false;
             for await (const item of response.stream) {
-                // console.log(item);
+                // console.log(JSON.stringify(item));
                 if (item.contentBlockDelta) {
-                    responseText += item.contentBlockDelta.delta.text;
-                    // const p = item.contentBlockDelta["p"];
-                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, item.contentBlockDelta.delta.text, null) + "\n\n");
+                    const thinkingContent = item.contentBlockDelta.delta?.reasoningContent?.text;
+                    const content = item.contentBlockDelta.delta?.text;
+                    if (thinkingContent && index == 1) {
+                        responseText += "<think>";
 
+                    }
+                    if (thinkingContent) {
+                        responseText += thinkingContent;
+                        ctx.res.write("data: " + WebResponse.wrapReasoning(index, chatRequest.model, thinkingContent) + "\n\n");
+                    }
+                    if (content && index > 1 && !think_end) {
+                        think_end = true;
+                        responseText += "</think>";
+                    }
+                    if (content) {
+                        responseText += content;
+                        ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, content) + "\n\n");
+
+                    }
+                    // const p = item.contentBlockDelta["p"];
                     index++;
                 }
                 // if (item.contentBlockStop) {
@@ -369,7 +384,21 @@ class MessageConverter {
     }
 
 
-    async toPayload(chatRequest: ChatRequest, maxTokens: number): Promise<any> {
+    async toPayload(chatRequest: ChatRequest, config: any): Promise<any> {
+
+        let maxTokens = config && config.maxTokens;
+        if (!maxTokens || isNaN(maxTokens)) {
+            maxTokens = 2048;
+        }
+        let thinking = config && config.thinking;
+        if (!thinking) {
+            thinking = false;
+        }
+        let thinkBudget = config && config.thinkBudget;
+        if (!thinkBudget) {
+            thinkBudget = 1024;
+        }
+
         const messages = chatRequest.messages;
         const tools = chatRequest.tools;
         const tool_choice = chatRequest.tool_choice;
@@ -380,10 +409,20 @@ class MessageConverter {
         const inferenceConfig: any = {
             maxTokens: chatRequest.max_tokens || maxTokens,
             temperature: chatRequest.temperature || 0.7,
-            topP: chatRequest.top_p || 0.7
         };
+        if (!thinking) {
+            inferenceConfig.topP = chatRequest.top_p || 0.7
+        }
+        const additionalModelRequestFields: any = {
+        }
         if (stopSequences && Array.isArray(stopSequences)) {
             inferenceConfig.stopSequences = stopSequences.slice(0, 4);
+        }
+        if (thinking) {
+            additionalModelRequestFields.thinking = {
+                type: "enabled",
+                budget_tokens: thinkBudget
+            }
         }
 
         //First element must be user message
@@ -426,7 +465,7 @@ class MessageConverter {
 
             }
         }
-        const rtn: any = { messages: newMessages, inferenceConfig };
+        const rtn: any = { messages: newMessages, inferenceConfig, additionalModelRequestFields };
 
         if (systemMessages.length > 0) {
             const system = systemMessages.map(msg => ({
