@@ -390,6 +390,7 @@ class MessageConverter {
         if (!maxTokens || isNaN(maxTokens)) {
             maxTokens = 2048;
         }
+        maxTokens = chatRequest.max_tokens || maxTokens;
         let thinking = config && config.thinking;
         if (!thinking) {
             thinking = false;
@@ -397,6 +398,10 @@ class MessageConverter {
         let thinkBudget = config && config.thinkBudget;
         if (!thinkBudget) {
             thinkBudget = 1024;
+        }
+
+        if (maxTokens <= thinkBudget) {
+            maxTokens = thinkBudget + 1024;
         }
 
         const messages = chatRequest.messages;
@@ -407,12 +412,15 @@ class MessageConverter {
         let stopSequences = chatRequest.stop;
 
         const inferenceConfig: any = {
-            maxTokens: chatRequest.max_tokens || maxTokens,
+            maxTokens,
             temperature: chatRequest.temperature || 0.7,
+            topP: chatRequest.top_p || 0.7
         };
-        if (!thinking) {
-            inferenceConfig.topP = chatRequest.top_p || 0.7
+        if (thinking) {
+            delete inferenceConfig.topP;
+            inferenceConfig.temperature = 1;
         }
+
         const additionalModelRequestFields: any = {
         }
         if (stopSequences && Array.isArray(stopSequences)) {
