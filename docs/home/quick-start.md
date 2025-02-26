@@ -6,11 +6,11 @@ Launch an EC2 on AWS or any other server with docker support.
 
 ## 2. Run Postgres with docker
 
-Launch a docker container to host postgres with the following shell command:
+Launch a docker container to host postgres with the following shell command. Please use your own password to repalce `XXX`:
 
 ```shell
 docker run --name postgres \
-  -e POSTGRES_PASSWORD=mysecretpassword \
+  -e POSTGRES_PASSWORD=XXX \
   -p 5432:5432 \
   -d postgres
 ```
