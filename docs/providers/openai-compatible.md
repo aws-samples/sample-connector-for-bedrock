@@ -1,4 +1,4 @@
-### OpenAI-Compatible
+# openai-compatible
 
 > Applies to Docker image version 0.0.21 and above
 

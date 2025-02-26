@@ -46,7 +46,7 @@ Once defined, models can be bound to groups or API Keys.
 
 ## 0.0.25
 
-1. **Feature: Claude Sonnet 3.7 Thinking/Reasoning Support** - Added support for thinking/reasoning capabilities with Claude Sonnet 3.7 on the bedrock-converse provider. For more details, refer to [the documentation](../providers/bedrock-converse.md).
+1. **Feature: Claude Sonnet 3.7 Thinking/Reasoning Support** - Added support for thinking/reasoning capabilities with Claude Sonnet 3.7 on the bedrock-converse provider. For more details, refer to [the documentation](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/).
 
 2. **Bugfix: Deepseek Format Reasoning Content** - Fixed support for reasoning content in deepseek format within the built-in BRClient.
 
