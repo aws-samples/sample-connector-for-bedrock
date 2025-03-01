@@ -405,6 +405,16 @@ class MessageConverter {
         }
 
         const messages = chatRequest.messages;
+        for (let i = 0; i < messages.length; i++) {
+            console.log("message", messages[i]);
+            if (messages[i].content === null) {
+                if (messages[i]?.tool_calls && messages[i].tool_calls.length > 0) {
+                    messages[i].content = "正在使用工具...";
+                } else {
+                    messages[i].content = "";
+                }
+            }
+        }
         const tools = chatRequest.tools;
         const tool_choice = chatRequest.tool_choice;
         const systemMessages = messages.filter(message => message.role === 'system');
@@ -513,7 +523,7 @@ class MessageConverter {
             toolChoice && (rtn.toolConfig.toolChoice = toolChoice);
         }
 
-        // console.log("tools:", JSON.stringify(rtn, null, 2))
+        console.log("tools:", JSON.stringify(rtn, null, 2))
 
         return rtn;
     }
