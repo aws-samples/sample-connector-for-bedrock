@@ -523,7 +523,7 @@ class MessageConverter {
             toolChoice && (rtn.toolConfig.toolChoice = toolChoice);
         }
 
-        console.log("tools:", JSON.stringify(rtn, null, 2))
+        // console.log("tools:", JSON.stringify(rtn, null, 2))
 
         return rtn;
     }
