@@ -78,7 +78,7 @@ search:
 启动 searxng:
 
 ```shell
-docker run --rm -d -p 8081:8080 \
+ docker run --name searxng -d -p 8081:8080 \
   -v ./settings.yml:/etc/searxng/settings.yml \
   -e "INSTANCE_NAME=searxng" searxng/searxng
 ```

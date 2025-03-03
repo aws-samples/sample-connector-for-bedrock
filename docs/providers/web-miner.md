@@ -78,9 +78,9 @@ search:
 Start searxng:
 
 ```shell
-docker run --rm -d -p 8081:8080 \
- -e "BASE_URL=http://localhost:8081/" \
- -e "INSTANCE_NAME=searxng" searxng/searxng
+ docker run --name searxng -d -p 8081:8080 \
+  -v ./settings.yml:/etc/searxng/settings.yml \
+  -e "INSTANCE_NAME=searxng" searxng/searxng
 ```
 
 Then you will get the searxng endpoint: <http://127.0.0.1:8081/>, configure it to searxng's host node.
