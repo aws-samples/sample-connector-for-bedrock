@@ -8,6 +8,7 @@ interface Content {
 interface Message {
     role: string;
     content: any;
+    tool_calls?: any[];
 }
 
 interface ChatRequest {
