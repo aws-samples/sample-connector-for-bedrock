@@ -106,6 +106,7 @@ export default class SagemakerLMI extends AbstractProvider {
         if (response.Body) {
             let responseText = "";
             let lineText = "";
+            const reqId = this.newRequestID();
             for await (const item of response.Body) {
                 if (item.PayloadPart?.Bytes) {
                     let chunk = new TextDecoder().decode(
@@ -113,6 +114,9 @@ export default class SagemakerLMI extends AbstractProvider {
                     );
 
                     chunk = chunk.trim();
+
+                    // console.log(chunk);
+
                     if (chunk) {
                         lineText += chunk;
                         lineText = lineText.trim();
@@ -132,7 +136,7 @@ export default class SagemakerLMI extends AbstractProvider {
                                 !this.isQwen2Prefix(content, i)) {
                                 if (content) {
                                     responseText += content;
-                                    ctx.res.write("data: " + WebResponse.wrap(i, chatRequest.model, content, finish_reason) + "\n\n");
+                                    ctx.res.write("data: " + WebResponse.wrap(i, chatRequest.model, content, finish_reason, null, null, reqId) + "\n\n");
                                 }
                             }
 
@@ -141,7 +145,7 @@ export default class SagemakerLMI extends AbstractProvider {
                             }
                             if (finish_reason) {
                                 finish_reason = "stop"
-                                ctx.res.write("data: " + WebResponse.wrap(i++, chatRequest.model, "", finish_reason) + "\n\n");
+                                ctx.res.write("data: " + WebResponse.wrap(i++, chatRequest.model, "", finish_reason, i, 0, reqId) + "\n\n");
                                 const response: ResponseData = {
                                     text: responseText,
                                     input_tokens: 0,

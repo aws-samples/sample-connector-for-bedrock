@@ -11,13 +11,14 @@ export default {
             data
         }
     },
-    wrap: (id: any, model: any, content?: any, finish_reason?: any, completion_tokens?: number, prompt_tokens?: number) => {
+    wrap: (id: any, model: any, content?: any, finish_reason?: any, completion_tokens?: number, prompt_tokens?: number, request_id?: string) => {
         const created = Math.floor((new Date().getTime()) / 1000);
         completion_tokens = completion_tokens || 0;
         prompt_tokens = prompt_tokens || 0;
         content = content || "";
         const data: any = {
-            id: String(id), created,
+            id: "chatcmpl-" + (request_id || "tempid"),
+            created,
             // "object": "chat.completion.chunk",
             "object": "text_completion"
             // system_fingerprint: null
@@ -92,10 +93,11 @@ export default {
         return JSON.stringify(data);
     },
 
-    wrapReasoning: (id: any, model: any, reasoning_content?: any,) => {
+    wrapReasoning: (id: any, model: any, reasoning_content?: any, request_id?: string) => {
         const created = Math.floor((new Date().getTime()) / 1000);
         const data: any = {
-            id: String(id), created,
+            id: "chatcmpl-" + (request_id || "tempid"),
+            created,
             "object": "text_completion"
         };
 

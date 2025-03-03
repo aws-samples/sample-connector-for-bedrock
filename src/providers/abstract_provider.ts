@@ -1,10 +1,16 @@
 import { ChatRequest, ResponseData, EmbeddingRequest } from "../entity/chat_request";
 import Cache from '../util/cache';
+import crypto from 'crypto';
 
 export default abstract class AbstractProvider {
     keyData: any;
     modelData: any;
+
     constructor() {
+    }
+
+    newRequestID() {
+        return crypto.randomUUID();
     }
 
     setKeyData(value: any) {

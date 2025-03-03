@@ -137,7 +137,8 @@ export default class BedrockConverse extends AbstractProvider {
 
         if (response.stream) {
             let responseText = "";
-            ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, "", null) + "\n\n");
+            const reqId = this.newRequestID();
+            // ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, "", null, null, null, reqId) + "\n\n");
 
             let index = 1;
             let think_end = false;
@@ -152,7 +153,7 @@ export default class BedrockConverse extends AbstractProvider {
                     }
                     if (thinkingContent) {
                         responseText += thinkingContent;
-                        ctx.res.write("data: " + WebResponse.wrapReasoning(index, chatRequest.model, thinkingContent) + "\n\n");
+                        ctx.res.write("data: " + WebResponse.wrapReasoning(index, chatRequest.model, thinkingContent, reqId) + "\n\n");
                     }
                     if (content && index > 1 && !think_end) {
                         think_end = true;
@@ -160,7 +161,7 @@ export default class BedrockConverse extends AbstractProvider {
                     }
                     if (content) {
                         responseText += content;
-                        ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, content) + "\n\n");
+                        ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, content, null, null, null, reqId) + "\n\n");
 
                     }
                     // const p = item.contentBlockDelta["p"];
@@ -176,7 +177,7 @@ export default class BedrockConverse extends AbstractProvider {
                     const output_tokens = item.metadata.usage.outputTokens;
                     const first_byte_latency = item.metadata.metrics.latencyMs;
 
-                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", "stop", output_tokens, input_tokens) + "\n\n");
+                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", "stop", output_tokens, input_tokens, reqId) + "\n\n");
                     const response: ResponseData = {
                         text: responseText,
                         input_tokens,
@@ -190,7 +191,7 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             throw new Error("No response.");
         }
-        // ctx.res.write("data: [DONE]\n\n")
+        ctx.res.write("data: [DONE]\n\n")
         ctx.res.end();
     }
 
@@ -406,7 +407,7 @@ class MessageConverter {
 
         const messages = chatRequest.messages;
         for (let i = 0; i < messages.length; i++) {
-            console.log("message", messages[i]);
+            // console.log("message", messages[i]);
             if (messages[i].content === null) {
                 if (messages[i]?.tool_calls && messages[i].tool_calls.length > 0) {
                     messages[i].content = "正在使用工具...";

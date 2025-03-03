@@ -46,6 +46,7 @@ export default class SimpleAction extends AbstractProvider {
     const response = await this.askForParameters(chatRequest, entryPointApi, session_id, ctx);
     console.log(JSON.stringify(response, null, 2));
     ctx.status = 200;
+    const reqId = this.newRequestID();
     if (chatRequest.stream) {
       ctx.set({
         'Connection': 'keep-alive',
@@ -58,7 +59,7 @@ export default class SimpleAction extends AbstractProvider {
       // console.log("response", JSON.stringify({ message, data }, null, 2));
       const hasData = Object.keys(data).length !== 0;
       if (message && !hasData) {
-        ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, message, null) + "\n\n");
+        ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, message, null, null, null, reqId) + "\n\n");
       }
       if (hasData) {
         // console.log(schema, entryPointApi);
@@ -96,7 +97,7 @@ export default class SimpleAction extends AbstractProvider {
         const sumRes = await this.summarizeResult(chatRequest, lastResult, session_id, ctx);
         console.log(JSON.stringify(sumRes, null, 2));
 
-        ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, sumRes.choices[0]["message"]["content"], null) + "\n\n");
+        ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, sumRes.choices[0]["message"]["content"], null, null, null, reqId) + "\n\n");
       }
 
       ctx.res.end();

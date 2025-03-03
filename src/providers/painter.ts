@@ -66,6 +66,8 @@ export default class Painter extends AbstractProvider {
     chatRequest.model = localLlmModel;
     ctx.status = 200;
 
+    const reqId = this.newRequestID();
+
     if (chatRequest.stream) {
       const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
 
@@ -123,9 +125,9 @@ export default class Painter extends AbstractProvider {
         'Cache-Control': 'no-cache',
         'Content-Type': 'text/event-stream',
       });
-      ctx.res.write("data: " + WebResponse.wrap(0, null, content || "No content found in the prompt.", null) + "\n\n");
-      prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null) + "\n\n");
-      negative_prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null) + "\n\n");
+      ctx.res.write("data: " + WebResponse.wrap(0, null, content || "No content found in the prompt.", null, null, null, reqId) + "\n\n");
+      prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null, null, null, reqId) + "\n\n");
+      negative_prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null, null, null, reqId) + "\n\n");
 
       if (prompt) {
         const responseImage = await this.draw(paintModelId, {
@@ -134,7 +136,7 @@ export default class Painter extends AbstractProvider {
           width,
           height
         });
-        ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null) + "\n\n");
+        ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null, null, null, reqId) + "\n\n");
       }
       ctx.res.write("data: [DONE]\n\n")
     } else {

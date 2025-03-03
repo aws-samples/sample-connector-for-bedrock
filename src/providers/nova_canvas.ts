@@ -112,13 +112,14 @@ export default class NovaCanvas extends AbstractProvider {
 
     // args && ctx.logger.info(`func: ${funName}` + ", parameters: \n" + JSON.stringify(args, null, 2));
 
+    const reqId = this.newRequestID();
     if (chatRequest.stream) {
       ctx.set({
         'Connection': 'keep-alive',
         'Cache-Control': 'no-cache',
         'Content-Type': 'text/event-stream',
       });
-      content && ctx.res.write("data: " + WebResponse.wrap(0, null, content, null) + "\n\n");
+      content && ctx.res.write("data: " + WebResponse.wrap(0, null, content, null, null, null, reqId) + "\n\n");
 
       // args && ctx.res.write("data: " +
       //   WebResponse.wrap(0,
@@ -147,7 +148,7 @@ export default class NovaCanvas extends AbstractProvider {
         for (const img of imgs) {
           const url = await this.uploadImage(img);
           const mdImg = `![](${url})`
-          ctx.res.write("data: " + WebResponse.wrap(0, this.paintModelId, `\n\n${mdImg}`, null) + "\n\n");
+          ctx.res.write("data: " + WebResponse.wrap(0, this.paintModelId, `\n\n${mdImg}`, null, null, null, reqId) + "\n\n");
         }
       }
       ctx.res.write("data: [DONE]\n\n");

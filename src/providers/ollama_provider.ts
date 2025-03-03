@@ -59,6 +59,7 @@ export default class OllamaAProvider extends AbstractProvider {
 
         let responseText = "";
         let i = 0;
+        const reqId = this.newRequestID();
         for await (const part of chatResponse) {
             // console.log(part);
             const content = part.message?.content || '';
@@ -80,7 +81,7 @@ export default class OllamaAProvider extends AbstractProvider {
                 }
                 await this.saveThread(ctx, session_id, chatRequest, response);
             } else {
-                ctx.res.write("data: " + WebResponse.wrap(i, chatRequest.model_id, content, null) + "\n\n");
+                ctx.res.write("data: " + WebResponse.wrap(i, chatRequest.model_id, content, null, null, null, reqId) + "\n\n");
             }
 
         }
