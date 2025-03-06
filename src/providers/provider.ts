@@ -16,11 +16,12 @@ import AWSExecutor from "./aws_executor"
 import UrlsReader from "./urls_reader";
 import ContinueCoder from "./continue_coder";
 import SmartRouter from "./smart_router";
-import SimpleAction from "./simple_action";
+// import SimpleAction from "./simple_action";
 import TitanEmbeddings from "./titan_embedings";
 import NovaCanvas from "./nova_canvas";
 import OpenAICompatible from "./openai_compatible";
 import BedrockDeepSeek from "./bedrock_deepseek";
+import SagemakerDeepSeek from "./sagemaker-deepseek";
 
 class Provider {
     constructor() {
@@ -42,6 +43,7 @@ class Provider {
         this["titan-embeddings"] = new TitanEmbeddings();
         this["openai-compatible"] = new OpenAICompatible();
         this["bedrock-deepseek"] = new BedrockDeepSeek();
+        this["sagemaker-deepseek"] = new SagemakerDeepSeek();
     }
 
     async initForEmbeddings(ctx: any) {
