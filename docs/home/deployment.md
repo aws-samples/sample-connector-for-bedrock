@@ -33,7 +33,7 @@ Here are some recommend deployment patterns:
 
 ## Deploy Guide
 
-- (Option) If you need lambda function URL with AWS_IAM auth type, deploy lambda@edge at us-east-1 region for Cloudfront viewer request. After deploy successfully, get lambda version ARN from outputs page. 
+- (Mandatory, if you need lambda function URL with AWS_IAM auth type) deploy lambda@edge at us-east-1 region for Cloudfront Origin Request. After deploy successfully, get lambda version ARN from outputs page. <mark style="background: #FFB86CA6;">If skip this step, lambda function URL will be public.</mark>
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
 

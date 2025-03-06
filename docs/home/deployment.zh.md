@@ -33,7 +33,7 @@ Cloudformation 模板已在以下区域验证：
 
 ## 部署指南
 
-- （可选）如果需要使用 AWS_IAM 授权类型的 Lambda 函数 URL ，部署 lambda@edge 在 us-east-1 区域，用于 Cloudfront viewer request。成功部署后，从输出页面获取 Lambda 版本 ARN。
+- （必选，如果需要使用 AWS_IAM 授权类型的 Lambda 函数 URL） 部署 lambda@edge 在 us-east-1 区域，用于 Cloudfront Origin Request。成功部署后，从输出页面获取 Lambda 版本 ARN。<mark style="background: #FFB86CA6;"><mark style="background: #FFF3A3A6;">如果跳过这一步，Lambda 函数 URL 将会是公开的</mark></mark>。
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
 
