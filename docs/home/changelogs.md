@@ -1,5 +1,17 @@
 # Changelogs
 
+以下是完成的 changelogs：
+
+## 0.0.27
+
+1. **New Provider: sagemaker-deepseek** - Added a new provider for DeepSeek R1 models deployed on SageMaker. This provider supports streaming output with Deepseek-style `reasoning_content`. Currently supports three deployment methods on SageMaker: LMI, JumpStart, and Bedrock. Refer to [the documentation](../providers/sagemaker-deepseek.md).
+
+## 0.0.26
+
+1. **Enhancement: bedrock-converse Tool Calls** - The bedrock-converse provider now outputs the `tool_calls` content field, supporting tool use with langchain.ChatOpenAI requests.
+
+2. **Improvement: Consistent Message IDs** - Streaming responses now include consistent message IDs across all chunks within a single request.
+
 ## 0.0.25
 
 1. **Feature: Claude Sonnet 3.7 Thinking/Reasoning Support** - Added support for thinking/reasoning capabilities with Claude Sonnet 3.7 on the bedrock-converse provider. For more details, refer to [the documentation](../providers/bedrock-converse.md).

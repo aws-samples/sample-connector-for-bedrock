@@ -44,19 +44,15 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
-## 0.0.25
+## 0.0.27
 
-1. **Feature: Claude Sonnet 3.7 Thinking/Reasoning Support** - Added support for thinking/reasoning capabilities with Claude Sonnet 3.7 on the bedrock-converse provider. For more details, refer to [the documentation](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/).
+1. **New Provider: sagemaker-deepseek** - Added a new provider for DeepSeek R1 models deployed on SageMaker. This provider supports streaming output with Deepseek-style `reasoning_content`. Currently supports three deployment methods on SageMaker: LMI, JumpStart, and Bedrock.
 
-2. **Bugfix: Deepseek Format Reasoning Content** - Fixed support for reasoning content in deepseek format within the built-in BRClient.
+## 0.0.26
 
-3. **Standardization: sagemaker-lmi finish_reason Value** - Modified the `finish_reason` value in the sagemaker-lmi provider to consistently return "stop".
+1. **Enhancement: bedrock-converse Tool Calls** - The bedrock-converse provider now outputs the `tool_calls` content field, supporting tool use with langchain.ChatOpenAI requests.
 
-## 0.0.24
-
-1. **Bugfix: sagemaker-lmi finish_reason Output** - This update addresses an issue where the `finish_reason` output from the sagemaker-lmi provider was returning an empty string. Now, it will correctly output a non-empty string, providing accurate information about the completion status.
-
-2. **Feature: Display Model Reasoning in BRClient** - Enhanced BRConnector to support and display the `reasoning_content` field from the new API, which shows the model's step-by-step reasoning process. This update allows the frontend to properly recognize and render the model's thought process in a think block format.
+2. **Improvement: Consistent Message IDs** - Streaming responses now include consistent message IDs across all chunks within a single request.
 
 ## Disclaimer
 
