@@ -1,7 +1,5 @@
 # Changelogs
 
-以下是完成的 changelogs：
-
 ## 0.0.27
 
 1. **New Provider: sagemaker-deepseek** - Added a new provider for DeepSeek R1 models deployed on SageMaker. This provider supports streaming output with Deepseek-style `reasoning_content`. Currently supports three deployment methods on SageMaker: LMI, JumpStart, and Bedrock. Refer to [the documentation](../providers/sagemaker-deepseek.md).
