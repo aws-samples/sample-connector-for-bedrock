@@ -67,50 +67,37 @@ export default class NovaCanvas extends AbstractProvider {
     chatRequest.model = localLlmModel;
     ctx.status = 200;
     const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
-    // console.log(JSON.stringify(promptResult, null, 2));
 
 
     const { choices } = promptResult;
-    const choice = choices.find(c => c.message.content || c.message.tool_calls);
+    // console.log(JSON.stringify(choices, null, 2));
 
-    if (!choice) {
-      // 处理没有找到合适的选择的情况
-      return;
-    }
+    const choiceContent = choices.find(c => c.message.content);
+    const choiceToolUse = choices.find(c => c.message.tool_calls);
+    // console.log("some", choiceContent, choiceToolUse);
 
-    const { content, tool_calls } = choice.message;
+    // if (!choice) {
+    //   // 处理没有找到合适的选择的情况
+    //   return;
+    // }
+
+    const { content } = choiceContent.message;
+    const { tool_calls } = choiceToolUse?.message;
     let funName, args, imgs;
 
     if (content) {
       // 处理 content 的情况
     }
 
+    // console.log(tool_calls);
+
     if (tool_calls) {
       const tool = tool_calls.find(t => t["function"]["name"]);
       if (tool) {
         funName = tool["function"]["name"];
         args = tool["function"]["arguments"];
-        // 处理 funName 和 args 的情况
       }
     }
-
-    // let content: string, args: any, funName: string, imgs: [any]
-    // for (const c of promptResult.choices) {
-    //   if (c.message.content) {
-    //     content = c.message.content;
-    //   }
-    //   if (c.message.tool_calls) {
-    //     for (const tool of c.message.tool_calls) {
-    //       if (tool["function"]["name"]) {
-    //         funName = tool["function"]["name"];
-    //         args = tool["function"]["arguments"];
-    //         break;
-    //       }
-    //     }
-    //   }
-    // }
-
-    // args && ctx.logger.info(`func: ${funName}` + ", parameters: \n" + JSON.stringify(args, null, 2));
 
     const reqId = this.newRequestID();
     if (chatRequest.stream) {
@@ -130,6 +117,7 @@ export default class NovaCanvas extends AbstractProvider {
     if (funName && typeof this[funName] === 'function') {
       try {
         const jArgs = JSON.parse(args);
+        console.log(funName, jArgs)
         imgs = await this[funName](jArgs);
       } catch (error) {
         throw new Error("Error: " + error);

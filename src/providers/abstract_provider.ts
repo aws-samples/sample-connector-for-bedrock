@@ -195,7 +195,7 @@ export default abstract class AbstractProvider {
 
         const lastMessage = messages.pop();
         const threadData: any = {
-            prompt: lastMessage["content"],
+            prompt: JSON.stringify(lastMessage["content"]),
             completion: response.text,
             whole_prompt,
             key_id: ctx.user.id,

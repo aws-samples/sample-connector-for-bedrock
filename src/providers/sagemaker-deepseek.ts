@@ -55,22 +55,29 @@ export default class SagemakerDeepSeek extends AbstractProvider {
 
     // ctx.logger.debug(body);
 
-    if (thinking) {
-      const lastQ = chatRequest.messages[chatRequest.messages.length - 1];
-      this.thinking = true;
-      lastQ.content += "\n<think>";
-    }
     // console.log(JSON.stringify(chatRequest, null, 2))
     const clonedRequest = JSON.parse(JSON.stringify(chatRequest));
     delete clonedRequest.currency;
     delete clonedRequest.price_in;
     delete clonedRequest.price_out;
+    for (const message of clonedRequest.messages) {
+      message.content = JSON.stringify(message.content)
+    }
+
+    if (thinking) {
+      this.thinking = true;
+      const lastQ = clonedRequest.messages[chatRequest.messages.length - 1];
+      // lastQ.content += "\n<think>";
+    }
     if (clonedRequest.temperature >= 1 || clonedRequest.temperature <= 0) {
       clonedRequest.temperature = 0.5
     }
     if (clonedRequest.top_p >= 1 || clonedRequest.top_p <= 0) {
       clonedRequest.top_p = 0.99
     }
+
+    console.log(clonedRequest)
+    // console.log(JSON.stringify(clonedRequest));
 
     const input: any = {
       EndpointName: endpointName, // required
@@ -79,7 +86,6 @@ export default class SagemakerDeepSeek extends AbstractProvider {
       Accept: "application/json",
       // CustomAttributes
     };
-
     // console.log(JSON.stringify(input, null, 2));
 
     ctx.status = 200;
@@ -157,6 +163,8 @@ export default class SagemakerDeepSeek extends AbstractProvider {
           if (chunk) {
             lineText += chunk;
             lineText = lineText.trim();
+            console.log(lineText);
+
             if (lineText.startsWith("data:")) {
               lineText = lineText.substring(5);
               lineText = lineText.trim();
@@ -178,6 +186,8 @@ export default class SagemakerDeepSeek extends AbstractProvider {
               }
               if (finish_reason) {
                 finish_reason = "stop"
+
+                console.log("responseText", responseText);
                 ctx.res.write("data: " + WebResponse.wrap(i++, chatRequest.model, "", finish_reason, i, 0, reqId) + "\n\n");
                 const response: ResponseData = {
                   text: responseText,
