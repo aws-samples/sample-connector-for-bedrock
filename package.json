@@ -14,11 +14,11 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "^3.755.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.755.0",
-    "@aws-sdk/client-s3": "^3.750.0",
-    "@aws-sdk/client-sagemaker-runtime": "^3.750.0",
-    "@aws-sdk/s3-request-presigner": "^3.750.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.765.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.758.0",
+    "@aws-sdk/client-s3": "^3.758.0",
+    "@aws-sdk/client-sagemaker-runtime": "^3.758.0",
+    "@aws-sdk/s3-request-presigner": "^3.750.8",
     "@koa/cors": "^5.0.0",
     "@larksuiteoapi/node-sdk": "^1.40.1",
     "csv-parser": "^3.0.0",
@@ -30,8 +30,8 @@
     "koa-static-server": "^1.5.2",
     "nodemailer": "^6.9.16",
     "ollama": "^0.5.11",
-    "openai": "^4.85.3",
-    "pg": "^8.13.1",
+    "openai": "^4.87.3",
+    "pg": "^8.14.1",
     "sharp": "^0.33.5",
     "winston": "^3.17.0"
   },

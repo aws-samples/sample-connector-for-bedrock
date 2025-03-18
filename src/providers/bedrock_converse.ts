@@ -236,9 +236,10 @@ export default class BedrockConverse extends AbstractProvider {
         const apiResponse = await this.client.send(command);
 
         const content = apiResponse.output.message?.content;
-        // console.log("ori content:", JSON.stringify(content, null, 2));
+        console.log("ori content:", JSON.stringify(apiResponse, null, 2));
         const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
         const { latencyMs } = apiResponse.metrics;
+        const { requestId } = apiResponse["$metadata"];
         const response: ResponseData = {
             text: content[0].text,
             input_tokens: inputTokens,
@@ -249,6 +250,15 @@ export default class BedrockConverse extends AbstractProvider {
         await this.saveThread(ctx, session_id, chatRequest, response);
 
         const choices = content.map((c: any, index: number) => {
+            if (c.reasoningContent) {
+                return {
+                    index,
+                    message: {
+                        reasoning_content: c.reasoningContent.reasoningText.text,
+                        role: "assistant"
+                    }
+                }
+            }
             if (c.text) {
                 return {
                     index,
@@ -275,7 +285,7 @@ export default class BedrockConverse extends AbstractProvider {
                     }
                 }
             }
-        });
+        }).filter(Boolean);
         // console.log({
         //     choices, usage: {
         //         completion_tokens: outputTokens,
@@ -284,6 +294,7 @@ export default class BedrockConverse extends AbstractProvider {
         //     }
         // })
         return {
+            id: requestId,
             model: chatRequest.model,
             choices, usage: {
                 completion_tokens: outputTokens,
