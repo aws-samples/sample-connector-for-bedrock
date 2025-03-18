@@ -121,7 +121,7 @@ A Webhook consists of the following fields:
 {
   "appId": "cli_xxxxx",
   "apiKey": "br-xxxxx",
-  "modelId": "claude-3-sonnet", 
+  "modelId": "claude-3-5-haiku", 
   "appSecret": "xxxxx"
 }
 ```
@@ -133,9 +133,4 @@ A Webhook consists of the following fields:
 
 !!! note
 
-    Currently, BRConnector must be restarted for the added Webhook to take effect.
-
-Example of configured Webhook URL:
-
-- `https://<yourdomain>/bot/feishu/<webhook-name>/webhook/event`
-- `https://www.example.com/bot/feishu/feishu001/webhook/event`
+    Currently, BRConnector must be restarted for making Callback and Event to take effect.

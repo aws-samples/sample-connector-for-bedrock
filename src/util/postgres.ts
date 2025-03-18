@@ -58,8 +58,8 @@ export default class PGClient {
     }
 
     // table = "'" + table + "'";
-    var sql = `select ${conditions.cols} from ${table} where ${conditions.where} ${conditions.orderBy} limit ${conditions.limit}`;
-    var { rows } = await this.query(sql, conditions.params);
+    const sql = `select ${conditions.cols} from ${table} where ${conditions.where} ${conditions.orderBy} limit ${conditions.limit}`;
+    const { rows } = await this.query(sql, conditions.params);
     if (rows.length > 0) {
       return rows[0];
     }
@@ -154,7 +154,7 @@ export default class PGClient {
       conditions.orderBy = '';
     }
     // table = "`" + table + "`";
-    var sql = `select ${conditions.cols} from ${table} where ${conditions.where} ${conditions.orderBy} limit ${conditions.limit} offset ${conditions.offset}`;
+    const sql = `select ${conditions.cols} from ${table} where ${conditions.where} ${conditions.orderBy} limit ${conditions.limit} offset ${conditions.offset}`;
     const { rows } = await this.query(sql, conditions.params);
     return rows;
   }
@@ -163,8 +163,8 @@ export default class PGClient {
     conditions = conditions || {};
     conditions.where = conditions.where || "1=1";
     // table = "`" + table + "`";
-    var sql = `select count(*) as ct from ${table} where ${conditions.where} `;
-    var { rows } = await this.query(sql, conditions.params);
+    const sql = `select count(*) as ct from ${table} where ${conditions.where} `;
+    const { rows } = await this.query(sql, conditions.params);
     if (rows.length > 0) {
       return rows[0].ct;
     }
@@ -176,8 +176,8 @@ export default class PGClient {
   public async exists(table: string, conditions: any): Promise<boolean> {
     conditions = conditions || {};
     conditions.where = conditions.where || "1=1";
-    var sql = `select count(*) as ct from ${table} where ${conditions.where} `;
-    var { rows } = await this.query(sql, conditions.params);
+    const sql = `select count(*) as ct from ${table} where ${conditions.where} `;
+    const { rows } = await this.query(sql, conditions.params);
     return rows.length > 0 && rows[0].ct > 0;
   }
 
@@ -186,8 +186,8 @@ export default class PGClient {
   public async sum(table: string, col: string, conditions: any): Promise<number> {
     conditions = conditions || {};
     conditions.where = conditions.where || "1=1";
-    var sql = `select sum(${col}) as ct from ${table} where ${conditions.where} `;
-    var { rows } = await this.query(sql, conditions.params);
+    const sql = `select sum(${col}) as ct from ${table} where ${conditions.where} `;
+    const { rows } = await this.query(sql, conditions.params);
     if (rows.length > 0) {
       return rows[0].ct;
     }
@@ -195,16 +195,16 @@ export default class PGClient {
   }
 
   public async delete(table: string, id: any) {
-    var sql = `delete from ${table} where id=$1`;
-    var { rowCount } = await this.query(sql, [id]);
+    const sql = `delete from ${table} where id=$1`;
+    const { rowCount } = await this.query(sql, [id]);
     return rowCount > 0;
   }
 
   public async deleteMulti(table: string, conditions: any) {
     conditions = conditions || {};
     conditions.where = conditions.where;
-    var sql = `delete from ${table} where ${conditions.where} `;
-    var { rowCount } = await this.query(sql, conditions.params);
+    const sql = `delete from ${table} where ${conditions.where} `;
+    const { rowCount } = await this.query(sql, conditions.params);
     return rowCount > 0;
   }
 

@@ -118,7 +118,7 @@ Webhook由以下几个字段组成：
 {
   "appId": "cli_xxxxx",
   "apiKey": "br-xxxxx",
-  "modelId": "claude-3-sonnet",
+  "modelId": "claude-3-5-haiku",
   "appSecret": "xxxxx"
 }
 ```
@@ -130,9 +130,4 @@ Webhook由以下几个字段组成：
 
 !!! note
 
-    注意：目前添加 Webhook 后必须重启BRConnector 才能生效。
-
-配置完成后的 Webhook URL 示例：
-
-- `https://<yourdomain>/bot/feishu/<webhook-name>/webhook/event`
-- `https://www.example.com/bot/feishu/feishu001/webhook/event`
+    注意：目前添加飞书机器人后必须重启BRConnector才能生效。

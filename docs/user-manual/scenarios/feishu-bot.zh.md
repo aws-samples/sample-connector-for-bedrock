@@ -18,16 +18,14 @@
 ![feishu-5.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-2.jpg)
 
 5. 在机器人配置页面中，点击`事件与回调`
-![feishu-6.png](attachments/feishu-bot/IMG-feishu-bot.jpg)
+![feishu-6-1.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-7.jpg)
+![feishu-6-2.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-8.jpg)
 
-6. 编辑`订阅方式`，修改请求地址。请求地址和服务端配置的 webhook 名字有关，形如：`https://<yourdomain>/bot/feishu/<webhook-name>/webhook/event`。具体地址参考[webhoook-配置]。(management.zh.md#webhoook-配置)
-![feishu-7.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-4.jpg)
-
-7. 添加权限
+6. 添加权限
 ![IMG-feishu-bot.png](attachments/feishu-bot/IMG-feishu-bot.png)
 
-8. 然后在飞书中切换到对应企业，搜索应用（步骤 3 中的应用名）
+7. 然后在飞书中切换到对应企业，搜索应用（步骤 3 中的应用名）
 ![feishu-8.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-5.jpg)
 
-9. 然后我们就可以测试发送问题，让大预言模型来回答了
+8. 然后我们就可以测试发送问题，让大预言模型来回答了
 ![feishu-9.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-6.jpg)

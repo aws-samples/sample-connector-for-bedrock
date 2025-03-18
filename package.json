@@ -20,7 +20,7 @@
     "@aws-sdk/client-sagemaker-runtime": "^3.758.0",
     "@aws-sdk/s3-request-presigner": "^3.750.8",
     "@koa/cors": "^5.0.0",
-    "@larksuiteoapi/node-sdk": "^1.40.1",
+    "@larksuiteoapi/node-sdk": "^1.44.0",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.4.7",
     "googleapis": "^144.0.0",
@@ -85,5 +85,13 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "core-js",
+      "protobufjs",
+      "sharp",
+      "yorkie"
+    ]
+  }
 }

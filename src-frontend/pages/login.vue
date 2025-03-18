@@ -4,10 +4,10 @@
       <h1>{{ $t('login.title') }}</h1>
       <Form size="large" :model="form" :rules="rules" layout="vertical" @submit="login" theme="light">
         <FormItem label="Host" prop="host">
-          <Input type="text" placeholder="https://" />
+          <Input type="text" placeholder="https://"/>
         </FormItem>
         <FormItem label="API Key" prop="key">
-          <Input type="password" placeholder="Please input api key..." />
+          <Input type="password" placeholder="Please input api key..."/>
         </FormItem>
         <FormItem class="btn">
           <Button type="primary" :loading="loading" htmlType="submit">{{ $t('login.btn') }}</Button>
@@ -21,24 +21,24 @@ export default {
   data() {
     return {
       loading: false,
-      form: { key: '', host: '' },
+      form: {key: '', host: ''},
       rules: {
-        key: [{ required: true, message: 'Please input key...' }]
+        key: [{required: true, message: 'Please input key...'}]
       }
     }
   },
   created() {
     const host = localStorage.getItem("host") || 'https://';
-    if (host.indexOf("http://")>-1 || host.indexOf("https://")>-1) {
-      this.form.host =  host;
+    if (host.indexOf("http://") > -1 || host.indexOf("https://") > -1) {
+      this.form.host = host;
     }
   },
   methods: {
-    login({ valid }) {
+    login({valid}) {
       if (!valid) {
         return false;
       }
-      let { host, key } = this.form;
+      let {host, key} = this.form;
       if (host.endsWith("/")) {
         host = host.substring(0, host.length - 1);
       }
@@ -82,8 +82,7 @@ export default {
 
   &::before {
     content: '';
-    background: #252F3E;
-    background-repeat: no-repeat;
+    background: #252F3E no-repeat;
     background-size: cover;
     width: 100%;
     height: 100%;
@@ -102,7 +101,6 @@ export default {
     position: absolute;
     left: 0;
     top: 0;
-    z-index: 1;
   }
 
   .login-box {
