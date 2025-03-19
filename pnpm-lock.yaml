@@ -27,8 +27,8 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
       '@larksuiteoapi/node-sdk':
-        specifier: ^1.40.1
-        version: 1.42.0
+        specifier: ^1.44.0
+        version: 1.44.0
       csv-parser:
         specifier: ^3.0.0
         version: 3.2.0
@@ -1049,8 +1049,8 @@ packages:
     resolution: {integrity: sha512-x/iUDjcS90W69PryLDIMgFyV21YLTnG9zOpPXS7Bkt2b8AsY3zZsIpOLBkYr9fBcF3HbkKaER5hOBZLfpLgYNw==}
     engines: {node: '>= 14.0.0'}
 
-  '@larksuiteoapi/node-sdk@1.42.0':
-    resolution: {integrity: sha512-S23U0oBWhfqlckjhlnj6FSbWul9OE3El1y4r1Dlf+SxsAEXYUHMlOuRpJvb1aoQbRFQ4rTQwkWJpmBScAKd+uA==}
+  '@larksuiteoapi/node-sdk@1.44.0':
+    resolution: {integrity: sha512-F5ewFeXUkVlq8xIcN+t27VFcfnDRBNz7lsdTShVDhGgbA0YBVfhdTyAXw3H+I9/vzNT5lISTzsGXUg5I7ssOwA==}
 
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
@@ -6673,7 +6673,7 @@ snapshots:
     dependencies:
       vary: 1.1.2
 
-  '@larksuiteoapi/node-sdk@1.42.0':
+  '@larksuiteoapi/node-sdk@1.44.0':
     dependencies:
       axios: 0.27.2
       lodash.get: 4.4.2

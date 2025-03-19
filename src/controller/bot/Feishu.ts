@@ -1,11 +1,9 @@
 import * as lark from '@larksuiteoapi/node-sdk';
-import config from '../../config';
-import DB from '../../util/postgres';
 import Cache from '../../util/cache';
 import helper from "../../util/helper";
-import { ChatRequest } from "../../entity/chat_request";
+import {ChatRequest} from "../../entity/chat_request";
 import AbstractController from "../AbstractController";
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 
 
@@ -16,42 +14,51 @@ const ONE_HOUR = 60 * 60 * 1000;
 class FeishuController extends AbstractController {
   async routers(router: any): Promise<void> {
     try {
-      // const db = DB.build(config.pgsql);
-      // console.log(Cache.connectors);
-      const connectors = Cache.connectors.filter(e => e.provider === "feishu")
-      for (const connector of connectors) {
-        console.log("Feishu bot [" + connector.name + "] connected...");
-        const { appId, appSecret, encryptKey } = connector.config;
-        const client = new lark.Client({
-          appId,
-          appSecret
-        });
+      // Use more specific type instead of 'any' for better type safety
+      const feishuConnectors = Cache.connectors.filter(({provider}) => provider === "feishu");
 
-        const params: Record<string, any> = {};
-        if (encryptKey) params.encryptKey = encryptKey;
-        const eventDispatcher = new lark.EventDispatcher(params).register({
-          'im.message.receive_v1': (data: any) => {
-            receive(client, data, connector.name);
+      // Process connectors in parallel for better performance
+      await Promise.all(feishuConnectors.map(async (connector) => {
+        const {name, config: {appId, appSecret, encryptKey}} = connector;
+
+        console.log(`Feishu bot [${name}] connected...`);
+        const baseConfig = {
+          appId: process.env.FEISHU_APP_ID || appId,
+          appSecret: process.env.FEISHU_APP_SECRET || appSecret
+        };
+        const wsClient = new lark.WSClient(baseConfig);
+        const client = new lark.Client(baseConfig);
+
+        const params: Record<string, string> = encryptKey ? {encryptKey} : {};
+
+        // Create event dispatcher with proper error handling
+        const eventDispatcher = new lark.EventDispatcher({}).register({
+          'im.message.receive_v1': async (data) => {
+            try {
+              await receive(client, data, name);
+            } catch (error) {
+              console.error(`Error processing message for ${name}:`, error);
+            }
           },
         });
 
-        router.post(`/bot/feishu/${connector.name}/webhook/event`, lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true }));
-        console.log(`Webhook updated - Post: /bot/feishu/${connector.name}/webhook/event`);
-      }
-    } catch (ex) {
-      console.error(ex);
+        wsClient.start({eventDispatcher});
+      }));
+
+    } catch (error) {
+      console.error('Error in FeishuController routers:', error);
+      throw error; // Re-throw to allow proper error handling upstream
     }
   }
 }
 
+
 const chat = async (client: lark.Client,
-  chatId: string,
-  content: any,
-  session_id: string,
-  lastMessageId: string,
-  connectorName: string): Promise<any> => {
-  // const db = DB.build(config.pgsql);
-  // const connector = await db.loadByKV('eiai_bot_connector', 'name', connectorName);
+                    chatId: string,
+                    content: any,
+                    session_id: string,
+                    lastMessageId: string,
+                    connectorName: string): Promise<any> => {
   const connector = Cache.connectors.find(e => e.name === connectorName);
 
   let chatRequest: ChatRequest = {
@@ -201,14 +208,14 @@ const handleTextContent = (content: string) => {
 
 const getHistoryMessage = async (client: lark.Client, containerId: string, startTime: number, limit: number = 20) => {
   let historyMessages = await client.im.message.list({
-    params: {
-      container_id_type: 'chat',
-      container_id: containerId,
-      start_time: startTime.toFixed(0).toString(),
-      page_size: limit,
-      sort_type: 'ByCreateTimeDesc',
-    },
-  }
+      params: {
+        container_id_type: 'chat',
+        container_id: containerId,
+        start_time: startTime.toFixed(0).toString(),
+        page_size: limit,
+        sort_type: 'ByCreateTimeDesc',
+      },
+    }
   )
 
   return historyMessages.data.items;
@@ -234,22 +241,22 @@ const determineMimeType = (buffer: Buffer): string => {
 const handleFileContent = async (client: lark.Client, messageId: string, fileContent: any) => {
   try {
     const fileData = await client.im.messageResource.get({
-      path: {
-        message_id: messageId,
-        file_key: fileContent.file_key,
-      },
-      params: {
-        type: 'file',
-      },
-    }
+        path: {
+          message_id: messageId,
+          file_key: fileContent.file_key,
+        },
+        params: {
+          type: 'file',
+        },
+      }
     );
     // If fileData has a writeFile method, it's likely a Readable stream or similar
-    let { name, ext } = path.parse(fileContent.file_name);
+    let {name, ext} = path.parse(fileContent.file_name);
     ext = ext.substring(1);
     const tempFilePath = path.join(__dirname, `${name}_${Date.now()}.${ext}`);
     await fileData.writeFile(tempFilePath)
-    const bufferFileData = await fs.promises.readFile(tempFilePath);
-    await fs.promises.unlink(tempFilePath); // Clean up temp file
+    const bufferFileData = await fs.readFile(tempFilePath);
+    await fs.unlink(tempFilePath); // Clean up temp file
     return {
       type: 'doc',
       doc: {
@@ -270,22 +277,22 @@ const handleImageContent = async (client: lark.Client, messageId: string, image_
   try {
     console.log(`Attempting to retrieve image with key: ${image_key}`);
     const imageData = await client.im.messageResource.get({
-      path: {
-        message_id: messageId,
-        file_key: image_key,
-      },
-      params: {
-        type: 'image',
-      },
-    }
+        path: {
+          message_id: messageId,
+          file_key: image_key,
+        },
+        params: {
+          type: 'image',
+        },
+      }
     );
 
     // If imageData has a writeFile method, it's likely a Readable stream or similar
     const tempFilePath = path.join(__dirname, `temp_image_${Date.now()}.tmp`);
     await imageData.writeFile(tempFilePath)
     let bufferImageData: Buffer;
-    bufferImageData = await fs.promises.readFile(tempFilePath);
-    await fs.promises.unlink(tempFilePath); // Clean up temp file
+    bufferImageData = await fs.readFile(tempFilePath);
+    await fs.unlink(tempFilePath); // Clean up temp file
     const base64Image = bufferImageData.toString('base64');
 
     // Determine MIME type based on file signature
@@ -390,15 +397,17 @@ const receive = (client: lark.Client, data: any, connectorName: string): void =>
       const messageId: string = res.data.message_id;
       const chatRes = await chat(client, data.message.chat_id, jContent, data.message.chat_id, data.message.message_id, connectorName);
       if (!chatRes.ok) {
-        await updateCard(client, messageId, "发生错误", chatRes.text());
-        throw new Error(await chatRes.text());
+        const errMsg = await chatRes.text();
+        await updateCard(client, messageId, "发生错误", errMsg);
+        console.error(await errMsg);
+        return;
       }
 
       let done: any, value: any;
       const reader = chatRes.body.getReader();
       let resContent = '';
       while (!done) {
-        ({ value, done } = await reader.read());
+        ({value, done} = await reader.read());
         if (value) {
           const vString = new TextDecoder().decode(value);
           for (const item of vString.split('data:')) {
