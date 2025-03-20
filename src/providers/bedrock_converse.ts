@@ -45,8 +45,6 @@ export default class BedrockConverse extends AbstractProvider {
 
         ctx.status = 200;
 
-        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
-
 
         if (chatRequest.stream) {
             ctx.set({
@@ -65,6 +63,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
+        console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
 
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
         if (chatRequest.model_id) {
@@ -74,7 +73,7 @@ export default class BedrockConverse extends AbstractProvider {
         }
         // payload["modelId"] = this.modelId;
 
-        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
+        console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
 
@@ -241,7 +240,7 @@ export default class BedrockConverse extends AbstractProvider {
         const { latencyMs } = apiResponse.metrics;
         const { requestId } = apiResponse["$metadata"];
         const response: ResponseData = {
-            text: content[0].text,
+            text: content[0]?.text,
             input_tokens: inputTokens,
             output_tokens: outputTokens,
             invocation_latency: 0,
@@ -274,6 +273,7 @@ export default class BedrockConverse extends AbstractProvider {
                         role: "assistant",
                         tool_calls: [
                             {
+                                id: c.toolUse.id,
                                 type: "function",
                                 function: {
                                     name: c.toolUse.name,
@@ -354,10 +354,16 @@ class MessageConverter {
 
     async convertContent(content: any): Promise<any[]> {
         if (typeof content === "string") {
+            if (!content || content.trim() === "") {
+                return [{
+                    text: "."
+                }];
+            }
             return [{
                 text: content
             }];
         }
+
         const rtn: any[] = [];
         if (Array.isArray(content)) {
             for (const item of content) {
@@ -430,7 +436,7 @@ class MessageConverter {
         const tools = chatRequest.tools;
         const tool_choice = chatRequest.tool_choice;
         const systemMessages = messages.filter(message => message.role === 'system');
-        const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant');
+        const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant' || message.role === 'tool' || message.role === 'function');
         let stopSequences = chatRequest.stop;
 
         const inferenceConfig: any = {
@@ -460,6 +466,9 @@ class MessageConverter {
         for (const message of uaMessages) {
             const nowLen = newMessages.length;
             const shouldBeUser = nowLen % 2 === 0;
+            if (message.role === 'tool' || message.role === 'function') { // tool and function are not supported in converse
+                message.role = 'assistant';
+            }
             message.content = await this.convertContent(message.content);
             if (shouldBeUser) {
                 if (message.role === 'user') {
