@@ -9,7 +9,7 @@
 1. Enterprise administrator logs into the [Feishu Open Platform](https://open.feishu.cn/app/)
 
 2. Create a custom application for the enterprise
-![feishu-3.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh.jpg)
+![feishu-3.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-0.jpg)
 
 3. Fill in the name and description
 ![feishu-4.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-1.jpg)

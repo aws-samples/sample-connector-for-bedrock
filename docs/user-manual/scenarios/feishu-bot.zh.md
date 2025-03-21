@@ -9,7 +9,7 @@
 1. 企业管理员登录[飞书开放平台](https://open.feishu.cn/app/)
 
 2. 创建企业自建应用
-![feishu-3.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh.jpg)
+![feishu-3.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-0.jpg)
 
 3. 填写名字和描述
 ![feishu-4.png](attachments/feishu-bot.zh/IMG-feishu-bot.zh-1.jpg)

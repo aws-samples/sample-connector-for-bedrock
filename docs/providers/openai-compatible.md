@@ -19,3 +19,6 @@ This Provider allows you to reconfigure third-party models that have already bee
 | baseURL  | string | Yes      |         | Base URL            |
 | apiKey   | string | Yes      |         | API key             |
 | model    | string | Yes      |         | Third-party model name |
+
+## Samples
+- [[../user-manual/scenarios/cursor|cursor]]
