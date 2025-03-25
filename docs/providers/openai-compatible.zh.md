@@ -20,3 +20,6 @@
 | apiKey | string | 是 |  | api key |
 | model | string | 是 |  | 第三方的模型名称 |
 
+## 示例
+- [[../user-manual/scenarios/cursor.zh|cursor]]
+
