@@ -267,7 +267,10 @@ export default abstract class AbstractProvider {
             keyDataUpdate.month_fee = month_fee + fee; // Balance spending does not count as month_fee  
         }
 
-        const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
+
+        const sql = "update eiai_key set total_fee=total_fee+$1, month_fee=$2 where id=$3 RETURNING *";
+        const keyResult = await ctx.db.query(sql, [fee, keyDataUpdate.month_fee, this.keyData.id])
+        // const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
         ctx.user = keyDataUpdate;
         this.keyData = keyResult;
         Cache.updateKeyFee(ctx.user.id, keyDataUpdate.month_fee);
