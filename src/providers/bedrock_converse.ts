@@ -8,8 +8,8 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 
 /**
- * BedrockConverse Provider uses boto3-converse api to invoke LLM models and support function calling.
- */
+* BedrockConverse Provider uses boto3-converse api to invoke LLM models and support function calling.
+*/
 export default class BedrockConverse extends AbstractProvider {
 
     client: BedrockRuntimeClient;
@@ -63,7 +63,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
+        // console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
 
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
         if (chatRequest.model_id) {
@@ -73,7 +73,7 @@ export default class BedrockConverse extends AbstractProvider {
         }
         // payload["modelId"] = this.modelId;
 
-        console.log("--payload-------------", JSON.stringify(payload, null, 2));
+        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
 
@@ -141,14 +141,26 @@ export default class BedrockConverse extends AbstractProvider {
 
             let index = 1;
             let think_end = false;
+            const tool_use_block: any = { arguments: "" };
             for await (const item of response.stream) {
-                // console.log(JSON.stringify(item));
+                console.log(JSON.stringify(item));
+                if (item.contentBlockStart?.start?.toolUse) {
+                    tool_use_block.call_id = item.contentBlockStart?.start?.toolUse?.toolUseId;
+                    tool_use_block.name = item.contentBlockStart?.start?.toolUse?.name;
+                }
+                if (item.messageStop?.stopReason == "tool_use") {
+                    ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [tool_use_block], reqId) + "\n\n");
+
+                }
                 if (item.contentBlockDelta) {
                     const thinkingContent = item.contentBlockDelta.delta?.reasoningContent?.text;
                     const content = item.contentBlockDelta.delta?.text;
+                    const tool_use_args = item.contentBlockDelta.delta?.toolUse?.input;
+                    if (tool_use_args) {
+                        tool_use_block.arguments += (tool_use_args || "");
+                    }
                     if (thinkingContent && index == 1) {
                         responseText += "<think>";
-
                     }
                     if (thinkingContent) {
                         responseText += thinkingContent;
@@ -235,7 +247,7 @@ export default class BedrockConverse extends AbstractProvider {
         const apiResponse = await this.client.send(command);
 
         const content = apiResponse.output.message?.content;
-        console.log("ori content:", JSON.stringify(apiResponse, null, 2));
+        // console.log("ori content:", JSON.stringify(apiResponse, null, 2));
         const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
         const { latencyMs } = apiResponse.metrics;
         const { requestId } = apiResponse["$metadata"];
@@ -253,6 +265,8 @@ export default class BedrockConverse extends AbstractProvider {
         let hasReasoningContent = false;
         let hasContent = false;
 
+        // console.log(1111, content);
+
         content.map((c: any, index: number) => {
             if (c.reasoningContent) {
                 assistantMessage.reasoning_content = c.reasoningContent.reasoningText.text;
@@ -262,25 +276,38 @@ export default class BedrockConverse extends AbstractProvider {
                 assistantMessage.content = c.text;
                 hasContent = true;
             }
+
             if (c.toolUse) {
-                choices.push({
-                    message: {
-                        role: "assistant",
-                        tool_calls: [
-                            {
-                                id: c.toolUse.id,
-                                type: "function",
-                                function: {
-                                    name: c.toolUse.name,
-                                    // arguments: c.toolUse.input //fix to fit openai schema.
-                                    arguments: JSON.stringify(c.toolUse.input) //fix to fit openai schema.
-                                }
-                            }
-                        ]
+                assistantMessage.tool_calls = [
+                    {
+                        id: c.toolUse.id,
+                        type: "function",
+                        function: {
+                            name: c.toolUse.name,
+                            arguments: JSON.stringify(c.toolUse.input)
+                        }
                     }
-                });
+                ]
             }
-        }).filter(Boolean);
+            // if (c.toolUse) {
+            //     choices.push({
+            //         message: {
+            //             role: "assistant",
+            //             tool_calls: [
+            //                 {
+            //                     id: c.toolUse.id,
+            //                     type: "function",
+            //                     function: {
+            //                         name: c.toolUse.name,
+            //                         // arguments: c.toolUse.input //fix to fit openai schema.
+            //                         arguments: JSON.stringify(c.toolUse.input) //fix to fit openai schema.
+            //                     }
+            //                 }
+            //             ]
+            //         }
+            //     });
+            // }
+        });
 
         if (hasReasoningContent || hasContent) {
             choices.unshift({

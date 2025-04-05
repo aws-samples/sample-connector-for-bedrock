@@ -113,6 +113,27 @@ export default {
 
         return JSON.stringify(data);
     },
+
+    wrapToolUse: (id: any, model: any, tool_calls?: any, request_id?: string) => {
+        const created = Math.floor((new Date().getTime()) / 1000);
+        const data: any = {
+            id: "chatcmpl-" + (request_id || "tempid"),
+            created,
+            "object": "text_completion"
+        };
+
+        data.choices = [
+            { "index": 0, delta: { role: "assistant", content: "", tool_calls }, finish_reason: null, logprobs: null }
+        ];
+
+        if (model) {
+            data.model = model;
+        }
+
+        // console.log(JSON.stringify(data));
+
+        return JSON.stringify(data);
+    },
 }
 
 
