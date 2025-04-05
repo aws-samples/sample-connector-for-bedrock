@@ -248,27 +248,22 @@ export default class BedrockConverse extends AbstractProvider {
         }
         await this.saveThread(ctx, session_id, chatRequest, response);
 
-        const choices = content.map((c: any, index: number) => {
+        const choices = [];
+        let assistantMessage: any = { role: "assistant" };
+        let hasReasoningContent = false;
+        let hasContent = false;
+
+        content.map((c: any, index: number) => {
             if (c.reasoningContent) {
-                return {
-                    index,
-                    message: {
-                        reasoning_content: c.reasoningContent.reasoningText.text,
-                        role: "assistant"
-                    }
-                }
+                assistantMessage.reasoning_content = c.reasoningContent.reasoningText.text;
+                hasReasoningContent = true;
             }
             if (c.text) {
-                return {
-                    index,
-                    message: {
-                        content: c.text,
-                        role: "assistant"
-                    }
-                }
+                assistantMessage.content = c.text;
+                hasContent = true;
             }
             if (c.toolUse) {
-                return {
+                choices.push({
                     message: {
                         role: "assistant",
                         tool_calls: [
@@ -283,9 +278,16 @@ export default class BedrockConverse extends AbstractProvider {
                             }
                         ]
                     }
-                }
+                });
             }
         }).filter(Boolean);
+
+        if (hasReasoningContent || hasContent) {
+            choices.unshift({
+                index: 0,
+                message: assistantMessage
+            });
+        }
         // console.log({
         //     choices, usage: {
         //         completion_tokens: outputTokens,
