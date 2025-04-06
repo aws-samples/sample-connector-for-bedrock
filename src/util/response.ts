@@ -20,7 +20,7 @@ export default {
             id: "chatcmpl-" + (request_id || "tempid"),
             created,
             // "object": "chat.completion.chunk",
-            "object": "text_completion"
+            "object": "chat.completion.chunk"
             // system_fingerprint: null
             // finish_reason: null,
             // usage: {
@@ -98,7 +98,7 @@ export default {
         const data: any = {
             id: "chatcmpl-" + (request_id || "tempid"),
             created,
-            "object": "text_completion"
+            "object": "chat.completion.chunk"
         };
 
         data.choices = [
@@ -119,11 +119,11 @@ export default {
         const data: any = {
             id: "chatcmpl-" + (request_id || "tempid"),
             created,
-            "object": "text_completion"
+            "object": "chat.completion.chunk"
         };
 
         data.choices = [
-            { "index": 0, delta: { role: "assistant", content: "", tool_calls }, finish_reason: null, logprobs: null }
+            { "index": 0, delta: { role: "assistant", tool_calls }, finish_reason: null, logprobs: null }
         ];
 
         if (model) {

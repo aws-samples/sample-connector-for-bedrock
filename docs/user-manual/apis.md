@@ -94,54 +94,113 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### Function calling (tool use)
 
+Request
+
 ```
 POST /v1/chat/completions
 Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
-  "model": "claude-3-sonnet",
+  "model": "c37",
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "bookFlight",
-        "description": "Book a flight",
+        "name": "query-weather",
+        "description": "query weather",
         "parameters": {
           "type": "object",
-          "departure": {
-            "type": "string",
-            "description": "departure airport"
-          },
-          "arrival": {
-            "type": "string",
-            "description": "arrival airport"
-          },
-          "departureDate": {
-            "type": "string",
-            "description": "departure time"
+          "properties": {
+            "latitude": {
+              "type": "string",
+              "description": "latitude"
+            },
+            "longitude": {
+                "type": "string",
+                "description": "longitude"
+            }
           }
         },
         "required": [
-          "departure",
-          "arrival",
-          "departureDate"
+          "latitude",
+          "longitude"
         ]
       }
     }
   ],
+  "stream": true,
   "tool_choice": "auto",
   "messages": [
     {
       "role": "system",
-      "content": "You are an experienced business ticket agent, and your role is to help corporate customers purchase tickets.  Current time: 2024-11-13T08:13:17.778Z."
+      "content": "You are an expert. Current time: 2024-11-13T08:13:17.778Z."
     },
     {
       "role": "user",
-      "content": "I would like to book a ticket to New York tomorrow.\n    Required parameters are:\n\n    \ndeparture: \narrival: \ndepartureDate: \n\n"
+      "content": "I wanna query weather of Beijing."
     }
   ]
 }
+```
+
+Response (stream: false)
+
+```json
+{
+  "id": "1028c350-da16-4ae0-bcce-77e877f90695",
+  "model": "c37",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "reasoning_content": "The user wants to query the weather for Beijing. To use the `query-weather` function, I need to provide the latitude and longitude of Beijing.\n\nBeijing's approximate coordinates are:\n- Latitude: 39.9042° N (which would be \"39.9042\")\n- Longitude: 116.4074° E (which would be \"116.4074\")\n\nWith these coordinates, I can call the `query-weather` function to get the current weather information for Beijing.",
+        "content": "I'd be happy to check the weather in Beijing for you. I'll need to use the coordinates for Beijing to make the query.",
+        "tool_calls": [
+          {
+            "id": "tooluse_su_WaAeJQviJSDZ5BPXNyA",
+            "type": "function",
+            "function": {
+              "name": "query-weather",
+              "arguments": "{\"latitude\":\"39.9042\",\"longitude\":\"116.4074\"}"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 219,
+    "prompt_tokens": 449,
+    "total_tokens": 668
+  }
+}
+```
+
+Response (stream: true)
+
+```
+data: {"id":"chatcmpl-689a9c21-4305-4a56-a32a-b0781d4ebcc0","created":1743912748,"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"The"},"finish_reason":null,"logprobs":null}],"model":"c37"}
+
+...
+
+data: {"id":"chatcmpl-689a9c21-4305-4a56-a32a-b0781d4ebcc0","created":1743912750,"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":" that"},"finish_reason":null,"logprobs":null}],"model":"c37"}
+
+...
+
+data: {"id":"chatcmpl-689a9c21-4305-4a56-a32a-b0781d4ebcc0","created":1743912750,"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"tooluse_uz8oUJ90TQuISdaP1yaU2A","type":"function","function":{"name":"query-weather","arguments":""}}]},"finish_reason":null,"logprobs":null}],"model":"c37"}
+
+data: {"id":"chatcmpl-689a9c21-4305-4a56-a32a-b0781d4ebcc0","created":1743912751,"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"function":{"arguments":"{\"lat"}}]},"finish_reason":null,"logprobs":null}],"model":"c37"}
+
+...
+
+data: {"id":"chatcmpl-689a9c21-4305-4a56-a32a-b0781d4ebcc0","created":1743912751,"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"function":{"arguments":"74\"}"}}]},"finish_reason":null,"logprobs":null}],"model":"c37"}
+
+data: {"id":"chatcmpl-689a9c21-4305-4a56-a32a-b0781d4ebcc0","created":1743912751,"object":"chat.completion.chunk","choices":[{"index":0,"delta":{},"finish_reason":"tool_use","logprobs":null}],"model":"c37"}
+
+data: {"id":"chatcmpl-689a9c21-4305-4a56-a32a-b0781d4ebcc0","created":1743912751,"object":"chat.completion.chunk","choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}],"usage":{"completion_tokens":189,"prompt_tokens":449,"total_tokens":638},"model":"c37"}
+
 ```
 
 ### Embeddings

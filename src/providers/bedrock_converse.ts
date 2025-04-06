@@ -141,23 +141,37 @@ export default class BedrockConverse extends AbstractProvider {
 
             let index = 1;
             let think_end = false;
-            const tool_use_block: any = { arguments: "" };
             for await (const item of response.stream) {
-                console.log(JSON.stringify(item));
+                // console.log(JSON.stringify(item));
                 if (item.contentBlockStart?.start?.toolUse) {
-                    tool_use_block.call_id = item.contentBlockStart?.start?.toolUse?.toolUseId;
-                    tool_use_block.name = item.contentBlockStart?.start?.toolUse?.name;
+                    const xblock =
+                    {
+                        "index": 0,
+                        "id": item.contentBlockStart?.start?.toolUse?.toolUseId,
+                        "type": "function",
+                        "function": {
+                            "name": item.contentBlockStart?.start?.toolUse?.name,
+                            "arguments": ""
+                        }
+                    };
+                    ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [xblock], reqId) + "\n\n");
                 }
-                if (item.messageStop?.stopReason == "tool_use") {
-                    ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [tool_use_block], reqId) + "\n\n");
-
+                if (item.messageStop?.stopReason) {
+                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", item.messageStop?.stopReason, null, null, reqId) + "\n\n");
                 }
                 if (item.contentBlockDelta) {
                     const thinkingContent = item.contentBlockDelta.delta?.reasoningContent?.text;
                     const content = item.contentBlockDelta.delta?.text;
                     const tool_use_args = item.contentBlockDelta.delta?.toolUse?.input;
                     if (tool_use_args) {
-                        tool_use_block.arguments += (tool_use_args || "");
+                        const xblock =
+                        {
+                            "index": 0,
+                            "function": {
+                                "arguments": tool_use_args
+                            }
+                        };
+                        ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [xblock], reqId) + "\n\n");
                     }
                     if (thinkingContent && index == 1) {
                         responseText += "<think>";
@@ -280,7 +294,7 @@ export default class BedrockConverse extends AbstractProvider {
             if (c.toolUse) {
                 assistantMessage.tool_calls = [
                     {
-                        id: c.toolUse.id,
+                        id: c.toolUse.toolUseId,
                         type: "function",
                         function: {
                             name: c.toolUse.name,
@@ -462,6 +476,19 @@ class MessageConverter {
                 }
             }
         }
+
+        // fix last thinking message
+        if (thinking) {
+            const assisMsgs = messages.filter(message => message.role === 'assistant');
+            if (assisMsgs && assisMsgs.length > 0) {
+                const lastAsisMsg = assisMsgs[assisMsgs.length - 1];
+                const asisContent = lastAsisMsg.content;
+                if (Array.isArray(asisContent)) {
+                    asisContent.unshift({ "thinking": "..." })
+                }
+            }
+        }
+
         const tools = chatRequest.tools;
         const tool_choice = chatRequest.tool_choice;
         const systemMessages = messages.filter(message => message.role === 'system');
