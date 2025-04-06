@@ -63,7 +63,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        // console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
+        console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
 
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
         if (chatRequest.model_id) {
@@ -73,7 +73,7 @@ export default class BedrockConverse extends AbstractProvider {
         }
         // payload["modelId"] = this.modelId;
 
-        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
+        console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
 
@@ -477,18 +477,6 @@ class MessageConverter {
             }
         }
 
-        // fix last thinking message
-        if (thinking) {
-            const assisMsgs = messages.filter(message => message.role === 'assistant');
-            if (assisMsgs && assisMsgs.length > 0) {
-                const lastAsisMsg = assisMsgs[assisMsgs.length - 1];
-                const asisContent = lastAsisMsg.content;
-                if (Array.isArray(asisContent)) {
-                    asisContent.unshift({ "thinking": "..." })
-                }
-            }
-        }
-
         const tools = chatRequest.tools;
         const tool_choice = chatRequest.tool_choice;
         const systemMessages = messages.filter(message => message.role === 'system');
@@ -557,9 +545,29 @@ class MessageConverter {
                     });
                     newMessages.push(message);
                 }
-
             }
         }
+
+
+        // fix last message is not user:
+        // if (thinking) {
+        const lastAsisMsg = newMessages[newMessages.length - 1];
+        // const asisContent = lastAsisMsg.content;
+        if (lastAsisMsg.role !== "user") {
+            newMessages.push({
+                role: 'user',
+                content: [
+                    {
+                        "type": "text",
+                        "text": "This is an automatically generated placeholder message to maintain proper API format. Please continue our previous conversation and ignore this message."
+                    }
+                ]
+            });
+        }
+
+        // }
+
+
         const rtn: any = { messages: newMessages, inferenceConfig, additionalModelRequestFields };
 
         if (systemMessages.length > 0) {
