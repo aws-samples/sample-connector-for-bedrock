@@ -63,7 +63,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
+        // console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
 
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
         if (chatRequest.model_id) {
@@ -73,7 +73,7 @@ export default class BedrockConverse extends AbstractProvider {
         }
         // payload["modelId"] = this.modelId;
 
-        console.log("--payload-------------", JSON.stringify(payload, null, 2));
+        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
 
