@@ -178,20 +178,35 @@ Outputs:
   VpcId:
     Description: A reference to the created VPC
     Value: !Ref VPC
+    Export:
+      Name: !Sub "${AWS::StackName}-VpcId"
 
-  PublicSubnetId:
+  PublicSubnet1Id:
     Description: A reference to the public subnet in the 1st Availability Zone
     Value: !Ref PublicSubnet1
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnet1Id"
+
+  PublicSubnet2Id:
+    Description: A reference to the public subnet in the 2nd Availability Zone
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnet2Id"
 
   PrivateSubnet1Id:
     Description: A reference to the private subnet in the 1st Availability Zone
     Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnet1Id"
 
   PrivateSubnet2Id:
-    Description: A reference to the private subnet in the 1st Availability Zone
+    Description: A reference to the private subnet in the 2nd Availability Zone
     Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnet2Id"
 
   NoIngressSecurityGroup:
     Description: Security group with no ingress rule
     Value: !Ref NoIngressSecurityGroup
-
+    Export:
+      Name: !Sub "${AWS::StackName}-NoIngressSecurityGroup"

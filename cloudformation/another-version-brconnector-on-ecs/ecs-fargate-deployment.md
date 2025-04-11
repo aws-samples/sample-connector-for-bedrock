@@ -76,6 +76,8 @@ aws cloudformation deploy \
 3. **CloudFrontBrclientURL**: 客户端WebUI URL
 4. **AdminApiKey**: 用于管理员API访问的密钥
 
+你需要访问 https://aws-samples.github.io/sample-connector-for-bedrock/home/quick-start/#5-creat-the-first-admin-user 创建第一个用户 key，然后开始使用 BRConnector
+
 ## 配置和管理
 
 ### 查看日志

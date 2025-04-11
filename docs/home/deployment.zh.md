@@ -1,83 +1,97 @@
 # 快速部署
 
-使用 Cloudformation 快速部署。
+使用 CloudFormation 进行快速部署。
 
 ## 支持的区域
 
-Cloudformation 模板已在以下区域验证：
+CloudFormation 模板已在以下区域进行验证：
 
 - us-east-1
 - us-west-2
 
-## 先决条件
+## 前提条件
 
-在您的区域启用 Claude 3 Sonnet 或 Haiku - 如果您是第一次使用 Anthropic 模型，请转到 [Amazon Bedrock 控制台](https://console.aws.amazon.com/bedrock/) 并在左下角窗格中选择 **模型访问**。单独请求 Claude 3 Sonnet 或 Haiku 的访问权限。
+在您的区域中启用 Claude 3 Sonnet 或 Haiku - 如果您是首次使用 Anthropic 模型，请访问 [Amazon Bedrock 控制台](https://console.aws.amazon.com/bedrock/)，在左侧窗格底部选择 **Model access**。分别为 Claude 3 Sonnet 或 Haiku 请求访问权限。
 
 ## 组件
 
-此 Cloudformation 模板将包含以下关键组件：
+此 CloudFormation 模板将包含以下关键组件：
 
 - Cloudfront
-- Lambda 或 EC2 上的 BRConnector
-- EC2 上的 RDS PostgreSQL 或 PostgreSQL 容器 或者 不需要数据库
-- 启用了拉取缓存的 ECR
+- 在 Lambda 或 EC2 上运行的 BRConnector
+- RDS PostgreSQL、EC2 上的 PostgreSQL 容器或无数据库
+- 启用了 pull through 缓存的 ECR
 
 ## 部署模式
 
-以下是一些推荐的部署模式:
+以下是一些推荐的部署模式：
 
-- 在 EC2 上部署 BRConnector ，并集成数据库，在 EC2 前面放置 Cloudfront
-- 在 Lambda 上部署 BRConnector ，使用独立数据库(或无数据库)，在公开的 Lambda 函数 URL 前面放置 Cloudfront
-- 在 Lambda 上部署 BRConnector ，使用独立数据库(或无数据库)，在使用 AWS_IAM 授权类型的 Lambda 函数 URL 前面放置Cloudfront
-- 
+- 在 EC2 上部署带有集成数据库（或独立数据库）的 BRConnector，在 EC2 前面配置 Cloudfront
+
+![[attachments/deployment/IMG-deployment-16.png|600]]
+
+- 在 Lambda 上部署带有独立数据库（或无数据库）的 BRConnector，在公共 Lambda 函数 URL 前面配置 Cloudfront
+- 在 Lambda 上部署带有独立数据库（或无数据库）的 BRConnector，在具有 AWS_IAM 授权类型的 Lambda 函数 URL 前面配置 Cloudfront
+
+![[attachments/deployment/IMG-deployment-17.png|600]]
+
+- 在 ECS 集群上部署带有独立数据库（或无数据库）的 BRConnector，在暴露 ECS 服务的 ALB 前面配置 Cloudfront
+    - 架构图即将推出
 
 ## 部署指南
 
-- （必选，如果需要使用 AWS_IAM 授权类型的 Lambda 函数 URL） 部署 lambda@edge 在 us-east-1 区域，用于 Cloudfront Origin Request。成功部署后，从输出页面获取 Lambda 版本 ARN。<mark style="background: #FFB86CA6;"><mark style="background: #FFF3A3A6;">如果跳过这一步，Lambda 函数 URL 将会是公开的</mark></mark>。
+- （如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB8EBA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark>
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
 
-- 部署 BRConnector 在任何支持的区域。下载 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 并上传到 Cloudformation 控制台或单击此按钮直接启动。
+- 在任何支持的区域中，为 BRConnector 部署 VPC 堆栈，如果您已经有 BRConnector 的 VPC，可以跳过此步骤
+    - [brconnector-vpc-cfn.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml)
+
+- 部署 BRConnector。下载 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 并上传到 Cloudformation 控制台，或点击此按钮直接启动。
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
 - VPC 参数
-  - 选择创建新 VPC 或现有 VPC
-  - 为 EC2 选择一个公共子网，为 Lambda 和 RDS 选择一个私有子网（ RDS 子网组至少需要 2 个可用区）
+  - 首先部署 VPC 堆栈，并在此处填写堆栈名称。
+  - 为 EC2/ECS 选择 2 个公有子网，为 Lambda 和 RDS 选择 2 个私有子网（子网组至少需要 2 个可用区）
 
-![attachments/deployment/IMG-deployment-6.png](attachments/deployment/IMG-deployment-6.png)
+![[attachments/deployment/IMG-deployment-18.png]]
 
 - 计算参数
-  - 选择 BRConnector、Lambda 或 EC2 的计算类型
-  - 对于EC2 设置
-    - 现在仅支持 Amazon Linux 2023
-    - 您可以选择在同一个 EC2 实例中以容器方式创建 PostgreSQL（DatabaseMode 设置为 `EC2Integrated`），或者创建独立的 RDS PostgreSQL 作为后端数据库（DatabaseMode 设置为 `Standalone`）
-  - 对于 Lambda 设置
-    - `EcrRepo` 定义您的私有存储库名称前缀字符串
-    - `LambdaArch` 定义 Lambda 架构是 arm64 或 amd64 
-    - 如果 `LambdaEdgeVersionArn` 为空，将使用 <mark style="background: #ADCCFFA6;">PUBLIC 函数 URL</mark>。请确保此安全设置是可接受的
-    - 另外，您可以选择创建 RDS PostgreSQL 数据库（DatabaseMode 设置为 `Standalone`），或者不使用数据库（DatabaseMode 设置为 `NoDB`）
+  - 为 BRConnector 选择计算类型，Lambda 或 EC2
+  - EC2 设置
+    - 目前仅支持 Amazon Linux 2023
+    - 您可以选择在同一 EC2 上创建 PostgreSQL 容器（DatabaseMode 设为 `EC2Integrated`），或创建独立的 RDS PostgreSQL 作为后端（DatabaseMode 设为 `Standalone`）
+  - Lambda 设置
+    - `EcrRepo` 定义您的私有仓库名称前缀字符串
+    - `LambdaArch` 定义您的 lambda 架构使用 arm64 或 amd64
+    - 如果 `LambdaEdgeVersionArn` 为空，将使用<mark style="background: #FFB8EBA6;">公共函数 URL</mark>。请确保此安全设置可接受
+    - 您可以选择创建 RDS PostgreSQL（DatabaseMode 设为 `Standalone`）或不使用数据库（DatabaseMode 设为 `NoDB`）
+- ECS 设置
+    - 默认 ECS 任务 CPU 为 1024
+    - 默认 ECS 任务内存为 2GB
+    - ECS 服务中的默认任务数量为 2
 
-![attachments/deployment/IMG-deployment-8.png](attachments/deployment/IMG-deployment-8.png)
+![[attachments/deployment/IMG-deployment-19.png]]
 
 - PostgreSQL 参数
-  - DatabaseMode选择：
+  - DatabaseMode 选择：
     - `EC2Integrated` -- 在 EC2 中部署 PostgreSQL 容器
     - `Standalone` -- 部署 RDS PostgreSQL
     - `NoDB` -- 不部署任何后端数据库，在此模式下只有 ADMIN KEY 可以访问默认模型
-  - 将 PerformanceMode 设置为 `true`，聊天历史将不会被保存
+  - 将 PerformanceMode 设置为 `true`，聊天历史将不会保存。
   - 默认 PostgreSQL 密码为 `mysecretpassword`
 
 ![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
 - 调试参数
-  - 如果选择 Lambda 作为 ComputeType，则可以选择在所有资源部署成功后删除 EC2。此 EC2 暂时用于编译和构建 BRConnector 容器。
-  - 如果选择 EC2 作为 ComputeType，请不要删除 EC2
-  - 如果将 AutoUpdateBRConnector 设置为 `true`，则会将一个脚本添加到 codebuild 中
+  - 如果您选择 Lambda 作为计算类型，可以选择在所有资源部署成功后删除 EC2。此 EC2 用于临时编译和构建 BRConnector 容器。
+  - 如果您选择 EC2 作为计算类型，请不要删除 EC2
+  - 如果您将 AutoUpdateBRConnector 设置为 `true`，将在 ec2 crontab 中添加一个脚本
 
 ![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
-- 直到部署成功，转到输出页面并将 Cloudfront URL 和 First User Key 复制到您的 Bedrock 客户端设置页面。
+- 部署成功后，转到输出页面并复制 Cloudfront URL 和第一个用户密钥到您的 bedrock 客户端设置页面。
 
 ![attachments/deployment/IMG-deployment-11.png](attachments/deployment/IMG-deployment-11.png)
 
@@ -193,5 +207,7 @@ docker rm -f postgres-client
 - Lambda URL 在中国区域不支持
 - Cloudfront 在中国区域需要使用已备案的自有域名
 - ALB 暴露 443 端口需要使用已备案的自有域名
+
+
 
 

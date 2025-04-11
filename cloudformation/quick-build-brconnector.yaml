@@ -9,34 +9,42 @@ Metadata:
     ParameterGroups:
       - Label: 
           default: "VPC settings for BRConnector"
-      - Parameters:
-          - NewVpc
+        Parameters:
+          - VpcStackName
           - VpcId
-          - PublicSubnetId
+          - PublicSubnet1Id
+          - PublicSubnet2Id
           - PrivateSubnet1Id
           - PrivateSubnet2Id
 
       - Label: 
           default: "Compute settings for BRConnector"
-      - Parameters:
+        Parameters:
           - ComputeType
 
       - Label: 
           default: "For EC2 settings" 
-      - Parameters:
+        Parameters:
           - EC2InstanceType
           # - EC2InstanceAMI
 
       - Label: 
           default: "For Lambda settings (!!! If LambdaEdgeVersionArn is NULL, PUBLIC FUNCTION URL will be used. !!!)"
-      - Parameters:
+        Parameters:
           - EcrRepo
           - LambdaArch
           - LambdaEdgeVersionArn
 
+      - Label:
+          default: "For ECS settings"
+        Parameters:
+          - ECSTaskCPU
+          - ECSTaskMemory
+          - ECSServiceDesiredCount
+
       - Label: 
           default: "Settings for RDS PostgreSQL"
-      - Parameters:
+        Parameters:
           - DatabaseMode
           - PerformanceMode
           - PGDatabase
@@ -45,53 +53,77 @@ Metadata:
 
       - Label: 
           default: "Others Settings"
-      - Parameters:
+        Parameters:
           - EnableCloudfront
           - BRConnectorVersion
           - AutoUpdateBRConnector
 
       - Label: 
           default: "Debugging Settings"
-      - Parameters:
+        Parameters:
           - KeepEc2
 
 Parameters:
-  NewVpc:
-    Description: Create a new VPC
+  VpcStackName:
+    Description: Name of an existing VPC stack to import (leave empty to use VpcId and subnet IDs)
     Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true
+    Default: ''
 
+  # cannot use type AWS::EC2::VPC::Id or AWS::EC2::Subnet::Id
+  # because these types does not allow null value to parameters
   VpcId:
-    Description: select VPC 
+    Description: Select VPC (leave empty if using VpcStackName)
     Type: String #AWS::EC2::VPC::Id
     AllowedPattern: '(^$|^vpc-[a-z0-9]+$)'
     Default: ''
-  PublicSubnetId:
-    Description: select one PUBLIC subnet (for EC2 deploy mode)
+  PublicSubnet1Id:
+    Description: Select one PUBLIC subnet for EC2/ECS (leave empty if using VpcStackName)
+    Type: String #AWS::EC2::Subnet::Id
+    AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
+    Default: ''
+  PublicSubnet2Id:
+    Description: Select one PUBLIC subnet for EC2/ECS (leave empty if using VpcStackName)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
     Default: ''
   PrivateSubnet1Id:
-    Description: select one PRIVATE subnet (for Lambda deploy mode)
+    Description: Select one PRIVATE subnet for Lambda (leave empty if using VpcStackName)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
     Default: ''
   PrivateSubnet2Id:
-    Description: select one more PRIVATE subnet (for RDS subnet group, 2 AZs at least)
+    Description: Select one more PRIVATE subnet for RDS (leave empty if using VpcStackName)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
     Default: ''
 
   ComputeType:
-    Description: Choose using Lambda or EC2 to running BRConnector
+    Description: Choose using Lambda, EC2 or ECS to running BRConnector
     Type: String
     AllowedValues:
-      - lambda
       - ec2
+      - lambda
+      - ecs
     Default: ec2
+
+  ECSTaskCPU:
+    Description: CPU units for ECS task (1 vCPU = 1024 CPU units)
+    Type: Number
+    Default: 1024
+    AllowedValues: [256, 512, 1024, 2048, 4096]
+
+  ECSTaskMemory:
+    Description: Memory (MiB) for ECS task
+    Type: Number
+    Default: 2048
+    AllowedValues: [512, 1024, 2048, 4096, 8192]
+
+  ECSServiceDesiredCount:
+    Description: Desired number of ECS tasks to run
+    Type: Number
+    Default: 2
+    MinValue: 1
+    MaxValue: 10
 
   PerformanceMode:
     Description: If set to true, chat history will not be saved. 
@@ -201,10 +233,14 @@ Parameters:
     Default: ''
 
 Conditions:
-  IsNewVpc: !Equals [!Ref NewVpc, 'true']
+  UseExistingVpcStack: !Not [!Equals [!Ref VpcStackName, '']]
+  IsEc2: !Equals [!Ref ComputeType, 'ec2']
+  IsLambda: !Equals [!Ref ComputeType, 'lambda']
+  IsEcs: !Equals [!Ref ComputeType, 'ecs']
   IsNoDB: !Or
     - !Equals [!Ref DatabaseMode, 'NoDB']
-    - !And [!Condition IsLambda, !Equals [!Ref DatabaseMode, 'EC2Integrated']]
+    - !And [!Equals [!Ref ComputeType, 'lambda'], !Equals [!Ref DatabaseMode, 'EC2Integrated']]
+    - !And [!Equals [!Ref ComputeType, 'ecs'], !Equals [!Ref DatabaseMode, 'EC2Integrated']]
   # IsPerformanceMode: !Or
   #   - !Equals [!Ref PerformanceMode, 'true']
   #   - !Condition IsNoDB
@@ -213,25 +249,23 @@ Conditions:
     - !Equals [!Ref DatabaseMode, 'Standalone']
     - !And [!Condition IsLambda, !Condition DeployDB]
   IsEC2IntegratedDB: !Equals [!Ref DatabaseMode, 'EC2Integrated']
-  IsLambda: !Equals [!Ref ComputeType, 'lambda']
-  IsEc2: !Equals [!Ref ComputeType, 'ec2']
-  IsEnableCloudfrontEc2: !Condition IsEc2
+  IsEnableCloudfrontEc2: !Equals [!Ref ComputeType, 'ec2']
   IsEnableCloudfrontLambda: !And
     - !Equals [!Ref EnableCloudfront, 'true']
-    - !Condition IsLambda
+    - !Equals [!Ref ComputeType, 'lambda']
   IsAutoUpdate: !Equals [!Ref AutoUpdateBRConnector, 'true']
   IsAutoUpdateEc2: !And
     - !Equals [!Ref AutoUpdateBRConnector, 'true']
-    - !Condition IsEc2
+    - !Equals [!Ref ComputeType, 'ec2']
   IsAutoUpdateLambda: !And
     - !Equals [!Ref AutoUpdateBRConnector, 'true']
-    - !Condition IsLambda
+    - !Equals [!Ref ComputeType, 'lambda']
   NotKeepEc2: !Not [!Equals [!Ref KeepEc2, 'true']]
   IsPublicLambdaPermission: !And
-    - !Condition IsLambda
+    - !Equals [!Ref ComputeType, 'lambda']
     - !Equals [!Ref LambdaEdgeVersionArn, '']
   IsPrivateLambdaPermission: !And
-    - !Condition IsLambda
+    - !Equals [!Ref ComputeType, 'lambda']
     - !Not [!Equals [!Ref LambdaEdgeVersionArn, '']]
 
 Mappings:
@@ -257,14 +291,6 @@ Mappings:
       PrefixList: pl-82a045eb
 
 Resources:
-  VpcStack:
-    Condition: IsNewVpc
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/brconnector-vpc-cfn.yaml
-      Parameters:
-        EnvironmentName: !Sub "BRCVPC-${AWS::StackName}"
-
   EC2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -286,6 +312,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
         - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
         - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
         - arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicReadOnly
       Policies:
@@ -345,19 +372,29 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8866
+          ToPort: 8866
+          CidrIp: 10.0.0.0/8
         - Description: Allow HTTP from com.amazonaws.global.cloudfront.origin-facing
           IpProtocol: tcp
           FromPort: 8866
           ToPort: 8866
           SourcePrefixListId: !FindInMap [AWSRegionsPrefixListID, !Ref 'AWS::Region', PrefixList]
-      VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
+      VpcId: !If 
+        - UseExistingVpcStack
+        - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
+        - !Ref VpcId
 
   RdsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub "rds-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for RDS"
-      VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
+      VpcId: !If 
+        - UseExistingVpcStack
+        - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
+        - !Ref VpcId
 
   RdsSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -379,7 +416,10 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
-      VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
+      VpcId: !If 
+        - UseExistingVpcStack
+        - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
+        - !Ref VpcId
 
   MyPGParameterGroup:
     Condition: IsStandaloneDB
@@ -396,8 +436,14 @@ Resources:
     Properties:
       DBSubnetGroupDescription: Subnets available for the RDS instance
       SubnetIds:
-        - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet1Id, !Ref PrivateSubnet1Id ]
-        - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet2Id, !Ref PrivateSubnet2Id ]
+          - !If 
+            - UseExistingVpcStack
+            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet1Id"
+            - !Ref PrivateSubnet1Id
+          - !If 
+            - UseExistingVpcStack
+            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet2Id"
+            - !Ref PrivateSubnet2Id
 
   MyPG:
     Condition: IsStandaloneDB
@@ -430,15 +476,17 @@ Resources:
         - - resolve:ssm:/aws/service/ami-amazon-linux-latest/
           - !FindInMap [EC2InstanceAMIMapping, !Ref EC2InstanceType, EC2InstanceAMI]
       KeyName: !Ref "AWS::NoValue"
-      IamInstanceProfile: 
-        Ref: EC2InstanceProfile
+      IamInstanceProfile: !Ref EC2InstanceProfile
       NetworkInterfaces:
         - AssociatePublicIpAddress: 'true'
           DeviceIndex: '0'
           GroupSet:
             - !Ref InstanceSecurityGroup
             - !Ref RdsSecurityGroup
-          SubnetId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PublicSubnetId, !Ref PublicSubnetId ]
+          SubnetId: !If
+            - UseExistingVpcStack
+            - Fn::ImportValue: !Sub "${VpcStackName}-PublicSubnet1Id"
+            - !Ref PublicSubnet1Id
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -527,18 +575,21 @@ Resources:
           fi
           aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite
 
-          # add health check script to root's crontab
-          cat >/root/healthcheck.sh <<-EOF
-          #!/bin/bash
-          CURR=\$(date +%Y%m%d-%H%M%S)
-          STAT=\$(curl -sL -w '%{http_code}' -o /dev/null "http://localhost:8866")
-          if [[ \$STAT -ne 200 ]]; then
-            docker restart brconnector
-            echo "restart brconnector at \$CURR"
-          fi
-          EOF
-          chmod a+x /root/healthcheck.sh
-          echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' |crontab -
+          # ensure ecs service linked role existed
+          aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com || echo "ecs service linked role already exists"
+
+          # # add health check script to root's crontab
+          # cat >/root/healthcheck.sh <<-EOF
+          # #!/bin/bash
+          # CURR=\$(date +%Y%m%d-%H%M%S)
+          # STAT=\$(curl -sL -w '%{http_code}' -o /dev/null "http://localhost:8866")
+          # if [[ \$STAT -ne 200 ]]; then
+          #   docker restart brconnector
+          #   echo "restart brconnector at \$CURR"
+          # fi
+          # EOF
+          # chmod a+x /root/healthcheck.sh
+          # echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' |crontab -
 
           # prepare to delete self
           TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
@@ -595,6 +646,9 @@ Resources:
     Properties:
       Code:
         ZipFile: |
+          #
+          # MIT-0 License
+          #
           import random
           import string
           import cfnresponse
@@ -869,7 +923,10 @@ Resources:
               - !Ref LambdaSecurityGroup
               - !Ref RdsSecurityGroup
             SubnetIds:
-              - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet1Id, !Ref PrivateSubnet1Id ]
+              - !If
+                - UseExistingVpcStack
+                - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet1Id"
+                - !Ref PrivateSubnet1Id
 
   BRConnectorLambdaPermission1:
     Condition: IsPublicLambdaPermission
@@ -918,6 +975,9 @@ Resources:
     Properties:
       Code:
         ZipFile: !Sub |
+          #
+          # MIT-0 License
+          #
           import boto3,os
 
           def lambda_handler(event, context):
@@ -951,13 +1011,269 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
 
+  # ECS Resources
+  ECSCluster:
+    Condition: IsEcs
+    Type: AWS::ECS::Cluster
+    DependsOn:
+      - PrivateWaitCondition
+    Properties:
+      ClusterName: !Sub ${AWS::StackName}-cluster
+      CapacityProviders:
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+  ECSTaskExecutionRole:
+    Condition: IsEcs
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+
+  ECSTaskRole:
+    Condition: IsEcs
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+      Policies:
+        - PolicyName: MyInlinePolicy-bedrock
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Sid: InvokeModel
+              Action:
+              - 'bedrock:InvokeModelWithResponseStream'
+              - 'bedrock:InvokeModel'
+              - bedrock:ListFoundationModels
+              Resource: 
+              - 'arn:aws:bedrock:*::foundation-model/*'
+              - 'arn:aws:bedrock:*:*:inference-profile/*'
+            - Effect: Allow
+              Sid: ListFM
+              Action:
+              - 'bedrock:ListFoundationModels'
+              Resource: '*'
+        - PolicyName: MyInlinePolicy-ssm-parameter
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Sid: SSMPutParameter
+              Action:
+              - 'ssm:PutParameter'
+              - 'ssm:GetParameter'
+              - 'ssm:GetParameters'
+              Resource: 'arn:aws:ssm:*:*:parameter/*'
+        - PolicyName: RDSAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - rds:Connect
+              - rds:Describe*
+              - rds:List*
+              Resource: '*'
+
+  ECSTaskDefinition:
+    Condition: IsEcs
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - PrivateWaitCondition
+    Properties:
+      Family: !Sub ${AWS::StackName}-task
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: !Ref ECSTaskCPU
+      Memory: !Ref ECSTaskMemory
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ContainerDefinitions:
+        - Name: brconnector
+          Image: !Sub public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock:${BRConnectorVersion}
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8866
+              Protocol: tcp
+          Environment:
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
+            - Name: PERFORMANCE_MODE
+              Value: !Ref PerformanceMode
+            - Name: PGSQL_HOST
+              Value: !If [ IsNoDB, "", !GetAtt MyPG.Endpoint.Address ]
+            - Name: PGSQL_DATABASE
+              Value: !If [ IsNoDB, "", !Ref PGDatabase ]
+            - Name: PGSQL_USER
+              Value: !Ref PGUser
+            - Name: PGSQL_PASSWORD
+              Value: !Ref PGPassword
+            - Name: ADMIN_API_KEY
+              Value: !GetAtt MySSMParameterAdminKey.Value
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ECSLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: brconnector
+
+  ECSLogGroup:
+    Condition: IsEcs
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${AWS::StackName}
+      RetentionInDays: 14
+
+  ECSLBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "ecs-lb-sg-${AWS::StackName}"
+      GroupDescription: "Security Group for ECS LB"
+      SecurityGroupIngress:
+        - Description: Allow HTTP from com.amazonaws.global.cloudfront.origin-facing
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourcePrefixListId: !FindInMap [AWSRegionsPrefixListID, !Ref 'AWS::Region', PrefixList]
+      VpcId: !If 
+        - UseExistingVpcStack
+        - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
+        - !Ref VpcId
+
+  ECSLoadBalancer:
+    Condition: IsEcs
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${AWS::StackName}-alb
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !Ref ECSLBSecurityGroup
+      Subnets:
+        - !If
+          - UseExistingVpcStack
+          - Fn::ImportValue: !Sub "${VpcStackName}-PublicSubnet1Id"
+          - !Ref PublicSubnet1Id
+        - !If
+          - UseExistingVpcStack
+          - Fn::ImportValue: !Sub "${VpcStackName}-PublicSubnet2Id"
+          - !Ref PublicSubnet2Id
+
+  ECSTargetGroup:
+    Condition: IsEcs
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${AWS::StackName}-tg
+      Port: 8866
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !If 
+        - UseExistingVpcStack
+        - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
+        - !Ref VpcId
+      HealthCheckPath: "/"
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+
+  ECSListener:
+    Condition: IsEcs
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ECSLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ECSTargetGroup
+
+  ECSService:
+    Condition: IsEcs
+    Type: AWS::ECS::Service
+    DependsOn: ECSListener
+    Properties:
+      ServiceName: !Sub ${AWS::StackName}-service
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ECSTaskDefinition
+      DesiredCount: !Ref ECSServiceDesiredCount
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: brconnector
+          ContainerPort: 8866
+          TargetGroupArn: !Ref ECSTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref InstanceSecurityGroup
+            - !Ref RdsSecurityGroup
+          Subnets:
+            - !If
+                - UseExistingVpcStack
+                - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet1Id"
+                - !Ref PrivateSubnet1Id
+
+  ECSCloudFrontDistribution:
+    Condition: IsEcs
+    DependsOn: ECSLoadBalancer
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: ECSOrigin
+            DomainName: !GetAtt ECSLoadBalancer.DNSName
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+        Enabled: true
+        Comment: CloudFront distribution in front of ECS
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
+          TargetOriginId: ECSOrigin
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
   CodeBuildSecurityGroup:
     Condition: IsAutoUpdateLambda
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub "codebuild-security-group-${AWS::StackName}"
       GroupDescription: "CodeBuild Security Group with no ingress"
-      VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
+      VpcId: !If 
+        - UseExistingVpcStack
+        - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
+        - !Ref VpcId
 
   CodeBuildRole:
     Condition: IsAutoUpdateLambda
@@ -1048,9 +1364,19 @@ Resources:
             Value: !Ref AWS::StackName
       ServiceRole: !GetAtt CodeBuildRole.Arn
       VpcConfig:
-        VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
+        VpcId: !If 
+          - UseExistingVpcStack
+          - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
+          - !Ref VpcId
         Subnets:
-          - !If [ IsNewVpc, !GetAtt VpcStack.Outputs.PrivateSubnet1Id, !Ref PrivateSubnet1Id ]
+          - !If
+            - UseExistingVpcStack
+            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet1Id"
+            - !Ref PrivateSubnet1Id
+          - !If
+            - UseExistingVpcStack
+            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet2Id"
+            - !Ref PrivateSubnet2Id
         SecurityGroupIds:
           - !Ref CodeBuildSecurityGroup
 
@@ -1213,6 +1539,39 @@ Outputs:
       - - https://
         - Fn::GetAtt: 
           - LambdaCloudFrontDistribution
+          - DomainName
+        - '/brclient'
+
+  CloudFrontEcsURL:
+    Condition: IsEcs
+    Description: BRConnector URL
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - ECSCloudFrontDistribution
+          - DomainName
+  CloudFrontEcsManagerURL:
+    Condition: IsEcs
+    Description: BRConnector Manager URL
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - ECSCloudFrontDistribution
+          - DomainName
+        - '/manager'
+  CloudFrontEcsBrclientURL:
+    Condition: IsEcs
+    Description: BRClient WebUI
+    Value: 
+      Fn::Join:
+      - ''
+      - - https://
+        - Fn::GetAtt: 
+          - ECSCloudFrontDistribution
           - DomainName
         - '/brclient'
 
