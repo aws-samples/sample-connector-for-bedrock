@@ -26,10 +26,13 @@ Following key components will be included in this Cloudformation template:
 
 Here are some recommend deployment patterns:
 
-- Deploy BRConnector on EC2 with integrated database, put Cloudfront in front of EC2
+- Deploy BRConnector on EC2 with integrated database (or standalone database), put Cloudfront in front of EC2
+![[attachments/deployment/IMG-deployment-16.png|600]]
+
 - Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of public Lambda function URL
 - Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of Lambda function URL with AWS_IAM authorization type
-- 
+![[attachments/deployment/IMG-deployment-17.png|600]]
+
 
 ## Deploy Guide
 

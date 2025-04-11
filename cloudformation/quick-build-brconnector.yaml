@@ -68,18 +68,22 @@ Parameters:
     Description: select VPC 
     Type: String #AWS::EC2::VPC::Id
     AllowedPattern: '(^$|^vpc-[a-z0-9]+$)'
+    Default: ''
   PublicSubnetId:
     Description: select one PUBLIC subnet (for EC2 deploy mode)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
+    Default: ''
   PrivateSubnet1Id:
     Description: select one PRIVATE subnet (for Lambda deploy mode)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
+    Default: ''
   PrivateSubnet2Id:
     Description: select one more PRIVATE subnet (for RDS subnet group, 2 AZs at least)
     Type: String #AWS::EC2::Subnet::Id
     AllowedPattern: '(^$|^subnet-[a-z0-9]+$)'
+    Default: ''
 
   ComputeType:
     Description: Choose using Lambda or EC2 to running BRConnector
@@ -155,7 +159,7 @@ Parameters:
     Default: mysecretpassword
 
   EnableCloudfront:
-    Description: Enable Cloudfront or not, when using Lambda ComputeType. If you use EC2, this option will be ignored
+    Description: Enable Cloudfront or not, when using Lambda ComputeType. If you use EC2, this option will always be "true"
     Type: String
     AllowedValues:
       - true
@@ -194,6 +198,7 @@ Parameters:
     Type: String
     AllowedPattern: (^$|.*us-east-1.*)
     ConstraintDescription: The Lambda@Edge version ARN must include 'us-east-1'
+    Default: ''
 
 Conditions:
   IsNewVpc: !Equals [!Ref NewVpc, 'true']
@@ -240,6 +245,16 @@ Mappings:
       EC2InstanceAMI: al2023-ami-kernel-default-x86_64
     t4g.medium:
       EC2InstanceAMI: al2023-ami-kernel-default-arm64
+  AWSRegionsPrefixListID:
+  # aws ec2 describe-managed-prefix-lists  --region <REGION> | jq -r '.PrefixLists[] | select (.PrefixListName == "com.amazonaws.global.cloudfront.origin-facing") | .PrefixListId'
+    us-east-1:
+      PrefixList: pl-3b927c52
+    us-east-2:
+      PrefixList: pl-b6a144df
+    us-west-1:
+      PrefixList: pl-4ea04527
+    us-west-2:
+      PrefixList: pl-82a045eb
 
 Resources:
   VpcStack:
@@ -330,10 +345,11 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
+        - Description: Allow HTTP from com.amazonaws.global.cloudfront.origin-facing
+          IpProtocol: tcp
           FromPort: 8866
           ToPort: 8866
-          CidrIp: 0.0.0.0/0
+          SourcePrefixListId: !FindInMap [AWSRegionsPrefixListID, !Ref 'AWS::Region', PrefixList]
       VpcId: !If [ IsNewVpc, !GetAtt VpcStack.Outputs.VpcId, !Ref VpcId ]
 
   RdsSecurityGroup:
