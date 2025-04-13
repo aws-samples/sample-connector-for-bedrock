@@ -1482,6 +1482,9 @@
 <h2 id="_1">参数配置<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <p>通过亚马逊Bedrock Converse API调用模型。您可以使用此提供程序配置所有支持的模型。</p>
 <p><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html">这个网址</a> 解释了如何使用 Bedrock Converse API 以及他支持的特性。</p>
+<p><strong>提示词缓存</strong><br />
+<a href="https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html">这个网址</a> 可以看到支持模型和用法。<br />
+请注意，总的提示缓存数量不要超出文档中的描述。其中：system 算一个，tools 算一个，messagePositions 的算多个，这些总和不要超出限制。</p>
 <p>建议使用这个 Provider 来支持 Bedrock 的大语言模型。</p>
 <table>
 <thead>
@@ -1529,6 +1532,20 @@
 <td>1024</td>
 <td>在开启 thinking 的情况下，推理部分允许的最大 tokens 数量</td>
 </tr>
+<tr>
+<td>promptCache.fields</td>
+<td>string[]</td>
+<td>N</td>
+<td></td>
+<td>在什么位置开启提示词缓存，支持三个字符串：&rdquo;system&rdquo;, &ldquo;messages&rdquo;, &ldquo;tool&rdquo;</td>
+</tr>
+<tr>
+<td>promptCache.messagePositions</td>
+<td>int[]</td>
+<td>N</td>
+<td></td>
+<td>多轮对话中，可以把缓存加载 messages 的特定位置</td>
+</tr>
 </tbody>
 </table>
 <p>bedrock-converse 的配置示例如下：</p>
@@ -1538,9 +1555,20 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="s2">&quot;us-east-1&quot;</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="p">],</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">&quot;thinking&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">&quot;maxTokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">64000</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">&quot;thinkBudget&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">32000</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">}</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">&quot;maxTokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">32000</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">&quot;promptCache&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nt">&quot;fields&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">      </span><span class="s2">&quot;system&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">      </span><span class="s2">&quot;messages&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">      </span><span class="s2">&quot;tools&quot;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="p">],</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nt">&quot;messagePositions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">      </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">      </span><span class="mi">1</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">  </span><span class="nt">&quot;thinkBudget&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2000</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="_2">输出结果<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>输出中增加了 reasoning_content 字段，与 deepseek 的输出保持一致。如下：</p>
@@ -1569,7 +1597,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年2月25日 15:28:56"><span class="timeago" datetime="2025-02-25T15:28:56+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年2月25日 15:28:56">2025-02-25</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年4月13日 14:11:16"><span class="timeago" datetime="2025-04-13T14:11:16+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年4月13日 14:11:16">2025-04-13</span>
   </span>
 
     
