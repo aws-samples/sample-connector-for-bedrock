@@ -268,8 +268,8 @@ export default abstract class AbstractProvider {
         }
 
 
-        const sql = "update eiai_key set total_fee=total_fee+$1, month_fee=$2 where id=$3 RETURNING *";
-        const keyResult = await ctx.db.query(sql, [fee, keyDataUpdate.month_fee, this.keyData.id])
+        const sql = "update eiai_key set total_fee=total_fee+$1, month_fee=$2, updated_at=$3 where id=$4 RETURNING *";
+        const keyResult = await ctx.db.query(sql, [fee, keyDataUpdate.month_fee, new Date(), this.keyData.id])
         // const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
         ctx.user = keyDataUpdate;
         this.keyData = keyResult;

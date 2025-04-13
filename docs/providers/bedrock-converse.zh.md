@@ -12,6 +12,10 @@ Amazon Bedrock LLM 统一调用。
 
 [这个网址](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) 解释了如何使用 Bedrock Converse API 以及他支持的特性。
 
+**提示词缓存**
+[这个网址](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html) 可以看到支持模型和用法。
+请注意，总的提示缓存数量不要超出文档中的描述。其中：system 算一个，tools 算一个，messagePositions 的算多个，这些总和不要超出限制。
+
 建议使用这个 Provider 来支持 Bedrock 的大语言模型。
 
 | Key     | Type      | Required     | Default value | Description |
@@ -21,6 +25,8 @@ Amazon Bedrock LLM 统一调用。
 | maxTokens  |  number   | N     | 1024 | 默认最大 tokens 数量，对应标准 API 的 max_tokens 参数。 如果 API 请求中不指定，则使用此值。  |
 | thinking  |  boolen   | N     | false | 是否开启 reason/think 功能  |
 | thinkBudget  |  number   | N     | 1024 | 在开启 thinking 的情况下，推理部分允许的最大 tokens 数量 |
+| promptCache.fields  |  string[]   | N     |  | 在什么位置开启提示词缓存，支持三个字符串："system", "messages", "tool"|
+| promptCache.messagePositions  |  int[]   | N     |  |多轮对话中，可以把缓存加载 messages 的特定位置 |
 
 bedrock-converse 的配置示例如下：
 
@@ -31,8 +37,19 @@ bedrock-converse 的配置示例如下：
     "us-east-1"
   ],
   "thinking": true,
-  "maxTokens": 64000,
-  "thinkBudget": 32000
+  "maxTokens": 32000,
+  "promptCache": {
+    "fields": [
+      "system",
+      "messages",
+      "tools"
+    ],
+    "messagePositions": [
+      0,
+      1
+    ]
+  },
+  "thinkBudget": 2000
 }
 ```
 

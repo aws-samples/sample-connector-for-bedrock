@@ -7,6 +7,7 @@ import {
   BedrockAgentRuntimeClient,
   RetrieveCommand,
   SearchType,
+  RetrieveAndGenerateStreamCommand
 } from "@aws-sdk/client-bedrock-agent-runtime";
 
 import {
@@ -20,21 +21,22 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
   client: BedrockRuntimeClient;
   clientAgent: BedrockAgentRuntimeClient;
   chatMessageConverter: ChatMessageConverter;
+
   constructor() {
     super();
     this.chatMessageConverter = new ChatMessageConverter();
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    const { region, summaryModel, knowledgeBaseId } = this.modelData.config;
+    const { region, summaryModel, knowledgeBaseId, bedrockModelArn } = this.modelData.config;
     if (!region) {
       throw new Error("You must specify the parameters 'region' in the backend model configuration.")
     }
     if (!knowledgeBaseId) {
       throw new Error("You must specify the parameters 'knowledgeBaseId' in the backend model configuration.")
     }
-    if (!summaryModel) {
-      throw new Error("You must specify the parameters 'summaryModel' in the backend model configuration.")
+    if (!summaryModel && !bedrockModelArn) {
+      throw new Error("You must specify the parameters 'summaryModel' or 'bedrockModelArn' in the backend model configuration.")
     }
 
     if (!this.client) {
@@ -48,30 +50,93 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       throw new Error("Please enter your question.")
     }
 
-    const kbResponse = await this.retrieve(knowledgeBaseId, q, 5);
-    const { prompt, files } = this.assembleSummaryPrompt(q, kbResponse);
-    const newModelData: any = await helper.refineModelParameters({ model: summaryModel }, ctx);
-
-    // console.log(">>>>>>>>>>>", newModelData)
-
     ctx.status = 200;
     ctx.set({
       'Connection': 'keep-alive',
       'Cache-Control': 'no-cache',
       'Content-Type': 'text/event-stream',
     });
-    await this.chatStream(ctx, {
-      model: summaryModel,
-      messages: [
-        {
-          "role": "user",
-          "content": prompt
+
+    if (bedrockModelArn) {
+      await this.retrieveAndGen(ctx, knowledgeBaseId, q, bedrockModelArn, 20);
+
+    } else if (summaryModel) {
+      const kbResponse = await this.retrieve(knowledgeBaseId, q, 5);
+      const { prompt, files } = this.assembleSummaryPrompt(q, kbResponse);
+      const newModelData: any = await helper.refineModelParameters({ model: summaryModel }, ctx);
+      await this.chatStream(ctx, {
+        model: summaryModel,
+        messages: [
+          {
+            "role": "user",
+            "content": prompt
+          }
+        ],
+        price_in: chatRequest.price_in,
+        price_out: chatRequest.price_out,
+        currency: chatRequest.currency,
+      }, newModelData, files);
+    }
+  }
+
+  async retrieveAndGen(ctx: any, knowledgeBaseId: string, text: string, modelArn: string, numberOfResults: any) {
+    const reqId = this.newRequestID();
+    const input: any = {
+      input: {
+        text: text
+      },
+      retrieveAndGenerateConfiguration: {
+        type: "KNOWLEDGE_BASE",
+        knowledgeBaseConfiguration: {
+          knowledgeBaseId,
+          modelArn,
+          retrievalConfiguration: {
+            vectorSearchConfiguration: {
+              numberOfResults,
+              overrideSearchType: "HYBRID"
+            },
+          }
+        },
+      }
+    };
+
+    const command = new RetrieveAndGenerateStreamCommand(input);
+    const response = await this.clientAgent.send(command);
+
+    if (response.stream) {
+      let responseText = "";
+      let citationIndex = 1;
+      const citationFiles = [];
+      for await (const item of response.stream) {
+        // console.log(JSON.stringify(item));
+        if (item.output) {
+          responseText += item.output.text;
+          ctx.res.write("data: " + WebResponse.wrap(0, "kb", item.output.text, null, null, null, reqId) + "\n\n");
         }
-      ],
-      price_in: chatRequest.price_in,
-      price_out: chatRequest.price_out,
-      currency: chatRequest.currency,
-    }, newModelData, files);
+        if (item.citation) {
+          for (const ref of item.citation.retrievedReferences) {
+            ctx.res.write("data: " + WebResponse.wrap(0, "kb", this.getCitaIndexString(citationIndex), null, null, null, reqId) + "\n\n");
+            citationIndex++;
+            citationFiles.push(ref.location.s3Location.uri || "unknown");
+          } ctx.res.write("data: " + WebResponse.wrap(0, "kb", "\n\n", null, null, null, reqId) + "\n\n");
+        }
+      }
+
+
+      ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\n---\n\n", null, null, null, reqId) + "\n\n");
+
+      for (let j = 0; j < citationFiles.length; j++) {
+        const citaIndex = j + 1;
+        const citaContent = "\n\n" + this.getCitaIndexString(citaIndex) + " " + citationFiles[j];
+        ctx.res.write("data: " + WebResponse.wrap(0, null, citaContent, null, null, null, reqId) + "\n\n");
+      }
+
+
+      ctx.res.write("data: [DONE]\n\n")
+      ctx.res.end();
+    } else {
+      throw new Error("No response.");
+    }
   }
 
   async retrieve(knowledgeBaseId: string, text: string, numberOfResults: any) {
@@ -95,10 +160,6 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       key: an["location"]["s3Location"]["uri"],
       score: an["score"]
     }));
-    // if (sysConfig.debugMode) {
-    //   console.log("原始输出：")
-    //   console.log(JSON.stringify(kb_content, null, 2))
-    // }
     return kb_content;
   }
 
@@ -116,6 +177,8 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       contentType: "application/json",
       accept: "application/json"
     };
+
+    // console.log(payload);
 
     const command = new ConverseStreamCommand(payload);
     const response = await this.client.send(command);
@@ -196,15 +259,22 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
 
     ctx.res.write("data: " + WebResponse.wrap(i, null, "\n\n---\n\n", null, null, null, reqId) + "\n\n");
 
-    const citaStrings = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
     for (let j = 0; j < files.length; j++) {
       const citaIndex = j + 1;
       i = i + 1 + citaIndex;
-      const citaContent = "\n\n" + citaStrings[j] + " " + files[j];
+      const citaContent = "\n\n" + this.getCitaIndexString(citaIndex) + " " + files[j];
       ctx.res.write("data: " + WebResponse.wrap(i, null, citaContent, null, null, null, reqId) + "\n\n");
     }
     ctx.res.write("data: [DONE]\n\n")
     ctx.res.end();
+  }
+
+  getCitaIndexString(index: number) {
+    const citaStrings = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+    if (citaStrings.length < index) {
+      return index + " ";
+    }
+    return citaStrings[index - 1] + " ";
   }
 
   assembleSummaryPrompt(question: string, kb_content: any) {

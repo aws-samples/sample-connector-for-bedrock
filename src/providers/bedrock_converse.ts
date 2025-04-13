@@ -15,8 +15,8 @@ export default class BedrockConverse extends AbstractProvider {
     client: BedrockRuntimeClient;
     chatMessageConverter: MessageConverter;
     modelId: string;
-    maxTokens: number;
-    thinking: boolean;
+    // maxTokens: number;
+    // thinking: boolean;
 
     constructor() {
         super();
@@ -44,7 +44,6 @@ export default class BedrockConverse extends AbstractProvider {
         }
 
         ctx.status = 200;
-
 
         if (chatRequest.stream) {
             ctx.set({
@@ -465,6 +464,9 @@ class MessageConverter {
             maxTokens = thinkBudget + 1024;
         }
 
+        const pcFields = (config && config.promptCache && config.promptCache.fields) || [];
+        const pcMessagePositions = (config && config.promptCache && config.promptCache.messagePositions) || [];
+
         const messages = chatRequest.messages;
         for (let i = 0; i < messages.length; i++) {
             // console.log("message", messages[i]);
@@ -566,14 +568,31 @@ class MessageConverter {
         }
 
         // }
-
+        if (pcFields.indexOf("messages") >= 0) {
+            newMessages.forEach((message, index) => {
+                if (pcMessagePositions.includes(index)) {
+                    message.content.push({
+                        "cachePoint": {
+                            "type": "default"
+                        }
+                    });
+                }
+            });
+        }
 
         const rtn: any = { messages: newMessages, inferenceConfig, additionalModelRequestFields };
 
         if (systemMessages.length > 0) {
-            const system = systemMessages.map(msg => ({
+            const system: any = systemMessages.map(msg => ({
                 text: msg.content || "."
             }));
+            if (pcFields.indexOf("system") >= 0) {
+                system.push({
+                    "cachePoint": {
+                        "type": "default"
+                    }
+                });
+            }
             rtn.system = system;
         }
 
@@ -608,7 +627,13 @@ class MessageConverter {
             toolChoice && (rtn.toolConfig.toolChoice = toolChoice);
         }
 
-        // console.log("tools:", JSON.stringify(rtn, null, 2))
+        if (rtn.toolConfig && rtn.toolConfig.tools && pcFields.indexOf("tools") >= 0) {
+            rtn.toolConfig.tools.push({
+                "cachePoint": {
+                    "type": "default"
+                }
+            })
+        }
 
         return rtn;
     }
