@@ -26,10 +26,19 @@ Following key components will be included in this Cloudformation template:
 
 Here are some recommend deployment patterns:
 
-- Deploy BRConnector on EC2 with integrated database, put Cloudfront in front of EC2
+- Deploy BRConnector on EC2 with integrated database (or standalone database), put Cloudfront in front of EC2
+
+![[attachments/deployment/IMG-deployment-16.png|600]]
+
 - Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of public Lambda function URL
 - Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of Lambda function URL with AWS_IAM authorization type
-- 
+
+![[attachments/deployment/IMG-deployment-17.png|600]]
+
+- Deploy BRConnector on ECS Cluster with standalone database (or no database), put Cloudfront  in front of ALB which expose ECS service.
+
+![[attachments/deployment/IMG-deployment-20.png|600]]
+
 
 ## Deploy Guide
 
@@ -37,15 +46,18 @@ Here are some recommend deployment patterns:
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
 
-- Deploy BRConnector in any supported region. Download [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
+- In any supported region, deploy VPC stack for BRConnector, you could skip this step when you already have VPC for BRConnector
+    - [brconnector-vpc-cfn.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml)
+
+- Deploy BRConnector. Download [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) and upload to Cloudformation console or click this button to launch directly.
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml)
 
 - VPC parameters
-  - Choose to create a new VPC or a existing VPC
-  - Choose one PUBLIC subnet for EC2 and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)
+  - Deploy VPC stack first, and put the stack name here.
+  - Choose 2 PUBLIC subnets for EC2/ECS and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)
 
-![attachments/deployment/IMG-deployment-6.png](attachments/deployment/IMG-deployment-6.png)
+![[attachments/deployment/IMG-deployment-18.png]]
 
 - Compute parameters
   - Choose ComputeType for BRConnector, Lambda or EC2
@@ -57,8 +69,12 @@ Here are some recommend deployment patterns:
     - `LambdaArch` Define using arm64 or amd64 for your lambda architecture
     - <mark style="background: #ADCCFFA6;">PUBLIC Function URL</mark> will be used if `LambdaEdgeVersionArn` is NULL. Please ensure this security setting is acceptable
     - And you could choose to create RDS PostgreSQL (DatabaseMode to `Standalone`) or without database (DatabaseMode to `NoDB`)
+- For ECS settings
+    - Default ECS Task CPU is 1024
+    - Default ECS Task Memory is 2GB
+    - Default Tasks number in ECS Service is 2
 
-![attachments/deployment/IMG-deployment-8.png](attachments/deployment/IMG-deployment-8.png)
+![[attachments/deployment/IMG-deployment-19.png]]
 
 - PostgreSQL parameters
   - DatabaseMode choose:
