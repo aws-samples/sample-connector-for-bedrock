@@ -36,7 +36,8 @@ CloudFormation 模板已在以下区域进行验证：
 ![[attachments/deployment/IMG-deployment-17.png|600]]
 
 - 在 ECS 集群上部署带有独立数据库（或无数据库）的 BRConnector，在暴露 ECS 服务的 ALB 前面配置 Cloudfront
-    - 架构图即将推出
+
+![[attachments/deployment/IMG-deployment-20.png|600]]
 
 ## 部署指南
 
