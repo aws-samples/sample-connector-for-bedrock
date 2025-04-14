@@ -25,8 +25,8 @@ Amazon Bedrock LLM 统一调用。
 | maxTokens  |  number   | N     | 1024 | 默认最大 tokens 数量，对应标准 API 的 max_tokens 参数。 如果 API 请求中不指定，则使用此值。  |
 | thinking  |  boolen   | N     | false | 是否开启 reason/think 功能  |
 | thinkBudget  |  number   | N     | 1024 | 在开启 thinking 的情况下，推理部分允许的最大 tokens 数量 |
-| promptCache.fields  |  string[]   | N     |  | 在什么位置开启提示词缓存，支持三个字符串："system", "messages", "tool"|
-| promptCache.messagePositions  |  int[]   | N     |  |多轮对话中，可以把缓存加载 messages 的特定位置 |
+| promptCache.fields  |  string[]   | N     |  | 在什么位置开启提示词缓存，支持三个字符串："system", "messages", "tools"|
+| promptCache.messagePositions  |  int[]   | N     |  |多轮对话中，可以指定 messages 缓存的加载位置 |
 
 bedrock-converse 的配置示例如下：
 
