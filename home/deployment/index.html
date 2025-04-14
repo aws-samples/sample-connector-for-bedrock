@@ -1696,26 +1696,41 @@
 <h2 id="deploy-patterns">Deploy Patterns<a class="headerlink" href="#deploy-patterns" title="Permanent link">&para;</a></h2>
 <p>Here are some recommend deployment patterns:</p>
 <ul>
-<li>Deploy BRConnector on EC2 with integrated database, put Cloudfront in front of EC2</li>
+<li>Deploy BRConnector on EC2 with integrated database (or standalone database), put Cloudfront in front of EC2</li>
+</ul>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-16.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="600" src="../attachments/deployment/IMG-deployment-16.png" title="600" /></a></p>
+<ul>
 <li>Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of public Lambda function URL</li>
 <li>Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of Lambda function URL with AWS_IAM authorization type</li>
-<li></li>
 </ul>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-17.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="600" src="../attachments/deployment/IMG-deployment-17.png" title="600" /></a></p>
+<ul>
+<li>Deploy BRConnector on ECS Cluster with standalone database (or no database), put Cloudfront  in front of ALB which expose ECS service.</li>
+</ul>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-20.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="600" src="../attachments/deployment/IMG-deployment-20.png" title="600" /></a></p>
 <h2 id="deploy-guide">Deploy Guide<a class="headerlink" href="#deploy-guide" title="Permanent link">&para;</a></h2>
 <ul>
 <li>(Mandatory, if you need lambda function URL with AWS_IAM auth type) deploy lambda@edge at us-east-1 region for Cloudfront Origin Request. After deploy successfully, get lambda version ARN from outputs page. <mark style="background: #FFB86CA6;">If skip this step, lambda function URL will be public.</mark></li>
 </ul>
 <p><a href="https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&amp;templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml"><img alt="200" src="../attachments/deployment/IMG-deployment.png" title="200" /></a></p>
 <ul>
-<li>Deploy BRConnector in any supported region. Download <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> and upload to Cloudformation console or click this button to launch directly.</li>
+<li>
+<p>In any supported region, deploy VPC stack for BRConnector, you could skip this step when you already have VPC for BRConnector</p>
+<ul>
+<li><a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml">brconnector-vpc-cfn.yaml</a></li>
+</ul>
+</li>
+<li>
+<p>Deploy BRConnector. Download <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> and upload to Cloudformation console or click this button to launch directly.</p>
+</li>
 </ul>
 <p><a href="https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&amp;templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml"><img alt="200" src="../attachments/deployment/IMG-deployment.png" title="200" /></a></p>
 <ul>
 <li>VPC parameters</li>
-<li>Choose to create a new VPC or a existing VPC</li>
-<li>Choose one PUBLIC subnet for EC2 and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)</li>
+<li>Deploy VPC stack first, and put the stack name here.</li>
+<li>Choose 2 PUBLIC subnets for EC2/ECS and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)</li>
 </ul>
-<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-6.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-6.png" src="../attachments/deployment/IMG-deployment-6.png" /></a></p>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-18.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-18.png" src="../attachments/deployment/IMG-deployment-18.png" title="attachments/deployment/IMG-deployment-18.png" /></a></p>
 <ul>
 <li>Compute parameters</li>
 <li>Choose ComputeType for BRConnector, Lambda or EC2</li>
@@ -1731,8 +1746,14 @@
 <li>And you could choose to create RDS PostgreSQL (DatabaseMode to <code>Standalone</code>) or without database (DatabaseMode to <code>NoDB</code>)</li>
 </ul>
 </li>
+<li>For ECS settings<ul>
+<li>Default ECS Task CPU is 1024</li>
+<li>Default ECS Task Memory is 2GB</li>
+<li>Default Tasks number in ECS Service is 2</li>
 </ul>
-<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-8.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-8.png" src="../attachments/deployment/IMG-deployment-8.png" /></a></p>
+</li>
+</ul>
+<p><a class="glightbox" href="../attachments/deployment/IMG-deployment-19.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-19.png" src="../attachments/deployment/IMG-deployment-19.png" title="attachments/deployment/IMG-deployment-19.png" /></a></p>
 <ul>
 <li>PostgreSQL parameters</li>
 <li>DatabaseMode choose:<ul>
@@ -1881,7 +1902,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="March 5, 2025 10:56:32"><span class="timeago" datetime="2025-03-05T10:56:32+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="March 5, 2025 10:56:32">2025-03-05</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 14, 2025 09:05:55"><span class="timeago" datetime="2025-04-14T09:05:55+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 14, 2025 09:05:55">2025-04-14</span>
   </span>
 
     
