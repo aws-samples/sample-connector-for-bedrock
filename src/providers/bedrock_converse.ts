@@ -455,13 +455,19 @@ class MessageConverter {
         if (!thinking) {
             thinking = false;
         }
-        let thinkBudget = config && config.thinkBudget;
-        if (!thinkBudget) {
-            thinkBudget = 1024;
-        }
-
-        if (maxTokens <= thinkBudget) {
-            maxTokens = thinkBudget + 1024;
+        
+        // 只有在thinking=true时才处理thinkBudget
+        let thinkBudget;
+        if (thinking) {
+            thinkBudget = config && config.thinkBudget;
+            if (!thinkBudget || thinkBudget < 1024) {
+                thinkBudget = 1024; // 确保thinkBudget最小值为1024
+            }
+            
+            // 只有在thinking=true且thinkBudget有值时才校验maxTokens
+            if (maxTokens <= thinkBudget) {
+                maxTokens = thinkBudget + 1024;
+            }
         }
 
         const pcFields = (config && config.promptCache && config.promptCache.fields) || [];
