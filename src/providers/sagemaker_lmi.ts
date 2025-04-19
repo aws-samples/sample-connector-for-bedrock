@@ -52,7 +52,8 @@ export default class SagemakerLMI extends AbstractProvider {
         delete clonedRequest.currency;
         delete clonedRequest.price_in;
         delete clonedRequest.price_out;
-        const CustomAttributes = this.getHeaderString(ctx);
+
+
 
         const input: any = {
             EndpointName: endpointName, // required
@@ -61,7 +62,11 @@ export default class SagemakerLMI extends AbstractProvider {
             Accept: "application/json",
             // CustomAttributes
         };
-        if (CustomAttributes.length <= 1024) {
+
+        const CustomAttributes = ctx.headers.hasOwnProperty("x-amzn-sagemaker-custom-attributes") ?
+            ctx.headers["x-amzn-sagemaker-custom-attributes"] : null;
+        console.log(CustomAttributes);
+        if (CustomAttributes && CustomAttributes.length <= 1024) {
             input.CustomAttributes = CustomAttributes;
         }
 
