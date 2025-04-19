@@ -593,6 +593,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0029" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0028" class="md-nav__link">
     <span class="md-ellipsis">
       0.0.28
@@ -1446,6 +1455,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0029" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0028" class="md-nav__link">
     <span class="md-ellipsis">
       0.0.28
@@ -1492,6 +1510,21 @@
 
 
 <h1 id="_1">更新日志<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<h2 id="0029">0.0.29<a class="headerlink" href="#0029" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>增强功能：bedrock-converse 提供器现在支持 prompt cache 功能</strong> - 现在可以在提供器后台配置 promptCache 了，请参考文档 <a href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/">https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/</a></p>
+</li>
+<li>
+<p><strong>增强功能：bedrock-knowledge-base 提供器现在可以直接输出 streaming 内容</strong> - 之前 Bedrock 知识库没有 RetrieveAndGenere 的 streaming 版本，现在这个提供器支持由 Bedrock 知识库直接输出的 streaming 内容了。参考文档：<a href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/">https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/</a></p>
+</li>
+<li>
+<p><strong>修复：费用更新的时候同时更新了最新时间</strong> - 现在可以更新用户的 active 日期了，这样可以在 manager 后台看到最新活动的 api-key 了。</p>
+</li>
+<li>
+<p><strong>Cloudformation 部署脚本更新</strong> - 现在可以选择独立部署 vpc stack，然后再部署 BRConnector；ecs 部署增加了自动创建第一个 api key 的能力。</p>
+</li>
+</ol>
 <h2 id="0028">0.0.28<a class="headerlink" href="#0028" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
@@ -1545,7 +1578,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年4月6日 17:29:47"><span class="timeago" datetime="2025-04-06T17:29:47+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年4月6日 17:29:47">2025-04-06</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年4月19日 12:56:03"><span class="timeago" datetime="2025-04-19T12:56:03+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年4月19日 12:56:03">2025-04-19</span>
   </span>
 
     
