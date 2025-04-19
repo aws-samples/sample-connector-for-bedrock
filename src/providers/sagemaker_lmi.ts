@@ -66,8 +66,8 @@ export default class SagemakerLMI extends AbstractProvider {
         const CustomAttributes = ctx.headers.hasOwnProperty("x-amzn-sagemaker-custom-attributes") ?
             ctx.headers["x-amzn-sagemaker-custom-attributes"] : null;
         if (CustomAttributes && CustomAttributes.length <= 1024) {
-            input.CustomAttributes = encodeURIComponent("x-amzn-sagemaker-custom-attributes:" + CustomAttributes);
-            console.log(input.CustomAttributes);
+            input.CustomAttributes = "x-amzn-sagemaker-custom-attributes:" + encodeURIComponent(CustomAttributes);
+            // console.log(input.CustomAttributes);
         }
 
         // console.log(JSON.stringify(input, null, 2));
