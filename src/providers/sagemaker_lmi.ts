@@ -10,7 +10,6 @@ import {
     InvokeEndpointCommand,
 } from "@aws-sdk/client-sagemaker-runtime";
 
-
 /**
  * This provider enables communication with SageMaker as an OpenAI Client.
  * The input data format is identical to the OpenAI input format.
@@ -89,7 +88,8 @@ export default class SagemakerLMI extends AbstractProvider {
         const headers = { ...ctx.headers };
         delete headers.host;
         delete headers['content-length'];
-        return Object.entries(headers)
+        console.log("ORI content:\n\n", JSON.stringify(headers, null, 2));
+        const rtn = Object.entries(headers)
             .map(([key, value]) => {
                 const encodedValue = encodeURIComponent(String(value));
                 if (encodedValue.length <= 1024) {
@@ -97,6 +97,8 @@ export default class SagemakerLMI extends AbstractProvider {
                 }
             })
             .join(',');
+        console.log("After CustomAttributes:\n\n", rtn);
+        return rtn;
     }
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
         const command = new InvokeEndpointWithResponseStreamCommand(input);
