@@ -89,7 +89,7 @@ export default class SagemakerLMI extends AbstractProvider {
         delete headers.host;
         delete headers['content-length'];
         console.log("ORI content:\n\n", JSON.stringify(headers, null, 2));
-        ctx.logger.error(headers);
+        // ctx.logger.error(headers);
         const rtn = Object.entries(headers)
             .map(([key, value]) => {
                 const encodedValue = encodeURIComponent(String(value));
@@ -98,8 +98,8 @@ export default class SagemakerLMI extends AbstractProvider {
                 }
             })
             .join(',');
-        console.log("After CustomAttributes:\n\n", rtn);
-        ctx.logger.error(rtn);
+        console.log("After  :\n\n", rtn, rtn.length);
+        // ctx.logger.error(rtn);
         return rtn;
     }
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
