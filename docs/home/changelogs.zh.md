@@ -1,5 +1,13 @@
 # 更新日志
 
+## 0.0.30
+
+1. **增强功能：添加 Think-Budget 动态支持** - 现在可以在 HTTP header 中指定 "Think-Budget"（值大于0）激活 API 动态调用思考模式（后端不要配置启用 thinking）。
+
+2. **新功能：sagemaker-lmi 提供器的自定义属性** - 添加了通过 header "X-Amzn-Sagemaker-Custom-Attributes" 向 sagemaker-lmi 提供器传递自定义属性的支持。例如："X-Amzn-Sagemaker-Custom-Attributes: model0:/v1/DELETEions;model2:/xxx"。
+
+3. **修复：解决了非思考模式下的 thinkBudget bug** - 修复了在非思考模式下与 thinkBudget 相关的问题。
+
 ## 0.0.29
 
 1. **增强功能：bedrock-converse 提供器现在支持 prompt cache 功能** - 现在可以在提供器后台配置 promptCache 了，请参考文档 <https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/>
@@ -21,13 +29,3 @@
 4. **新增：ECS 部署脚本** - 增加了 ECS 部署脚本。
 
 5. **修复：飞书消息重复** - 修复了飞书在 streaming 的情况下重复信息的问题。
-
-## 0.0.27
-
-1. **新提供器：sagemaker-deepseek** - 新增了部署在 SageMaker 上的 DeepSeek R1 模型提供商。该提供商支持带有 Deepseek 风格 `reasoning_content` 的流式输出。目前支持 SageMaker 上的三种部署方法：LMI、JumpStart 和 Bedrock。参考[文档](../providers/sagemaker-deepseek.md)。
-
-## 0.0.26
-
-1. **增强功能：bedrock-converse 工具调用** - bedrock-converse 现在输出 `tool_calls` 内容字段，支持使用 langchain.ChatOpenAI 请求进行工具调用。
-
-2. **改进：一致的消息 ID** - 流式响应现在在单个请求的所有数据块中包含一致的消息 ID。

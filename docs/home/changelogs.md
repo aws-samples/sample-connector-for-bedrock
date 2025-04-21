@@ -1,5 +1,13 @@
 # Changelogs
 
+## 0.0.30
+
+1. **Enhancement: Added Think-Budget header support** - Now you can activate thinking mode in API calls by passing a "Think-Budget" header with a value greater than 0 (Do not enable thinking in BRConnector configuration).
+
+2. **New Feature: Custom Attributes for sagemaker-lmi provider** - Added support for passing custom attributes to sagemaker-lmi provider through the header "X-Amzn-Sagemaker-Custom-Attributes". For example: "X-Amzn-Sagemaker-Custom-Attributes: model0:/v1/DELETEions;model2:/xxx".
+
+3. **Fix: Resolved thinkBudget bug in non-thinking mode** - Fixed an issue with thinkBudget when not in thinking mode.
+
 ## 0.0.29
 
 1. **Enhancement: bedrock-converse provider now supports prompt cache functionality** - You can now configure promptCache in the provider backend. Please refer to the documentation: <https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/>
@@ -21,13 +29,3 @@
 4. **New: ECS Deployment Script** - Added ECS deployment script.
 
 5. **Fix: Feishu Message Duplication** - Fixed duplicate messages in Feishu when using streaming mode.
-
-## 0.0.27
-
-1. **New Provider: sagemaker-deepseek** - Added a new provider for DeepSeek R1 models deployed on SageMaker. This provider supports streaming output with Deepseek-style `reasoning_content`. Currently supports three deployment methods on SageMaker: LMI, JumpStart, and Bedrock. Refer to [the documentation](../providers/sagemaker-deepseek.md).
-
-## 0.0.26
-
-1. **Enhancement: bedrock-converse Tool Calls** - The bedrock-converse provider now outputs the `tool_calls` content field, supporting tool use with langchain.ChatOpenAI requests.
-
-2. **Improvement: Consistent Message IDs** - Streaming responses now include consistent message IDs across all chunks within a single request.

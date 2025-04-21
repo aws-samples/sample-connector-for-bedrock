@@ -2,13 +2,13 @@
 
 ## 0.0.27
 
-1. **New Provider: sagemaker-deepseek** - Added a new provider for DeepSeek R1 models deployed on SageMaker. This provider supports streaming output with Deepseek-style `reasoning_content`. Currently supports three deployment methods on SageMaker: LMI, JumpStart, and Bedrock. Refer to [the documentation](../providers/sagemaker-deepseek.md).
+1. **新提供器：sagemaker-deepseek** - 新增了部署在 SageMaker 上的 DeepSeek R1 模型提供商。该提供商支持带有 Deepseek 风格 `reasoning_content` 的流式输出。目前支持 SageMaker 上的三种部署方法：LMI、JumpStart 和 Bedrock。参考[文档](../providers/sagemaker-deepseek.md)。
 
 ## 0.0.26
 
-1. **Enhancement: bedrock-converse Tool Calls** - The bedrock-converse provider now outputs the `tool_calls` content field, supporting tool use with langchain.ChatOpenAI requests.
+1. **增强功能：bedrock-converse 工具调用** - bedrock-converse 现在输出 `tool_calls` 内容字段，支持使用 langchain.ChatOpenAI 请求进行工具调用。
 
-2. **Improvement: Consistent Message IDs** - Streaming responses now include consistent message IDs across all chunks within a single request.
+2. **改进：一致的消息 ID** - 流式响应现在在单个请求的所有数据块中包含一致的消息 ID。
 
 ## 0.0.25
 
