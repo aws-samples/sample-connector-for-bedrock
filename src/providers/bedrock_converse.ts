@@ -63,6 +63,17 @@ export default class BedrockConverse extends AbstractProvider {
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
         // console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
+        // console.log(ctx.headers)
+
+        const headerThinkBudget = "think-budget" in ctx.headers && ctx.headers["think-budget"];
+        if (headerThinkBudget && !isNaN(headerThinkBudget)) {
+            const intBudget = ~~headerThinkBudget;
+            if (intBudget > 0) {
+                this.modelData.config.thinking = true;
+                this.modelData.config.thinkBudget = intBudget;
+            }
+            // console.log(this.modelData.config)
+        }
 
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
         if (chatRequest.model_id) {
@@ -455,7 +466,7 @@ class MessageConverter {
         if (!thinking) {
             thinking = false;
         }
-        
+
         // 只有在thinking=true时才处理thinkBudget
         let thinkBudget;
         if (thinking) {
@@ -463,7 +474,7 @@ class MessageConverter {
             if (!thinkBudget || thinkBudget < 1024) {
                 thinkBudget = 1024; // 确保thinkBudget最小值为1024
             }
-            
+
             // 只有在thinking=true且thinkBudget有值时才校验maxTokens
             if (maxTokens <= thinkBudget) {
                 maxTokens = thinkBudget + 1024;
