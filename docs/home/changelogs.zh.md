@@ -4,7 +4,7 @@
 
 1. **增强功能：添加 Think-Budget 动态支持** - 现在可以在 HTTP header 中指定 "Think-Budget"（值大于0）激活 API 动态调用思考模式（后端不要配置启用 thinking）。
 
-2. **新功能：sagemaker-lmi 提供器的自定义属性** - 添加了通过 header "X-Amzn-Sagemaker-Custom-Attributes" 向 sagemaker-lmi 提供器传递自定义属性的支持。例如："X-Amzn-Sagemaker-Custom-Attributes: model0:/v1/DELETEions;model2:/xxx"。
+2. **新功能：sagemaker-lmi 提供器的自定义属性** - 添加了通过 header "X-Amzn-Sagemaker-Custom-Attributes" 向 sagemaker-lmi 提供器传递自定义属性的支持。例如："X-Amzn-Sagemaker-Custom-Attributes: model0:/v1/DELETEions;model2:/xxx"。这个更新修复了之前把所有 headers 信息透传给 SageMaker 时，Custom-Attributes 最大长度超过 1024 的问题，注意：当前 X-Amzn-Sagemaker-Custom-Attributes 的最大长度仍然不能超过 1024 个字符。
 
 3. **修复：解决了非思考模式下的 thinkBudget bug** - 修复了在非思考模式下与 thinkBudget 相关的问题。
 
