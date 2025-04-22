@@ -11,7 +11,9 @@ CloudFormation 模板已在以下区域进行验证：
 
 ## 前提条件
 
-在您的区域中启用 Claude 3 Sonnet 或 Haiku - 如果您是首次使用 Anthropic 模型，请访问 [Amazon Bedrock 控制台](https://console.aws.amazon.com/bedrock/)，在左侧窗格底部选择 **Model access**。分别为 Claude 3 Sonnet 或 Haiku 请求访问权限。
+1. 启用 Claude 3 Sonnet 或 Haiku - 如果您是首次使用 Anthropic 模型，请访问 [Amazon Bedrock 控制台](https://console.aws.amazon.com/bedrock/)，在左侧窗格底部选择 **Model access**。分别为 Claude 3 Sonnet 或 Haiku 请求访问权限。
+2. 为 BRConnector 部署 VPC 堆栈，或选择现有的 VPC 用于 BRConnector，记下 VPC ID、2 个公有子网 ID 和 2 个私有子网 ID
+    - 这里提供了一个 cloudformation 模板，供您快速创建 VPC 并导出 VPC 参数以部署 BRConnector ([brconnector-vpc-cfn.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml))
 
 ## 组件
 
@@ -41,12 +43,9 @@ CloudFormation 模板已在以下区域进行验证：
 
 ## 部署指南
 
-- （如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB8EBA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark>
+- （如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB86CA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark>
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
-
-- 在任何支持的区域中，为 BRConnector 部署 VPC 堆栈，如果您已经有 BRConnector 的 VPC，可以跳过此步骤
-    - [brconnector-vpc-cfn.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml)
 
 - 部署 BRConnector。下载 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 并上传到 Cloudformation 控制台，或点击此按钮直接启动。
 
@@ -66,7 +65,7 @@ CloudFormation 模板已在以下区域进行验证：
   - Lambda 设置
     - `EcrRepo` 定义您的私有仓库名称前缀字符串
     - `LambdaArch` 定义您的 lambda 架构使用 arm64 或 amd64
-    - 如果 `LambdaEdgeVersionArn` 为空，将使用<mark style="background: #FFB8EBA6;">公共函数 URL</mark>。请确保此安全设置可接受
+    - 如果 `LambdaEdgeVersionArn` 为空，将使用<mark style="background: #FFB86CA6;">公共函数 URL</mark>。请确保此安全设置可接受
     - 您可以选择创建 RDS PostgreSQL（DatabaseMode 设为 `Standalone`）或不使用数据库（DatabaseMode 设为 `NoDB`）
 - ECS 设置
     - 默认 ECS 任务 CPU 为 1024
@@ -150,7 +149,8 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 ```sh
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
-docker restart brconnector
+docker rm -f brconnector
+cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sh
 
 ```
 
@@ -208,7 +208,3 @@ docker rm -f postgres-client
 - Lambda URL 在中国区域不支持
 - Cloudfront 在中国区域需要使用已备案的自有域名
 - ALB 暴露 443 端口需要使用已备案的自有域名
-
-
-
-
