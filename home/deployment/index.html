@@ -1684,12 +1684,18 @@
 <li>us-west-2</li>
 </ul>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
-<p>Enable Claude 3 Sonnet or Haiku in your region - If you are new to using Anthropic models, go to the <a href="https://console.aws.amazon.com/bedrock/">Amazon Bedrock console</a> and choose <strong>Model access</strong> on the bottom left pane. Request access separately for Claude 3 Sonnet or Haiku.</p>
+<ol>
+<li>Enable Claude 3 Sonnet or Haiku - If you are new to using Anthropic models, go to the <a href="https://console.aws.amazon.com/bedrock/">Amazon Bedrock console</a> and choose <strong>Model access</strong> on the bottom left pane. Request access separately for Claude 3 Sonnet or Haiku.</li>
+<li>Deploy VPC stack for BRConnector, or pick up an existing VPC for BRConnector, note down VPC ID, 2 public subnet IDs and 2 private subnet IDs<ul>
+<li>here is a cloudformation tempalte for you to quick create VPC and export VPC parameters for you to deploy BRConnector (<a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml">brconnector-vpc-cfn.yaml</a>)</li>
+</ul>
+</li>
+</ol>
 <h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h2>
 <p>Following key components will be included in this Cloudformation template:</p>
 <ul>
 <li>Cloudfront</li>
-<li>BRConnector on Lambda or EC2</li>
+<li>BRConnector on ECS, Lambda or EC2</li>
 <li>RDS PostgreSQL or PostgreSQL container on EC2 or without database</li>
 <li>ECR with pull through cache enabled</li>
 </ul>
@@ -1714,15 +1720,7 @@
 </ul>
 <p><a href="https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&amp;templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml"><img alt="200" src="../attachments/deployment/IMG-deployment.png" title="200" /></a></p>
 <ul>
-<li>
-<p>In any supported region, deploy VPC stack for BRConnector, you could skip this step when you already have VPC for BRConnector</p>
-<ul>
-<li><a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml">brconnector-vpc-cfn.yaml</a></li>
-</ul>
-</li>
-<li>
-<p>Deploy BRConnector. Download <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> and upload to Cloudformation console or click this button to launch directly.</p>
-</li>
+<li>Deploy BRConnector. Download <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> and upload to Cloudformation console or click this button to launch directly.</li>
 </ul>
 <p><a href="https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&amp;templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml"><img alt="200" src="../attachments/deployment/IMG-deployment.png" title="200" /></a></p>
 <ul>
@@ -1902,7 +1900,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 14, 2025 09:05:55"><span class="timeago" datetime="2025-04-14T09:05:55+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 14, 2025 09:05:55">2025-04-14</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 22, 2025 09:06:36"><span class="timeago" datetime="2025-04-22T09:06:36+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 22, 2025 09:06:36">2025-04-22</span>
   </span>
 
     

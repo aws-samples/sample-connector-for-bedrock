@@ -1704,7 +1704,13 @@
 <li>us-west-2</li>
 </ul>
 <h2 id="_3">前提条件<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<p>在您的区域中启用 Claude 3 Sonnet 或 Haiku - 如果您是首次使用 Anthropic 模型，请访问 <a href="https://console.aws.amazon.com/bedrock/">Amazon Bedrock 控制台</a>，在左侧窗格底部选择 <strong>Model access</strong>。分别为 Claude 3 Sonnet 或 Haiku 请求访问权限。</p>
+<ol>
+<li>启用 Claude 3 Sonnet 或 Haiku - 如果您是首次使用 Anthropic 模型，请访问 <a href="https://console.aws.amazon.com/bedrock/">Amazon Bedrock 控制台</a>，在左侧窗格底部选择 <strong>Model access</strong>。分别为 Claude 3 Sonnet 或 Haiku 请求访问权限。</li>
+<li>为 BRConnector 部署 VPC 堆栈，或选择现有的 VPC 用于 BRConnector，记下 VPC ID、2 个公有子网 ID 和 2 个私有子网 ID<ul>
+<li>这里提供了一个 cloudformation 模板，供您快速创建 VPC 并导出 VPC 参数以部署 BRConnector (<a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml">brconnector-vpc-cfn.yaml</a>)</li>
+</ul>
+</li>
+</ol>
 <h2 id="_4">组件<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>此 CloudFormation 模板将包含以下关键组件：</p>
 <ul>
@@ -1730,19 +1736,11 @@
 <p><a class="glightbox" href="../../../home/attachments/deployment/IMG-deployment-20.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="600" src="../../../home/attachments/deployment/IMG-deployment-20.png" title="600" /></a></p>
 <h2 id="_6">部署指南<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <ul>
-<li>（如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB8EBA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark></li>
+<li>（如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB86CA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark></li>
 </ul>
 <p><a href="https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&amp;templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml"><img alt="200" src="../../../home/attachments/deployment/IMG-deployment.png" title="200" /></a></p>
 <ul>
-<li>
-<p>在任何支持的区域中，为 BRConnector 部署 VPC 堆栈，如果您已经有 BRConnector 的 VPC，可以跳过此步骤</p>
-<ul>
-<li><a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml">brconnector-vpc-cfn.yaml</a></li>
-</ul>
-</li>
-<li>
-<p>部署 BRConnector。下载 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> 并上传到 Cloudformation 控制台，或点击此按钮直接启动。</p>
-</li>
+<li>部署 BRConnector。下载 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> 并上传到 Cloudformation 控制台，或点击此按钮直接启动。</li>
 </ul>
 <p><a href="https://console.aws.amazon.com/cloudformation/home#/stacks/create/template?stackName=brconnector1&amp;templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/quick-build-brconnector.yaml"><img alt="200" src="../../../home/attachments/deployment/IMG-deployment.png" title="200" /></a></p>
 <ul>
@@ -1762,7 +1760,7 @@
 <li>Lambda 设置<ul>
 <li><code>EcrRepo</code> 定义您的私有仓库名称前缀字符串</li>
 <li><code>LambdaArch</code> 定义您的 lambda 架构使用 arm64 或 amd64</li>
-<li>如果 <code>LambdaEdgeVersionArn</code> 为空，将使用<mark style="background: #FFB8EBA6;">公共函数 URL</mark>。请确保此安全设置可接受</li>
+<li>如果 <code>LambdaEdgeVersionArn</code> 为空，将使用<mark style="background: #FFB86CA6;">公共函数 URL</mark>。请确保此安全设置可接受</li>
 <li>您可以选择创建 RDS PostgreSQL（DatabaseMode 设为 <code>Standalone</code>）或不使用数据库（DatabaseMode 设为 <code>NoDB</code>）</li>
 </ul>
 </li>
@@ -1848,7 +1846,8 @@
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>aws<span class="w"> </span>ecr-public<span class="w"> </span>get-login-password<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>docker<span class="w"> </span>login<span class="w"> </span>--username<span class="w"> </span>AWS<span class="w"> </span>--password-stdin<span class="w"> </span>public.ecr.aws
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>docker<span class="w"> </span>pull<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>docker<span class="w"> </span>restart<span class="w"> </span>brconnector
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>brconnector
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>cat<span class="w"> </span>/var/log/cloud-init-output.log<span class="w"> </span><span class="p">|</span>egrep<span class="w"> </span>-o<span class="w"> </span><span class="s1">&#39;docker run .* --name brconnector .*&#39;</span><span class="w"> </span><span class="p">|</span>sh
 </code></pre></div>
 <h2 id="postgresql">迁移到新的 PostgreSQL 数据库<a class="headerlink" href="#postgresql" title="Permanent link">&para;</a></h2>
 <p>您可以选择在 ECR 或 RDS 上的容器中直接部署 PostgreSQL，这里列出了一些命令供您在 PG 中迁移数据的参考。</p>
@@ -1928,7 +1927,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年4月14日 09:05:55"><span class="timeago" datetime="2025-04-14T09:05:55+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年4月14日 09:05:55">2025-04-14</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年4月22日 09:06:36"><span class="timeago" datetime="2025-04-22T09:06:36+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年4月22日 09:06:36">2025-04-22</span>
   </span>
 
     
