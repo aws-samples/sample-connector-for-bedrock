@@ -13,6 +13,7 @@ Amazon Bedrock LLM 统一调用。
 [这个网址](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) 解释了如何使用 Bedrock Converse API 以及他支持的特性。
 
 **提示词缓存**
+
 [这个网址](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html) 可以看到支持模型和用法。
 请注意，总的提示缓存数量不要超出文档中的描述。其中：system 算一个，tools 算一个，messagePositions 的算多个，这些总和不要超出限制。
 
@@ -27,17 +28,43 @@ Amazon Bedrock LLM 统一调用。
 | thinkBudget  |  number   | N     | 1024 | 在开启 thinking 的情况下，推理部分允许的最大 tokens 数量 |
 | promptCache.fields  |  string[]   | N     |  | 在什么位置开启提示词缓存，支持三个字符串："system", "messages", "tools"|
 | promptCache.messagePositions  |  int[]   | N     |  |多轮对话中，可以指定 messages 缓存的加载位置 |
+| maxRetries  |  number   | N     |  | 当访问 bedrock 出错的时候，会持续尝试，如果存在多组 aksk，则会排除当前的 key 再尝试 |
+| credentials  |  object[]   | N     |  | 多组 AKSK 的配置，具体参见下面的配置 |
 
 bedrock-converse 的配置示例如下：
 
 ```json
 {
+  {
   "modelId": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
   "regions": [
     "us-east-1"
   ],
-  "thinking": true,
+  "thinking": false,
   "maxTokens": 32000,
+  "maxRetries": 3,
+  "credentials": [
+    {
+      "accessKeyId": "a0",
+      "secretAccessKey": "xxx"
+    },
+    {
+      "accessKeyId": "a1",
+      "secretAccessKey": "bbb"
+    },
+    {
+      "accessKeyId": "a2",
+      "secretAccessKey": "bbb"
+    },
+    {
+      "accessKeyId": "a3",
+      "secretAccessKey": "bbb"
+    },
+    {
+      "accessKeyId": "a4",
+      "secretAccessKey": "bbb"
+    }
+  ],
   "promptCache": {
     "fields": [
       "system",
@@ -50,6 +77,7 @@ bedrock-converse 的配置示例如下：
     ]
   },
   "thinkBudget": 2000
+}
 }
 ```
 
