@@ -2,7 +2,7 @@
 
 ## 0.0.31
 
-1. **新功能：跨账号负载和最大尝试次数设置** - 现在可以在 bedrock-converse 提供器中设置跨账号负载和最大尝试次数了。具体参见相关文档。
+1. **新功能：跨账号负载和最大尝试次数设置** - 现在可以在 bedrock-converse 提供器中设置跨账号负载和最大尝试次数了。[具体参见相关文档](../providers/bedrock-converse/)。
 
 2. **BRConnector 模型更新** - 新部署的 BRConnector 中增加了如下模型：
    - Claude 3.5 Sonnet / v2 的跨区域模型
@@ -22,9 +22,9 @@
 
 ## 0.0.29
 
-1. **增强功能：bedrock-converse 提供器现在支持 prompt cache 功能** - 现在可以在提供器后台配置 promptCache 了，请参考文档 <https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/>
+1. **增强功能：bedrock-converse 提供器现在支持 prompt cache 功能** - 现在可以在提供器后台配置 promptCache 了，[请参考文档](../providers/bedrock-converse/)
 
-2. **增强功能：bedrock-knowledge-base 提供器现在可以直接输出 streaming 内容** - 之前 Bedrock 知识库没有 RetrieveAndGenere 的 streaming 版本，现在这个提供器支持由 Bedrock 知识库直接输出的 streaming 内容了。参考文档：<https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/>
+2. **增强功能：bedrock-knowledge-base 提供器现在可以直接输出 streaming 内容** - 之前 Bedrock 知识库没有 RetrieveAndGenere 的 streaming 版本，现在这个提供器支持由 Bedrock 知识库直接输出的 streaming 内容了。参考文档：[https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/](../providers/bedrock-knowledge-base/)
 
 3. **修复：费用更新的时候同时更新了最新时间** - 现在可以更新用户的 active 日期了，这样可以在 manager 后台看到最新活动的 api-key 了。
 
