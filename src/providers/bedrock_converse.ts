@@ -15,8 +15,10 @@ export default class BedrockConverse extends AbstractProvider {
     client: BedrockRuntimeClient;
     chatMessageConverter: MessageConverter;
     modelId: string;
-    // maxTokens: number;
-    // thinking: boolean;
+    maxRetry: number = 3;
+    retryCount: number = 0;
+    excludeAccessKeyId: any;
+    currentAK: any;
 
     constructor() {
         super();
@@ -29,9 +31,17 @@ export default class BedrockConverse extends AbstractProvider {
             throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
         let regions: any = this.modelData.config && this.modelData.config.regions;
+        const credentials = helper.selectCredentials(this.modelData.config?.credentials, this.excludeAccessKeyId);
+        this.maxRetry = this.modelData.config?.maxRetries || 3;
+        this.currentAK = credentials?.accessKeyId;
         const region = helper.selectRandomRegion(regions);
-        this.client = new BedrockRuntimeClient({ region });
-
+        //console.log("-- new request -------------\n", this.retryCount, this.maxRetry, "\ncurrentAK", this.currentAK, "excluded:", this.excludeAccessKeyId);
+        if (credentials) {
+            this.client = new BedrockRuntimeClient({ region, credentials });
+        } else {
+            this.client = new BedrockRuntimeClient({ region });
+        }
+        console.log();
     }
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
@@ -82,23 +92,39 @@ export default class BedrockConverse extends AbstractProvider {
             payload["modelId"] = this.modelId;
         }
         // payload["modelId"] = this.modelId;
-
         // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
+        try {
+            this.retryCount++;
+            // console.log("retry times:", this.retryCount);
+            if (chatRequest.stream) {
+                ctx.set({
+                    'Connection': 'keep-alive',
+                    'Cache-Control': 'no-cache',
+                    'Content-Type': 'text/event-stream'
+                });
+                await this.chatStream(ctx, payload, chatRequest, session_id);
+            } else {
+                ctx.set({
+                    'Content-Type': 'application/json',
+                });
+                ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+            }
+            this.excludeAccessKeyId = null;
+            this.retryCount = 0;
+        } catch (err) {
+            ctx.logger.error(err);
+            ctx.logger.error(`retryCount: ${this.retryCount}, currentKey: ${this.currentAK}, excludedKey: ${this.excludeAccessKeyId}`);
 
-        if (chatRequest.stream) {
-            ctx.set({
-                'Connection': 'keep-alive',
-                'Cache-Control': 'no-cache',
-                'Content-Type': 'text/event-stream'
-            });
-            await this.chatStream(ctx, payload, chatRequest, session_id);
-        } else {
-            ctx.set({
-                'Content-Type': 'application/json',
-            });
-            ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+            this.excludeAccessKeyId = this.currentAK;
+            if (this.retryCount <= this.maxRetry) {
+                await this.chat(chatRequest, session_id, ctx);
+            } else {
+                this.excludeAccessKeyId = null;
+                this.retryCount = 0;
+                throw new Error(`Maximum retry attempts (${this.maxRetry}) exceeded. Operation failed to complete successfully.`);
+            }
         }
     }
 

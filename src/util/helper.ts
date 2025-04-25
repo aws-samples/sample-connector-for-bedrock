@@ -558,6 +558,42 @@ const helper = {
         return selectRegion;
 
     },
+    selectCredentials: (credentials: any, excludeAccessKeyId: any) => {
+        if (!credentials || !Array.isArray(credentials) || credentials.length === 0) {
+            return null;
+        }
+        let availableCredentials = excludeAccessKeyId
+            ? credentials.filter(cred => cred.accessKeyId !== excludeAccessKeyId)
+            : credentials;
+
+        if (availableCredentials.length === 0) {
+            return null;
+        }
+
+        // 如果只有一个可用凭证，直接返回
+        if (availableCredentials.length === 1) {
+            return availableCredentials[0];
+        }
+
+        // 随机选择一个凭证
+        const randomIndex = Math.floor(Math.random() * availableCredentials.length);
+        return availableCredentials[randomIndex];
+    },
+
+
+    // selectCredentials: (credentials: any, excludeAK: any) => {
+    //     if (!credentials || !Array.isArray(credentials)) {
+    //         return null;
+    //     }
+
+    //     let selectedCredentials = {};
+    //     if (credentials.length === 1) {
+    //         selectedCredentials = credentials[0];
+    //     }
+    //     const randomIndex = Math.floor(Math.random() * credentials.length);
+    //     return credentials[randomIndex];
+    // },
+
     execAWSCli: (commandLine: string) => new Promise<string>((resolve, reject) => {
         if (commandLine.indexOf("aws") != 0) {
             throw new Error("aws cli must starts with 'aws '");
