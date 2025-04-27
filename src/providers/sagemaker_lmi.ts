@@ -66,9 +66,8 @@ export default class SagemakerLMI extends AbstractProvider {
         const CustomAttributes = ctx.headers.hasOwnProperty("x-amzn-sagemaker-custom-attributes") ?
             ctx.headers["x-amzn-sagemaker-custom-attributes"] : null;
         if (CustomAttributes && CustomAttributes.length <= 1024) {
-            // 检查是否已包含前缀，避免嵌套问题
-            input.CustomAttributes = CustomAttributes.startsWith("x-amzn-sagemaker-custom-attributes:") ? 
-                CustomAttributes : "x-amzn-sagemaker-custom-attributes:" + encodeURIComponent(CustomAttributes);
+            // AWS SDK会自动添加前缀，所以这里直接使用原值
+            input.CustomAttributes = CustomAttributes;
         }
 
         // console.log(JSON.stringify(input, null, 2));
