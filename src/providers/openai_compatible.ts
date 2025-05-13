@@ -79,7 +79,7 @@ export default class OpenAICompatible extends AbstractProvider {
       const content = part.choices[0]?.delta?.content || '';
       responseText += content;
       // i++;
-      if (part.choices[0].finish_reason === "stop") {
+      if (part.choices[0]?.finish_reason === "stop") {
         const {
           completion_tokens = 0,
           prompt_tokens = 0

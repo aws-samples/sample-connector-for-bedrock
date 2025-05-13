@@ -75,8 +75,9 @@ export default class AzureOpenAI extends AbstractProvider {
       responseText += reasoning_content;
       const content = part.choices[0]?.delta?.content || '';
       responseText += content;
+      // console.log("part", part);
       // i++;
-      if (part.choices[0].finish_reason === "stop") {
+      if (part.choices[0]?.finish_reason === "stop") {
         const {
           completion_tokens = 0,
           prompt_tokens = 0
