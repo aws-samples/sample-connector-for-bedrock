@@ -22,6 +22,7 @@ import NovaCanvas from "./nova_canvas";
 import OpenAICompatible from "./openai_compatible";
 import BedrockDeepSeek from "./bedrock_deepseek";
 import SagemakerDeepSeek from "./sagemaker-deepseek";
+import AzureOpenAI from "./azure_openai"
 
 class Provider {
     constructor() {
@@ -44,6 +45,7 @@ class Provider {
         this["openai-compatible"] = new OpenAICompatible();
         this["bedrock-deepseek"] = new BedrockDeepSeek();
         this["sagemaker-deepseek"] = new SagemakerDeepSeek();
+        this["azure-openai"] = new AzureOpenAI();
     }
 
     async initForEmbeddings(ctx: any) {

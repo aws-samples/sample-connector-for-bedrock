@@ -1,6 +1,6 @@
 {
   "name": "sample-connector-for-bedrock",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -19,6 +19,7 @@
     "@aws-sdk/client-s3": "^3.787.0",
     "@aws-sdk/client-sagemaker-runtime": "^3.787.0",
     "@aws-sdk/s3-request-presigner": "^3.787.0",
+    "@azure/openai": "^2.0.0",
     "@koa/cors": "^5.0.0",
     "@larksuiteoapi/node-sdk": "^1.44.0",
     "csv-parser": "^3.0.0",
@@ -43,8 +44,8 @@
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
     "@types/koa": "^2.15.0",
-    "@types/koa__cors": "^5.0.0",
     "@types/koa-router": "^7.4.8",
+    "@types/koa__cors": "^5.0.0",
     "@types/pg": "^8.11.4",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
