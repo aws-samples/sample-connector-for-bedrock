@@ -1,4 +1,4 @@
-import { ChatRequest, EmbeddingRequest } from "../entity/chat_request"
+import { ChatRequest, EmbeddingRequest, ImageRequest } from "../entity/chat_request"
 import helper from '../util/helper';
 import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
@@ -23,6 +23,8 @@ import OpenAICompatible from "./openai_compatible";
 import BedrockDeepSeek from "./bedrock_deepseek";
 import SagemakerDeepSeek from "./sagemaker-deepseek";
 import AzureOpenAI from "./azure_openai"
+import AzureOpenAIImage from "./azure_openai_image"
+import BedrockAgent from "./bedrock_agent";
 
 class Provider {
     constructor() {
@@ -31,6 +33,7 @@ class Provider {
         // this["simple-action"] = new SimpleAction();
         this["sagemaker-lmi"] = new SagemakerLMI();
         this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
+        this["bedrock-agent"] = new BedrockAgent();
         this["painter"] = new Painter();
         this["nova-canvas"] = new NovaCanvas();
         this["ollama"] = new OllamaAProvider();
@@ -46,6 +49,7 @@ class Provider {
         this["bedrock-deepseek"] = new BedrockDeepSeek();
         this["sagemaker-deepseek"] = new SagemakerDeepSeek();
         this["azure-openai"] = new AzureOpenAI();
+        this["azure-openai-image"] = new AzureOpenAIImage();
     }
 
     async initForEmbeddings(ctx: any) {
@@ -64,7 +68,7 @@ class Provider {
 
 
         const session_id = ctx.headers["session-id"];
-        const modelData = await helper.refineModelParameters(embeddingRequest, ctx);
+        const modelData = await helper.refineModelParameters({ model: embeddingRequest.model }, ctx);
 
 
         if (ctx.db) {
@@ -88,6 +92,49 @@ class Provider {
 
         return {
             provider, embeddingRequest, session_id
+        }
+
+    }
+
+    async initForImage(ctx: any) {
+        if (ctx.user && ctx.user.id > 0) {
+            await this.checkFee(ctx, ctx.user);
+        }
+
+        // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
+
+        const request: ImageRequest = ctx.request.body;
+        const modelRes = helper.parseModelString(request.model);
+        if (modelRes) {
+            request.model = modelRes.model;
+            request.model_id = modelRes.model_id;
+        }
+
+
+        const session_id = ctx.headers["session-id"];
+        const modelData = await helper.refineModelParameters({ model: request.model }, ctx);
+
+        if (ctx.db) {
+            // If the db parameter is not set, then access permissions will not be verified.
+            const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
+            if (!canAccessModel) {
+                throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
+            }
+        }
+
+        request.currency = modelData.config.currency || "USD";
+        request.price_in = modelData.price_in || 0;
+        request.price_out = modelData.price_out || 0;
+        request.model = modelData.name;
+        const provider: AbstractProvider = this[modelData.provider];
+        if (!provider) {
+            throw new Error("You need to configure the provider correctly.");
+        }
+        provider.setModelData(modelData);
+        provider.setKeyData(ctx.user);
+
+        return {
+            provider, request, session_id
         }
 
     }
@@ -153,6 +200,12 @@ class Provider {
         // let keyData = null;
         const res = await this.initForEmbeddings(ctx);
         return res.provider.embed(res.embeddingRequest, res.session_id, ctx);
+    }
+
+    async images(ctx: any) {
+        // let keyData = null;
+        const res = await this.initForImage(ctx);
+        return res.provider.images(res.request, res.session_id, ctx);
     }
 
 

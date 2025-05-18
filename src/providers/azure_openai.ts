@@ -1,4 +1,4 @@
-//openai compatible connector
+
 import { AzureOpenAI as OpenAI } from 'openai';
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import AbstractProvider from "./abstract_provider";

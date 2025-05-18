@@ -30,6 +30,7 @@ export const router = new Router();
 router.post("/v1/chat/completions", v1.chat_completions);
 router.post("/v1/completions", v1.completions);
 router.post("/v1/embeddings", v1.embeddings);
+router.post("/v1/images/generations", v1.images);
 router.get("/v1/models", models.list);
 
 // Admin APIs

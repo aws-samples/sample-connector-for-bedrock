@@ -1,4 +1,4 @@
-import { ChatRequest, ResponseData, EmbeddingRequest } from "../entity/chat_request";
+import { ChatRequest, ResponseData, EmbeddingRequest, ImageRequest } from "../entity/chat_request";
 import Cache from '../util/cache';
 import crypto from 'crypto';
 
@@ -25,10 +25,17 @@ export default abstract class AbstractProvider {
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
         console.log("This method is not implemented.");
+        ctx.body = "Sorry, this model is not for complete.";
     };
 
     async embed(embedingRequest: EmbeddingRequest, session_id: string, ctx: any) {
         console.log("This method is not implemented.");
+        ctx.body = "Sorry, this model is not for text embedding.";
+    }
+
+    async images(imageRequest: ImageRequest, session_id: string, ctx: any) {
+        console.log("This method is not implemented.");
+        ctx.body = "Sorry, this model is not for images generation.";
     }
 
     async localCompleteStream(ctx: any, openAIRequest: any, session_id: string) {

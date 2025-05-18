@@ -28,6 +28,14 @@ interface EmbeddingRequest {
     [key: string]: any;
 }
 
+interface ImageRequest {
+    model: string;
+    prompt: string;
+    n?: number;
+    size?: '256x256' | '512x512' | '1024x1024' | null;
+    [key: string]: any;
+}
+
 // class RequestData {
 //   model: string;
 //   messages: Message[];
@@ -63,4 +71,4 @@ interface ModelData {
 }
 
 
-export { ChatRequest, ResponseData, ModelData, EmbeddingRequest };
+export { ChatRequest, ResponseData, ModelData, EmbeddingRequest, ImageRequest };

@@ -11,6 +11,10 @@ export default {
 
   embeddings: async (ctx: any) => {
     return provider.embed(ctx);
+  },
+
+  images: async (ctx: any) => {
+    return provider.images(ctx);
   }
 
 }
