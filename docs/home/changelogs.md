@@ -1,5 +1,19 @@
 # Changelogs
 
+## 0.0.33
+
+1. **New Provider: bedrock-agent** - Added a new provider for Amazon Bedrock Agents. This is a simple implementation that allows you to interact with your Bedrock Agents. [Documentation](../providers/bedrock-agent/)
+
+2. **New Provider: azure-openai-image** - Added support for Azure OpenAI image generation models. [Documentation](../providers/azure-openai-image/)
+
+3. **Removed Providers** - Removed several deprecated providers (bedrock-claude3, bedrock-mistral, bedrock-llama3) as they can be fully replaced by the bedrock-converse provider.
+
+4. **Docker Optimization** - Removed AWS CLI commands from the Docker file to reduce image size.
+
+## 0.0.32
+
+1. **New Provider: azure-openai** - Added a new provider for Azure OpenAI Service. This allows you to connect to Azure OpenAI deployments through the Sample Connector for Bedrock. [Documentation](../providers/azure-openai/)
+
 ## 0.0.31
 
 1. **New Feature: Cross-Account Load and Maximum Retry Settings** - Now you can configure cross-account load and maximum retry attempts in the bedrock-converse provider. For more details, [please refer to the documentation](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/).

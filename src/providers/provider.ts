@@ -3,9 +3,9 @@ import helper from '../util/helper';
 import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
 // Providers
-import BedrockClaude from "./bedrock_claude";
-import BedrockMixtral from "./bedrock_mixtral";
-import BedrockLlama3 from "./bedrock_llama3";
+// import BedrockClaude from "./bedrock_claude";
+// import BedrockMixtral from "./bedrock_mixtral";
+// import BedrockLlama3 from "./bedrock_llama3";
 import BedrockKnowledgeBase from "./bedrock_knowledge_base";
 import OllamaAProvider from "./ollama_provider";
 import BedrockConverse from "./bedrock_converse";
@@ -41,9 +41,9 @@ class Provider {
         this["continue-coder"] = new ContinueCoder();
         this["urls-reader"] = new UrlsReader();
         this["aws-executor"] = new AWSExecutor();
-        this["bedrock-claude3"] = new BedrockClaude();
-        this["bedrock-mistral"] = new BedrockMixtral();
-        this["bedrock-llama3"] = new BedrockLlama3();
+        // this["bedrock-claude3"] = new BedrockClaude();
+        // this["bedrock-mistral"] = new BedrockMixtral();
+        // this["bedrock-llama3"] = new BedrockLlama3();
         this["titan-embeddings"] = new TitanEmbeddings();
         this["openai-compatible"] = new OpenAICompatible();
         this["bedrock-deepseek"] = new BedrockDeepSeek();

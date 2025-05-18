@@ -1,5 +1,19 @@
 # 更新日志
 
+## 0.0.33
+
+1. **新提供器：bedrock-agent** - 添加了新的 Amazon Bedrock Agents 提供器。这是一个简单的实现，允许您与 Bedrock Agents 进行交互。[文档](../providers/bedrock-agent/)
+
+2. **新提供器：azure-openai-image** - 添加了对 Azure OpenAI 图像生成模型的支持。[文档](../providers/azure-openai-image/)
+
+3. **移除提供器** - 移除了几个过时的提供器（bedrock-claude3、bedrock-mistral、bedrock-llama3），因为它们可以完全由 bedrock-converse 提供器替代。
+
+4. **Docker 优化** - 从 Docker 文件中移除了 AWS CLI 命令，减小了镜像大小。
+
+## 0.0.32
+
+1. **新提供器：azure-openai** - 添加了新的 Azure OpenAI Service 提供器。这允许您通过 Sample Connector for Bedrock 连接到 Azure OpenAI 部署。[文档](../providers/azure-openai/)
+
 ## 0.0.31
 
 1. **新功能：跨账号负载和最大尝试次数设置** - 现在可以在 bedrock-converse 提供器中设置跨账号负载和最大尝试次数了。[具体参见相关文档](../providers/bedrock-converse/)。
