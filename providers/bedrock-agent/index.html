@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Since Docker image version 0.0.6">
+        <meta name="description" content="Since Docker image version 0.0.33">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-agent/">
       
       
-        <link rel="prev" href="../bedrock-agent/">
+        <link rel="prev" href="../azure-openai/">
       
       
-        <link rel="next" href="../bedrock-deepseek/">
+        <link rel="next" href="../bedrock-converse/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>bedrock-converse - Sample Connector for Bedrock</title>
+        <title>bedrock-agent - Sample Connector for Bedrock</title>
       
     
     
@@ -89,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#bedrock-converse" class="md-skip">
+        <a href="#bedrock-agent" class="md-skip">
           Skip to content
         </a>
       
@@ -125,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              bedrock-converse
+              bedrock-agent
             
           </span>
         </div>
@@ -178,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../zh/providers/bedrock-converse/" hreflang="zh" class="md-select__link">
+            <a href="../../zh/providers/bedrock-agent/" hreflang="zh" class="md-select__link">
               简体中文
             </a>
           </li>
@@ -1075,29 +1075,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../bedrock-agent/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    bedrock-agent
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -1115,7 +1092,7 @@
   
   
   <span class="md-ellipsis">
-    bedrock-converse
+    bedrock-agent
     
   </span>
   
@@ -1128,7 +1105,7 @@
   
   
   <span class="md-ellipsis">
-    bedrock-converse
+    bedrock-agent
     
   </span>
   
@@ -1160,9 +1137,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#output-results" class="md-nav__link">
+  <a href="#usage-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Output Results
+      Usage Example
     </span>
   </a>
   
@@ -1172,6 +1149,29 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bedrock-converse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    bedrock-converse
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1519,9 +1519,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#output-results" class="md-nav__link">
+  <a href="#usage-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Output Results
+      Usage Example
     </span>
   </a>
   
@@ -1546,19 +1546,16 @@
   
 
 
-<h1 id="bedrock-converse">bedrock-converse<a class="headerlink" href="#bedrock-converse" title="Permanent link">&para;</a></h1>
+<h1 id="bedrock-agent">bedrock-agent<a class="headerlink" href="#bedrock-agent" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>Since Docker image version 0.0.6</p>
+<p>Since Docker image version 0.0.33</p>
 </blockquote>
-<p>Amazon Bedrock LLM Unified Interface.</p>
-<p>Sends messages to the specified Amazon Bedrock model. <code>Converse</code> provides a consistent interface that works with all models that support messages. This allows you to write code once and use it with different models. If a model has unique inference parameters, you can also pass those unique parameters to the model.</p>
+<p>Amazon Bedrock Agent Interface.</p>
+<p>This provider allows you to interact with Amazon Bedrock Agents through the Sample Connector for Bedrock. Bedrock Agents help you build AI applications that can perform tasks by connecting to your data sources and systems.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>Invoke model via Amazon Bedrock Converse API. You can config all supported models with this provider.</p>
-<p><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html">This page</a> explains how to use Bedrock Converse API, and what features it supports.</p>
-<p><strong>Prompt Caching</strong><br />
-<a href="https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html">This page</a> shows the supported models and usage.<br />
-Please note that the total number of prompt caches should not exceed the limit described in the documentation. Among them: system counts as one, tools counts as one, messagePositions counts as multiple, and the sum of these should not exceed the limit.</p>
-<p>It is recommended to use this provider to support Bedrock&rsquo;s large language models.</p>
+<p>Invoke Amazon Bedrock Agents via the Bedrock API. You can configure your Bedrock Agent with this provider.</p>
+<p><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html">Amazon Bedrock Agents documentation</a> explains how to use Bedrock Agents and what features they support.</p>
+<p>Note: This is currently a simple implementation for agent calling, which may be upgraded with additional features in future versions.</p>
 <table>
 <thead>
 <tr>
@@ -1571,83 +1568,52 @@ Please note that the total number of prompt caches should not exceed the limit d
 </thead>
 <tbody>
 <tr>
-<td>modelId</td>
+<td>region</td>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>Model id, See <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html">Bedrock doc</a></td>
+<td>AWS region where your Bedrock Agent is deployed (e.g., &ldquo;us-east-1&rdquo;)</td>
 </tr>
 <tr>
-<td>regions</td>
-<td>string[] or string</td>
-<td>N</td>
-<td>[&ldquo;us-east-1&rdquo;]</td>
-<td>If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.</td>
-</tr>
-<tr>
-<td>maxTokens</td>
-<td>number</td>
-<td>N</td>
-<td>1024</td>
-<td>The default maximum number of tokens, corresponding to the max_tokens parameter in the standard API. If not specified in the API request, this value will be used.</td>
-</tr>
-<tr>
-<td>thinking</td>
-<td>boolean</td>
-<td>N</td>
-<td>false</td>
-<td>Whether to enable the reason/think functionality</td>
-</tr>
-<tr>
-<td>thinkBudget</td>
-<td>number</td>
-<td>N</td>
-<td>1024</td>
-<td>When thinking is enabled, the maximum number of tokens allowed for the reasoning part</td>
-</tr>
-<tr>
-<td>promptCache.fields</td>
-<td>string[]</td>
-<td>N</td>
+<td>agentId</td>
+<td>string</td>
+<td>Y</td>
 <td></td>
-<td>Where to enable prompt caching, supports three strings: &ldquo;system&rdquo;, &ldquo;messages&rdquo;, &ldquo;tools&rdquo;</td>
+<td>The ID of your Bedrock Agent</td>
 </tr>
 <tr>
-<td>promptCache.messagePositions</td>
-<td>int[]</td>
-<td>N</td>
+<td>agentAliasId</td>
+<td>string</td>
+<td>Y</td>
 <td></td>
-<td>In multi-turn conversations, you can specify the loading positions for messages caching</td>
+<td>The alias ID of your Bedrock Agent</td>
 </tr>
 </tbody>
 </table>
 <p>The configuration example:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;modelId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;us.anthropic.claude-3-7-sonnet-20250219-v1:0&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;regions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="s2">&quot;us-east-1&quot;</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">&quot;thinking&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">&quot;maxTokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">32000</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">&quot;promptCache&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nt">&quot;fields&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">      </span><span class="s2">&quot;system&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">      </span><span class="s2">&quot;messages&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">      </span><span class="s2">&quot;tools&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="p">],</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nt">&quot;messagePositions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">      </span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">      </span><span class="mi">1</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="p">]</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">  </span><span class="nt">&quot;thinkBudget&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2000</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">}</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;region&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;us-east-1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;agentId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XXXXXXXXXX&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">&quot;agentAliasId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XXXXXXXXXX&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">}</span>
 </code></pre></div>
-<h2 id="output-results">Output Results<a class="headerlink" href="#output-results" title="Permanent link">&para;</a></h2>
-<p>The output adds a reasoning_content field, consistent with deepseek&rsquo;s output. As follows:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="err">da</span><span class="kc">ta</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="s2">&quot;3&quot;</span><span class="p">,</span><span class="nt">&quot;created&quot;</span><span class="p">:</span><span class="mi">1740468210</span><span class="p">,</span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="s2">&quot;text_completion&quot;</span><span class="p">,</span><span class="nt">&quot;choices&quot;</span><span class="p">:[{</span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="nt">&quot;delta&quot;</span><span class="p">:{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="nt">&quot;reasoning_content&quot;</span><span class="p">:</span><span class="s2">&quot;hello&quot;</span><span class="p">},</span><span class="nt">&quot;finish_reason&quot;</span><span class="p">:</span><span class="kc">null</span><span class="p">,</span><span class="nt">&quot;logprobs&quot;</span><span class="p">:</span><span class="kc">null</span><span class="p">}],</span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="s2">&quot;sonnet37-think&quot;</span><span class="p">}</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="err">...</span>
+<h2 id="usage-example">Usage Example<a class="headerlink" href="#usage-example" title="Permanent link">&para;</a></h2>
+<p>Here&rsquo;s an example of how to call a Bedrock Agent using the Sample Connector for Bedrock:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>http://localhost:8866/v1/chat/completions<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_API_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Session-Id: YOUR_SESSION_ID&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="s1">  &quot;model&quot;: &quot;hr-agent&quot;, </span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="s1">  &quot;messages&quot;: [</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="s1">    {</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="s1">      &quot;role&quot;: &quot;user&quot;,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="s1">      &quot;content&quot;: &quot;I don&#39;</span>t<span class="w"> </span>know<span class="w"> </span>my<span class="w"> </span>ID<span class="s2">&quot;</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="s2">    }</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="s2">  ]</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="s2">}&#39;</span>
 </code></pre></div>
+<p><strong>Note about Session-Id</strong>: You can generate a session ID when making the call. Just ensure you use a consistent value throughout your interaction session. In the current implementation, this provider only processes the latest user input, so there&rsquo;s no need to include multiple conversation turns in your request.</p>
 
 
 
@@ -1670,7 +1636,7 @@ Please note that the total number of prompt caches should not exceed the limit d
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 14, 2025 13:38:15"><span class="timeago" datetime="2025-04-14T13:38:15+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 14, 2025 13:38:15">2025-04-14</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="May 18, 2025 14:20:26"><span class="timeago" datetime="2025-05-18T14:20:26+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="May 18, 2025 14:20:26">2025-05-18</span>
   </span>
 
     
@@ -1680,7 +1646,7 @@ Please note that the total number of prompt caches should not exceed the limit d
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 26, 2024 12:28:21"><span class="timeago" datetime="2024-07-26T12:28:21+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 26, 2024 12:28:21">2024-07-26</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="May 18, 2025 14:20:26"><span class="timeago" datetime="2025-05-18T14:20:26+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="May 18, 2025 14:20:26">2025-05-18</span>
   </span>
 
     
