@@ -72,7 +72,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        // console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
+        console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
         // console.log(ctx.headers)
 
         const headerThinkBudget = "think-budget" in ctx.headers && ctx.headers["think-budget"];
@@ -642,7 +642,8 @@ class MessageConverter {
 
         let xtools: any, toolChoice: any;
 
-        if (tools) {
+
+        if (tools && tools.length > 0) {
             xtools = {};
             xtools = tools.map((tool: any) => ({
                 toolSpec: {
