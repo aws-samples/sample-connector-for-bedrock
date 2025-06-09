@@ -72,7 +72,7 @@ export default class BedrockConverse extends AbstractProvider {
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
+        // console.log("--chatRequest-------------", JSON.stringify(chatRequest, null, 2));
         // console.log(ctx.headers)
 
         const headerThinkBudget = "think-budget" in ctx.headers && ctx.headers["think-budget"];
@@ -178,7 +178,7 @@ export default class BedrockConverse extends AbstractProvider {
             let index = 1;
             let think_end = false;
             for await (const item of response.stream) {
-                // console.log(JSON.stringify(item));
+                console.log(JSON.stringify(item));
                 if (item.contentBlockStart?.start?.toolUse) {
                     const xblock =
                     {
@@ -525,6 +525,7 @@ class MessageConverter {
         const tools = chatRequest.tools;
         const tool_choice = chatRequest.tool_choice;
         const systemMessages = messages.filter(message => message.role === 'system');
+
         const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant' || message.role === 'tool' || message.role === 'function');
         let stopSequences = chatRequest.stop;
 
@@ -626,9 +627,17 @@ class MessageConverter {
         const rtn: any = { messages: newMessages, inferenceConfig, additionalModelRequestFields };
 
         if (systemMessages.length > 0) {
-            const system: any = systemMessages.map(msg => ({
-                text: msg.content || "."
-            }));
+            const system = [];
+            systemMessages.forEach(msg =>{
+                if (msg.content && (typeof msg.content ==="string")) {
+                    system.push({text: msg.content});
+                }else if (msg.content && Array.isArray(msg.content)) {
+                    msg.content.forEach((msg2:any)=>{
+                        msg2?.text &&  system.push({text: msg2.text});
+                    })
+                }
+            });
+            // console.log("system", JSON.stringify(system, null, 2) );
             if (pcFields.indexOf("system") >= 0) {
                 system.push({
                     "cachePoint": {
