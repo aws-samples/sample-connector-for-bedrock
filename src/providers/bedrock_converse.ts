@@ -165,8 +165,16 @@ export default class BedrockConverse extends AbstractProvider {
     }
 
     async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
-        // let i = 0;
-        // console.log(chatRequest, JSON.stringify(input, null, 2));
+        // // let i = 0;
+        // writeFile('./api-test/output.txt', JSON.stringify(chatRequest, null, 2), 'utf8', (err) => {
+        //     if (err) {
+        //         console.error('写入文件时出错:', err);
+        //         return;
+        //     }
+        //     console.log('文件已成功写入');
+        // });
+    
+        // console.log(JSON.stringify(input, null, 2));
         const command = new ConverseStreamCommand(input);
         const response = await this.client.send(command);
 
@@ -177,8 +185,9 @@ export default class BedrockConverse extends AbstractProvider {
 
             let index = 1;
             let think_end = false;
+            let finish_reason = "stop";
             for await (const item of response.stream) {
-                console.log(JSON.stringify(item));
+                console.log(JSON.stringify(item, null, 2))
                 if (item.contentBlockStart?.start?.toolUse) {
                     const xblock =
                     {
@@ -193,7 +202,8 @@ export default class BedrockConverse extends AbstractProvider {
                     ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [xblock], reqId) + "\n\n");
                 }
                 if (item.messageStop?.stopReason) {
-                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", item.messageStop?.stopReason, null, null, reqId) + "\n\n");
+                    // ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", item.messageStop?.stopReason, null, null, reqId) + "\n\n");
+                    finish_reason = item.messageStop?.stopReason;
                 }
                 if (item.contentBlockDelta) {
                     const thinkingContent = item.contentBlockDelta.delta?.reasoningContent?.text;
@@ -238,7 +248,7 @@ export default class BedrockConverse extends AbstractProvider {
                     const output_tokens = item.metadata.usage.outputTokens;
                     const first_byte_latency = item.metadata.metrics.latencyMs;
 
-                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", "stop", output_tokens, input_tokens, reqId) + "\n\n");
+                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", finish_reason, output_tokens, input_tokens, reqId) + "\n\n");
                     const response: ResponseData = {
                         text: responseText,
                         input_tokens,
