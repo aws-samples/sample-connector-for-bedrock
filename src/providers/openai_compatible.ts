@@ -65,7 +65,9 @@ export default class OpenAICompatible extends AbstractProvider {
       temperature: chatRequest.temperature || 1.0,
       top_p: chatRequest.top_p || 1.0,
       max_tokens: chatRequest.max_tokens,
-      stream: true
+      stream: true,
+      ...(chatRequest.tools && { tools: chatRequest.tools }),
+      ...(chatRequest.tool_choice && { tool_choice: chatRequest.tool_choice })
     });
 
 
@@ -109,7 +111,9 @@ export default class OpenAICompatible extends AbstractProvider {
       temperature: chatRequest.temperature || 1.0,
       top_p: chatRequest.top_p || 1.0,
       max_tokens: chatRequest.max_tokens,
-      messages: messages
+      messages: messages,
+      ...(chatRequest.tools && { tools: chatRequest.tools }),
+      ...(chatRequest.tool_choice && { tool_choice: chatRequest.tool_choice })
     });
 
     const {
