@@ -25,6 +25,7 @@ import SagemakerDeepSeek from "./sagemaker-deepseek";
 import AzureOpenAI from "./azure_openai"
 import AzureOpenAIImage from "./azure_openai_image"
 import BedrockAgent from "./bedrock_agent";
+import GeminiConverse from "./gemini_converse";
 
 class Provider {
     constructor() {
@@ -50,6 +51,7 @@ class Provider {
         this["sagemaker-deepseek"] = new SagemakerDeepSeek();
         this["azure-openai"] = new AzureOpenAI();
         this["azure-openai-image"] = new AzureOpenAIImage();
+        this["gemini-converse"] = new GeminiConverse();
     }
 
     async initForEmbeddings(ctx: any) {
