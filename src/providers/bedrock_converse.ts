@@ -183,7 +183,7 @@ export default class BedrockConverse extends AbstractProvider {
             const reqId = this.newRequestID();
             // ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, "", null, null, null, reqId) + "\n\n");
 
-            let index = 1;
+            let index = 0;
             let think_end = false;
             let finish_reason = "stop";
             for await (const item of response.stream) {
