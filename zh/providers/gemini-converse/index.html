@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Since Docker image version 0.0.12">
+        <meta name="description" content="Applies to Docker image version 0.0.34 and above">
       
       
       
-        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/urls-reader/">
+        <link rel="canonical" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/gemini-converse/">
       
       
-        <link rel="prev" href="../titan_embedings/">
+        <link rel="prev" href="../continue_coder/">
       
       
-        <link rel="next" href="../web-miner/">
+        <link rel="next" href="../nova-canvas/">
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>urls-reader - Sample Connector for Bedrock</title>
+        <title>gemini-converse - Sample Connector for Bedrock</title>
       
     
     
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#urls-reader" class="md-skip">
+        <a href="#gemini-converse" class="md-skip">
           跳转至
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              urls-reader
+              gemini-converse
             
           </span>
         </div>
@@ -174,7 +174,7 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="../../../providers/urls-reader/" hreflang="en" class="md-select__link">
+            <a href="../../../providers/gemini-converse/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
@@ -1194,10 +1194,32 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../gemini-converse/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    gemini-converse
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1208,6 +1230,80 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Models
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pricing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pricing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting Started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1401,32 +1497,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    urls-reader
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../urls-reader/" class="md-nav__link">
         
   
   
@@ -1437,44 +1511,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="目录">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      模型配置
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#brclient" class="md-nav__link">
-    <span class="md-ellipsis">
-      在 BRClient 中的截图
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1537,18 +1573,54 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      模型配置
+      Configuration
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#brclient" class="md-nav__link">
+  <a href="#supported-models" class="md-nav__link">
     <span class="md-ellipsis">
-      在 BRClient 中的截图
+      Supported Models
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pricing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pricing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting Started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes
     </span>
   </a>
   
@@ -1573,25 +1645,102 @@
   
 
 
-<h1 id="urls-reader">urls-reader<a class="headerlink" href="#urls-reader" title="Permanent link">&para;</a></h1>
+<h1 id="gemini-converse">gemini-converse<a class="headerlink" href="#gemini-converse" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>Since Docker image version 0.0.12</p>
+<p>Applies to Docker image version 0.0.34 and above</p>
 </blockquote>
-<p>可以使用本提供器读取对话中的 url 的文字内容，可以支持多个 url 的读取。</p>
-<h2 id="_1">模型配置<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<p>参数配置如下:</p>
-<p>Name: some-model</p>
-<p>Provider: urls-reader</p>
-<p>Configuration:</p>
+<p>This Provider allows you to integrate Google&rsquo;s Gemini models into BRConnector using the Google Generative AI API.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;localLlmModel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sonnet3.5&quot;</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">}</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gemini-2.5-flash&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;apiKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AI...&quot;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">}</span>
 </code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>apiKey</td>
+<td>string</td>
+<td>Yes</td>
+<td></td>
+<td>Google AI API key (starts with &ldquo;AI&hellip;&rdquo;)</td>
+</tr>
+<tr>
+<td>model</td>
+<td>string</td>
+<td>No</td>
+<td>gemini-pro</td>
+<td>Gemini model name (e.g., gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="supported-models">Supported Models<a class="headerlink" href="#supported-models" title="Permanent link">&para;</a></h2>
 <ul>
-<li>localLlmModel: 必须配置为支持函数调用的模型，并且已存在于 BRConnector 中。</li>
+<li><strong>gemini-2.5-pro</strong>: Most advanced multimodal model, excellent for coding and complex reasoning</li>
+<li><strong>gemini-2.5-flash</strong>: Mixed reasoning model with 1M token context window and thinking budget</li>
+<li><strong>gemini-2.0-flash</strong>: Most balanced multimodal model optimized for the agentic era</li>
+<li><strong>gemini-pro</strong>: Standard Gemini model (default)</li>
 </ul>
-<h2 id="brclient">在 BRClient 中的截图<a class="headerlink" href="#brclient" title="Permanent link">&para;</a></h2>
-<p><a class="glightbox" href="../../../providers/screenshots/url-reader-1.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Url reader 1" src="../../../providers/screenshots/url-reader-1.png" /></a></p>
+<h2 id="pricing">Pricing<a class="headerlink" href="#pricing" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Input Tokens</th>
+<th>Output Tokens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gemini-2.5-pro</td>
+<td>$1.25-2.50/M tokens</td>
+<td>$10.00-15.00/M tokens</td>
+</tr>
+<tr>
+<td>gemini-2.5-flash</td>
+<td>$0.30-1.00/M tokens</td>
+<td>$2.50/M tokens</td>
+</tr>
+<tr>
+<td>gemini-2.0-flash</td>
+<td>$0.10-0.70/M tokens</td>
+<td>$0.40/M tokens</td>
+</tr>
+</tbody>
+</table>
+<p><em>Pricing varies based on input modality (text/image/video vs audio) and prompt length</em></p>
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<ul>
+<li>✅ Text generation</li>
+<li>✅ Streaming responses</li>
+<li>✅ OpenAI-compatible response format</li>
+<li>✅ Multi-modal support (text, images, video, audio)</li>
+<li>✅ Long context windows (up to 1M tokens)</li>
+<li>✅ Automatic token estimation</li>
+</ul>
+<h2 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Get your Google AI API key from <a href="https://aistudio.google.com/app/apikey">Google AI Studio</a></li>
+<li>Configure the provider with your API key</li>
+<li>Choose your preferred Gemini model</li>
+<li>Start making requests through the BRConnector API</li>
+</ol>
+<h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The provider automatically converts OpenAI-style messages to Gemini format</li>
+<li>Supports both streaming and non-streaming responses</li>
+<li>Token counting is estimated (approximately 4 characters per token)</li>
+<li>Images and other media are automatically handled according to Gemini&rsquo;s token counting rules </li>
+</ul>
 
 
 
@@ -1614,7 +1763,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2024年8月19日 16:47:14 CST"><span class="timeago" datetime="2024-08-19T16:47:14+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2024年8月19日 16:47:14 CST">2024-08-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 13, 2025 21:59:15 CST"><span class="timeago" datetime="2025-07-13T21:59:15+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 13, 2025 21:59:15 CST">2025-07-13</span>
   </span>
 
     
@@ -1624,7 +1773,7 @@
     <span class="md-icon" title="创建日期">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2024年8月19日 16:47:14 CST"><span class="timeago" datetime="2024-08-19T16:47:14+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2024年8月19日 16:47:14 CST">2024-08-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 13, 2025 21:59:15 CST"><span class="timeago" datetime="2025-07-13T21:59:15+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 13, 2025 21:59:15 CST">2025-07-13</span>
   </span>
 
     

@@ -113,6 +113,13 @@
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/continue_coder/"/>
     </url>
     <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/gemini-converse/</loc>
+        <lastmod>2025-07-29</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/gemini-converse/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/gemini-converse/"/>
+    </url>
+    <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/introduction/</loc>
         <lastmod>2025-07-29</lastmod>
         <changefreq>daily</changefreq>
@@ -363,6 +370,13 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/continue_coder/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/continue_coder/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/gemini-converse/</loc>
+        <lastmod>2025-07-29</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/gemini-converse/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/gemini-converse/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/introduction/</loc>
