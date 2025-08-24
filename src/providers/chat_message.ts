@@ -76,7 +76,7 @@ export default class ChatMessageConverter {
             return acc + message.content;
         }, "");
         const inferenceConfig: any = {
-            maxTokens: chatRequest.max_tokens || 1024,
+            maxTokens: chatRequest.max_tokens || chatRequest.max_completion_tokens || 1024,
             temperature: chatRequest.temperature || 0.7,
             topP: chatRequest.top_p || 0.7,
         };

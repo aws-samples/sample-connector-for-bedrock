@@ -173,7 +173,7 @@ export default class BedrockConverse extends AbstractProvider {
         //     }
         //     console.log('文件已成功写入');
         // });
-    
+
         // console.log(JSON.stringify(input, null, 2));
         const command = new ConverseStreamCommand(input);
         const response = await this.client.send(command);
@@ -497,7 +497,7 @@ class MessageConverter {
         if (!maxTokens || isNaN(maxTokens)) {
             maxTokens = 2048;
         }
-        maxTokens = chatRequest.max_tokens || maxTokens;
+        maxTokens = chatRequest.max_tokens || chatRequest.max_completion_tokens || maxTokens;
         let thinking = config && config.thinking;
         if (!thinking) {
             thinking = false;
@@ -638,12 +638,12 @@ class MessageConverter {
 
         if (systemMessages.length > 0) {
             const system = [];
-            systemMessages.forEach(msg =>{
-                if (msg.content && (typeof msg.content ==="string")) {
-                    system.push({text: msg.content});
-                }else if (msg.content && Array.isArray(msg.content)) {
-                    msg.content.forEach((msg2:any)=>{
-                        msg2?.text &&  system.push({text: msg2.text});
+            systemMessages.forEach(msg => {
+                if (msg.content && (typeof msg.content === "string")) {
+                    system.push({ text: msg.content });
+                } else if (msg.content && Array.isArray(msg.content)) {
+                    msg.content.forEach((msg2: any) => {
+                        msg2?.text && system.push({ text: msg2.text });
                     })
                 }
             });

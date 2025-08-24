@@ -62,6 +62,7 @@ export default class AzureOpenAI extends AbstractProvider {
       temperature: chatRequest.temperature || 1.0,
       top_p: chatRequest.top_p || 1.0,
       max_tokens: chatRequest.max_tokens,
+      max_completion_tokens: chatRequest.max_tokens,
       stream: true
     });
 
@@ -107,6 +108,7 @@ export default class AzureOpenAI extends AbstractProvider {
       temperature: chatRequest.temperature || 1.0,
       top_p: chatRequest.top_p || 1.0,
       max_tokens: chatRequest.max_tokens,
+      max_completion_tokens: chatRequest.max_tokens,
       messages: messages
     });
 
