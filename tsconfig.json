@@ -2,9 +2,11 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "NodeNext",
+    "types": [
+      "node"
+    ],
     "moduleResolution": "NodeNext"
   },
   "outDir": "./src/server",
-
   "sourceMap": true,
 }
