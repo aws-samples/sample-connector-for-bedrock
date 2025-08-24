@@ -139,8 +139,8 @@ dist/
 yarn.lock
 package-lock.json
 
-Dockerfile
-lambda.Dockerfile
+# Dockerfile
+# lambda.Dockerfile
 api-test/
 temp-code/
 src/ver.json

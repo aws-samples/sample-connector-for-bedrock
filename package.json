@@ -1,6 +1,6 @@
 {
   "name": "sample-connector-for-bedrock",
-  "version": "0.0.34",
+  "version": "0.0.35",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -14,18 +14,18 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "^3.812.0",
-    "@aws-sdk/client-bedrock-runtime": "^3.812.0",
-    "@aws-sdk/client-s3": "^3.812.0",
-    "@aws-sdk/client-sagemaker-runtime": "^3.812.0",
-    "@aws-sdk/s3-request-presigner": "^3.812.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "3.873.0",
+    "@aws-sdk/client-bedrock-runtime": "3.873.0",
+    "@aws-sdk/client-s3": "3.873.0",
+    "@aws-sdk/client-sagemaker-runtime": "3.873.0",
+    "@aws-sdk/s3-request-presigner": "3.873.0",
     "@azure/openai": "^2.0.0",
     "@google/generative-ai": "^0.24.1",
     "@koa/cors": "^5.0.0",
     "@larksuiteoapi/node-sdk": "^1.44.0",
     "csv-parser": "^3.0.0",
-    "dotenv": "^16.5.0",
-    "googleapis": "^144.0.0",
+    "dotenv": "17.2.1",
+    "googleapis": "157.0.0",
     "koa": "^2.16.1",
     "koa-body": "^6.0.1",
     "koa-router": "^13.0.1",
@@ -34,7 +34,7 @@
     "ollama": "^0.5.15",
     "openai": "^4.95.1",
     "pg": "^8.14.1",
-    "sharp": "^0.33.5",
+    "sharp": "0.34.3",
     "winston": "^3.17.0"
   },
   "compilerOptions": {
