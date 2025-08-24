@@ -202,8 +202,32 @@ export default class BedrockConverse extends AbstractProvider {
                     ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [xblock], reqId) + "\n\n");
                 }
                 if (item.messageStop?.stopReason) {
+                    // Coverse end_turn | tool_use | max_tokens | stop_sequence | guardrail_intervened | content_filtered
+                    // OpenAI reason:  stop, tool_call, content_filter, length, tool_calls
                     // ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", item.messageStop?.stopReason, null, null, reqId) + "\n\n");
+
                     finish_reason = item.messageStop?.stopReason;
+                    switch (finish_reason) {
+                        case "end_turn":
+                            finish_reason = "stop";
+                            break;
+                        case "tool_use":
+                            finish_reason = "tool_calls";
+                            break;
+                        case "max_tokens":
+                            finish_reason = "length";
+                            break;
+                        case "stop_sequence":
+                            finish_reason = "stop";
+                            break;
+                        case "guardrail_intervened":
+                        case "content_filtered":
+                            finish_reason = "content_filter";
+                            break;
+                        default:
+                            finish_reason = "stop";
+                            break;
+                    }
                 }
                 if (item.contentBlockDelta) {
                     const thinkingContent = item.contentBlockDelta.delta?.reasoningContent?.text;
