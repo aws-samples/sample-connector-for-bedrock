@@ -44,21 +44,20 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
-### 0.0.28
 
-1. **Enhancement: Streaming Mode reasoning_content and tool_calls** - In streaming mode, the system now outputs `reasoning_content` and `tool_calls` content. This addresses the issue mentioned in [issue #74](https://github.com/aws-samples/sample-connector-for-bedrock/issues/74) where reasoning_content was missing in non-streaming mode.
+## 0.0.35
 
-2. **Standardization: OpenAI Format for Function Calling** - Function calling in both streaming and non-streaming modes has been adapted to follow OpenAI's standard format, improving compatibility with existing tools and libraries. [Document](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/apis/#function-calling-tool-use)
+1. **New Provider: gemini** - Added a new Google Gemini provider. Thanks to "daniexon" for the contribution.
 
-3. **Improvement: Cost Statistics Total** - The total in cost statistics is now directly modified using SQL update, preventing monthly consumption from exceeding total consumption.
+2. **Enhancement: Tool Calls for openai_compatible Provider** - The openai_compatible provider now supports passing tool calls to the model. Thanks to "bdavj" for the contribution.
 
-4. **New: ECS Deployment Script** - Added ECS deployment script.
+3. **Format Mapping: Bedrock Converse finish_reason** - Mapped Bedrock Converse finish_reason to OpenAI format for improved compatibility.
 
-5. **Fix: Feishu Message Duplication** - Fixed duplicate messages in Feishu when using streaming mode.
+4. **New Parameter Support: max_completion_tokens** - Added support for the max_completion_tokens parameter.
 
-### 0.0.27
+5. **New Docker Files** - Added two new Dockerfiles.
 
-1. **New Provider: sagemaker-deepseek** - Added a new provider for DeepSeek R1 models deployed on SageMaker. This provider supports streaming output with Deepseek-style `reasoning_content`. Currently supports three deployment methods on SageMaker: LMI, JumpStart, and Bedrock.
+[More changelogs](https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/)
 
 ## Disclaimer
 
