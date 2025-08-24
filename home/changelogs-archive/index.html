@@ -568,6 +568,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0030" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.30
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0029" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0028" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.28
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0027" class="md-nav__link">
     <span class="md-ellipsis">
       0.0.27
@@ -1661,6 +1688,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0030" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.30
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0029" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0028" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.28
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0027" class="md-nav__link">
     <span class="md-ellipsis">
       0.0.27
@@ -1824,6 +1878,51 @@
 
 
 <h1 id="changelogs-archive">Changelogs archive<a class="headerlink" href="#changelogs-archive" title="Permanent link">&para;</a></h1>
+<h2 id="0030">0.0.30<a class="headerlink" href="#0030" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Enhancement: Added Think-Budget header support</strong> - Now you can activate thinking mode in API calls by passing a &ldquo;Think-Budget&rdquo; header with a value greater than 0 (Do not enable thinking in BRConnector configuration).</p>
+</li>
+<li>
+<p><strong>New Feature: Custom Attributes for sagemaker-lmi provider</strong> - Added support for passing custom attributes to sagemaker-lmi provider through the header &ldquo;X-Amzn-Sagemaker-Custom-Attributes&rdquo;. For example: &ldquo;X-Amzn-Sagemaker-Custom-Attributes: model0:/v1/DELETEions;model2:/xxx&rdquo;.</p>
+</li>
+<li>
+<p><strong>Fix: Resolved thinkBudget bug in non-thinking mode</strong> - Fixed an issue with thinkBudget when not in thinking mode.</p>
+</li>
+</ol>
+<h2 id="0029">0.0.29<a class="headerlink" href="#0029" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Enhancement: bedrock-converse provider now supports prompt cache functionality</strong> - You can now configure promptCache in the provider backend. Please refer to the documentation: <a href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/">https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/</a></p>
+</li>
+<li>
+<p><strong>Enhancement: bedrock-knowledge-base provider now directly outputs streaming content</strong> - Previously, Bedrock knowledge base didn&rsquo;t have a streaming version of RetrieveAndGenerate. Now this provider supports streaming content directly output from Bedrock knowledge base. Reference documentation: <a href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/">https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/</a></p>
+</li>
+<li>
+<p><strong>Fix: Cost updates now also update the latest activity time</strong> - Now the user&rsquo;s active date can be updated, allowing you to see the most recently active API keys in the manager backend.</p>
+</li>
+<li>
+<p><strong>Cloudformation deployment script update</strong> - Now you can choose to deploy the VPC stack independently, and then deploy BRConnector; ECS deployment adds the ability to automatically create the first API key.</p>
+</li>
+</ol>
+<h2 id="0028">0.0.28<a class="headerlink" href="#0028" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Enhancement: Streaming Mode reasoning_content and tool_calls</strong> - In streaming mode, the system now outputs <code>reasoning_content</code> and <code>tool_calls</code> content. This addresses the issue mentioned in <a href="https://github.com/aws-samples/sample-connector-for-bedrock/issues/74">issue #74</a> where reasoning_content was missing in non-streaming mode.</p>
+</li>
+<li>
+<p><strong>Standardization: OpenAI Format for Function Calling</strong> - Function calling in both streaming and non-streaming modes has been adapted to follow OpenAI&rsquo;s standard format, improving compatibility with existing tools and libraries. <a href="../../user-manual/apis#function-calling-tool-use">Document</a></p>
+</li>
+<li>
+<p><strong>Improvement: Cost Statistics Total</strong> - The total in cost statistics is now directly modified using SQL update, preventing monthly consumption from exceeding total consumption.</p>
+</li>
+<li>
+<p><strong>New: ECS Deployment Script</strong> - Added ECS deployment script.</p>
+</li>
+<li>
+<p><strong>Fix: Feishu Message Duplication</strong> - Fixed duplicate messages in Feishu when using streaming mode.</p>
+</li>
+</ol>
 <h2 id="0027">0.0.27<a class="headerlink" href="#0027" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>New Provider: sagemaker-deepseek</strong> - Added a new provider for DeepSeek R1 models deployed on SageMaker. This provider supports streaming output with Deepseek-style <code>reasoning_content</code>. Currently supports three deployment methods on SageMaker: LMI, JumpStart, and Bedrock. Refer to <a href="../../providers/sagemaker-deepseek/">the documentation</a>.</li>
@@ -2013,7 +2112,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 6, 2025 17:29:47 CST"><span class="timeago" datetime="2025-04-06T17:29:47+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 6, 2025 17:29:47 CST">2025-04-06</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="August 24, 2025 15:47:35 CST"><span class="timeago" datetime="2025-08-24T15:47:35+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="August 24, 2025 15:47:35 CST">2025-08-24</span>
   </span>
 
     
