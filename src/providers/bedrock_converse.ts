@@ -90,7 +90,7 @@ export default class BedrockConverse extends AbstractProvider {
             payload["modelId"] = this.modelId;
         }
         // payload["modelId"] = this.modelId;
-        console.log("--payload-------------", JSON.stringify(payload, null, 2));
+        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
         try {
@@ -589,7 +589,6 @@ class MessageConverter {
         }
 
         if (config.modelId.includes("anthropic")) {
-            console.log("-xxxxx", config.modelId)
             const anthropicBetaFeatures = [];
             if (config.modelId.includes("anthropic.claude-3-7-sonnet-")) {
                 anthropicBetaFeatures.push("output-128k-2025-02-19")
