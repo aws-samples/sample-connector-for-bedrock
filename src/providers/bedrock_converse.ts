@@ -520,6 +520,10 @@ class MessageConverter {
             maxTokens = 2048;
         }
         maxTokens = chatRequest.max_tokens || chatRequest.max_completion_tokens || maxTokens;
+
+        if (config.maxTokens && (maxTokens > config.maxTokens)) {
+            maxTokens = config.maxTokens;
+        }
         let thinking = config && config.thinking;
         if (!thinking) {
             thinking = false;
