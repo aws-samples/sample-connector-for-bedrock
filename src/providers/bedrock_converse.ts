@@ -41,7 +41,6 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             this.client = new BedrockRuntimeClient({ region });
         }
-        console.log();
     }
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
@@ -52,7 +51,6 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             payload["modelId"] = this.modelId;
         }
-
         ctx.status = 200;
 
         if (chatRequest.stream) {
@@ -92,7 +90,7 @@ export default class BedrockConverse extends AbstractProvider {
             payload["modelId"] = this.modelId;
         }
         // payload["modelId"] = this.modelId;
-        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
+        console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
         try {
@@ -187,7 +185,7 @@ export default class BedrockConverse extends AbstractProvider {
             let think_end = false;
             let finish_reason = "stop";
             for await (const item of response.stream) {
-                console.log(JSON.stringify(item, null, 2))
+                // console.log(JSON.stringify(item, null, 2))
                 if (item.contentBlockStart?.start?.toolUse) {
                     const xblock =
                     {
@@ -563,6 +561,7 @@ class MessageConverter {
         const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant' || message.role === 'tool' || message.role === 'function');
         let stopSequences = chatRequest.stop;
 
+
         const inferenceConfig: any = {
             maxTokens,
             temperature: chatRequest.temperature || 0.7,
@@ -585,6 +584,19 @@ class MessageConverter {
             }
         }
 
+        if (config.modelId.includes("anthropic")) {
+            console.log("-xxxxx", config.modelId)
+            const anthropicBetaFeatures = [];
+            if (config.modelId.includes("anthropic.claude-3-7-sonnet-")) {
+                anthropicBetaFeatures.push("output-128k-2025-02-19")
+            }
+            if (config.modelId.includes("anthropic.claude-sonnet-4")) {
+                anthropicBetaFeatures.push("context-1m-2025-08-07")
+            }
+
+
+            additionalModelRequestFields["anthropic_beta"] = anthropicBetaFeatures;
+        }
         //First element must be user message
         const newMessages = [];
         for (const message of uaMessages) {

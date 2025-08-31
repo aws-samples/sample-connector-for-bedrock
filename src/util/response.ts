@@ -101,6 +101,8 @@ export default {
             "object": "chat.completion.chunk"
         };
 
+
+        reasoning_content = reasoning_content || "";
         data.choices = [
             { "index": 0, delta: { role: "assistant", content: "", reasoning_content }, finish_reason: null, logprobs: null }
         ];
