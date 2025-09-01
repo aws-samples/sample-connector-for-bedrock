@@ -90,7 +90,7 @@ export default class BedrockConverse extends AbstractProvider {
             payload["modelId"] = this.modelId;
         }
         // payload["modelId"] = this.modelId;
-        console.log("--payload-------------", JSON.stringify(payload, null, 2));
+        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
         try {
