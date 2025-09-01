@@ -590,12 +590,18 @@ class MessageConverter {
 
         if (config.modelId.includes("anthropic")) {
             const anthropicBetaFeatures = [];
-            if (config.modelId.includes("anthropic.claude-3-7-sonnet-")) {
+            if (config.modelId.includes("anthropic.claude-3-7-sonnet")) {
                 anthropicBetaFeatures.push("output-128k-2025-02-19")
+                anthropicBetaFeatures.push("token-efficient-tools-2025-02-19")
             }
             if (config.modelId.includes("anthropic.claude-sonnet-4")) {
                 anthropicBetaFeatures.push("context-1m-2025-08-07")
             }
+            if (config.modelId.includes("anthropic.claude") && config.modelId.includes("-4")) {
+                anthropicBetaFeatures.push("dev-full-thinking-2025-05-14")
+                anthropicBetaFeatures.push("Interleaved-thinking-2025-05-14")
+            }
+
 
 
             additionalModelRequestFields["anthropic_beta"] = anthropicBetaFeatures;
