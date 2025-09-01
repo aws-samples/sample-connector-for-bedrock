@@ -597,10 +597,10 @@ class MessageConverter {
             if (config.modelId.includes("anthropic.claude-sonnet-4")) {
                 anthropicBetaFeatures.push("context-1m-2025-08-07")
             }
-            if (config.modelId.includes("anthropic.claude") && config.modelId.includes("-4")) {
-                // anthropicBetaFeatures.push("dev-full-thinking-2025-05-14")
-                anthropicBetaFeatures.push("Interleaved-thinking-2025-05-14")
-            }
+            // if (config.modelId.includes("anthropic.claude") && config.modelId.includes("-4")) {
+            // anthropicBetaFeatures.push("dev-full-thinking-2025-05-14")
+            // anthropicBetaFeatures.push("Interleaved-thinking-2025-05-14")
+            // }
 
 
 
