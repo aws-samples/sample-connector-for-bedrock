@@ -1,5 +1,22 @@
 # Changelogs archive
 
+## 0.0.32
+
+1. **New Provider: azure-openai** - Added a new provider for Azure OpenAI Service. This allows you to connect to Azure OpenAI deployments through the Sample Connector for Bedrock. [Documentation](../providers/azure-openai/)
+
+## 0.0.31
+
+1. **New Feature: Cross-Account Load and Maximum Retry Settings** - Now you can configure cross-account load and maximum retry attempts in the bedrock-converse provider. For more details, [please refer to the documentation](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/).
+
+2. **Model Updates in BRConnector Deployment** - Added the following models:
+   - Cross-region models for Claude 3.5 Sonnet / v2
+   - Model for Claude 3.7 Sonnet
+
+3. **CloudFormation Deployment Optimization** - Improved the CloudFormation deployment structure for better clarity and more user-friendly prompts.
+
+4. **Bugfix: Fixed Nested x-amzn-sagemaker-custom-attributes Issue** - Resolved an issue with nested custom attributes in the sagemaker_lmi provider.
+
+
 ## 0.0.30
 
 1. **Enhancement: Added Think-Budget header support** - Now you can activate thinking mode in API calls by passing a "Think-Budget" header with a value greater than 0 (Do not enable thinking in BRConnector configuration).

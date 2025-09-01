@@ -1,5 +1,15 @@
 # Changelogs
 
+## 0.0.36
+
+1. **anthropic_beta Features Support** - Added support for anthropic_beta features, including:
+   - Compatible with Claude 3.7 Sonnet: token-efficient-tools-2025-02-19, output-128k-2025-02-19
+   - Compatible with Claude Sonnet 4: context-1m-2025-08-07
+   
+   These features are automatically integrated into the backend logic without requiring separate configuration. Reference: [AWS Bedrock Anthropic Claude Parameters](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages-request-response.html)
+
+2. **Thinking Mode Enhancement** - In thinking mode, content is now set to empty string instead of null.
+
 ## 0.0.35
 
 1. **New Provider: gemini** - Added a new Google Gemini provider. Thanks to "daniexon" for the contribution.
@@ -25,19 +35,3 @@
 3. **Removed Providers** - Removed several deprecated providers (bedrock-claude3, bedrock-mistral, bedrock-llama3) as they can be fully replaced by the bedrock-converse provider.
 
 4. **Docker Optimization** - Removed AWS CLI commands from the Docker file to reduce image size.
-
-## 0.0.32
-
-1. **New Provider: azure-openai** - Added a new provider for Azure OpenAI Service. This allows you to connect to Azure OpenAI deployments through the Sample Connector for Bedrock. [Documentation](../providers/azure-openai/)
-
-## 0.0.31
-
-1. **New Feature: Cross-Account Load and Maximum Retry Settings** - Now you can configure cross-account load and maximum retry attempts in the bedrock-converse provider. For more details, [please refer to the documentation](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/).
-
-2. **Model Updates in BRConnector Deployment** - Added the following models:
-   - Cross-region models for Claude 3.5 Sonnet / v2
-   - Model for Claude 3.7 Sonnet
-
-3. **CloudFormation Deployment Optimization** - Improved the CloudFormation deployment structure for better clarity and more user-friendly prompts.
-
-4. **Bugfix: Fixed Nested x-amzn-sagemaker-custom-attributes Issue** - Resolved an issue with nested custom attributes in the sagemaker_lmi provider.

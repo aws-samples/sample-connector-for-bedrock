@@ -1,5 +1,15 @@
 # 更新日志
 
+## 0.0.36
+
+1. **支持 anthropic_beta 特性** - 添加了对 anthropic_beta 特性的支持，包括：
+   - 兼容 Claude 3.7 Sonnet 的：token-efficient-tools-2025-02-19，output-128k-2025-02-19
+   - 兼容 Claude Sonnet 4 的：context-1m-2025-08-07
+   
+   这些特性直接集成到后台逻辑中，无需单独配置。参考页面：[AWS Bedrock Anthropic Claude 参数](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages-request-response.html)
+
+2. **Thinking 模式优化** - 在 thinking 模式下，将 content 的内容设置为空字符串，之前是 null。
+
 ## 0.0.35
 
 1. **新提供器：gemini** - 添加了新的 Google Gemini 提供器。感谢 "daniexon" 的贡献。
@@ -26,18 +36,3 @@
 
 4. **Docker 优化** - 从 Docker 文件中移除了 AWS CLI 命令，减小了镜像大小。
 
-## 0.0.32
-
-1. **新提供器：azure-openai** - 添加了新的 Azure OpenAI Service 提供器。这允许您通过 Sample Connector for Bedrock 连接到 Azure OpenAI 部署。[文档](../providers/azure-openai/)
-
-## 0.0.31
-
-1. **新功能：跨账号负载和最大尝试次数设置** - 现在可以在 bedrock-converse 提供器中设置跨账号负载和最大尝试次数了。[具体参见相关文档](../providers/bedrock-converse/)。
-
-2. **BRConnector 模型更新** - 新部署的 BRConnector 中增加了如下模型：
-   - Claude 3.5 Sonnet / v2 的跨区域模型
-   - Claude 3.7 Sonnet 的模型
-
-3. **CloudFormation 部署优化** - 优化了 CloudFormation 部署，现在结构更加清晰，提示更加友好了。
-
-4. **Bugfix：修复嵌套自定义属性问题** - 修复了 sagemaker_lmi 提供器中的 x-amzn-sagemaker-custom-attributes 嵌套问题。

@@ -1,5 +1,22 @@
 # 更新日志（归档）
 
+## 0.0.32
+
+1. **新提供器：azure-openai** - 添加了新的 Azure OpenAI Service 提供器。这允许您通过 Sample Connector for Bedrock 连接到 Azure OpenAI 部署。[文档](../providers/azure-openai/)
+
+## 0.0.31
+
+1. **新功能：跨账号负载和最大尝试次数设置** - 现在可以在 bedrock-converse 提供器中设置跨账号负载和最大尝试次数了。[具体参见相关文档](../providers/bedrock-converse/)。
+
+2. **BRConnector 模型更新** - 新部署的 BRConnector 中增加了如下模型：
+   - Claude 3.5 Sonnet / v2 的跨区域模型
+   - Claude 3.7 Sonnet 的模型
+
+3. **CloudFormation 部署优化** - 优化了 CloudFormation 部署，现在结构更加清晰，提示更加友好了。
+
+4. **Bugfix：修复嵌套自定义属性问题** - 修复了 sagemaker_lmi 提供器中的 x-amzn-sagemaker-custom-attributes 嵌套问题。
+
+
 ## 0.0.30
 
 1. **增强功能：添加 Think-Budget 动态支持** - 现在可以在 HTTP header 中指定 "Think-Budget"（值大于0）激活 API 动态调用思考模式（后端不要配置启用 thinking）。
