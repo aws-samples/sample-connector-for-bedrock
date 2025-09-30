@@ -1,4 +1,10 @@
 # 更新日志
+## 0.0.37
+
+1. **bedrock-converse 提供器修复** - 修复了 Claude 新模型的一个问题：'The model returned the following errors: temperature and top_p cannot both be specified for this model. Please use only one.'
+
+2. **前端缓存优化** - 为 koa-static-server 提供的前端页面增加了 1 个月的缓存。
+
 
 ## 0.0.36
 

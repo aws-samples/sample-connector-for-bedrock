@@ -589,6 +589,12 @@ class MessageConverter {
         }
 
         if (config.modelId.includes("anthropic")) {
+            // fix: temperature and top_p cannot both be specified
+            if (chatRequest.top_p && (!chatRequest.temperature)) {
+                delete inferenceConfig.temperature;
+            } else {
+                delete inferenceConfig.topP;
+            }
             const anthropicBetaFeatures = [];
             if (config.modelId.includes("anthropic.claude-3-7-sonnet")) {
                 anthropicBetaFeatures.push("output-128k-2025-02-19")
@@ -598,11 +604,7 @@ class MessageConverter {
                 anthropicBetaFeatures.push("context-1m-2025-08-07")
             }
             if (config.modelId.includes("anthropic.claude-sonnet-4-5")) {
-                if (chatRequest.top_p && (!chatRequest.temperature)) {
-                    delete inferenceConfig.temperature;
-                } else {
-                    delete inferenceConfig.topP;
-                }
+
                 anthropicBetaFeatures.push("context-management-2025-06-27")
             }
             additionalModelRequestFields["anthropic_beta"] = anthropicBetaFeatures;

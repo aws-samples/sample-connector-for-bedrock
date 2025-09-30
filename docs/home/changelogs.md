@@ -1,5 +1,11 @@
 # Changelogs
 
+## 0.0.37
+
+1. **bedrock-converse Provider Fix** - Fixed an issue with Claude new models: 'The model returned the following errors: temperature and top_p cannot both be specified for this model. Please use only one.'
+
+2. **Frontend Caching Enhancement** - Added 1-month caching for frontend pages served by koa-static-server.
+
 ## 0.0.36
 
 1. **anthropic_beta Features Support** - Added support for anthropic_beta features, including:
