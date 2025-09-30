@@ -31,12 +31,14 @@ if (!config.disableUI) {
     app.use(serve({
         rootDir: './public',
         rootPath: '/manager',
-        index: 'index.html'
+        index: 'index.html',
+        maxage: 1000 * 60 * 60 * 24 * 30
     }));
     app.use(serve({
         rootDir: './brclient',
         rootPath: '/brclient',
-        index: 'index.html'
+        index: 'index.html',
+        maxage: 1000 * 60 * 60 * 24 * 30
     }));
 }
 
