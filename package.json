@@ -14,11 +14,11 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "3.873.0",
-    "@aws-sdk/client-bedrock-runtime": "3.873.0",
-    "@aws-sdk/client-s3": "3.873.0",
-    "@aws-sdk/client-sagemaker-runtime": "3.873.0",
-    "@aws-sdk/s3-request-presigner": "3.873.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "3.899.0",
+    "@aws-sdk/client-bedrock-runtime": "3.899.0",
+    "@aws-sdk/client-s3": "3.899.0",
+    "@aws-sdk/client-sagemaker-runtime": "3.899.0",
+    "@aws-sdk/s3-request-presigner": "3.899.0",
     "@azure/openai": "^2.0.0",
     "@google/generative-ai": "^0.24.1",
     "@koa/cors": "^5.0.0",

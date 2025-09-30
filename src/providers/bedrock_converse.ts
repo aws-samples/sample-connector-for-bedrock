@@ -565,12 +565,12 @@ class MessageConverter {
         const uaMessages = messages.filter(message => message.role === 'user' || message.role === 'assistant' || message.role === 'tool' || message.role === 'function');
         let stopSequences = chatRequest.stop;
 
-
         const inferenceConfig: any = {
             maxTokens,
             temperature: chatRequest.temperature || 0.7,
             topP: chatRequest.top_p || 0.7
         };
+
         if (thinking) {
             delete inferenceConfig.topP;
             inferenceConfig.temperature = 1;
@@ -597,13 +597,14 @@ class MessageConverter {
             if (config.modelId.includes("anthropic.claude-sonnet-4")) {
                 anthropicBetaFeatures.push("context-1m-2025-08-07")
             }
-            // if (config.modelId.includes("anthropic.claude") && config.modelId.includes("-4")) {
-            // anthropicBetaFeatures.push("dev-full-thinking-2025-05-14")
-            // anthropicBetaFeatures.push("Interleaved-thinking-2025-05-14")
-            // }
-
-
-
+            if (config.modelId.includes("anthropic.claude-sonnet-4-5")) {
+                if (chatRequest.top_p && (!chatRequest.temperature)) {
+                    delete inferenceConfig.temperature;
+                } else {
+                    delete inferenceConfig.topP;
+                }
+                anthropicBetaFeatures.push("context-management-2025-06-27")
+            }
             additionalModelRequestFields["anthropic_beta"] = anthropicBetaFeatures;
         }
         //First element must be user message
