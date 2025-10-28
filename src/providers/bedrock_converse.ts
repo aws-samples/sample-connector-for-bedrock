@@ -25,6 +25,15 @@ export default class BedrockConverse extends AbstractProvider {
         this.chatMessageConverter = new MessageConverter();
     }
 
+    /**
+     * Get the base model ID for configuration checks
+     * Uses baseModelId if available, otherwise falls back to modelId
+     */
+    getBaseModelId(): string {
+        return this.modelData.config?.baseModelId || this.modelId;
+    }
+    
+
     async init() {
         this.modelId = this.modelData.config && this.modelData.config.modelId;
         if (!this.modelId) {
@@ -514,6 +523,7 @@ class MessageConverter {
 
 
     async toPayload(chatRequest: ChatRequest, config: any): Promise<any> {
+        const baseModelId = config?.baseModelId || config?.modelId;
 
         let maxTokens = config && config.maxTokens;
         if (!maxTokens || isNaN(maxTokens)) {
@@ -588,7 +598,7 @@ class MessageConverter {
             }
         }
 
-        if (config.modelId.includes("anthropic")) {
+        if (baseModelId.includes("anthropic")) {
             // fix: temperature and top_p cannot both be specified
             if (chatRequest.top_p && (!chatRequest.temperature)) {
                 delete inferenceConfig.temperature;
@@ -596,14 +606,14 @@ class MessageConverter {
                 delete inferenceConfig.topP;
             }
             const anthropicBetaFeatures = [];
-            if (config.modelId.includes("anthropic.claude-3-7-sonnet")) {
+            if (baseModelId.includes("anthropic.claude-3-7-sonnet")) {
                 anthropicBetaFeatures.push("output-128k-2025-02-19")
                 anthropicBetaFeatures.push("token-efficient-tools-2025-02-19")
             }
-            if (config.modelId.includes("anthropic.claude-sonnet-4")) {
+            if (baseModelId.includes("anthropic.claude-sonnet-4")) {
                 anthropicBetaFeatures.push("context-1m-2025-08-07")
             }
-            if (config.modelId.includes("anthropic.claude-sonnet-4-5")) {
+            if (baseModelId.includes("anthropic.claude-sonnet-4-5")) {
 
                 anthropicBetaFeatures.push("context-management-2025-06-27")
             }
