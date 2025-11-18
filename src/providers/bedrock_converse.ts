@@ -487,8 +487,21 @@ class MessageConverter {
         const rtn: any[] = [];
         if (Array.isArray(content)) {
             for (const item of content) {
-                rtn.push(await this.convertConverseSingleType(item));
+                const converted = await this.convertConverseSingleType(item);
+                // Filter out text messages with empty strings
+                if (converted.text !== undefined && (!converted.text || converted.text.trim() === "")) {
+                    console.log("[BedrockConverse] Filtered out empty text message from content array");
+                    continue; // Skip empty text messages
+                }
+                rtn.push(converted);
             }
+        }
+        // If all items were filtered out, return a placeholder
+        if (rtn.length === 0) {
+            console.log("[BedrockConverse] All content items filtered out, using placeholder");
+            return [{
+                text: "."
+            }];
         }
         return rtn;
     }
@@ -652,7 +665,6 @@ class MessageConverter {
                         role: 'assistant',
                         content: [
                             {
-                                "type": "text",
                                 "text": "."
                             }
                         ]
@@ -672,7 +684,6 @@ class MessageConverter {
                 role: 'user',
                 content: [
                     {
-                        "type": "text",
                         "text": "This is an automatically generated placeholder message to maintain proper API format. Please continue our previous conversation and ignore this message."
                     }
                 ]
