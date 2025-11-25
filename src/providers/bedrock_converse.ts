@@ -41,7 +41,6 @@ export default class BedrockConverse extends AbstractProvider {
 
         let credentials = null;
         let useBearerToken = false;
-        console.log("this.modelData.config: ", this.modelData.config)
         if (this.modelData.config?.bearerToken) {
             // Use AWS Bedrock Bearer Token (API Key)
             // Set environment variable for AWS SDK to use
