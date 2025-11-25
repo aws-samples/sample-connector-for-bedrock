@@ -580,6 +580,54 @@ const helper = {
         return availableCredentials[randomIndex];
     },
 
+    /**
+     * Parse apiKey to AWS credentials
+     * Format 1: base64 encoded "accessKeyId:secretAccessKey"
+     * Format 2: plain "accessKeyId:secretAccessKey"
+     *
+     * @param apiKey - The API key string
+     * @returns AWS credentials object or null
+     *
+     * Example usage:
+     * 1. Base64 encoded: btoa("AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
+     * 2. Plain text: "AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+     */
+    parseApiKey: (apiKey: string) => {
+        if (!apiKey || typeof apiKey !== 'string') {
+            return null;
+        }
+
+        try {
+            let decoded = apiKey;
+
+            // Try to decode as base64 if it doesn't contain colon
+            if (!apiKey.includes(':')) {
+                try {
+                    decoded = Buffer.from(apiKey, 'base64').toString('utf-8');
+                } catch (e) {
+                    // If base64 decode fails, treat as plain text
+                    decoded = apiKey;
+                }
+            }
+
+            // Parse the format "accessKeyId:secretAccessKey"
+            const parts = decoded.split(':');
+            if (parts.length === 2) {
+                const [accessKeyId, secretAccessKey] = parts;
+                if (accessKeyId && secretAccessKey) {
+                    return {
+                        accessKeyId: accessKeyId.trim(),
+                        secretAccessKey: secretAccessKey.trim()
+                    };
+                }
+            }
+
+            throw new Error('Invalid apiKey format. Expected "accessKeyId:secretAccessKey" or base64 encoded version.');
+        } catch (error) {
+            throw new Error(`Failed to parse apiKey: ${error.message}`);
+        }
+    },
+
 
     // selectCredentials: (credentials: any, excludeAK: any) => {
     //     if (!credentials || !Array.isArray(credentials)) {

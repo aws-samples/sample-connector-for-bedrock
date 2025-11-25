@@ -33,16 +33,40 @@ export default class BedrockConverse extends AbstractProvider {
             throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
         let regions: any = this.modelData.config && this.modelData.config.regions;
-        const credentials = helper.selectCredentials(this.modelData.config?.credentials, this.excludeAccessKeyId);
+
+        // Support three authentication methods:
+        // 1. bearerToken (AWS Bedrock API Key) - highest priority
+        // 2. apiKey (base64 encoded "accessKeyId:secretAccessKey")
+        // 3. credentials array (traditional AKSK)
+
+        let credentials = null;
+        let useBearerToken = false;
+        console.log("this.modelData.config: ", this.modelData.config)
+        if (this.modelData.config?.bearerToken) {
+            // Use AWS Bedrock Bearer Token (API Key)
+            // Set environment variable for AWS SDK to use
+            process.env.AWS_BEARER_TOKEN_BEDROCK = this.modelData.config.bearerToken;
+            useBearerToken = true;
+            this.currentAK = 'bearer-token';
+        } else if (this.modelData.config?.apiKey) {
+            // Parse apiKey (format: base64 encoded "accessKeyId:secretAccessKey")
+            credentials = helper.parseApiKey(this.modelData.config.apiKey);
+            this.currentAK = credentials?.accessKeyId;
+        } else {
+            // Use credentials array (traditional AKSK)
+            credentials = helper.selectCredentials(this.modelData.config?.credentials, this.excludeAccessKeyId);
+            this.currentAK = credentials?.accessKeyId;
+        }
+
         this.maxRetry = this.modelData.config?.maxRetries || 3;
-        this.currentAK = credentials?.accessKeyId;
         const region = helper.selectRandomRegion(regions);
 
         // Configure proxy for local debugging
         const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
         const clientConfig: any = { region };
 
-        if (credentials) {
+        // Only set credentials if not using bearer token
+        if (credentials && !useBearerToken) {
             clientConfig.credentials = credentials;
         }
 
@@ -66,6 +90,18 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             payload["modelId"] = this.modelId;
         }
+
+        // Log Bedrock request
+        console.log("=== Bedrock Complete Request ===");
+        console.log(JSON.stringify({
+            modelId: payload.modelId,
+            messages: payload.messages,
+            inferenceConfig: payload.inferenceConfig,
+            toolConfig: payload.toolConfig,
+            system: payload.system
+        }, null, 2));
+        console.log("================================");
+
         ctx.status = 200;
 
         if (chatRequest.stream) {
@@ -79,7 +115,14 @@ export default class BedrockConverse extends AbstractProvider {
             ctx.set({
                 'Content-Type': 'application/json',
             });
-            ctx.body = await this.completeSync(ctx, payload, chatRequest, session_id);
+            const result = await this.completeSync(ctx, payload, chatRequest, session_id);
+
+            // Log Bedrock response
+            console.log("=== Bedrock Complete Response ===");
+            console.log(JSON.stringify(result, null, 2));
+            console.log("=================================");
+
+            ctx.body = result;
         }
     };
 
@@ -104,8 +147,19 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             payload["modelId"] = this.modelId;
         }
-        // payload["modelId"] = this.modelId;
-        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
+
+        // Log Bedrock request
+        console.log("=== Bedrock Chat Request ===");
+        console.log(JSON.stringify({
+            modelId: payload.modelId,
+            messages: payload.messages,
+            inferenceConfig: payload.inferenceConfig,
+            additionalModelRequestFields: payload.additionalModelRequestFields,
+            toolConfig: payload.toolConfig,
+            system: payload.system
+        }, null, 2));
+        console.log("============================");
+
         ctx.status = 200;
 
         try {
@@ -122,7 +176,14 @@ export default class BedrockConverse extends AbstractProvider {
                 ctx.set({
                     'Content-Type': 'application/json',
                 });
-                ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+                const result = await this.chatSync(ctx, payload, chatRequest, session_id);
+
+                // Log Bedrock response (non-streaming)
+                console.log("=== Bedrock Chat Response ===");
+                console.log(JSON.stringify(result, null, 2));
+                console.log("=============================");
+
+                ctx.body = result;
             }
             this.excludeAccessKeyId = null;
             this.retryCount = 0;
