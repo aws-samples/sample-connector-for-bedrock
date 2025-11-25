@@ -2,6 +2,8 @@ import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
     BedrockRuntimeClient, ConverseStreamCommand, ConverseCommand
 } from "@aws-sdk/client-bedrock-runtime";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import helper from "../util/helper";
 // import config from "../config";
 import WebResponse from "../util/response";
@@ -35,12 +37,25 @@ export default class BedrockConverse extends AbstractProvider {
         this.maxRetry = this.modelData.config?.maxRetries || 3;
         this.currentAK = credentials?.accessKeyId;
         const region = helper.selectRandomRegion(regions);
-        //console.log("-- new request -------------\n", this.retryCount, this.maxRetry, "\ncurrentAK", this.currentAK, "excluded:", this.excludeAccessKeyId);
+
+        // Configure proxy for local debugging
+        const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+        const clientConfig: any = { region };
+
         if (credentials) {
-            this.client = new BedrockRuntimeClient({ region, credentials });
-        } else {
-            this.client = new BedrockRuntimeClient({ region });
+            clientConfig.credentials = credentials;
         }
+
+        if (proxyUrl) {
+            const agent = new HttpsProxyAgent(proxyUrl);
+            clientConfig.requestHandler = new NodeHttpHandler({
+                httpAgent: agent,
+                httpsAgent: agent
+            });
+            console.log(`Using proxy: ${proxyUrl}`);
+        }
+
+        this.client = new BedrockRuntimeClient(clientConfig);
     }
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
@@ -715,7 +730,7 @@ class MessageConverter {
             xtools = tools.map((tool: any) => ({
                 toolSpec: {
                     name: tool.function?.name,
-                    description: tool.function?.description,
+                    description: tool.function?.description || 'No description provided',
                     inputSchema: { json: tool.function?.parameters }
                 }
             }));
