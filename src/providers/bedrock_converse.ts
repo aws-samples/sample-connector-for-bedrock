@@ -149,16 +149,16 @@ export default class BedrockConverse extends AbstractProvider {
         }
 
         // Log Bedrock request
-        console.log("=== Bedrock Chat Request ===");
-        console.log(JSON.stringify({
-            modelId: payload.modelId,
-            messages: payload.messages,
-            inferenceConfig: payload.inferenceConfig,
-            additionalModelRequestFields: payload.additionalModelRequestFields,
-            toolConfig: payload.toolConfig,
-            system: payload.system
-        }, null, 2));
-        console.log("============================");
+        // console.log("=== Bedrock Chat Request ===");
+        // console.log(JSON.stringify({
+        //     modelId: payload.modelId,
+        //     messages: payload.messages,
+        //     inferenceConfig: payload.inferenceConfig,
+        //     additionalModelRequestFields: payload.additionalModelRequestFields,
+        //     toolConfig: payload.toolConfig,
+        //     system: payload.system
+        // }, null, 2));
+        // console.log("============================");
 
         ctx.status = 200;
 
@@ -177,11 +177,11 @@ export default class BedrockConverse extends AbstractProvider {
                     'Content-Type': 'application/json',
                 });
                 const result = await this.chatSync(ctx, payload, chatRequest, session_id);
-
-                // Log Bedrock response (non-streaming)
-                console.log("=== Bedrock Chat Response ===");
-                console.log(JSON.stringify(result, null, 2));
-                console.log("=============================");
+                //
+                // // Log Bedrock response (non-streaming)
+                // console.log("=== Bedrock Chat Response ===");
+                // console.log(JSON.stringify(result, null, 2));
+                // console.log("=============================");
 
                 ctx.body = result;
             }
