@@ -36,7 +36,6 @@ export default class BedrockConverse extends AbstractProvider {
 
         // Support three authentication methods:
         // 1. bearerToken (AWS Bedrock API Key) - highest priority
-        // 2. apiKey (base64 encoded "accessKeyId:secretAccessKey")
         // 3. credentials array (traditional AKSK)
 
         let credentials = null;
@@ -47,10 +46,6 @@ export default class BedrockConverse extends AbstractProvider {
             process.env.AWS_BEARER_TOKEN_BEDROCK = this.modelData.config.bearerToken;
             useBearerToken = true;
             this.currentAK = 'bearer-token';
-        } else if (this.modelData.config?.apiKey) {
-            // Parse apiKey (format: base64 encoded "accessKeyId:secretAccessKey")
-            credentials = helper.parseApiKey(this.modelData.config.apiKey);
-            this.currentAK = credentials?.accessKeyId;
         } else {
             // Use credentials array (traditional AKSK)
             credentials = helper.selectCredentials(this.modelData.config?.credentials, this.excludeAccessKeyId);
