@@ -20,7 +20,8 @@ It is recommended to use this provider to support Bedrock's large language model
 
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
-| modelId  | string   | Y    |  |   Model id, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| modelId  | string   | Y    |  |   Model id or ARN, See [Bedrock doc](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html)  |
+| baseModelId  | string   | N    |  |   Source model id when using an inference profile ARN. This would be the model referenced from the infererence profile |
 | regions  | string[] or string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
 | maxTokens  |  number   | N     | 1024 | The default maximum number of tokens, corresponding to the max_tokens parameter in the standard API. If not specified in the API request, this value will be used.   |
 | thinking  |  boolean   | N     | false | Whether to enable the reason/think functionality  |
