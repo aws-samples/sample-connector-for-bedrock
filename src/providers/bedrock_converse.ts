@@ -2,6 +2,8 @@ import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
     BedrockRuntimeClient, ConverseStreamCommand, ConverseCommand
 } from "@aws-sdk/client-bedrock-runtime";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import helper from "../util/helper";
 // import config from "../config";
 import WebResponse from "../util/response";
@@ -40,16 +42,47 @@ export default class BedrockConverse extends AbstractProvider {
             throw new Error("You must specify the parameters 'modelId' in the backend model configuration.")
         }
         let regions: any = this.modelData.config && this.modelData.config.regions;
-        const credentials = helper.selectCredentials(this.modelData.config?.credentials, this.excludeAccessKeyId);
-        this.maxRetry = this.modelData.config?.maxRetries || 3;
-        this.currentAK = credentials?.accessKeyId;
-        const region = helper.selectRandomRegion(regions);
-        //console.log("-- new request -------------\n", this.retryCount, this.maxRetry, "\ncurrentAK", this.currentAK, "excluded:", this.excludeAccessKeyId);
-        if (credentials) {
-            this.client = new BedrockRuntimeClient({ region, credentials });
+
+        // Support three authentication methods:
+        // 1. bearerToken (AWS Bedrock API Key) - highest priority
+        // 3. credentials array (traditional AKSK)
+
+        let credentials = null;
+        let useBearerToken = false;
+        if (this.modelData.config?.bearerToken) {
+            // Use AWS Bedrock Bearer Token (API Key)
+            // Set environment variable for AWS SDK to use
+            process.env.AWS_BEARER_TOKEN_BEDROCK = this.modelData.config.bearerToken;
+            useBearerToken = true;
+            this.currentAK = 'bearer-token';
         } else {
-            this.client = new BedrockRuntimeClient({ region });
+            // Use credentials array (traditional AKSK)
+            credentials = helper.selectCredentials(this.modelData.config?.credentials, this.excludeAccessKeyId);
+            this.currentAK = credentials?.accessKeyId;
         }
+
+        this.maxRetry = this.modelData.config?.maxRetries || 3;
+        const region = helper.selectRandomRegion(regions);
+
+        // Configure proxy for local debugging
+        const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+        const clientConfig: any = { region };
+
+        // Only set credentials if not using bearer token
+        if (credentials && !useBearerToken) {
+            clientConfig.credentials = credentials;
+        }
+
+        if (proxyUrl) {
+            const agent = new HttpsProxyAgent(proxyUrl);
+            clientConfig.requestHandler = new NodeHttpHandler({
+                httpAgent: agent,
+                httpsAgent: agent
+            });
+            console.log(`Using proxy: ${proxyUrl}`);
+        }
+
+        this.client = new BedrockRuntimeClient(clientConfig);
     }
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
@@ -60,6 +93,18 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             payload["modelId"] = this.modelId;
         }
+
+        // Log Bedrock request
+        console.log("=== Bedrock Complete Request ===");
+        console.log(JSON.stringify({
+            modelId: payload.modelId,
+            messages: payload.messages,
+            inferenceConfig: payload.inferenceConfig,
+            toolConfig: payload.toolConfig,
+            system: payload.system
+        }, null, 2));
+        console.log("================================");
+
         ctx.status = 200;
 
         if (chatRequest.stream) {
@@ -73,7 +118,14 @@ export default class BedrockConverse extends AbstractProvider {
             ctx.set({
                 'Content-Type': 'application/json',
             });
-            ctx.body = await this.completeSync(ctx, payload, chatRequest, session_id);
+            const result = await this.completeSync(ctx, payload, chatRequest, session_id);
+
+            // Log Bedrock response
+            console.log("=== Bedrock Complete Response ===");
+            console.log(JSON.stringify(result, null, 2));
+            console.log("=================================");
+
+            ctx.body = result;
         }
     };
 
@@ -98,8 +150,19 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             payload["modelId"] = this.modelId;
         }
-        // payload["modelId"] = this.modelId;
-        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
+
+        // Log Bedrock request
+        // console.log("=== Bedrock Chat Request ===");
+        // console.log(JSON.stringify({
+        //     modelId: payload.modelId,
+        //     messages: payload.messages,
+        //     inferenceConfig: payload.inferenceConfig,
+        //     additionalModelRequestFields: payload.additionalModelRequestFields,
+        //     toolConfig: payload.toolConfig,
+        //     system: payload.system
+        // }, null, 2));
+        // console.log("============================");
+
         ctx.status = 200;
 
         try {
@@ -116,7 +179,14 @@ export default class BedrockConverse extends AbstractProvider {
                 ctx.set({
                     'Content-Type': 'application/json',
                 });
-                ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+                const result = await this.chatSync(ctx, payload, chatRequest, session_id);
+                //
+                // // Log Bedrock response (non-streaming)
+                // console.log("=== Bedrock Chat Response ===");
+                // console.log(JSON.stringify(result, null, 2));
+                // console.log("=============================");
+
+                ctx.body = result;
             }
             this.excludeAccessKeyId = null;
             this.retryCount = 0;
@@ -736,7 +806,7 @@ class MessageConverter {
             xtools = tools.map((tool: any) => ({
                 toolSpec: {
                     name: tool.function?.name,
-                    description: tool.function?.description,
+                    description: tool.function?.description || 'No description provided',
                     inputSchema: { json: tool.function?.parameters }
                 }
             }));

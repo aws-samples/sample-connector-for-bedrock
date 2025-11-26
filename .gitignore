@@ -144,3 +144,4 @@ package-lock.json
 api-test/
 temp-code/
 src/ver.json
+/test-tool-fix.js
