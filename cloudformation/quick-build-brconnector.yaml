@@ -453,7 +453,7 @@ Resources:
       DBName: !Ref PGDatabase
       DBInstanceClass: db.t4g.small
       Engine: postgres
-      EngineVersion: "16.3"
+      EngineVersion: "16.10"
       MasterUsername: postgres
       MasterUserPassword: !Ref PGPassword
       DBParameterGroupName: !Ref MyPGParameterGroup
