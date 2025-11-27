@@ -1,4 +1,4 @@
-import response from '../util/response';
+import response, { extractErrorDetails } from '../util/response';
 import config from '../config';
 import DB from '../util/postgres';
 import Cache from '../util/cache';
@@ -125,12 +125,33 @@ const errorHandler = async (ctx: any, next: any) => {
     try {
         await next();
     } catch (ex: any) {
-        ctx.logger.error(ex);
-        // if (config.debugMode) {
-        //     console.log(ex);
-        // }
-        ctx.status = ex.$metadata?.httpStatusCode || 400;
-        ctx.body = response.error(ex.message);
+        // 记录完整错误日志
+        ctx.logger.error({
+            message: ex.message,
+            name: ex.name,
+            code: ex.code || ex.Code,
+            requestId: ex.$metadata?.requestId,
+            httpStatusCode: ex.$metadata?.httpStatusCode,
+            fault: ex.$fault,
+            service: ex.$service,
+            stack: ex.stack
+        });
+
+        // 在 debug 模式下打印完整错误
+        if (config.debugMode) {
+            console.error('=== Full Error Details ===');
+            console.error(ex);
+            console.error('=== End Error Details ===');
+        }
+
+        // 提取错误详情
+        const errorDetail = extractErrorDetails(ex, config.debugMode);
+
+        // 设置响应状态码
+        ctx.status = ex.$metadata?.httpStatusCode || ex.statusCode || 400;
+
+        // 返回详细错误信息
+        ctx.body = response.error(ex.message, errorDetail);
     }
 
 };

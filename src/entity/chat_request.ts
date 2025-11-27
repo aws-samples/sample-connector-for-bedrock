@@ -9,6 +9,7 @@ interface Message {
     role: string;
     content: any;
     tool_calls?: any[];
+    tool_call_id?: string;  // 用于 tool 角色的消息，标识对应的 tool call
 }
 
 interface ChatRequest {

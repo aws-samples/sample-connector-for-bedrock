@@ -1,3 +1,80 @@
+export interface ErrorDetail {
+    message: string;
+    error_code?: string;
+    error_type?: string;
+    request_id?: string;
+    http_status?: number;
+    details?: any;
+    stack?: string;
+}
+
+/**
+ * 从各种错误对象中提取详细信息
+ */
+export const extractErrorDetails = (error: any, includeStack: boolean = false): ErrorDetail => {
+    const result: ErrorDetail = {
+        message: error.message || String(error)
+    };
+
+    // AWS SDK v3 错误格式
+    if (error.$metadata) {
+        result.request_id = error.$metadata.requestId;
+        result.http_status = error.$metadata.httpStatusCode;
+    }
+
+    // AWS 错误代码
+    if (error.name) {
+        result.error_type = error.name;
+    }
+    if (error.code) {
+        result.error_code = error.code;
+    }
+    if (error.Code) {
+        result.error_code = error.Code;
+    }
+
+    // AWS 特定错误字段
+    if (error.$fault) {
+        result.details = result.details || {};
+        result.details.fault = error.$fault;
+    }
+    if (error.$service) {
+        result.details = result.details || {};
+        result.details.service = error.$service;
+    }
+
+    // 其他可能的错误信息
+    if (error.cause) {
+        result.details = result.details || {};
+        result.details.cause = error.cause.message || String(error.cause);
+    }
+
+    // 原始响应体（如果有）
+    if (error.body) {
+        try {
+            const bodyContent = typeof error.body === 'string' ? JSON.parse(error.body) : error.body;
+            result.details = result.details || {};
+            result.details.response_body = bodyContent;
+        } catch {
+            result.details = result.details || {};
+            result.details.response_body = error.body;
+        }
+    }
+
+    // 重试后的原始错误信息
+    if (error.originalError) {
+        result.details = result.details || {};
+        result.details.original_error = error.originalError;
+    }
+
+    // 堆栈信息（仅在 debug 模式下）
+    if (includeStack && error.stack) {
+        result.stack = error.stack;
+    }
+
+    return result;
+};
+
 export default {
     ok: (data: any) => {
         return {
@@ -5,11 +82,15 @@ export default {
             data
         }
     },
-    error: (data: any) => {
-        return {
+    error: (data: any, errorDetail?: ErrorDetail) => {
+        const response: any = {
             success: false,
             data
+        };
+        if (errorDetail) {
+            response.error = errorDetail;
         }
+        return response;
     },
     wrap: (id: any, model: any, content?: any, finish_reason?: any, completion_tokens?: number, prompt_tokens?: number, request_id?: string) => {
         const created = Math.floor((new Date().getTime()) / 1000);
