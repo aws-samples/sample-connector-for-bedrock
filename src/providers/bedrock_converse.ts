@@ -34,7 +34,7 @@ export default class BedrockConverse extends AbstractProvider {
     getBaseModelId(): string {
         return this.modelData.config?.baseModelId || this.modelId;
     }
-    
+
 
     async init() {
         this.modelId = this.modelData.config && this.modelData.config.modelId;
@@ -79,7 +79,6 @@ export default class BedrockConverse extends AbstractProvider {
                 httpAgent: agent,
                 httpsAgent: agent
             });
-            console.log(`Using proxy: ${proxyUrl}`);
         }
 
         this.client = new BedrockRuntimeClient(clientConfig);
@@ -93,18 +92,6 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             payload["modelId"] = this.modelId;
         }
-
-        // Log Bedrock request
-        console.log("=== Bedrock Complete Request ===");
-        console.log(JSON.stringify({
-            modelId: payload.modelId,
-            messages: payload.messages,
-            inferenceConfig: payload.inferenceConfig,
-            toolConfig: payload.toolConfig,
-            system: payload.system
-        }, null, 2));
-        console.log("================================");
-
         ctx.status = 200;
 
         if (chatRequest.stream) {
@@ -119,11 +106,6 @@ export default class BedrockConverse extends AbstractProvider {
                 'Content-Type': 'application/json',
             });
             const result = await this.completeSync(ctx, payload, chatRequest, session_id);
-
-            // Log Bedrock response
-            console.log("=== Bedrock Complete Response ===");
-            console.log(JSON.stringify(result, null, 2));
-            console.log("=================================");
 
             ctx.body = result;
         }
@@ -150,19 +132,8 @@ export default class BedrockConverse extends AbstractProvider {
         } else {
             payload["modelId"] = this.modelId;
         }
-
-        // Log Bedrock request
-        // console.log("=== Bedrock Chat Request ===");
-        // console.log(JSON.stringify({
-        //     modelId: payload.modelId,
-        //     messages: payload.messages,
-        //     inferenceConfig: payload.inferenceConfig,
-        //     additionalModelRequestFields: payload.additionalModelRequestFields,
-        //     toolConfig: payload.toolConfig,
-        //     system: payload.system
-        // }, null, 2));
-        // console.log("============================");
-
+        // payload["modelId"] = this.modelId;
+        // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
         try {
@@ -179,20 +150,22 @@ export default class BedrockConverse extends AbstractProvider {
                 ctx.set({
                     'Content-Type': 'application/json',
                 });
-                const result = await this.chatSync(ctx, payload, chatRequest, session_id);
-                //
-                // // Log Bedrock response (non-streaming)
-                // console.log("=== Bedrock Chat Response ===");
-                // console.log(JSON.stringify(result, null, 2));
-                // console.log("=============================");
-
-                ctx.body = result;
+                ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
             }
             this.excludeAccessKeyId = null;
             this.retryCount = 0;
-        } catch (err) {
-            ctx.logger.error(err);
-            ctx.logger.error(`retryCount: ${this.retryCount}, currentKey: ${this.currentAK}, excludedKey: ${this.excludeAccessKeyId}`);
+        } catch (err: any) {
+            ctx.logger.error({
+                message: err.message,
+                name: err.name,
+                code: err.code || err.Code,
+                requestId: err.$metadata?.requestId,
+                httpStatusCode: err.$metadata?.httpStatusCode,
+                fault: err.$fault,
+                retryCount: this.retryCount,
+                currentKey: this.currentAK ? `${this.currentAK.substring(0, 8)}...` : null,
+                modelId: this.modelId
+            });
 
             this.excludeAccessKeyId = this.currentAK;
             if (this.retryCount <= this.maxRetry) {
@@ -200,7 +173,22 @@ export default class BedrockConverse extends AbstractProvider {
             } else {
                 this.excludeAccessKeyId = null;
                 this.retryCount = 0;
-                throw new Error(`Maximum retry attempts (${this.maxRetry}) exceeded. Operation failed to complete successfully.`);
+                // 保留原始错误信息，创建增强的错误对象
+                const enhancedError: any = new Error(
+                    `Maximum retry attempts (${this.maxRetry}) exceeded. Last error: ${err.message}`
+                );
+                // 复制原始错误的元数据
+                enhancedError.$metadata = err.$metadata;
+                enhancedError.$fault = err.$fault;
+                enhancedError.$service = err.$service;
+                enhancedError.code = err.code || err.Code;
+                enhancedError.name = err.name || 'BedrockConverseError';
+                enhancedError.originalError = {
+                    message: err.message,
+                    name: err.name,
+                    code: err.code || err.Code
+                };
+                throw enhancedError;
             }
         }
     }
@@ -263,27 +251,33 @@ export default class BedrockConverse extends AbstractProvider {
             let index = 0;
             let think_end = false;
             let finish_reason = "stop";
+
+            // 跟踪多个 tool calls: contentBlockIndex -> tool index
+            const toolCallIndexMap: Map<number, number> = new Map();
+            let nextToolIndex = 0;
+
             for await (const item of response.stream) {
-                // console.log(JSON.stringify(item, null, 2))
+                // console.log("--stream item--", JSON.stringify(item, null, 2));
+
                 if (item.contentBlockStart?.start?.toolUse) {
-                    const xblock =
-                    {
-                        "index": 0,
-                        "id": item.contentBlockStart?.start?.toolUse?.toolUseId,
+                    const contentBlockIndex = item.contentBlockStart.contentBlockIndex;
+                    const toolIndex = nextToolIndex++;
+                    toolCallIndexMap.set(contentBlockIndex, toolIndex);
+
+                    const xblock = {
+                        "index": toolIndex,
+                        "id": item.contentBlockStart.start.toolUse.toolUseId,
                         "type": "function",
                         "function": {
-                            "name": item.contentBlockStart?.start?.toolUse?.name,
+                            "name": item.contentBlockStart.start.toolUse.name,
                             "arguments": ""
                         }
                     };
                     ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [xblock], reqId) + "\n\n");
                 }
-                if (item.messageStop?.stopReason) {
-                    // Coverse end_turn | tool_use | max_tokens | stop_sequence | guardrail_intervened | content_filtered
-                    // OpenAI reason:  stop, tool_call, content_filter, length, tool_calls
-                    // ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", item.messageStop?.stopReason, null, null, reqId) + "\n\n");
 
-                    finish_reason = item.messageStop?.stopReason;
+                if (item.messageStop?.stopReason) {
+                    finish_reason = item.messageStop.stopReason;
                     switch (finish_reason) {
                         case "end_turn":
                             finish_reason = "stop";
@@ -306,20 +300,25 @@ export default class BedrockConverse extends AbstractProvider {
                             break;
                     }
                 }
+
                 if (item.contentBlockDelta) {
+                    const contentBlockIndex = item.contentBlockDelta.contentBlockIndex;
                     const thinkingContent = item.contentBlockDelta.delta?.reasoningContent?.text;
                     const content = item.contentBlockDelta.delta?.text;
                     const tool_use_args = item.contentBlockDelta.delta?.toolUse?.input;
-                    if (tool_use_args) {
-                        const xblock =
-                        {
-                            "index": 0,
+
+                    if (tool_use_args !== undefined) {
+                        // 获取该 content block 对应的 tool index
+                        const toolIndex = toolCallIndexMap.get(contentBlockIndex) ?? 0;
+                        const xblock = {
+                            "index": toolIndex,
                             "function": {
                                 "arguments": tool_use_args
                             }
                         };
                         ctx.res.write("data: " + WebResponse.wrapToolUse(index, chatRequest.model, [xblock], reqId) + "\n\n");
                     }
+
                     if (thinkingContent && index == 1) {
                         responseText += "<think>";
                     }
@@ -334,15 +333,10 @@ export default class BedrockConverse extends AbstractProvider {
                     if (content) {
                         responseText += content;
                         ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, content, null, null, null, reqId) + "\n\n");
-
                     }
-                    // const p = item.contentBlockDelta["p"];
+
                     index++;
                 }
-                // if (item.contentBlockStop) {
-                //     const p = item.contentBlockStop["p"];
-                //     ctx.res.write("data: " + WebResponse.wrap("chatcmpl-" + p, chatRequest.model, "", "stop") + "\n\n");
-                // }
                 if (item.metadata) {
                     // console.log(item);
                     const input_tokens = item.metadata.usage.inputTokens;
@@ -543,6 +537,13 @@ class MessageConverter {
     }
 
     async convertContent(content: any): Promise<any[]> {
+        // 处理 null、undefined 或空内容
+        if (content === null || content === undefined) {
+            return [{
+                text: "."
+            }];
+        }
+
         if (typeof content === "string") {
             if (!content || content.trim() === "") {
                 return [{
@@ -558,17 +559,14 @@ class MessageConverter {
         if (Array.isArray(content)) {
             for (const item of content) {
                 const converted = await this.convertConverseSingleType(item);
-                // Filter out text messages with empty strings
-                if (converted.text !== undefined && (!converted.text || converted.text.trim() === "")) {
-                    console.log("[BedrockConverse] Filtered out empty text message from content array");
-                    continue; // Skip empty text messages
+                if (converted) {
+                    rtn.push(converted);
                 }
-                rtn.push(converted);
             }
         }
-        // If all items were filtered out, return a placeholder
+
+        // 确保返回的数组不为空，Bedrock API 要求 content 不能为空
         if (rtn.length === 0) {
-            console.log("[BedrockConverse] All content items filtered out, using placeholder");
             return [{
                 text: "."
             }];
@@ -606,7 +604,6 @@ class MessageConverter {
 
 
     async toPayload(chatRequest: ChatRequest, config: any): Promise<any> {
-        const baseModelId = config?.baseModelId || config?.modelId;
 
         let maxTokens = config && config.maxTokens;
         if (!maxTokens || isNaN(maxTokens)) {
@@ -681,7 +678,7 @@ class MessageConverter {
             }
         }
 
-        if (baseModelId.includes("anthropic")) {
+        if (config.modelId.includes("anthropic")) {
             // fix: temperature and top_p cannot both be specified
             if (chatRequest.top_p && (!chatRequest.temperature)) {
                 delete inferenceConfig.temperature;
@@ -689,14 +686,14 @@ class MessageConverter {
                 delete inferenceConfig.topP;
             }
             const anthropicBetaFeatures = [];
-            if (baseModelId.includes("anthropic.claude-3-7-sonnet")) {
+            if (config.modelId.includes("anthropic.claude-3-7-sonnet")) {
                 anthropicBetaFeatures.push("output-128k-2025-02-19")
                 anthropicBetaFeatures.push("token-efficient-tools-2025-02-19")
             }
-            if (baseModelId.includes("anthropic.claude-sonnet-4")) {
+            if (config.modelId.includes("anthropic.claude-sonnet-4")) {
                 anthropicBetaFeatures.push("context-1m-2025-08-07")
             }
-            if (baseModelId.includes("anthropic.claude-sonnet-4-5")) {
+            if (config.modelId.includes("anthropic.claude-sonnet-4-5")) {
 
                 anthropicBetaFeatures.push("context-management-2025-06-27")
             }
@@ -704,65 +701,170 @@ class MessageConverter {
         }
         //First element must be user message
         const newMessages = [];
-        for (const message of uaMessages) {
-            const nowLen = newMessages.length;
-            const shouldBeUser = nowLen % 2 === 0;
-            if (message.role === 'tool' || message.role === 'function') { // tool and function are not supported in converse
-                message.role = 'assistant';
-            }
-            message.content = await this.convertContent(message.content);
-            if (shouldBeUser) {
-                if (message.role === 'user') {
-                    newMessages.push(message);
-                } else {
-                    newMessages.push({
-                        role: 'user',
-                        content: [
-                            {
-                                "type": "text",
-                                "text": "."
-                            }
-                        ]
-                    });
-                    newMessages.push(message);
+
+        // 收集连续的 tool 消息，合并到一个 user 消息中
+        let pendingToolResults: any[] = [];
+
+        for (let i = 0; i < uaMessages.length; i++) {
+            const message = uaMessages[i];
+
+            // 处理 tool/function 角色的消息（工具返回结果）
+            if (message.role === 'tool' || message.role === 'function') {
+                // 提取工具返回的文本内容
+                let toolResultText = '';
+                if (typeof message.content === 'string') {
+                    toolResultText = message.content;
+                } else if (Array.isArray(message.content)) {
+                    // 从数组中提取文本
+                    toolResultText = message.content
+                        .map((item: any) => {
+                            if (typeof item === 'string') return item;
+                            if (item.text) return item.text;
+                            if (item.type === 'text' && item.text) return item.text;
+                            return JSON.stringify(item);
+                        })
+                        .join('\n');
+                } else if (message.content && typeof message.content === 'object') {
+                    toolResultText = JSON.stringify(message.content);
                 }
 
+                // 转换为 Bedrock 的 toolResult 格式
+                const toolResult = {
+                    toolResult: {
+                        toolUseId: message.tool_call_id,
+                        content: [{ text: toolResultText || '(empty result)' }]
+                    }
+                };
+                pendingToolResults.push(toolResult);
+
+                // 检查下一条消息是否还是 tool 消息
+                const nextMessage = uaMessages[i + 1];
+                if (!nextMessage || (nextMessage.role !== 'tool' && nextMessage.role !== 'function')) {
+                    // 没有更多 tool 消息，将收集的 toolResults 合并为一个 user 消息
+                    newMessages.push({
+                        role: 'user',
+                        content: pendingToolResults
+                    });
+                    pendingToolResults = [];
+                }
+                continue;
+            }
+
+            // 处理 assistant 消息，可能包含 tool_calls
+            if (message.role === 'assistant') {
+                const assistantContent: any[] = [];
+                const hasToolCalls = message.tool_calls && message.tool_calls.length > 0;
+
+                // 添加文本内容（仅当有实际文本内容时）
+                if (message.content) {
+                    // 检查 content 是否有实际内容
+                    let hasRealContent = false;
+                    if (typeof message.content === 'string' && message.content.trim()) {
+                        hasRealContent = true;
+                    } else if (Array.isArray(message.content) && message.content.length > 0) {
+                        // 检查数组中是否有实际文本
+                        hasRealContent = message.content.some((item: any) => {
+                            if (typeof item === 'string') return item.trim().length > 0;
+                            if (item.text) return item.text.trim().length > 0;
+                            if (item.type === 'text' && item.text) return item.text.trim().length > 0;
+                            return false;
+                        });
+                    }
+
+                    if (hasRealContent) {
+                        const textContent = await this.convertContent(message.content);
+                        assistantContent.push(...textContent);
+                    }
+                }
+
+                // 添加 tool_calls 转换为 toolUse
+                if (hasToolCalls) {
+                    for (const toolCall of message.tool_calls) {
+                        let toolInput = {};
+                        try {
+                            toolInput = typeof toolCall.function.arguments === 'string'
+                                ? JSON.parse(toolCall.function.arguments)
+                                : toolCall.function.arguments;
+                        } catch {
+                            toolInput = { raw: toolCall.function.arguments };
+                        }
+                        assistantContent.push({
+                            toolUse: {
+                                toolUseId: toolCall.id,
+                                name: toolCall.function.name,
+                                input: toolInput
+                            }
+                        });
+                    }
+                }
+
+                // 确保 content 不为空（只有在没有 toolUse 时才添加占位符）
+                if (assistantContent.length === 0) {
+                    assistantContent.push({ text: "." });
+                }
+
+                newMessages.push({
+                    role: 'assistant',
+                    content: assistantContent
+                });
+                continue;
+            }
+
+            // 处理普通 user 消息
+            if (message.role === 'user') {
+                message.content = await this.convertContent(message.content);
+                newMessages.push(message);
+                continue;
+            }
+        }
+
+        // 确保消息交替：user, assistant, user, assistant...
+        const alternatingMessages = [];
+        for (let i = 0; i < newMessages.length; i++) {
+            const message = newMessages[i];
+            const shouldBeUser = alternatingMessages.length % 2 === 0;
+
+            if (shouldBeUser) {
+                if (message.role === 'user') {
+                    alternatingMessages.push(message);
+                } else {
+                    // 需要插入一个占位 user 消息
+                    alternatingMessages.push({
+                        role: 'user',
+                        content: [{ text: "." }]
+                    });
+                    alternatingMessages.push(message);
+                }
             } else {
                 if (message.role === 'assistant') {
-                    newMessages.push(message);
+                    alternatingMessages.push(message);
                 } else {
-                    newMessages.push({
+                    // 需要插入一个占位 assistant 消息
+                    alternatingMessages.push({
                         role: 'assistant',
-                        content: [
-                            {
-                                "text": "."
-                            }
-                        ]
+                        content: [{ text: "." }]
                     });
-                    newMessages.push(message);
+                    alternatingMessages.push(message);
                 }
             }
         }
 
-
         // fix last message is not user:
-        // if (thinking) {
-        const lastAsisMsg = newMessages[newMessages.length - 1];
-        // const asisContent = lastAsisMsg.content;
-        if (lastAsisMsg.role !== "user") {
-            newMessages.push({
+        const lastMsg = alternatingMessages[alternatingMessages.length - 1];
+        if (lastMsg && lastMsg.role !== "user") {
+            alternatingMessages.push({
                 role: 'user',
                 content: [
                     {
-                        "text": "This is an automatically generated placeholder message to maintain proper API format. Please continue our previous conversation and ignore this message."
+                        text: "This is an automatically generated placeholder message to maintain proper API format. Please continue our previous conversation and ignore this message."
                     }
                 ]
             });
         }
 
-        // }
+        // 处理 prompt cache
         if (pcFields.indexOf("messages") >= 0) {
-            newMessages.forEach((message, index) => {
+            alternatingMessages.forEach((message, index) => {
                 if (pcMessagePositions.includes(index)) {
                     message.content.push({
                         "cachePoint": {
@@ -773,7 +875,7 @@ class MessageConverter {
             });
         }
 
-        const rtn: any = { messages: newMessages, inferenceConfig, additionalModelRequestFields };
+        const rtn: any = { messages: alternatingMessages, inferenceConfig, additionalModelRequestFields };
 
         if (systemMessages.length > 0) {
             const system = [];
