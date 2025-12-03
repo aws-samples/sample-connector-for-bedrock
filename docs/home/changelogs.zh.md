@@ -1,4 +1,17 @@
 # 更新日志
+
+## 0.0.38
+
+1. **Bedrock 应用配置文件支持** - 添加了对 Bedrock 应用配置文件的支持，允许为不同的部署场景提供更好的配置管理。[#87](https://github.com/aws-samples/sample-connector-for-bedrock/issues/87)
+
+2. **PostgreSQL 数据库升级** - 将独立 PostgreSQL 数据库从 16.3 版本升级到 16.10，提升性能和安全性。[#89](https://github.com/aws-samples/sample-connector-for-bedrock/pull/89)
+
+3. **零长度消息修复** - 修复了 Bedrock 在处理零长度消息时失败的问题。[#90](https://github.com/aws-samples/sample-connector-for-bedrock/pull/90)
+
+4. **工具使用增强** - 改进了工具使用功能，修复了相关 bug 并提升了稳定性。[#91](https://github.com/aws-samples/sample-connector-for-bedrock/pull/91) [#92](https://github.com/aws-samples/sample-connector-for-bedrock/pull/92)
+
+5. **常规改进** - 各种 bug 修复和性能优化。
+
 ## 0.0.37
 
 1. **bedrock-converse 提供器修复** - 修复了 Claude 新模型的一个问题：'The model returned the following errors: temperature and top_p cannot both be specified for this model. Please use only one.'

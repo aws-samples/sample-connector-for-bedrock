@@ -1,5 +1,17 @@
 # Changelogs
 
+## 0.0.38
+
+1. **Bedrock App Profiles Support** - Added support for Bedrock application profiles, allowing better configuration management for different deployment scenarios. [#87](https://github.com/aws-samples/sample-connector-for-bedrock/issues/87)
+
+2. **PostgreSQL Database Upgrade** - Upgraded standalone PostgreSQL database from version 16.3 to 16.10 for improved performance and security. [#89](https://github.com/aws-samples/sample-connector-for-bedrock/pull/89)
+
+3. **Zero-Length Messages Fix** - Fixed an issue where Bedrock would fail when processing zero-length messages. [#90](https://github.com/aws-samples/sample-connector-for-bedrock/pull/90)
+
+4. **Tool Use Enhancement** - Improved tool use functionality with bug fixes and stability improvements. [#91](https://github.com/aws-samples/sample-connector-for-bedrock/pull/91) [#92](https://github.com/aws-samples/sample-connector-for-bedrock/pull/92)
+
+5. **General Improvements** - Various bug fixes and performance optimizations.
+
 ## 0.0.37
 
 1. **bedrock-converse Provider Fix** - Fixed an issue with Claude new models: 'The model returned the following errors: temperature and top_p cannot both be specified for this model. Please use only one.'

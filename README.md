@@ -44,15 +44,22 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
-## 0.0.36
+## 0.0.38
 
-1. **anthropic_beta Features Support** - Added support for anthropic_beta features, including:
-   - Compatible with Claude 3.7 Sonnet: token-efficient-tools-2025-02-19, output-128k-2025-02-19
-   - Compatible with Claude Sonnet 4: context-1m-2025-08-07
-   
-   These features are automatically integrated into the backend logic without requiring separate configuration. Reference: [AWS Bedrock Anthropic Claude Parameters](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages-request-response.html)
+1. **Bedrock App Profiles Support** - Added support for Bedrock application profiles, allowing better configuration management for different deployment scenarios. [#87](https://github.com/aws-samples/sample-connector-for-bedrock/issues/87)
 
-2. **Thinking Mode Enhancement** - In thinking mode, content is now set to empty string instead of null.
+2. **PostgreSQL Database Upgrade** - Upgraded standalone PostgreSQL database from version 16.3 to 16.10 for improved performance and security. [#89](https://github.com/aws-samples/sample-connector-for-bedrock/pull/89)
+
+3. **Zero-Length Messages Fix** - Fixed an issue where Bedrock would fail when processing zero-length messages. [#90](https://github.com/aws-samples/sample-connector-for-bedrock/pull/90)
+
+4. **Tool Use Enhancement** - Improved tool use functionality with bug fixes and stability improvements. [#91](https://github.com/aws-samples/sample-connector-for-bedrock/pull/91) [#92](https://github.com/aws-samples/sample-connector-for-bedrock/pull/92)
+
+
+## 0.0.37
+
+1. **bedrock-converse Provider Fix** - Fixed an issue with Claude new models: 'The model returned the following errors: temperature and top_p cannot both be specified for this model. Please use only one.'
+
+2. **Frontend Caching Enhancement** - Added 1-month caching for frontend pages served by koa-static-server.
 
 [More changelogs](https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/)
 
