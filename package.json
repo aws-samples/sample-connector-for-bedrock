@@ -1,6 +1,6 @@
 {
   "name": "sample-connector-for-bedrock",
-  "version": "0.0.38",
+  "version": "0.0.39",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
