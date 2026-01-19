@@ -419,6 +419,7 @@ export default class BedrockConverse extends AbstractProvider {
         let assistantMessage: any = { role: "assistant" };
         let hasReasoningContent = false;
         let hasContent = false;
+        let hasToolCalls = false;
 
         // console.log(1111, content);
 
@@ -442,7 +443,8 @@ export default class BedrockConverse extends AbstractProvider {
                             arguments: JSON.stringify(c.toolUse.input)
                         }
                     }
-                ]
+                ];
+                hasToolCalls = true;
             }
             // if (c.toolUse) {
             //     choices.push({
@@ -464,7 +466,7 @@ export default class BedrockConverse extends AbstractProvider {
             // }
         });
 
-        if (hasReasoningContent || hasContent) {
+        if (hasReasoningContent || hasContent || hasToolCalls) {
             choices.unshift({
                 index: 0,
                 message: assistantMessage
