@@ -119,7 +119,7 @@ export default {
       this.loading = true;
       console.log(row.id)
       this.$http.post("/admin/bot-connector/delete", {id: row.id}).then(() => {
-        this.$Message.success("Delete successfuly.");
+        this.$Message.success("Delete successfully.");
         this.get_data();
       }).finally(() => {
         this.loading = false;
@@ -141,7 +141,7 @@ export default {
             provider
           }).then(() => {
             this.show = false
-            this.$Message.success("Save successfuly.")
+            this.$Message.success("Save successfully.")
             this.get_data();
           }).finally(() => {
             this.saving = false;

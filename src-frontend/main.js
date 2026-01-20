@@ -7,11 +7,9 @@ import http from './utils/http'
 import store from './store/index'
 import './assets/css/index.less'
 
-import Copy from 'vue-clipboard2'
 
 import i18n from './lang/i18n'
 
-Vue.use(Copy)
 Vue.config.productionTip = false
 
 

@@ -1,78 +1,90 @@
 <template>
   <div class="login">
     <div class="login-box">
-      <h1>{{ $t('login.title') }}</h1>
-      <Form size="large" :model="form" :rules="rules" layout="vertical" @submit="login" theme="light">
+      <h1>{{ $t("login.title") }}</h1>
+      <Form
+        size="large"
+        :model="form"
+        :rules="rules"
+        layout="vertical"
+        @submit="login"
+      >
         <FormItem label="Host" prop="host">
-          <Input type="text" placeholder="https://"/>
+          <Input type="text" placeholder="https://" />
         </FormItem>
         <FormItem label="API Key" prop="key">
-          <Input type="password" placeholder="Please input api key..."/>
+          <Input type="password" placeholder="Please input api key..." />
         </FormItem>
         <FormItem class="btn">
-          <Button type="primary" :loading="loading" htmlType="submit">{{ $t('login.btn') }}</Button>
+          <Button type="primary" :loading="loading" htmlType="submit">
+            {{ $t("login.btn") }}
+          </Button>
         </FormItem>
       </Form>
     </div>
   </div>
 </template>
-<script>
-export default {
-  data() {
-    return {
-      loading: false,
-      form: {key: '', host: ''},
-      rules: {
-        key: [{required: true, message: 'Please input key...'}]
-      }
-    }
-  },
-  created() {
-    const host = localStorage.getItem("host") || 'https://';
-    if (host.indexOf("http://") > -1 || host.indexOf("https://") > -1) {
-      this.form.host = host;
-    }
-  },
-  methods: {
-    login({valid}) {
-      if (!valid) {
-        return false;
-      }
-      let {host, key} = this.form;
-      if (host.endsWith("/")) {
-        host = host.substring(0, host.length - 1);
-      }
-      if (!host) {
-        return this.$Message.error('Please input he host')
-      }
-      this.loading = true;
-      this.$http.get(host + '/user/api-key/mine', null, key).then(res => {
-        // console.log(res);
-        if (res.success) {
-          const userInfo = {
-            key: key,
-            name: res.data.name,
-            role: res.data.role,
-            host: host
-          }
-          this.$store.commit('user/login', userInfo)
-          localStorage.setItem("key", key);
-          localStorage.setItem("name", res.data.name);
-          localStorage.setItem("role", res.data.role);
-          localStorage.setItem("host", host);
+<script setup>
+import { ref, reactive, onMounted, getCurrentInstance } from "vue";
+import { message } from "kui-vue";
+const { proxy } = getCurrentInstance();
+const loading = ref(false);
 
-          // this.$router.push('/')
-          window.location.href = '';
-        } else {
-          alert(res.data);
-        }
-      }).finally(() => {
-        this.loading = false
-      });
+const form = reactive({
+  key: "",
+  host: "",
+});
 
-    }
+const rules = {
+  key: [{ required: true, message: "Please input key..." }],
+};
+
+onMounted(() => {
+  const host = localStorage.getItem("host") || "https://";
+  if (host.indexOf("http://") > -1 || host.indexOf("https://") > -1) {
+    form.host = host;
   }
-}
+});
+
+const login = ({ valid }) => {
+  if (!valid) {
+    return false;
+  }
+  let { host, key } = form;
+  if (host.endsWith("/")) {
+    host = host.substring(0, host.length - 1);
+  }
+  if (!host) {
+    return message.error("Please input the host");
+  }
+  loading.value = true;
+  proxy.$http
+    .get(host + "/user/api-key/mine", null, key)
+    .then((res) => {
+      // console.log(res);
+      if (res.success) {
+        const userInfo = {
+          key: key,
+          name: res.data.name,
+          role: res.data.role,
+          host: host,
+        };
+        proxy.$store.commit("user/login", userInfo);
+        localStorage.setItem("key", key);
+        localStorage.setItem("name", res.data.name);
+        localStorage.setItem("role", res.data.role);
+        localStorage.setItem("host", host);
+
+        // $router.push('/')
+        window.location.href = "";
+      } else {
+        alert(res.data);
+      }
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+};
 </script>
 <style lang="less">
 .login {
@@ -81,8 +93,8 @@ export default {
   position: relative;
 
   &::before {
-    content: '';
-    background: #252F3E no-repeat;
+    content: "";
+    background: #252f3e no-repeat;
     background-size: cover;
     width: 100%;
     height: 100%;
@@ -92,7 +104,7 @@ export default {
 
   &::after {
     display: table;
-    content: '';
+    content: "";
     width: 100%;
     height: 100%;
     backdrop-filter: blur(10px);
@@ -116,7 +128,7 @@ export default {
     padding: 30px;
   }
 
-  .k-input[mult] .k-input-text {
+  .k-input[multiple] .k-input-text {
     height: 38px;
   }
 
