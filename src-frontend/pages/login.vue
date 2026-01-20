@@ -25,10 +25,13 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted, getCurrentInstance } from "vue";
+import { ref, reactive, onMounted, getCurrentInstance, inject } from "vue";
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
 const loading = ref(false);
+const $t = inject("$t");
+
+
 
 const form = reactive({
   key: "",

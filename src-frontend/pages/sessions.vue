@@ -6,11 +6,7 @@
     <Table :data="items" :columns="columns" :loading="loading">
       <template v-slot:action="c, row">
         <Tooltip placement="top" :title="$t('menu.chat_list')">
-          <Button
-            :icon="ChatboxEllipses"
-            theme="normal"
-            @click="threadDetail(row)"
-          />
+          <Button :icon="ChatboxEllipses" @click="threadDetail(row)" />
         </Tooltip>
       </template>
     </Table>
@@ -18,8 +14,9 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, getCurrentInstance } from "vue";
+import { ref, onMounted, getCurrentInstance, inject } from "vue";
 import { ChatboxEllipses } from "kui-icons";
+const $t = inject("$t");
 
 const { proxy } = getCurrentInstance();
 const items = ref([]);

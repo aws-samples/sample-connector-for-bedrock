@@ -1,7 +1,8 @@
 const getters = {
   keepViews: state => state.tabViews.keepViews,
-  keepView: state => state.tabViews.keepView,
+  keepKey: state => state.tabViews.keepKey,
   views: state => state.tabViews.views,
+  theme: state => state.theme.theme,
   user: state => state.user.user,
 }
 export default getters

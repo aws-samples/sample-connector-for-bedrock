@@ -114,6 +114,9 @@ importers:
       eslint-plugin-vue:
         specifier: ^8.7.1
         version: 8.7.1(eslint@7.32.0)
+      hash-sum:
+        specifier: ^2.0.0
+        version: 2.0.0
       kui-icons:
         specifier: ^4.1.6
         version: 4.1.6

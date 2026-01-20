@@ -6,65 +6,108 @@
       </transition>
       <Avatar v-if="collapsed">B</Avatar>
     </div>
-    <Menu mode="inline" class="sys-menu" v-model="activeMenu" @open-change="openChange" :open-keys="openKeys"
-      :inline-collapsed="collapsed" style="border:none;" @click="go">
-      <MenuItem v-for="route in routes" :route="route" :base-path="route.path" :key="route.path" />
+    <Menu
+      class="sys-menu"
+      v-model="activeMenu"
+      @openChange="openChange"
+      :openKeys="openKeys"
+      :inlineCollapsed="collapsed"
+      style="border: none"
+      @select="go"
+      mode="inline"
+    >
+      <RecursiveMenu v-for="item in routes" :item="item" :key="item.key" />
     </Menu>
     <div class="sider-bottom">
       <Space>
-        <a href="https://github.com/aws-samples/sample-connector-for-bedrock" target="_blank">
+        <a
+          href="https://github.com/aws-samples/sample-connector-for-bedrock"
+          target="_blank"
+        >
           <Icon :type="LogoGithub" size="24" />
         </a>
         <span>{{ version }}</span>
       </Space>
-      <!-- <Button theme="light" :icon="!collapsed ? ChevronBack : ChevronForward" @click="toggle" class="btn-expand" /> -->
+      <!-- <Button :icon="!collapsed ? ChevronBack : ChevronForward" @click="toggle" class="btn-expand" /> -->
     </div>
   </Sider>
 </template>
-<script>
-import MenuItem from './menuItem.vue'
-import { ChevronBack, ChevronForward, LogoGithub } from 'kui-icons'
-const pkg = require('../../../package.json')
-export default {
-  name: "side",
-  data() {
-    return {
-      openKeys: [],
-      version: pkg.version,
-      collapsed: false,
-      ChevronBack, ChevronForward, LogoGithub,
-      activeMenu: [this.$route.path]
-      // routes: this.$router.options.routes,
-    }
+<script setup>
+import { ref, onMounted, getCurrentInstance, watch } from "vue";
+import RecursiveMenu from "./recursiveMenu.vue";
+import { LogoGithub } from "kui-icons";
+const { proxy } = getCurrentInstance();
+import * as pkg from "../../../package.json";
+
+const openKeys = ref([]);
+const version = ref(pkg.version);
+const collapsed = ref(false);
+
+const props = defineProps({
+  routes: {
+    type: Array,
+    default: () => [],
   },
-  components: { MenuItem },
-  computed: {
-    routes() {
-      return this.$router.options.routes
+});
+
+const getPath = (tree, targetKey) => {
+  const path = [];
+
+  const dfs = (nodes) => {
+    if (!Array.isArray(nodes)) return false;
+
+    for (const node of nodes) {
+      path.push(node.key);
+
+      if (node.key === targetKey) return true;
+
+      if (dfs(node.children)) return true;
+
+      path.pop();
     }
+    return false;
+  };
+
+  const found = dfs(tree);
+  return found ? path.slice().reverse() : [];
+};
+
+const keys = getPath(props.routes, proxy.$route.path);
+const activeMenu = ref(keys);
+
+watch(
+  () => proxy.$route,
+  (nv) => {
+    const keys = getPath(props.routes, proxy.$route.path);
+    activeMenu.value = keys;
   },
-  created() {
-    let openKeys = JSON.parse(localStorage.getItem('openKeys') || '[]')
-    this.openKeys = openKeys
-  },
-  methods: {
-    openChange(keys) {
-      localStorage.setItem('openKeys', JSON.stringify(keys))
-    },
-    isOutPath(path) {
-      return /^(https?:|mailto:|tel:)/.test(path)
-    },
-    toggle() {
-      this.collapsed = !this.collapsed;
-    },
-    go({ key }) {
-      if (this.isOutPath(key)) {
-        return window.open(key)
-      }
-      this.$router.push(key)
-    }
+);
+
+onMounted(() => {
+  let storedOpenKeys = JSON.parse(localStorage.getItem("openKeys") || "[]");
+  openKeys.value = storedOpenKeys;
+});
+
+const openChange = (keys) => {
+  localStorage.setItem("openKeys", JSON.stringify(keys));
+  openKeys.value = keys;
+};
+
+const isOutPath = (path) => {
+  return /^(https?:|mailto:|tel:)/.test(path);
+};
+
+const toggle = () => {
+  collapsed.value = !collapsed.value;
+  localStorage.setItem("collapsed", collapsed.value ? 1 : 0);
+};
+
+const go = ({ key }) => {
+  if (isOutPath(key)) {
+    return window.open(key);
   }
-}
+  proxy.$router.push(key);
+};
 </script>
 <style lang="less">
 .sys-sider {
@@ -105,11 +148,8 @@ export default {
     backdrop-filter: blur(20px);
   }
 
-  .btn-expand {}
-
   .sys-menu {
     max-height: calc(100% - 65px);
-    // height: 100%;
     overflow: auto;
 
     &::-webkit-scrollbar {

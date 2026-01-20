@@ -66,12 +66,13 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted, getCurrentInstance } from "vue";
+import { ref, computed, onMounted, getCurrentInstance, inject } from "vue";
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
 const loading = ref(false);
 const my_info = ref({});
 const total_info = ref({});
+const $t = inject("$t");
 
 const is_admin = computed(() => {
   return localStorage.getItem("role") == "admin";

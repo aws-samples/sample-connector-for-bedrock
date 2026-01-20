@@ -26,21 +26,20 @@
         :rules="rules"
         layout="horizontal"
         ref="refForm"
-        theme="light"
         :labelCol="{ span: 8 }"
         :wrapperCol="{ span: 13 }"
       >
-        <FormItem :label="this.$t('knowledgebases.name')" prop="name">
+        <FormItem :label="$t('knowledgebases.name')" prop="name">
           <Input placeholder="Name" :readonly="action == 'edit'" />
         </FormItem>
         <FormItem
-          :label="this.$t('knowledgebases.knowledge_base_id')"
+          :label="$t('knowledgebases.knowledge_base_id')"
           prop="knowledgeBaseId"
         >
           <Input placeholder="" />
         </FormItem>
         <FormItem
-          :label="this.$t('knowledgebases.summary_model')"
+          :label="$t('knowledgebases.summary_model')"
           prop="summaryModel"
         >
           <Select :width="200" placeholder="SummaryModel">
@@ -49,7 +48,7 @@
             <Option label="Claude3 Opus" value="claude-3-opus" />
           </Select>
         </FormItem>
-        <FormItem :label="this.$t('knowledgebases.region')" prop="region">
+        <FormItem :label="$t('knowledgebases.region')" prop="region">
           <Input placeholder="Region" />
         </FormItem>
       </Form>
@@ -57,8 +56,9 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted, getCurrentInstance } from "vue";
+import { ref, reactive, onMounted, getCurrentInstance, inject } from "vue";
 import { message } from "kui-vue";
+const $t = inject("$t");
 const { proxy } = getCurrentInstance();
 const items = ref([]);
 const title = ref("");

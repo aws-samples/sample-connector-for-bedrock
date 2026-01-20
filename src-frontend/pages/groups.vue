@@ -36,12 +36,11 @@
         :rules="rules"
         layout="vertical"
         ref="refForm"
-        theme="light"
       >
-        <FormItem :label="this.$t('group.name')" prop="name">
+        <FormItem :label="$t('group.name')" prop="name">
           <Input />
         </FormItem>
-        <FormItem :label="this.$t('group.key')" prop="key">
+        <FormItem :label="$t('group.key')" prop="key">
           <Input />
         </FormItem>
       </Form>
@@ -66,6 +65,7 @@
 import { ref, reactive, onMounted, getCurrentInstance, nextTick } from "vue";
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
+const $t = inject("$t");
 
 const refForm = ref();
 const items = ref([]);

@@ -59,14 +59,13 @@
           :rules="rules"
           layout="horizontal"
           ref="refForm"
-          theme="light"
           :labelCol="{ span: 5 }"
           :wrapperCol="{ span: 18 }"
         >
-          <FormItem :label="this.$t('model.name')" prop="name">
+          <FormItem :label="$t('model.name')" prop="name">
             <Input :readonly="action == 'detail'" />
           </FormItem>
-          <FormItem :label="this.$t('model.provider')" prop="provider">
+          <FormItem :label="$t('model.provider')" prop="provider">
             <Select
               :width="200"
               :options="providers"
@@ -74,10 +73,10 @@
             >
             </Select>
           </FormItem>
-          <FormItem :label="this.$t('model.multiple')" prop="multiple">
+          <FormItem :label="$t('model.multiple')" prop="multiple">
             <k-switch />
           </FormItem>
-          <FormItem :label="this.$t('model.price_in')" prop="price_in">
+          <FormItem :label="$t('model.price_in')" prop="price_in">
             <Input
               :width="200"
               placeholder="Price in"
@@ -86,7 +85,7 @@
             >
             </Input>
           </FormItem>
-          <FormItem :label="this.$t('model.price_out')" prop="price_out">
+          <FormItem :label="$t('model.price_out')" prop="price_out">
             <Input
               :width="200"
               placeholder="Price out"
@@ -95,7 +94,7 @@
             >
             </Input>
           </FormItem>
-          <FormItem :label="this.$t('model.config')" prop="config">
+          <FormItem :label="$t('model.config')" prop="config">
             <TextArea :rows="8" :readonly="action == 'detail'" />
           </FormItem>
         </Form>
@@ -104,7 +103,8 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted, getCurrentInstance } from "vue";
+import { ref, reactive, onMounted, getCurrentInstance, inject } from "vue";
+const $t = inject("$t");
 
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();

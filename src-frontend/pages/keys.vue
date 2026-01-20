@@ -28,12 +28,7 @@
         <Space>
           {{ format_key(row) }}
           <Tooltip :title="$t('keys.tip_copy_key')">
-            <Button
-              :icon="Copy"
-              theme="normal"
-              size="small"
-              @click="copyCode(row)"
-            />
+            <Button :icon="Copy" size="small" @click="copyCode(row)" />
           </Tooltip>
         </Space>
       </template>
@@ -46,7 +41,7 @@
 
       <template v-slot:action="c, row">
         <Dropdown>
-          <Button theme="light" type="primary" :icon="Settings" />
+          <Button type="primary" :icon="Settings" />
           <Menu slot="content">
             <MenuItem>
               <div @click="recharge(row)">{{ $t("keys.btn_recharge") }}</div>
@@ -87,25 +82,19 @@
       :loading="saving"
       :mask-closable="true"
     >
-      <Form
-        :model="form"
-        :rules="rules"
-        layout="vertical"
-        ref="refForm"
-        theme="light"
-      >
-        <FormItem :label="this.$t('keys.col_name')" prop="name">
+      <Form :model="form" :rules="rules" layout="vertical" ref="refForm">
+        <FormItem :label="$t('keys.col_name')" prop="name">
           <Input placeholder="Name" :readonly="action == 'recharge'" />
         </FormItem>
         <FormItem
-          :label="this.$t('keys.col_email')"
+          :label="$t('keys.col_email')"
           prop="email"
           :readonly="action == 'recharge'"
         >
           <Input placeholder="Email" />
         </FormItem>
         <FormItem
-          :label="this.$t('keys.col_role')"
+          :label="$t('keys.col_role')"
           prop="role"
           v-if="action != 'recharge'"
         >
@@ -115,7 +104,7 @@
           </Select>
         </FormItem>
         <FormItem
-          :label="this.$t('keys.col_group')"
+          :label="$t('keys.col_group')"
           prop="group_id"
           v-if="action != 'recharge'"
         >
@@ -123,14 +112,14 @@
           </Select>
         </FormItem>
         <FormItem
-          :label="this.$t('keys.btn_recharge')"
+          :label="$t('keys.btn_recharge')"
           prop="balance"
           v-if="action == 'recharge'"
         >
           <Input placeholder="Balance" />
         </FormItem>
         <FormItem
-          :label="this.$t('keys.col_month_quota')"
+          :label="$t('keys.col_month_quota')"
           prop="month_quota"
           v-if="action != 'recharge'"
         >
@@ -140,7 +129,7 @@
     </Drawer>
 
     <Modal
-      :title="this.$t('keys.title_import_user')"
+      :title="$t('keys.title_import_user')"
       v-model="showImport"
       @ok="submitExcel"
       :loading="saving"
@@ -149,24 +138,18 @@
       <Form
         :model="importForm"
         ref="refImportForm"
-        theme="light"
         :rules="uploadRules"
         :labelCol="{ span: 5 }"
       >
-        <FormItem :label="this.$t('keys.upload_file')" prop="file">
+        <FormItem :label="$t('keys.upload_file')" prop="file">
           <ButtonGroup>
             <Input
               style="width: 168px"
               readonly="true"
               v-model="importFileName"
-              theme="light"
             />
 
-            <Button
-              @click="$refs.file.click()"
-              :icon="FolderOpen"
-              theme="light"
-            ></Button>
+            <Button @click="$refs.file.click()" :icon="FolderOpen"></Button>
           </ButtonGroup>
           <a
             href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/#import-users"
@@ -181,10 +164,10 @@
             @change="fileChange"
           />
         </FormItem>
-        <FormItem :label="this.$t('keys.col_group')" prop="group_id">
+        <FormItem :label="$t('keys.col_group')" prop="group_id">
           <Select style="width: 200px" :options="groups"> </Select>
         </FormItem>
-        <FormItem :label="this.$t('keys.col_month_quota')" prop="month_quota">
+        <FormItem :label="$t('keys.col_month_quota')" prop="month_quota">
           <Input style="width: 200px" />
         </FormItem>
       </Form>
@@ -205,10 +188,18 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, nextTick, onMounted, getCurrentInstance } from "vue";
+import {
+  ref,
+  reactive,
+  nextTick,
+  onMounted,
+  getCurrentInstance,
+  inject,
+} from "vue";
 import { useClipboard } from "@vueuse/core";
 import { Copy, CloudUpload, FolderOpen, Settings } from "kui-icons";
 import { message } from "kui-vue";
+const $t = inject("$t");
 const { copy, isSupported } = useClipboard();
 const { proxy } = getCurrentInstance();
 let url = localStorage.getItem("host");

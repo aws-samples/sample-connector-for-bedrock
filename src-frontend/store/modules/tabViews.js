@@ -1,56 +1,83 @@
+import { getView, updateLocalRoutes } from "../utils";
+import id from "hash-sum";
 const state = {
+  routes: [],
   views: [], //tab 依赖
   keepViews: [], //keep-alive 依赖
-  keepView: true,
-}
+  keepKey: "",
+};
 
 const mutations = {
-  addView(state, view) {
-    let index = state.views.findIndex(x => x.path == view.path)
+  setRoutes(state, routes) {
+    state.routes = routes;
+  },
+  addView(state, route) {
+    state.keepKey = id(route.fullPath);
+    const { view, index, keepViewKey } = getView(state, route);
+
     if (index < 0) {
-      // if (!state.views.some(x => x.path == view.path)) {
-      state.views.push(view)
-      state.keepViews.push(view.name)
+      state.views.push(view);
     } else {
-      state.views.splice(index, 1, view)
+      state.views.splice(index, 1, view);
     }
+
+    if (!state.keepViews.includes(keepViewKey)) {
+      state.keepViews.push(keepViewKey);
+    }
+    updateLocalRoutes(state);
   },
-  closeView(state, view) {
-    let index = state.views.indexOf(view)
-    state.views.splice(index, 1)
-    state.keepViews.splice(index, 1)
+  reloadSelectView(state, route) {
+    const { index } = getView(state, route);
+    state.keepViews.splice(index, 1);
+    route.loading = true;
+    setTimeout(() => {
+      route.loading = false;
+    }, 300);
   },
-  closeOtherView(state, view) {
-    state.views = [view]
-    state.keepViews = [view.name]
+  closeView(state, route) {
+    const { index } = getView(state, route);
+    state.views.splice(index, 1);
+    state.keepViews.splice(index, 1);
+    updateLocalRoutes(state);
   },
-  closeRightView(state, view) {
+  closeOtherView(state, route) {
+    const { view, keepViewKey } = getView(state, route);
+    state.views = [view];
+    state.keepViews = [keepViewKey];
+    updateLocalRoutes(state);
+  },
+  closeRightView(state, route) {
     if (state.views.length == 1) return;
-    let index = state.views.indexOf(view)
-    state.views = state.views.slice(0, index + 1)
-    state.keepViews = state.keepViews.slice(0, index + 1)
+    const { index } = getView(state, route);
+    state.views = state.views.slice(0, index + 1);
+    state.keepViews = state.keepViews.slice(0, index + 1);
+    updateLocalRoutes(state);
   },
-  closeLeftView(state, view) {
+  closeLeftView(state, route) {
     if (state.views.length == 1) return;
-    let index = state.views.indexOf(view)
-    let len = state.views.lenght
-    state.views = state.views.slice(index, len)
-    state.keepViews = state.keepViews.slice(index, len)
+    const { index } = getView(state, route);
+    let len = state.views.length;
+    state.views = state.views.slice(index, len);
+    state.keepViews = state.keepViews.slice(index, len);
+    updateLocalRoutes(state);
   },
   closeAllView(state, view) {
-    state.views = []
-    state.keepViews = []
+    state.views = [];
+    state.keepViews = [];
+    updateLocalRoutes(state);
   },
-  reloadView(state, view) {
-    let index = state.views.indexOf(view)
-    state.keepViews.splice(index, 1)
-    state.keepView = false
+  reloadView(state, route) {
+    const { index, keepViewKey } = getView(state, route);
+    state.keepViews.splice(index, 1);
+    state.keepKey = Math.random();
+    route.loading = true;
     setTimeout(() => {
-      state.keepViews.splice(index, 0, view.name)
-      state.keepView = true
-    }, 1);
-  }
-}
+      state.keepViews.splice(index, 0, keepViewKey);
+      state.keepKey = id(route.fullPath);
+      route.loading = false;
+    }, 500);
+  },
+};
 
 const actions = {
   // reloadView({ state, commit, dispatch }, view) {
@@ -58,13 +85,11 @@ const actions = {
   //   res()
   // })
   // },
-
-}
-
+};
 
 export default {
   namespaced: true,
   state,
   mutations,
-  actions
-}
+  actions,
+};
