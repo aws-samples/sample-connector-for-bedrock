@@ -76,7 +76,7 @@ app.listen(port, () => {
         console.log(`Performance mode is ${config.performanceMode}.`);
     }
     if (config.debugMode) {
-        console.log(`Debug mode is ${config.performanceMode}.`);
+        console.log(`Debug mode is ${config.debugMode}.`);
     }
     if (config.pgsql.debugMode) {
         console.log(`Sql mode is on.`);
