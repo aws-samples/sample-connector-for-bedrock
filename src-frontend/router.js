@@ -1,15 +1,16 @@
-import Vue from "vue"
-import VueRouter from "vue-router"
+import Vue from "vue";
+import VueRouter from "vue-router";
+// import store from "./store";
 
-Vue.use(VueRouter)
-import Layout from './components/system/layout'
-import i18n from "./lang/i18n"
+Vue.use(VueRouter);
+import Layout from "./components/system/layout";
 
-const originalPush = VueRouter.prototype.push
+const originalPush = VueRouter.prototype.push;
 VueRouter.prototype.push = function push(location, onResolve, onReject) {
-  if (onResolve || onReject) return originalPush.call(this, location, onResolve, onReject)
-  return originalPush.call(this, location).catch(err => err)
-}
+  if (onResolve || onReject)
+    return originalPush.call(this, location, onResolve, onReject);
+  return originalPush.call(this, location).catch((err) => err);
+};
 import {
   Home,
   ChatboxEllipses,
@@ -21,109 +22,111 @@ import {
   Reader,
   People,
   ExtensionPuzzle,
-  Globe
-} from 'kui-icons'
+  Globe,
+} from "kui-icons";
+const routes = [
+  {
+    path: "/login",
+    meta: { title: "Login", icon: "" },
+    component: () => import("./pages/login"),
+    hidden: true,
+  },
+  {
+    path: "/",
+    component: Layout,
+    meta: { title: "Home", icon: "" },
+    children: [
+      {
+        path: "/",
+        name: "Home",
+        meta: { title: "menu.dashboard", icon: Home },
+        component: () => import("./pages/home"),
+      },
+    ],
+  },
+  {
+    path: "/user",
+    component: Layout,
+    meta: { title: "我的", icon: Person },
+    children: [
+      {
+        path: "/user/sessions",
+        name: "userSessions",
+        meta: { title: "menu.topic_list", icon: Menu },
+        component: () => import("./pages/sessions"),
+        hidden: false,
+      },
+      {
+        path: "/user/sessions/:session_id/threads",
+        name: "userThreads",
+        meta: { title: "menu.chat_list", icon: ChatboxEllipses },
+        component: () => import("./pages/threads"),
+        hidden: true,
+      },
+    ],
+  },
+  {
+    path: "/admin",
+    component: Layout,
+    meta: { title: "menu.admin", icon: Hammer },
+    hidden: localStorage.getItem("role") != "admin",
+    children: [
+      {
+        path: "/admin/keys",
+        name: "AdminKeys",
+        meta: { title: "menu.key", icon: Key },
+        component: () => import("./pages/keys"),
+        // hidden: localStorage.getItem('role') != 'admin'
+      },
+      {
+        path: "/admin/kbs",
+        name: "userKnowledgeBases",
+        meta: { title: "menu.bedrock_kb", icon: School },
+        component: () => import("./pages/kbs"),
+        hidden: true,
+      },
+      {
+        path: "/admin/model",
+        name: "adminModel",
+        meta: { title: "menu.model", icon: ExtensionPuzzle },
+        component: () => import("./pages/models"),
+      },
+      {
+        path: "/admin/group",
+        name: "adminGroup",
+        meta: { title: "menu.group", icon: People },
+        component: () => import("./pages/groups"),
+      },
+      {
+        path: "/admin/sessions",
+        name: "adminSessions",
+        meta: { title: "menu.topic_list", icon: Reader },
+        component: () => import("./pages/sessions"),
+        hidden: true,
+      },
+      {
+        path: "/admin/sessions/:session_id/threads",
+        name: "adminThreads",
+        meta: { title: "menu.chat_list", icon: ChatboxEllipses },
+        component: () => import("./pages/threads"),
+        hidden: true,
+      },
+      {
+        path: "/admin/bot",
+        name: "larkBot",
+        meta: { title: "menu.webhook", icon: Globe },
+        component: () => import("./pages/webhook.vue"),
+      },
+    ],
+  },
+];
 
+// 不需要从后端获取的路由, 所以此外不用要处理
+// store.commit("tabViews/setRoutes", routes);
 
 const router = new VueRouter({
-  mode: 'hash',
-  routes: [
-    {
-      path: '/login',
-      meta: {title: 'Login', icon: ''},
-      component: () => import(/*webpackChunkName:'login'*/'./pages/login'),
-      hidden: true
-    },
-    {
-      path: '/',
-      component: Layout,
-      meta: {title: 'Home', icon: ''},
-      children: [
-        {
-          path: '/',
-          name: 'Home',
-          meta: {title: i18n.t("menu.dashboard"), icon: Home},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/home')
-        }
-      ]
-    },
-    {
-      path: '/user',
-      component: Layout,
-      meta: {title: '我的', icon: Person},
-      children: [
-        {
-          path: '/user/sessions',
-          name: 'userSessions',
-          meta: {title: i18n.t('menu.topic_list'), icon: Menu},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
-          hidden: false
-        },
-        {
-          path: '/user/sessions/:session_id/threads',
-          name: 'userThreads',
-          meta: {title: i18n.t('menu.chat_list'), icon: ChatboxEllipses},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
-          hidden: true
-        }
-      ]
-    },
-    {
-      path: '/admin',
-      component: Layout,
-      meta: {title: i18n.t('menu.admin'), icon: Hammer},
-      hidden: localStorage.getItem('role') != 'admin',
-      children: [
-        {
-          path: '/admin/keys',
-          name: 'AdminKeys',
-          meta: {title: i18n.t("menu.key"), icon: Key},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/keys'),
-          // hidden: localStorage.getItem('role') != 'admin'
-        },
-        {
-          path: '/admin/kbs',
-          name: 'userKnowledgeBases',
-          meta: {title: i18n.t("menu.bedrock_kb"), icon: School},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/kbs'),
-          hidden: true
-        },
-        {
-          path: '/admin/model',
-          name: 'adminModel',
-          meta: {title: i18n.t("menu.model"), icon: ExtensionPuzzle},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/models')
-        },
-        {
-          path: '/admin/group',
-          name: 'adminGroup',
-          meta: {title: i18n.t("menu.group"), icon: People},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/groups')
-        },
-        {
-          path: '/admin/sessions',
-          name: 'adminSessions',
-          meta: {title: i18n.t('menu.topic_list'), icon: Reader},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/sessions'),
-          hidden: true,
-        },
-        {
-          path: '/admin/sessions/:session_id/threads',
-          name: 'adminThreads',
-          meta: {title: i18n.t('menu.chat_list'), icon: ChatboxEllipses},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/threads'),
-          hidden: true
-        },
-        {
-          path: '/admin/bot',
-          name: 'larkBot',
-          meta: {title: i18n.t("menu.webhook"), icon: Globe},
-          component: () => import(/*webpackChunkName:'Home'*/'./pages/webhook.vue')
-        },
-      ]
-    },
-  ]
-})
+  mode: "history",
+  routes,
+});
 
-
-export default router
+export default router;
