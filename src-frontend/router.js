@@ -1,6 +1,6 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
-import store from "./store";
+// import store from "./store";
 
 Vue.use(VueRouter);
 import Layout from "./components/system/layout";
@@ -120,10 +120,12 @@ const routes = [
     ],
   },
 ];
-store.commit("tabViews/setRoutes", routes);
+
+// 不需要从后端获取的路由, 所以此外不用要处理
+// store.commit("tabViews/setRoutes", routes);
 
 const router = new VueRouter({
-  mode: "hash",
+  mode: "history",
   routes,
 });
 

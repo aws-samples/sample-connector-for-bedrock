@@ -4,22 +4,23 @@
       <Button @click="get_data">{{ $t("sessions.btn_refresh") }}</Button>
     </Space>
     <Table :data="items" :columns="columns" :loading="loading">
-      <template v-slot:prompt="value">
-        <Poptip :title="$t('threads.col_prompt')" trigger="click">
-          <template slot="content">
+      <template #prompt="{ value }">
+        <Poptip :title="$t('threads.col_prompt')" trigger="click" class="spe">
+          <template #content>
             <pre>{{ value }}</pre>
           </template>
           <Button :icon="Chatbubble" size="small" />
         </Poptip>
         {{ format_content(value) }}
       </template>
-      <template v-slot:completion="value">
+      <template #completion="{ value }">
         <Poptip
           :title="$t('threads.col_completion')"
           trigger="click"
           placement="right"
+          class="spe"
         >
-          <template slot="content">
+          <template #content>
             <pre>{{ value }}</pre>
           </template>
           <Button :icon="Chatbubble" size="small" />
@@ -110,8 +111,7 @@ const get_data = () => {
     word-break: keep-all !important;
   }
 }
-
-.k-poptip-content {
+.k-poptip-body {
   max-width: 400px;
   max-height: 320px;
   overflow: auto;
@@ -119,6 +119,13 @@ const get_data = () => {
     white-space: pre-line;
     margin: 0;
     word-break: break-all;
+  }
+  &::-webkit-scrollbar {
+    height: 3px;
+    width: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--kui-color-item-hover);
   }
 }
 </style>

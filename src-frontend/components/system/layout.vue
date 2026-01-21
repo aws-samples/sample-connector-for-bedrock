@@ -9,10 +9,14 @@
           </Col>
           <Col>
             <Space :size="10">
-              <Dropdown show-placement-arrow @click="change_lang">
+              <Tooltip title="go to github">
+                <Button :icon="LogoGithub" @click="openSource" size="small">
+                </Button>
+              </Tooltip>
+              <Dropdown show-placement-arrow>
                 <Button :icon="Language" size="small" />
                 <template #overlay>
-                  <Menu>
+                  <Menu @select="({ key }) => changeLang(key)">
                     <MenuItem key="en">🇺🇸 English</MenuItem>
                     <MenuItem key="zh">🇨🇳 简体中文</MenuItem>
                   </Menu>
@@ -23,17 +27,17 @@
                 size="small"
                 @click="switchMode"
               />
-              <!-- <Input :icon="Search"  shape="circle" placeholder="搜索" style="width:200px" /> -->
               <Dropdown
                 show-placement-arrow
                 trigger="hover"
                 placement="bottom-right"
-                @click="sign_out"
               >
                 <Button :icon="Person" size="small">{{ name }} </Button>
-                <Menu slot="content">
-                  <MenuItem key="sign_out">Sign out </MenuItem>
-                </Menu>
+                <template #overlay>
+                  <Menu @select="sign_out">
+                    <MenuItem key="sign_out">Sign out </MenuItem>
+                  </Menu>
+                </template>
               </Dropdown>
             </Space>
           </Col>
@@ -46,21 +50,50 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, onUnmounted, getCurrentInstance, computed } from "vue";
-import { Sunny, Moon, Person, Language } from "kui-icons";
+import {
+  ref,
+  onMounted,
+  onUnmounted,
+  getCurrentInstance,
+  computed,
+  inject,
+} from "vue";
+import { Sunny, Moon, Person, Language, LogoGithub } from "kui-icons";
 import Sider from "./sider.vue";
 import Tab from "./tab.vue";
 import AppMain from "./AppMain.vue";
 const { proxy } = getCurrentInstance();
-const routes = computed(() => proxy.$store.state.tabViews.routes);
-console.log(routes);
+
+const routes = computed(() => {
+  // proxy.$store.state.tabViews.routes;
+  const routes = proxy.$router.options.routes.filter((item) => !item.hidden);
+  let menus = [];
+  routes.forEach((route) => {
+    if (!route.children || route.children.length == 0) {
+      menus.push(route);
+    } else {
+      const children = route.children.filter((item) => !item.hidden);
+      if (children.length == 1) {
+        menus.push(route.children[0]);
+      } else {
+        menus.push(route);
+      }
+    }
+  });
+  return menus;
+});
+const openSource = () => {
+  window.open("https://github.com/aws-samples/sample-connector-for-bedrock");
+};
+
 const monitor = window.matchMedia("(prefers-color-scheme: dark)");
 
-const theme = ref(localStorage.getItem("theme"));
+const theme = ref(localStorage.getItem("theme-mode"));
 const name = ref(localStorage.getItem("name") || "");
 
 const switchMode = (event) => {
   proxy.$theme.setThemeMode(event, (isDark) => {
+    theme.value = isDark ? "dark" : "light";
     proxy.$store.commit("theme/setTheme", isDark ? "dark" : "light");
   });
 };
@@ -97,46 +130,42 @@ onMounted(() => {
 onUnmounted(() => {
   monitor.removeEventListener("change", matchMode);
 });
-
-const change_lang = ({ key }) => {
-  // this.$i18n.locale = key;
-  localStorage.setItem("lang", key);
-  location.reload();
-};
+const changeLang = inject("changeLang");
 
 const sign_out = () => {
   localStorage.setItem("key", "");
   localStorage.setItem("role", "");
   proxy.$store.commit("user/logout");
-  router.push("/login");
+  proxy.$router.push("/login");
 };
 </script>
 
-<style scoped lang="less">
+<style lang="less">
 .k-sys-layout {
   height: 100%;
+  width: 100%;
 
   .layout-back {
     height: 100%;
   }
 
   .container {
-    padding: 0;
     height: calc(100% - 47px);
+    flex: 1;
     overflow: auto;
+    // background-color: var(--kui-color-bg-layout);
   }
 
   .header-nav {
-    // border-bottom: 1px solid var(--kui-color-border);
     padding: 0px 10px 4px 0px;
-    background-color: var(--kui-color-nav-header);
+    background-color: var(--kui-color-bg-layout);
     position: relative;
 
     &::after {
       content: "";
       position: absolute;
       height: 6px;
-      background-color: var(--kui-color-back);
+      background-color: var(--kui-color-bg);
       bottom: 0;
       left: 0;
       right: 0;
@@ -153,7 +182,9 @@ const sign_out = () => {
 }
 
 .k-sys-layout .k-sys-main {
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .k-sys-layout .k-layout-footer {

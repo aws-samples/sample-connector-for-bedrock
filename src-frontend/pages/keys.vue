@@ -21,56 +21,42 @@
       :data="items"
       :columns="columns"
       :loading="loading"
-      :width="1900"
       @change="handleTableChange"
+      :scroll="{ y: `calc(100vh - 230px)` }"
     >
-      <template v-slot:api_key="c, row">
+      <template #api_key="{ record }">
         <Space>
-          {{ format_key(row) }}
+          {{ format_key(record) }}
           <Tooltip :title="$t('keys.tip_copy_key')">
-            <Button :icon="Copy" size="small" @click="copyCode(row)" />
+            <Button :icon="Copy" size="small" @click="copyCode(record)" />
           </Tooltip>
         </Space>
       </template>
 
-      <template v-slot:updated_at="c, row">
+      <template #updated_at="{ record }">
         <Space>
-          {{ format_date(row) }}
+          {{ format_date(record) }}
         </Space>
       </template>
 
-      <template v-slot:action="c, row">
+      <template #action="{ record }">
         <Dropdown>
           <Button type="primary" :icon="Settings" />
-          <Menu slot="content">
-            <MenuItem>
-              <div @click="recharge(row)">{{ $t("keys.btn_recharge") }}</div>
-            </MenuItem>
-            <MenuItem>
-              <div @click="edit(row)">{{ $t("keys.btn_edit") }}</div>
-            </MenuItem>
-            <MenuItem>
-              <Popconfirm
-                :title="$t('keys.tip_reset')"
-                @ok="rest(row)"
-                :width="260"
-              >
-                <div>{{ $t("keys.btn_reset") }}</div>
-              </Popconfirm>
-            </MenuItem>
-            <MenuItem>
-              <Popconfirm
-                :title="$t('keys.tip_delete')"
-                @ok="del(row)"
-                :width="260"
-              >
-                <div>{{ $t("common.btn_delete") }}</div>
-              </Popconfirm>
-            </MenuItem>
-            <MenuItem>
-              <div @click="listModels(row)">{{ $t("keys.btn_models") }}</div>
-            </MenuItem>
-          </Menu>
+          <template #overlay>
+            <Menu @select="({ key }) => menuAction(key, record)">
+              <MenuItem key="recharge">
+                {{ $t("keys.btn_recharge") }}
+              </MenuItem>
+              <MenuItem key="edit">{{ $t("keys.btn_edit") }}</MenuItem>
+              <MenuItem key="rest">
+                {{ $t("keys.btn_reset") }}
+              </MenuItem>
+              <MenuItem key="delete"> {{ $t("common.btn_delete") }} </MenuItem>
+              <MenuItem key="models">
+                {{ $t("keys.btn_models") }}
+              </MenuItem>
+            </Menu>
+          </template>
         </Dropdown>
       </template>
     </Table>
@@ -142,27 +128,26 @@
         :labelCol="{ span: 5 }"
       >
         <FormItem :label="$t('keys.upload_file')" prop="file">
-          <ButtonGroup>
-            <Input
-              style="width: 168px"
-              readonly="true"
-              v-model="importFileName"
-            />
-
-            <Button @click="$refs.file.click()" :icon="FolderOpen"></Button>
-          </ButtonGroup>
-          <a
-            href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/#import-users"
-            target="_blank"
-            style="margin-left: 8px"
-            >Help</a
-          >
-          <input
-            type="file"
-            ref="file"
-            style="display: none"
-            @change="fileChange"
-          />
+          <Input style="width: 275px" readonly="true" v-model="importFileName">
+            <template #suffix>
+              <Space>
+                <Button @click="$refs.file.click()" :icon="FolderOpen"></Button>
+                <Button
+                  type="link"
+                  href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/#import-users"
+                  target="_blank"
+                >
+                  Help
+                </Button>
+                <input
+                  type="file"
+                  ref="file"
+                  style="display: none"
+                  @change="fileChange"
+                />
+              </Space>
+            </template>
+          </Input>
         </FormItem>
         <FormItem :label="$t('keys.col_group')" prop="group_id">
           <Select style="width: 200px" :options="groups"> </Select>
@@ -198,7 +183,7 @@ import {
 } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { Copy, CloudUpload, FolderOpen, Settings } from "kui-icons";
-import { message } from "kui-vue";
+import { message, modal } from "kui-vue";
 const $t = inject("$t");
 const { copy, isSupported } = useClipboard();
 const { proxy } = getCurrentInstance();
@@ -260,48 +245,48 @@ const groups = ref([]);
 const columns = [
   {
     key: "name",
-    title: t("keys.col_name"),
+    title: $t("keys.col_name"),
     fixed: "left",
     sorter: true,
     sortKey: "id",
   },
-  { key: "api_key", title: t("keys.col_key"), fixed: "left" },
-  { key: "email", title: t("keys.col_email") },
-  { key: "role", title: t("keys.col_role") },
-  { key: "group_name", title: t("keys.col_group") },
+  { key: "api_key", title: $t("keys.col_key"), fixed: "left" },
+  { key: "email", title: $t("keys.col_email") },
+  { key: "role", title: $t("keys.col_role") },
+  { key: "group_name", title: $t("keys.col_group") },
   {
     key: "total_fee",
-    title: t("keys.col_total_fee"),
+    title: $t("keys.col_total_fee"),
     sorter: true,
     sortKey: "total",
   },
   {
     key: "balance",
-    title: t("keys.col_balance"),
+    title: $t("keys.col_balance"),
     sorter: true,
     sortKey: "balance",
   },
   {
     key: "month_fee",
-    title: t("keys.col_month_fee"),
+    title: $t("keys.col_month_fee"),
     sorter: true,
     sortKey: "month",
   },
   {
     key: "month_quota",
-    title: t("keys.col_month_quota"),
+    title: $t("keys.col_month_quota"),
     sorter: true,
     sortKey: "quota",
   },
   {
     key: "updated_at",
-    title: t("keys.col_updated_at"),
+    title: $t("keys.col_updated_at"),
     sorter: true,
     sortKey: "update",
   },
   {
     key: "action",
-    title: t("keys.col_action"),
+    title: $t("keys.col_action"),
     width: 64,
     fixed: "right",
   },
@@ -342,7 +327,8 @@ const importUser = () => {
 };
 
 const fileChange = (e) => {
-  importFileName.value = e.target.value.split("\\").pop();
+  // console.log("fileChange",e.target.value)
+  importFileName.value = "e.target.value"; //.split("\\").pop();
 };
 
 const submitExcel = () => {
@@ -415,7 +401,7 @@ const loadGroups = () => {
 
 const listModels = (row) => {
   current_key_id.value = row.id;
-  title.value = t("group.title_set_models");
+  title.value = $t("group.title_set_models");
 
   proxy.$http
     .get("/admin/api-key/list-model", {
@@ -502,7 +488,7 @@ const get_data = () => {
 
 const edit = (row) => {
   Object.assign(form, { ...row });
-  title.value = t("keys.btn_edit");
+  title.value = $t("keys.btn_edit");
   action.value = "edit";
   show.value = true;
 };
@@ -510,7 +496,7 @@ const edit = (row) => {
 const recharge = (row) => {
   Object.assign(form, { ...row });
   form.balance = 0;
-  title.value = t("keys.btn_recharge");
+  title.value = $t("keys.btn_recharge");
   action.value = "recharge";
   show.value = true;
 };
@@ -543,7 +529,7 @@ const del = (row) => {
 
 const add = () => {
   action.value = "new";
-  title.value = t("keys.btn_new");
+  title.value = $t("keys.btn_new");
   show.value = true;
   form.id = 0;
   form.role = "user";
@@ -590,6 +576,38 @@ const save = () => {
   });
 };
 
+const menuAction = (action, row) => {
+  switch (action) {
+    case "recharge":
+      recharge(row);
+      break;
+    case "edit":
+      edit(row);
+      break;
+    case "rest":
+      modal.confirm({
+        title: "Please confirm",
+        content: $t("keys.tip_reset"),
+        onOk: () => {
+          rest(row);
+        },
+      });
+      break;
+    case "delete":
+      modal.confirm({
+        title: "Please confirm",
+        content: $t("keys.tip_delete"),
+        onOk: () => {
+          del(row);
+        },
+      });
+      break;
+    case "models":
+      listModels(row);
+      break;
+  }
+};
+
 onMounted(() => {
   get_data();
   loadGroups();
@@ -597,17 +615,8 @@ onMounted(() => {
 </script>
 <style lang="less">
 .my-keys {
-  padding: 20px;
-
   th {
     word-break: keep-all !important;
-  }
-}
-
-.k-btn-group {
-  .k-input {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
   }
 }
 </style>

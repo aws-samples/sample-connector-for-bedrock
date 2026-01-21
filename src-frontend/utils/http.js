@@ -65,11 +65,11 @@ http._base = (method, url, data, api_key) => {
     fetch(url, options)
       .then((r) => {
         // console.log(r)
-        if (r.ok) {
+        // if (r.ok) {
           return r.json();
-        } else {
-          throw new Error(r.statusText);
-        }
+        // } else {
+          // throw new Error(r.statusText);
+        // }
       })
       .then((data) => {
         if (!data.success) {
@@ -84,7 +84,7 @@ http._base = (method, url, data, api_key) => {
         notice.destroy();
         notice.error({
           title: "Prompt",
-          content: err.message || "Internal Server Error",
+          content: err || "Internal Server Error",
         });
         rej(err);
       })

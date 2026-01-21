@@ -1,19 +1,17 @@
 <template>
-  <section class="sys-main">
-    <transition name="route-fade" :time="50000">
-      <keep-alive :include="keepViews" :max="100">
-        <router-view :key="key"/>
-      </keep-alive>
-    </transition>
-  </section>
+  <transition name="route-fade" :time="50000">
+    <keep-alive :include="keepViews" :max="100">
+      <router-view :key="key" />
+    </keep-alive>
+  </transition>
 </template>
 <script setup>
-import { computed } from 'vue'
-import { getCurrentInstance } from 'vue'
+import { computed } from "vue";
+import { getCurrentInstance } from "vue";
 
-const { proxy } = getCurrentInstance()
+const { proxy } = getCurrentInstance();
 
-const keepViews = computed(() => proxy.$store.getters.keepViews)
+const keepViews = computed(() => proxy.$store.getters.keepViews);
 const key = computed(() => proxy.$store.getters.keepKey);
 </script>
 <style lang="less">
@@ -34,22 +32,20 @@ const key = computed(() => proxy.$store.getters.keepKey);
 
 .route-fade-enter-active,
 .route-fade-enter-to {
-  animation: route-fade .1s;
+  animation: route-fade 0.1s;
   overflow: hidden;
 }
 
 .route-fade-leave-active {
-  animation: route-fade .1s reverse;
+  animation: route-fade 0.1s reverse;
 }
 
-
-
 .route-fade-enter-active {
-  animation: fade-in .1s ease;
+  animation: fade-in 0.1s ease;
 }
 
 .route-fade-leave-active {
-  animation: fade-out .1s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+  animation: fade-out 0.1s cubic-bezier(1, 0.5, 0.8, 1);
 }
 
 .route-fade-enter,

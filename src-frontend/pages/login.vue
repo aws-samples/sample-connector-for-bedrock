@@ -7,20 +7,26 @@
         :model="form"
         :rules="rules"
         layout="vertical"
+        ref="refForm"
         @submit="login"
       >
         <FormItem label="Host" prop="host">
           <Input type="text" placeholder="https://" />
         </FormItem>
         <FormItem label="API Key" prop="key">
-          <Input type="password" placeholder="Please input api key..." />
-        </FormItem>
-        <FormItem class="btn">
-          <Button type="primary" :loading="loading" htmlType="submit">
-            {{ $t("login.btn") }}
-          </Button>
+          <Input type="password" placeholder="Please input api key..." @keyup.enter="toLogin" />
         </FormItem>
       </Form>
+      <Button
+        type="primary"
+        block
+        class="btn-login"
+        size="large"
+        :loading="loading"
+        @click="toLogin"
+      >
+        {{ $t("login.btn") }}
+      </Button>
     </div>
   </div>
 </template>
@@ -31,8 +37,7 @@ const { proxy } = getCurrentInstance();
 const loading = ref(false);
 const $t = inject("$t");
 
-
-
+const refForm = ref();
 const form = reactive({
   key: "",
   host: "",
@@ -48,7 +53,9 @@ onMounted(() => {
     form.host = host;
   }
 });
-
+const toLogin = () => {
+  refForm.value.submit();
+};
 const login = ({ valid }) => {
   if (!valid) {
     return false;
@@ -94,49 +101,20 @@ const login = ({ valid }) => {
   width: 100%;
   height: 100%;
   position: relative;
-
-  &::before {
-    content: "";
-    background: #252f3e no-repeat;
-    background-size: cover;
-    width: 100%;
-    height: 100%;
-    display: table;
-    z-index: 0;
-  }
-
-  &::after {
-    display: table;
-    content: "";
-    width: 100%;
-    height: 100%;
-    backdrop-filter: blur(10px);
-    background-color: #46464647;
-    z-index: 1;
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-
+  background-color: var(--kui-color-bg-layout);
   .login-box {
-    background-color: #ffffff;
-    width: 500px;
-    height: 300px;
+    background-color: var(--kui-color-bg-container);
+    width: 390px;
     position: absolute;
     z-index: 100;
     top: 50%;
     border-radius: 16px;
-    right: 20%;
-    transform: translateY(-50%);
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
     padding: 30px;
   }
-
-  .k-input[multiple] .k-input-text {
-    height: 38px;
-  }
-
-  .btn .k-form-item-content {
-    justify-content: end;
+  .btn-login {
+    margin: 20px 2px 0px 2px;
   }
 }
 </style>

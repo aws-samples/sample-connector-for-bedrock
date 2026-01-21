@@ -28,8 +28,8 @@ export default {
     webhook: 'Webhook'
   },
   home: {
-    title: '我的',
-    all: '全部',
+    title: '我的消费',
+    all: '全部消费',
     total_fee: '总消费',
     month_fee: '本月消费',
     month_quota: '本月额度',

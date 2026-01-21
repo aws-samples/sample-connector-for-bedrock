@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="models">
     <Space>
       <Button @click="add">{{ $t("keys.btn_new") }}</Button>
       <InputGroup>
@@ -13,33 +13,33 @@
         <Button @click="get_data">{{ $t("keys.btn_query") }}</Button>
       </InputGroup>
     </Space>
-    <Table :data="items" :columns="columns" :loading="loading">
-      <template v-slot:price_in="c, row">
+    <Table :data="items" :columns="columns" :loading="loading" :scroll="{y:'calc(100vh - 230px)'}">
+      <template #price_in="{ record }">
         <div style="text-align: right">
-          {{ row.price_in }}/{{ $t("common.price_unit") }}
+          {{ record.price_in }}/{{ $t("common.price_unit") }}
         </div>
       </template>
-      <template v-slot:price_out="c, row">
+      <template #price_out="{ record }">
         <div style="text-align: right">
-          {{ row.price_out }}/{{ $t("common.price_unit") }}
+          {{ record.price_out }}/{{ $t("common.price_unit") }}
         </div>
       </template>
-      <template v-slot:multiple="c, row">
-        {{ row.multiple ? "Y" : "N" }}
+      <template #multiple="{ record }">
+        {{ record.multiple ? "Y" : "N" }}
       </template>
-      <template v-slot:action="c, row">
+      <template #action="{ record }">
         <Space>
-          <Button size="small" @click="edit(row)">
+          <Button size="small" @click="edit(record)">
             {{ $t("keys.btn_edit") }}
           </Button>
           <Popconfirm
             :title="$t('model.tip_delete')"
-            @ok="del(row)"
+            @ok="del(record)"
             :width="260"
           >
             <Button size="small">{{ $t("common.btn_delete") }}</Button>
           </Popconfirm>
-          <Button size="small" @click="detail(row)">
+          <Button size="small" @click="detail(record)">
             {{ $t("keys.btn_detail") }}
           </Button>
         </Space>
@@ -138,12 +138,12 @@ const rules = {
 };
 
 const columns = [
-  { key: "name", title: t("model.name") },
-  { key: "provider", title: t("model.provider") },
-  { key: "multiple", title: t("model.multiple") },
-  { key: "price_in", title: t("model.price_in") },
-  { key: "price_out", title: t("model.price_out") },
-  { key: "action", title: t("keys.col_action") },
+  { key: "name", title: $t("model.name") },
+  { key: "provider", title: $t("model.provider") },
+  { key: "multiple", title: $t("model.multiple") },
+  { key: "price_in", title: $t("model.price_in") },
+  { key: "price_out", title: $t("model.price_out") },
+  { key: "action", title: $t("keys.col_action") },
 ];
 
 const change = (pageVal) => {
@@ -195,7 +195,7 @@ const get_data = () => {
 
 const edit = (row) => {
   Object.assign(form, { ...row });
-  title.value = t("common.edit");
+  title.value = $t("common.edit");
   action.value = "edit";
   show.value = true;
 };
@@ -203,7 +203,7 @@ const edit = (row) => {
 const add = () => {
   // Object.assign(form, { name: '', provider: '', multiple: 0, config: '' });
   action.value = "new";
-  title.value = t("common.new");
+  title.value = $t("common.new");
   show.value = true;
   form.id = 0;
   setTimeout(() => {
@@ -214,7 +214,7 @@ const add = () => {
 const detail = (row) => {
   Object.assign(form, { ...row });
   action.value = "detail";
-  title.value = t("common.detail");
+  title.value = $t("common.detail");
   show.value = true;
 };
 

@@ -15,6 +15,7 @@ export default new Vuex.Store({
   modules: {
     tabViews,
     user,
+    theme,
   },
   getters,
 });

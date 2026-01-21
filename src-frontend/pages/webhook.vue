@@ -1,27 +1,27 @@
 <template>
-  <div class="container">
+  <div class="webhook">
     <Space>
       <Button @click="get_data">{{ $t("keys.btn_query") }}</Button>
       <Button @click="add">{{ $t("keys.btn_new") }}</Button>
     </Space>
     <Table :data="items" :columns="columns" :loading="loading">
-      <template v-slot:action="c, row">
+      <template #action="{ record }">
         <Space>
-          <Button size="small" type="warning" @click="edit(row)">{{
-            $t("keys.btn_edit")
-          }}</Button>
+          <Button size="small" type="warning" @click="edit(record)">
+            {{ $t("keys.btn_edit") }}
+          </Button>
           <Popconfirm
             :title="$t('webhook.tip_delete')"
-            @ok="del(row)"
+            @ok="del(record)"
             :width="260"
           >
-            <Button size="small" type="danger">{{
-              $t("common.btn_delete")
-            }}</Button>
+            <Button size="small" type="danger">
+              {{ $t("common.btn_delete") }}
+            </Button>
           </Popconfirm>
-          <Button size="small" type="primary" @click="detail(row)">{{
-            $t("keys.btn_detail")
-          }}</Button>
+          <Button size="small" type="primary" @click="detail(record)">
+            {{ $t("keys.btn_detail") }}
+          </Button>
         </Space>
       </template>
     </Table>

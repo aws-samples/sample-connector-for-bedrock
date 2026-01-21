@@ -14,7 +14,7 @@ const mutations = {
   addView(state, route) {
     state.keepKey = id(route.fullPath);
     const { view, index, keepViewKey } = getView(state, route);
-
+    view.keepAlive = true
     if (index < 0) {
       state.views.push(view);
     } else {

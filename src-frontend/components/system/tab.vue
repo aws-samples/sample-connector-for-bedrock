@@ -1,7 +1,6 @@
 <template>
   <div class="sys-tab-wrapper">
     <div class="sys-tab-box" ref="rootRef">
-      <!-- <draggable v-model="views" @start="drag = true" @end="drag = false" :options="{ direction: 'horizontal', scroll: false }"> -->
       <transition-group
         class="tab-inner-box"
         ref="tabBoxRef"
@@ -28,8 +27,7 @@
               >
                 <Icon
                   class="sys-tab-icon"
-                  :type="view.loading ? Loading : kui[view.meta.icon]"
-                  :spin="view.loading"
+                  :type="view.meta.icon"
                   v-if="view.meta.icon"
                 />
                 <span class="sys-tab-title">{{ $t(view.meta.title) || "-" }}</span>
@@ -69,7 +67,7 @@
             v-for="view in views"
             :key="view.fullPath"
           >
-            {{ t(view.meta.title) }}
+            {{ $t(view.meta.title) }}
           </MenuItem>
         </Menu>
       </template>
@@ -80,7 +78,7 @@
 import { ref, computed, watch, onMounted, onBeforeMount, nextTick,inject } from "vue";
 import { getCurrentInstance } from "vue";
 import * as kui from "kui-icons";
-import { Close, Reload, Refresh, ChevronDown, Loading } from "kui-icons";
+import { Close, ChevronDown, Loading } from "kui-icons";
 import id from "hash-sum";
 import { getTransitionHorProp } from "@/utils/transition";
 const animate = getTransitionHorProp("tab-fade");
@@ -361,10 +359,10 @@ const cls = (item) => {
         z-index: 10;
 
         &:hover {
-          background-color: var(--kui-color-icon-hover);
+          background-color: var(--kui-color-bg-component-hover);
         }
         &:active {
-          background-color: var(--kui-color-icon-active);
+          background-color: var(--kui-color-bg-component-active);
         }
       }
     }

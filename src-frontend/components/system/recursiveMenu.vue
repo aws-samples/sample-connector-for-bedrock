@@ -5,20 +5,20 @@
       item.children.map((x) => !x.hidden).length > 0 &&
       !item.hidden
     "
-    :key="item.key"
-    :title="(item.meta.title)"
-    :icon="kui[item.meta.icon]"
+    :key="item.path"
+    :title="$t(item.meta.title)"
+    :icon="item.meta.icon"
     :isPopup="isPopup"
   >
     <RecursiveMenu
       :item="item"
-      :key="item.key"
+      :key="item.path"
       v-for="(item, x) in item.children"
     />
   </SubMenu>
   <MenuItem
-    :key="item.key"
-    :icon="kui[item.meta.icon]"
+    :key="item.path"
+    :icon="item.meta.icon"
     :isPopup="isPopup"
     v-else-if="!item.hidden"
   >
@@ -30,7 +30,6 @@
 import { inject } from "vue";
 import RecursiveMenu from "./recursiveMenu.vue";
 const $t = inject("$t");
-import * as kui from "kui-icons";
 const props = defineProps({
   item: Object,
   isPopup: Boolean,

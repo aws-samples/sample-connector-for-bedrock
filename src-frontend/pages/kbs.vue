@@ -5,11 +5,11 @@
       <Button @click="add">{{ $t("keys.btn_new") }}</Button>
     </Space>
     <Table :data="items" :columns="columns" :loading="loading">
-      <template v-slot:action="c, row">
+      <template #action="{ record }">
         <Space>
-          <Button size="small" @click="edit(row)">{{
-            $t("keys.btn_edit")
-          }}</Button>
+          <Button size="small" @click="edit(record)">
+            {{ $t("keys.btn_edit") }}
+          </Button>
         </Space>
       </template>
     </Table>
@@ -85,13 +85,13 @@ const rules = {
 };
 
 const columns = [
-  { key: "name", title: t("knowledgebases.name") },
-  { key: "knowledgeBaseId", title: t("knowledgebases.knowledge_base_id") },
-  { key: "summaryModel", title: t("knowledgebases.summary_model") },
-  { key: "region", title: t("knowledgebases.region") },
-  { key: "created_at", title: t("common.created_at") },
-  { key: "updated_at", title: t("common.updated_at") },
-  { key: "action", title: t("keys.col_action") },
+  { key: "name", title: $t("knowledgebases.name") },
+  { key: "knowledgeBaseId", title: $t("knowledgebases.knowledge_base_id") },
+  { key: "summaryModel", title: $t("knowledgebases.summary_model") },
+  { key: "region", title: $t("knowledgebases.region") },
+  { key: "created_at", title: $t("common.created_at") },
+  { key: "updated_at", title: $t("common.updated_at") },
+  { key: "action", title: $t("keys.col_action") },
 ];
 
 const change = (pageVal) => {
@@ -133,7 +133,7 @@ const get_data = () => {
 
 const edit = (row) => {
   Object.assign(form, { ...row });
-  title.value = t("common.edit");
+  title.value = $t("common.edit");
   action.value = "edit";
   show.value = true;
 };
@@ -141,7 +141,7 @@ const edit = (row) => {
 const add = () => {
   form.id = "";
   action.value = "new";
-  title.value = t("common.new");
+  title.value = $t("common.new");
   show.value = true;
 };
 
@@ -177,8 +177,6 @@ onMounted(() => {
 </script>
 <style lang="less">
 .my-knowledge-bases {
-  padding: 20px;
-
   th {
     word-break: keep-all !important;
   }

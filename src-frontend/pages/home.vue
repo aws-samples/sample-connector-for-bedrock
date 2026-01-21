@@ -1,72 +1,18 @@
 <template>
-  <div class="home">
-    <Card :title="$t('home.title')" :bordered="false">
-      <Space class="items" wrap>
-        <div class="item">
-          <span class="key">{{ $t("home.total_fee") }}</span>
-          <span class="value"
-            >{{ parseFloat(my_info.total_fee || 0)
-            }}<span class="sub">USD</span></span
-          >
-        </div>
-        <div class="item">
-          <span class="key">{{ $t("home.month_fee") }}</span>
-          <span class="value"
-            >{{ parseFloat(my_info.month_fee || 0)
-            }}<span class="sub">USD</span></span
-          >
-        </div>
-        <div class="item">
-          <span class="key">{{ $t("home.month_quota") }}</span>
-          <span class="value"
-            >{{ parseFloat(my_info.month_quota || 0)
-            }}<span class="sub">USD</span></span
-          >
-        </div>
-        <div class="item">
-          <span class="key">{{ $t("home.balance") }}</span>
-          <span class="value"
-            >{{ parseFloat(my_info.balance || 0)
-            }}<span class="sub">USD</span></span
-          >
-        </div>
-      </Space>
-    </Card>
-
-    <Card :title="$t('home.all')" :bordered="false" v-if="is_admin">
-      <Space class="items" wrap>
-        <div class="item">
-          <span class="key">{{ $t("home.total_fee") }}</span>
-          <span class="value"
-            >{{ parseFloat(total_info.total_fee || 0)
-            }}<span class="sub">USD</span></span
-          >
-        </div>
-        <div class="item">
-          <span class="key">{{ $t("home.total_month_fee") }}</span>
-          <span class="value"
-            >{{ parseFloat(total_info.total_month_fee || 0)
-            }}<span class="sub">USD</span></span
-          >
-        </div>
-        <div class="item">
-          <span class="key">{{ $t("home.count_key") }}</span>
-          <span class="value">{{ total_info.count_key }}</span>
-        </div>
-        <div class="item">
-          <span class="key">{{ $t("home.active_key") }}</span>
-          <span class="value">{{ total_info.active_key }}</span>
-        </div>
-        <div class="item">
-          <span class="key">{{ $t("home.active_key_this_month") }}</span>
-          <span class="value">{{ total_info.active_key_this_month }}</span>
-        </div>
-      </Space>
-    </Card>
-  </div>
+  <Space class="home" vertical block>
+    <StatCard :title="$t('home.title')" :items="items1" />
+    <StatCard statNumberType="rollup" :title="$t('home.all')" :items="items2" />
+  </Space>
 </template>
 <script setup>
-import { ref, computed, onMounted, getCurrentInstance, inject } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  getCurrentInstance,
+  inject,
+} from "vue";
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
 const loading = ref(false);
@@ -78,79 +24,87 @@ const is_admin = computed(() => {
   return localStorage.getItem("role") == "admin";
 });
 
-onMounted(() => {
-  const host = localStorage.getItem("host");
-  const key = localStorage.getItem("key");
-  const validHost =
-    host && (host.indexOf("http://") === 0 || host.indexOf("https://") === 0);
-  if (!validHost) {
-    return false;
-  }
+const items1 = ref([
+  { value: 0, precision: 2, suffix: "USD", desc: $t("home.total_fee") },
+  { value: 0, precision: 2, suffix: "USD", desc: $t("home.month_fee") },
+  { value: 0, precision: 2, suffix: "USD", desc: $t("home.month_quota") },
+  { value: 0, precision: 2, suffix: "USD", desc: $t("home.balance") },
+]);
+const items2 = ref([
+  { value: 0, precision: 0, suffix: "USD", desc: $t("home.total_fee") },
+  { value: 0, precision: 0, suffix: "USD", desc: $t("home.total_month_fee") },
+  { value: 0, precision: 0, desc: $t("home.count_key") },
+  { value: 0, precision: 0, desc: $t("home.active_key") },
+  { value: 0, precision: 0, desc: $t("home.active_key_this_month") },
+]);
+const get_precision = (value) => {
+  if (!value) return 0;
+  return Number(value).toString().split(".")[1]?.length;
+};
+const host = localStorage.getItem("host");
+const key = localStorage.getItem("key");
+
+const getMineInfo = () => {
   proxy.$http
     .get(host + "/user/api-key/mine", null, key)
-    .then((res) => {
-      if (res.success) {
-        my_info.value = res.data;
+    .then(({ data, success }) => {
+      if (success) {
+        my_info.value = data;
+        const { total_fee, month_fee, month_quota, balance } = data;
+        items1.value[0].precision = get_precision(total_fee);
+        items1.value[0].value = total_fee * 1;
+        items1.value[1].precision = get_precision(month_fee);
+        items1.value[1].value = month_fee * 1;
+        items1.value[2].precision = get_precision(month_quota);
+        items1.value[2].value = month_quota * 1;
+        items1.value[3].precision = get_precision(balance);
+        items1.value[3].value = balance * 1;
       } else {
-        message(res.data);
-      }
-      if (is_admin.value) {
-        proxy.$http
-          .get(host + "/admin/statistics/total", null, key)
-          .then((res) => {
-            console.log("total:", res);
-            if (res.success) {
-              total_info.value = res.data;
-            } else {
-              message(res.data);
-            }
-          });
+        message.info(data);
       }
     })
     .finally(() => {
       loading.value = false;
     });
+};
+const getAllInfo = () => {
+  if (is_admin.value) {
+    proxy.$http
+      .get(host + "/admin/statistics/total", null, key)
+      .then(({ success, data }) => {
+        // console.log("total:", res);
+        if (success) {
+          total_info.value = data;
+          const {
+            total_fee,
+            total_month_fee,
+            count_key,
+            active_key,
+            active_key_this_month,
+          } = data;
+          items2.value[0].precision = get_precision(total_fee);
+          items2.value[0].value = total_fee * 1;
+          items2.value[1].precision = get_precision(total_month_fee);
+          items2.value[1].value = total_month_fee * 1;
+          items2.value[2].precision = get_precision(count_key);
+          items2.value[2].value = count_key * 1;
+          items2.value[3].precision = get_precision(active_key);
+          items2.value[3].value = active_key * 1;
+          items2.value[4].precision = get_precision(active_key_this_month);
+          items2.value[4].value = active_key_this_month * 1;
+        } else {
+          message.info(data);
+        }
+      });
+  }
+};
+onMounted(() => {
+  const validHost =
+    host && (host.indexOf("http://") === 0 || host.indexOf("https://") === 0);
+  if (!validHost) {
+    return false;
+  }
+  getMineInfo();
+  getAllInfo();
 });
 </script>
-<style lang="less">
-.home {
-  padding: 20px;
-
-  .items {
-    width: 100%;
-  }
-
-  .item {
-    background: var(--kui-color-gray-90);
-    border-radius: 16px;
-    flex: 1;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-
-    .key {
-      font-weight: bold;
-      margin-right: 10px;
-      white-space: nowrap;
-    }
-
-    .value {
-      margin-top: 8px;
-    }
-
-    .sub {
-      color: var(--kui-color-gray-30);
-      font-size: 12px;
-      margin-left: 8px;
-    }
-  }
-
-  .k-card {
-    margin-bottom: 20px;
-
-    .k-card-head {
-      border: none;
-    }
-  }
-}
-</style>

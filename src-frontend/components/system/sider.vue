@@ -2,7 +2,10 @@
   <Sider class="sys-sider" :style="{ width: collapsed ? '60px' : '200px' }">
     <div class="logo-box">
       <transition>
-        <span v-show="!collapsed">BRConnector</span>
+        <Space v-show="!collapsed" vertical>
+          BRConnector
+          <Tag>v{{ version }}</Tag>
+        </Space>
       </transition>
       <Avatar v-if="collapsed">B</Avatar>
     </div>
@@ -20,27 +23,24 @@
     </Menu>
     <div class="sider-bottom">
       <Space>
-        <a
-          href="https://github.com/aws-samples/sample-connector-for-bedrock"
-          target="_blank"
-        >
-          <Icon :type="LogoGithub" size="24" />
-        </a>
-        <span>{{ version }}</span>
+        <Button
+          :icon="!collapsed ? ChevronBack : ChevronForward"
+          @click="toggle"
+          class="btn-expand"
+        />
       </Space>
-      <!-- <Button :icon="!collapsed ? ChevronBack : ChevronForward" @click="toggle" class="btn-expand" /> -->
     </div>
   </Sider>
 </template>
 <script setup>
 import { ref, onMounted, getCurrentInstance, watch } from "vue";
 import RecursiveMenu from "./recursiveMenu.vue";
-import { LogoGithub } from "kui-icons";
+import { ChevronBack, ChevronForward } from "kui-icons";
 const { proxy } = getCurrentInstance();
 import * as pkg from "../../../package.json";
 
 const openKeys = ref([]);
-const version = ref(pkg.version);
+const version = pkg.version;
 const collapsed = ref(false);
 
 const props = defineProps({
@@ -79,7 +79,8 @@ watch(
   () => proxy.$route,
   (nv) => {
     const keys = getPath(props.routes, proxy.$route.path);
-    activeMenu.value = keys;
+    console.log(keys);
+    // activeMenu.value = keys;
   },
 );
 
@@ -106,6 +107,7 @@ const go = ({ key }) => {
   if (isOutPath(key)) {
     return window.open(key);
   }
+  // activeMenu.value = [key];
   proxy.$router.push(key);
 };
 </script>

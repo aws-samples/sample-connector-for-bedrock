@@ -1,25 +1,29 @@
 <template>
-  <div class="container">
+  <div class="groups">
     <Space>
       <Button @click="get_data">{{ $t("keys.btn_query") }}</Button>
       <Button @click="add">{{ $t("keys.btn_new") }}</Button>
     </Space>
     <Table :data="items" :columns="columns" :loading="loading">
-      <template v-slot:action="c, row">
+      <template #action="{ record }">
         <Space>
-          <Button size="small" @click="edit(row)">
+          <Button size="small" @click="edit(record)">
             {{ $t("common.edit") }}
           </Button>
           <Popconfirm
             :title="$t('group.tip_delete')"
-            @ok="del(row)"
+            @ok="del(record)"
             :width="260"
           >
             <Button size="small">{{ $t("common.btn_delete") }}</Button>
           </Popconfirm>
-          <Button size="small" @click="listModels(row)">{{
-            $t("group.btn_models")
-          }}</Button>
+          <Button
+            size="small"
+            @click="listModels(record)"
+            :loading="record.loading"
+          >
+            {{ $t("group.btn_models") }}
+          </Button>
         </Space>
       </template>
     </Table>
@@ -31,12 +35,7 @@
       :loading="saving"
       :mask-closable="true"
     >
-      <Form
-        :model="form"
-        :rules="rules"
-        layout="vertical"
-        ref="refForm"
-      >
+      <Form :model="form" :rules="rules" layout="vertical" ref="refForm">
         <FormItem :label="$t('group.name')" prop="name">
           <Input />
         </FormItem>
@@ -62,7 +61,14 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted, getCurrentInstance, nextTick } from "vue";
+import {
+  ref,
+  reactive,
+  onMounted,
+  getCurrentInstance,
+  nextTick,
+  inject,
+} from "vue";
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
 const $t = inject("$t");
@@ -89,15 +95,10 @@ const rules = {
 };
 
 const columns = [
-  { key: "name", title: t("group.name") },
-  { key: "key", title: t("group.key") },
-  { key: "action", title: t("common.action") },
+  { key: "name", title: $t("group.name") },
+  { key: "key", title: $t("group.key") },
+  { key: "action", title: $t("common.action") },
 ];
-
-const change = (pageVal) => {
-  page.value = pageVal;
-  get_data();
-};
 
 const get_data = () => {
   loading.value = true;
@@ -132,10 +133,13 @@ const get_data = () => {
       loading.value = false;
     });
 };
-
+const change = (pageVal) => {
+  page.value = pageVal;
+  get_data();
+};
 const edit = (row) => {
   Object.assign(form, { ...row });
-  title.value = t("keys.btn_edit");
+  title.value = $t("keys.btn_edit");
   action.value = "edit";
   show.value = true;
 };
@@ -155,7 +159,9 @@ const del = (row) => {
 
 const listModels = (row) => {
   current_group_id.value = row.id;
-  title.value = t("group.title_set_models");
+  title.value = $t("group.title_set_models");
+  // row.loading = true;
+  proxy.$set(row, "loading", true)
   proxy.$http
     .get("/admin/group/list-model", {
       group_id: current_group_id.value,
@@ -168,6 +174,7 @@ const listModels = (row) => {
       modelsShown.value = true;
     })
     .finally(() => {
+      row.loading = false;
       loading.value = false;
     });
 };
@@ -189,7 +196,7 @@ const setModel = (e) => {
 
 const add = () => {
   action.value = "new";
-  title.value = t("keys.btn_new");
+  title.value = $t("keys.btn_new");
   show.value = true;
   nextTick(() => {
     refForm.value.reset();

@@ -3,10 +3,15 @@
     <Space>
       <Button @click="get_data">{{ $t("sessions.btn_refresh") }}</Button>
     </Space>
-    <Table :data="items" :columns="columns" :loading="loading">
-      <template v-slot:action="c, row">
+    <Table
+      :data="items"
+      :columns="columns"
+      :loading="loading"
+      :scroll="{ y: `calc(100vh - 230px)` }"
+    >
+      <template #action="{ record }">
         <Tooltip placement="top" :title="$t('menu.chat_list')">
-          <Button :icon="ChatboxEllipses" @click="threadDetail(row)" />
+          <Button :icon="ChatboxEllipses" @click="threadDetail(record)" />
         </Tooltip>
       </template>
     </Table>
@@ -26,22 +31,22 @@ const total = ref(0);
 const loading = ref(false);
 
 const columns = [
-  { key: "title", title: t("sessions.col_title"), width: 200, ellipsis: true },
-  { key: "key_id", title: t("sessions.col_key_id") },
+  { key: "title", title: $t("sessions.col_title"), width: 200, ellipsis: true },
+  { key: "key_id", title: $t("sessions.col_key_id") },
   {
     key: "total_in_tokens",
-    title: t("sessions.col_total_in_tokens"),
+    title: $t("sessions.col_total_in_tokens"),
     sorter: true,
   },
   {
     key: "total_out_tokens",
-    title: t("sessions.col_total_out_tokens"),
+    title: $t("sessions.col_total_out_tokens"),
     sorter: true,
   },
-  { key: "total_fee", title: t("sessions.col_total_fee"), sorter: true },
-  { key: "created_at", title: t("common.created_at"), sorter: true },
-  { key: "updated_at", title: t("common.updated_at"), sorter: true },
-  { key: "action", title: t("common.action") },
+  { key: "total_fee", title: $t("sessions.col_total_fee"), sorter: true },
+  { key: "created_at", title: $t("common.created_at"), sorter: true },
+  { key: "updated_at", title: $t("common.updated_at"), sorter: true },
+  { key: "action", title: $t("common.action"), fixed: "right" },
 ];
 
 const change = (pageVal) => {
@@ -94,8 +99,6 @@ onMounted(() => {
 </script>
 <style lang="less">
 .my-sessions {
-  padding: 20px;
-
   th {
     word-break: keep-all !important;
   }
