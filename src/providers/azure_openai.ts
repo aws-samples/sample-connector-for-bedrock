@@ -63,6 +63,8 @@ export default class AzureOpenAI extends AbstractProvider {
       top_p: chatRequest.top_p || 1.0,
       max_tokens: chatRequest.max_tokens,
       max_completion_tokens: chatRequest.max_tokens,
+      tools: chatRequest.tools,
+      tool_choice: chatRequest.tool_choice,
       stream: true
     });
 
@@ -109,6 +111,8 @@ export default class AzureOpenAI extends AbstractProvider {
       top_p: chatRequest.top_p || 1.0,
       max_tokens: chatRequest.max_tokens,
       max_completion_tokens: chatRequest.max_tokens,
+      tools: chatRequest.tools,
+      tool_choice: chatRequest.tool_choice,
       messages: messages
     });
 
