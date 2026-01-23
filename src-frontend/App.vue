@@ -7,8 +7,8 @@
 </template>
 <script setup>
 import { provide, ref, computed } from "vue";
-import ui_en from "kui-vue/locale/en";
-import ui_zh from "kui-vue/locale/zh-CN";
+import ui_en from "kui-vue/dist/locale/en";
+import ui_zh from "kui-vue/dist/locale/zh-CN";
 import local_en from "./lang/en";
 import local_zh from "./lang/zh";
 
