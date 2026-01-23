@@ -12,7 +12,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    outDir: path.resolve(__dirname, "dist/frontend"),
+    outDir: path.resolve(__dirname, "dist/public"),
     rollupOptions: {
       // input: path.resolve(__dirname, "src-frontend/index.html"), // 指定入口 HTML 文件
 
