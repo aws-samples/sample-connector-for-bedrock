@@ -3,7 +3,6 @@
   "version": "0.0.39",
   "main": "index.js",
   "license": "MIT",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx ts-node -T src/index.ts",
@@ -12,6 +11,7 @@
     "build": "rm -rf ./dist/server && tsc --project ./tsconfig.json --outDir ./dist/server && vite build",
     "build-server": "rm -rf ./dist/server && tsc --project ./tsconfig.json --outDir ./dist/server",
     "build-ui": "vite build",
+    "preview-ui": "vite preview",
     "run": "node dist/server/index.js"
   },
   "dependencies": {
@@ -46,9 +46,12 @@
   "devDependencies": {
     "@babel/core": "^7.28.6",
     "@babel/eslint-parser": "^7.28.6",
+    "@smithy/node-http-handler": "^4.4.8",
     "@types/koa": "^2.15.0",
     "@types/koa-router": "^7.4.9",
     "@types/koa__cors": "^5.0.1",
+    "@types/node": "^25.0.10",
+    "@types/nodemailer": "^7.0.5",
     "@types/pg": "^8.16.0",
     "@vitejs/plugin-vue2": "^2.3.4",
     "@vitejs/plugin-vue2-jsx": "^1.1.1",

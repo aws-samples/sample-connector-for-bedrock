@@ -396,7 +396,7 @@ const helper = {
                 } else if (region.indexOf("eu-west-3") >= 0) { // Paris pricing
                     chatRequest.price_in = 0.0002 / 1000;
                     chatRequest.price_out = 0.00026 / 1000;
-                } else if (region.indexOf("ap-southeast-2") >= 0) { // 
+                } else if (region.indexOf("ap-southeast-2") >= 0) { //
                     chatRequest.price_in = 0.0002 / 1000;
                     chatRequest.price_out = 0.00026 / 1000;
                 } else {
@@ -624,7 +624,7 @@ const helper = {
 
             throw new Error('Invalid apiKey format. Expected "accessKeyId:secretAccessKey" or base64 encoded version.');
         } catch (error) {
-            throw new Error(`Failed to parse apiKey: ${error.message}`);
+            throw new Error(`Failed to parse apiKey: ${error['message']||error}`);
         }
     },
 

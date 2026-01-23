@@ -39,7 +39,7 @@ export default class GeminiConverse extends AbstractProvider {
   private convertMessagesToGeminiFormat(messages: any[]): string {
     // Convert OpenAI-style messages to a single prompt for Gemini
     let prompt = "";
-    
+
     for (const message of messages) {
       if (message.role === "system") {
         prompt += `System: ${message.content}\n\n`;
@@ -59,7 +59,7 @@ export default class GeminiConverse extends AbstractProvider {
         prompt += `Assistant: ${message.content}\n\n`;
       }
     }
-    
+
     return prompt.trim();
   }
 
@@ -69,7 +69,7 @@ export default class GeminiConverse extends AbstractProvider {
     session_id: string,
     modelId: string
   ) {
-    const model = this.genAI.getGenerativeModel({ 
+    const model = this.genAI.getGenerativeModel({
       model: modelId,
       generationConfig: {
         temperature: chatRequest.temperature ?? 1.0,
@@ -79,7 +79,7 @@ export default class GeminiConverse extends AbstractProvider {
     });
 
     const prompt = this.convertMessagesToGeminiFormat(chatRequest.messages || []);
-    
+
     try {
       const result = await model.generateContentStream(prompt);
       let responseText = "";
@@ -88,7 +88,7 @@ export default class GeminiConverse extends AbstractProvider {
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
         responseText += chunkText;
-        
+
         // Format as OpenAI-compatible streaming response
         const streamChunk = {
           id: `chatcmpl-${Date.now()}`,
@@ -134,7 +134,7 @@ export default class GeminiConverse extends AbstractProvider {
 
     } catch (error) {
       console.error('Gemini streaming error:', error);
-      ctx.res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      ctx.res.write(`data: ${JSON.stringify({ error: error['message']||error })}\n\n`);
     }
 
     ctx.res.end();
@@ -146,7 +146,7 @@ export default class GeminiConverse extends AbstractProvider {
     session_id: string,
     modelId: string
   ) {
-    const model = this.genAI.getGenerativeModel({ 
+    const model = this.genAI.getGenerativeModel({
       model: modelId,
       generationConfig: {
         temperature: chatRequest.temperature ?? 1.0,
@@ -156,7 +156,7 @@ export default class GeminiConverse extends AbstractProvider {
     });
 
     const prompt = this.convertMessagesToGeminiFormat(chatRequest.messages || []);
-    
+
     try {
       const result = await model.generateContent(prompt);
       const response = await result.response;

@@ -473,7 +473,7 @@ export default class Painter extends AbstractProvider {
       }
     } catch (e) {
       logger.error(e);
-      return "> Error: " + e.message;
+      return "> Error: " + (e['message'] || e);
     }
 
     const now = new Date();
