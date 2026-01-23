@@ -85,8 +85,7 @@ const login = ({ valid }) => {
         localStorage.setItem("role", res.data.role);
         localStorage.setItem("host", host);
 
-        // $router.push('/')
-        window.location.href = "";
+        proxy.$router.push('/')
       } else {
         alert(res.data);
       }

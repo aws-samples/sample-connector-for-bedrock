@@ -31,7 +31,7 @@ export default async function () {
         console.log("[init] Tables created, skip installation.");
     } else {
         console.log("[init] Tables not exists, installing...");
-        const sqlCreate = fs.readFileSync("./src/scripts/create.sql", "utf8");
+        const sqlCreate = fs.readFileSync("./scripts/create.sql", "utf8");
         await client.query(sqlCreate);
         console.log("[init] Created successfully.");
     }
@@ -46,7 +46,7 @@ export default async function () {
         console.log("[v0.0.5] Tables created, skip installation.");
     } else {
         console.log("[v0.0.5] Tables not exists, installing...");
-        const sqlCreate_0_0_5 = fs.readFileSync("./src/scripts/patch-0.0.5.sql", "utf8");
+        const sqlCreate_0_0_5 = fs.readFileSync("./scripts/patch-0.0.5.sql", "utf8");
         await client.query(sqlCreate_0_0_5);
         console.log("[v0.0.5] Created  successfully.");
     }
@@ -60,7 +60,7 @@ export default async function () {
         console.log("[v0.0.12] Tables created, skip installation.");
     } else {
         console.log("[v0.0.12] Tables not exists, installing...");
-        const sqlCreate_0_0_12 = fs.readFileSync("./src/scripts/patch-0.0.12.sql", "utf8");
+        const sqlCreate_0_0_12 = fs.readFileSync("./scripts/patch-0.0.12.sql", "utf8");
         await client.query(sqlCreate_0_0_12);
         console.log("[v0.0.12] Created  successfully.");
     }

@@ -11,8 +11,9 @@
     "noImplicitAny": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "rootDir": "./src",
+    "outDir": "./dist/server",
   },
-  "outDir": "./src/server",
   "sourceMap": true,
   "include": [
     "src/**/*"
