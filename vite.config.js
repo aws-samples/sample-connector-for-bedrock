@@ -5,7 +5,6 @@ import vueJsx from "@vitejs/plugin-vue2-jsx";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/",
   plugins: [vueJsx(), vue()],
   server: {
     port: 8080,
