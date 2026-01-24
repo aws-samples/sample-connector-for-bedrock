@@ -121,10 +121,10 @@ onMounted(() => {
   if (theme.value) {
     document.documentElement.setAttribute("theme-mode", theme.value);
   }
-  let key = localStorage.getItem("key");
-  if (!key) {
-    proxy.$router.push("/login");
-  }
+  // let key = localStorage.getItem("key");
+  // if (!key) {
+  //   proxy.$router.push("/login");
+  // }
 });
 
 onUnmounted(() => {

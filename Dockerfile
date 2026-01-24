@@ -1,12 +1,10 @@
 FROM public.ecr.aws/docker/library/node:22-slim
 
-RUN apt update 
+RUN apt update
 
-# Copy the dist 
+# Copy the dist
 COPY ./dist /app
 WORKDIR /app
-COPY ./src/scripts/* ./src/scripts/
-COPY ./package.json .
 
 RUN npm install --omit=dev
 

@@ -1,6 +1,7 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
 // import store from "./store";
+import { loading } from "kui-vue";
 
 Vue.use(VueRouter);
 import Layout from "./components/system/layout";
@@ -127,6 +128,21 @@ const routes = [
 const router = new VueRouter({
   mode: "history",
   routes,
+  base: '/manager/'
 });
 
+router.beforeEach((to, from, next) => {
+  loading.start();
+  const whiteList = ["/login"];
+  let key = localStorage.getItem("key");
+  if (!key && !whiteList.includes(to.path)) {
+    next("/login");
+  } else {
+    next();
+  }
+})
+
+router.afterEach((route) => {
+  loading.finish();
+})
 export default router;

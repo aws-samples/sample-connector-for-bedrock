@@ -5,17 +5,17 @@ import vueJsx from "@vitejs/plugin-vue2-jsx";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "",
+  base: "/manager/",
   plugins: [vueJsx(), vue()],
   server: {
     port: 8080,
   },
   build: {
     sourcemap: false,
-    outDir: path.resolve(__dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "dist/frontend"),
     rollupOptions: {
       // input: path.resolve(__dirname, "src-frontend/index.html"), // 指定入口 HTML 文件
-  
+
       output: {
         entryFileNames: "js/[name]-[hash].js",
         chunkFileNames: "js/[name]-[hash].js",
