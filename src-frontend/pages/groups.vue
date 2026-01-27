@@ -50,12 +50,14 @@
       v-model="modelsShown"
       @ok="modelsShown = false"
       :loading="saving"
+      :width="650"
       :mask-closable="true"
     >
-      <CheckboxGroup
-        :options="models"
-        v-model="checked_models"
-        @change="setModel"
+      <ModelList
+        :checked_models="checked_models"
+        :models="models"
+        :group_id="current_group_id"
+        type="group"
       />
     </Drawer>
   </div>
@@ -71,6 +73,7 @@ import {
 } from "vue";
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
+import ModelList from "../components/modelList/index.vue";
 const $t = inject("$t");
 
 const refForm = ref();
@@ -161,7 +164,7 @@ const listModels = (row) => {
   current_group_id.value = row.id;
   title.value = $t("group.title_set_models");
   // row.loading = true;
-  proxy.$set(row, "loading", true)
+  proxy.$set(row, "loading", true);
   proxy.$http
     .get("/admin/group/list-model", {
       group_id: current_group_id.value,
@@ -175,21 +178,6 @@ const listModels = (row) => {
     })
     .finally(() => {
       row.loading = false;
-      loading.value = false;
-    });
-};
-
-const setModel = (e) => {
-  const model_id = e.value;
-  proxy.$http
-    .post("/admin/group/bind-or-unbind-model", {
-      group_id: current_group_id.value,
-      model_id,
-    })
-    .then(() => {
-      message.success("Save successfully.");
-    })
-    .finally(() => {
       loading.value = false;
     });
 };

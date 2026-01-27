@@ -162,12 +162,14 @@
       v-model="modelsShown"
       @ok="modelsShown = false"
       :loading="saving"
+      :width="650"
       :mask-closable="true"
     >
-      <CheckboxGroup
-        :options="models"
-        v-model="checked_models"
-        @change="setModel"
+      <ModelList
+        :models="models"
+        :checked_models="checked_models"
+        :key_id="current_key_id"
+        type="api-key"
       />
     </Drawer>
   </div>
@@ -183,6 +185,7 @@ import {
 } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { Copy, CloudUpload, FolderOpen, Settings } from "kui-icons";
+import ModelList from "../components/modelList/index.vue";
 import { message, modal } from "kui-vue";
 const $t = inject("$t");
 const { copy, isSupported } = useClipboard();
@@ -423,21 +426,6 @@ const listModels = (row) => {
           }));
           modelsShown.value = true;
         });
-    })
-    .finally(() => {
-      loading.value = false;
-    });
-};
-
-const setModel = (e) => {
-  const model_id = e.value;
-  proxy.$http
-    .post("/admin/api-key/bind-or-unbind-model", {
-      key_id: current_key_id.value,
-      model_id,
-    })
-    .then(() => {
-      message.success("Save successfully.");
     })
     .finally(() => {
       loading.value = false;
