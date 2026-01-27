@@ -63,8 +63,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       nodemailer:
-        specifier: ^6.10.1
-        version: 6.10.1
+        specifier: ^7.0.11
+        version: 7.0.11
       ollama:
         specifier: ^0.5.18
         version: 0.5.18
@@ -3534,8 +3534,8 @@ packages:
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
 
-  nodemailer@6.10.1:
-    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+  nodemailer@7.0.11:
+    resolution: {integrity: sha512-gnXhNRE0FNhD7wPSCGhdNh46Hs6nm+uTyg+Kq0cZukNQiYdnCsoQjodNP9BQVG9XrcK/v6/MgpAPBUFyzh9pvw==}
     engines: {node: '>=6.0.0'}
 
   nodemon@3.1.11:
@@ -8231,7 +8231,7 @@ snapshots:
 
   escape-string-regexp@4.0.0: {}
 
-  eslint-plugin-vue@10.7.0(eslint@9.39.2)(vue-eslint-parser@10.2.0(eslint@7.32.0)):
+  eslint-plugin-vue@10.7.0(eslint@9.39.2)(vue-eslint-parser@10.2.0(eslint@9.39.2)):
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@9.39.2)
       eslint: 9.39.2
@@ -8959,7 +8959,7 @@ snapshots:
       autoprefixer: 10.4.23(postcss@8.5.6)
       big.js: 7.0.1
       eslint: 9.39.2
-      eslint-plugin-vue: 10.7.0(eslint@9.39.2)(vue-eslint-parser@10.2.0(eslint@7.32.0))
+      eslint-plugin-vue: 10.7.0(eslint@9.39.2)(vue-eslint-parser@10.2.0(eslint@9.39.2))
       fast-glob: 3.3.3
       globals: 16.5.0
       hash-sum: 2.0.0
@@ -9210,7 +9210,7 @@ snapshots:
 
   node-releases@2.0.27: {}
 
-  nodemailer@6.10.1: {}
+  nodemailer@7.0.11: {}
 
   nodemon@3.1.11:
     dependencies:
