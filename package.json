@@ -34,7 +34,7 @@
     "koa-router": "^13.1.1",
     "koa-static-server": "^1.5.2",
     "mime-types": "^3.0.2",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^7.0.11",
     "ollama": "^0.5.18",
     "openai": "^4.104.0",
     "pg": "^8.17.1",
