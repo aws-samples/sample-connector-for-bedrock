@@ -1,17 +1,8 @@
-import Vue from "vue";
-import VueRouter from "vue-router";
-// import store from "./store";
+import { createRouter, createWebHistory } from "vue-router";
 import { loading } from "kui-vue";
 
-Vue.use(VueRouter);
 import Layout from "./components/system/layout";
 
-const originalPush = VueRouter.prototype.push;
-VueRouter.prototype.push = function push(location, onResolve, onReject) {
-  if (onResolve || onReject)
-    return originalPush.call(this, location, onResolve, onReject);
-  return originalPush.call(this, location).catch((err) => err);
-};
 import {
   Home,
   ChatboxEllipses,
@@ -125,10 +116,9 @@ const routes = [
 // 不需要从后端获取的路由, 所以此外不用要处理
 // store.commit("tabViews/setRoutes", routes);
 
-const router = new VueRouter({
-  mode: "history",
+const router = createRouter({
+  history: createWebHistory('/manager/'),
   routes,
-  base: '/manager/'
 });
 
 router.beforeEach((to, from, next) => {
@@ -140,9 +130,9 @@ router.beforeEach((to, from, next) => {
   } else {
     next();
   }
-})
+});
 
 router.afterEach((route) => {
   loading.finish();
-})
+});
 export default router;

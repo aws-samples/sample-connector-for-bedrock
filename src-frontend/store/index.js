@@ -1,13 +1,11 @@
-import Vue from "vue";
-import Vuex from "vuex";
+import { createStore } from "vuex";
 
-Vue.use(Vuex);
 import getters from "./getters";
 
 import tabViews from "./modules/tabViews";
 import theme from "./modules/theme";
 import user from "./modules/user";
-export default new Vuex.Store({
+const store = createStore({
   state: {
     loading: false,
     keepKey: 0,
@@ -19,3 +17,6 @@ export default new Vuex.Store({
   },
   getters,
 });
+
+store.state.tabViews.views = JSON.parse(localStorage.getItem("routes") || "[]");
+export default store;

@@ -10,8 +10,7 @@
           <Col>
             <Space :size="10">
               <Tooltip title="go to github">
-                <Button :icon="LogoGithub" @click="openSource" size="small">
-                </Button>
+                <Button :icon="LogoGithub" @click="openSource" size="small"> </Button>
               </Tooltip>
               <Dropdown show-placement-arrow>
                 <Button :icon="Language" size="small" />
@@ -22,16 +21,8 @@
                   </Menu>
                 </template>
               </Dropdown>
-              <Button
-                :icon="theme != 'dark' ? Moon : Sunny"
-                size="small"
-                @click="switchMode"
-              />
-              <Dropdown
-                show-placement-arrow
-                trigger="hover"
-                placement="bottom-right"
-              >
+              <Button :icon="themeMode != 'dark' ? Moon : Sunny" size="small" @click="switchMode" />
+              <Dropdown show-placement-arrow trigger="hover" placement="bottom-right">
                 <Button :icon="Person" size="small">{{ name }} </Button>
                 <template #overlay>
                   <Menu @select="sign_out">
@@ -50,23 +41,19 @@
   </div>
 </template>
 <script setup>
-import {
-  ref,
-  onMounted,
-  onUnmounted,
-  getCurrentInstance,
-  computed,
-  inject,
-} from "vue";
+import { ref, onMounted, onUnmounted, computed, inject } from "vue";
 import { Sunny, Moon, Person, Language, LogoGithub } from "kui-icons";
 import Sider from "./sider.vue";
 import Tab from "./tab.vue";
 import AppMain from "./AppMain.vue";
-const { proxy } = getCurrentInstance();
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
+import { theme } from "kui-vue";
+const router = useRouter();
+const store = useStore();
 
 const routes = computed(() => {
-  // proxy.$store.state.tabViews.routes;
-  const routes = proxy.$router.options.routes.filter((item) => !item.hidden);
+  const routes = router.options.routes.filter((item) => !item.hidden);
   let menus = [];
   routes.forEach((route) => {
     if (!route.children || route.children.length == 0) {
@@ -88,13 +75,13 @@ const openSource = () => {
 
 const monitor = window.matchMedia("(prefers-color-scheme: dark)");
 
-const theme = ref(localStorage.getItem("theme-mode"));
+const themeMode = ref(localStorage.getItem("theme-mode"));
 const name = ref(localStorage.getItem("name") || "");
 
 const switchMode = (event) => {
-  proxy.$theme.setThemeMode(event, (isDark) => {
-    theme.value = isDark ? "dark" : "light";
-    proxy.$store.commit("theme/setTheme", isDark ? "dark" : "light");
+  theme.setThemeMode(event, (isDark) => {
+    themeMode.value = isDark ? "dark" : "light";
+    store.commit("theme/setTheme", isDark ? "dark" : "light");
   });
 };
 
@@ -103,27 +90,27 @@ const matchMode = (e) => {
   if (e.matches) {
     if (!body.hasAttribute("theme-mode")) {
       body.setAttribute("theme-mode", "dark");
-      proxy.$store.commit("theme/setTheme", "dark");
+      store.commit("theme/setTheme", "dark");
     }
   } else {
     if (body.hasAttribute("theme-mode")) {
       body.removeAttribute("theme-mode");
-      proxy.$store.commit("theme/setTheme", "light");
+      store.commit("theme/setTheme", "light");
     }
   }
 };
 
 onMounted(() => {
-  matchMode({ matches: theme == "dark" });
+  matchMode({ matches: themeMode.value == "dark" });
 
   monitor.addEventListener("change", matchMode);
 
-  if (theme.value) {
-    document.documentElement.setAttribute("theme-mode", theme.value);
+  if (themeMode.value) {
+    document.documentElement.setAttribute("theme-mode", themeMode.value);
   }
   // let key = localStorage.getItem("key");
   // if (!key) {
-  //   proxy.$router.push("/login");
+  //   router.push("/login");
   // }
 });
 
@@ -135,8 +122,8 @@ const changeLang = inject("changeLang");
 const sign_out = () => {
   localStorage.setItem("key", "");
   localStorage.setItem("role", "");
-  proxy.$store.commit("user/logout");
-  proxy.$router.push("/login");
+  store.commit("user/logout");
+  router.push("/login");
 };
 </script>
 

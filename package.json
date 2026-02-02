@@ -16,15 +16,15 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-bedrock-agent-runtime": "3.899.0",
-    "@aws-sdk/client-bedrock-runtime": "3.899.0",
-    "@aws-sdk/client-s3": "3.899.0",
-    "@aws-sdk/client-sagemaker-runtime": "3.899.0",
-    "@aws-sdk/s3-request-presigner": "3.899.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "3.980.0",
+    "@aws-sdk/client-bedrock-runtime": "3.980.0",
+    "@aws-sdk/client-s3": "3.980.0",
+    "@aws-sdk/client-sagemaker-runtime": "3.980.0",
+    "@aws-sdk/s3-request-presigner": "3.980.0",
     "@azure/openai": "^2.0.0",
     "@google/generative-ai": "^0.24.1",
     "@koa/cors": "^5.0.0",
-    "@larksuiteoapi/node-sdk": "^1.56.1",
+    "@larksuiteoapi/node-sdk": "^1.58.0",
     "csv-parser": "^3.2.0",
     "dotenv": "17.2.1",
     "googleapis": "^144.0.0",
@@ -34,11 +34,11 @@
     "koa-router": "^13.1.1",
     "koa-static-server": "^1.5.2",
     "mime-types": "^3.0.2",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^7.0.13",
     "ollama": "^0.5.18",
     "openai": "^4.104.0",
-    "pg": "^8.17.1",
-    "sharp": "0.34.3",
+    "pg": "^8.18.0",
+    "sharp": "0.34.5",
     "winston": "^3.19.0"
   },
   "compilerOptions": {
@@ -46,35 +46,35 @@
     "moduleResolution": "NodeNext"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.6",
+    "@babel/core": "^7.29.0",
     "@babel/eslint-parser": "^7.28.6",
     "@smithy/node-http-handler": "^4.4.8",
     "@types/koa": "^2.15.0",
     "@types/koa-router": "^7.4.9",
     "@types/koa__cors": "^5.0.1",
-    "@types/node": "^25.0.10",
-    "@types/nodemailer": "^7.0.5",
+    "@types/node": "^25.2.0",
+    "@types/nodemailer": "^7.0.9",
     "@types/pg": "^8.16.0",
-    "@vitejs/plugin-vue2": "^2.3.4",
-    "@vitejs/plugin-vue2-jsx": "^1.1.1",
-    "@vueuse/core": "^8.9.4",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "@vitejs/plugin-vue-jsx": "^5.1.4",
+    "@vueuse/core": "^14.2.0",
     "cpy-cli": "^6.0.0",
     "dayjs": "^1.11.19",
-    "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.7.1",
+    "eslint": "^9.39.2",
+    "eslint-plugin-vue": "^10.7.0",
     "hash-sum": "^2.0.0",
-    "kui-icons": "^4.1.6",
-    "kui-vue": "^3.6.8",
+    "kui-icons": "^4.2.0",
+    "kui-vue": "^3.6.10",
     "less": "^4.5.1",
-    "less-loader": "^11.1.4",
+    "less-loader": "^12.3.0",
     "nodemon": "^3.1.11",
     "rimraf": "^6.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "vite": "npm:rolldown-vite@7.2.11",
-    "vue": "^2.7.16",
-    "vue-router": "^3.6.5",
-    "vuex": "^3.6.2"
+    "vite": "npm:rolldown-vite@7.3.1",
+    "vue": "^3.5.27",
+    "vue-router": "^5.0.2",
+    "vuex": "^4.1.0"
   },
   "eslintConfig": {
     "root": true,
@@ -104,6 +104,6 @@
     ]
   },
   "overrides": {
-    "vite": "npm:rolldown-vite@7.2.11"
+    "vite": "npm:rolldown-vite@7.3.1"
   }
 }

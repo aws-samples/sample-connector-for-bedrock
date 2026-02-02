@@ -25,11 +25,7 @@
                   params: view.params,
                 }"
               >
-                <Icon
-                  class="sys-tab-icon"
-                  :type="view.meta.icon"
-                  v-if="view.meta.icon"
-                />
+                <Icon class="sys-tab-icon" :type="view.meta.icon" v-if="view.meta.icon" />
                 <span class="sys-tab-title">{{ $t(view.meta.title) || "-" }}</span>
                 <Icon
                   :type="Close"
@@ -54,19 +50,10 @@
       <!-- </draggable> -->
     </div>
     <Dropdown trigger="hover" v-if="showDrop" placement="bottom" arrow>
-      <Button
-        :icon="ChevronDown"
-        theme="light"
-        size="small"
-        class="sys-tab-show-list-btn"
-      ></Button>
+      <Button :icon="ChevronDown" theme="light" size="small" class="sys-tab-show-list-btn"></Button>
       <template #overlay>
         <Menu @select="dropGo">
-          <MenuItem
-            :icon="kui[view.meta.icon]"
-            v-for="view in views"
-            :key="view.fullPath"
-          >
+          <MenuItem :icon="kui[view.meta.icon]" v-for="view in views" :key="view.fullPath">
             {{ $t(view.meta.title) }}
           </MenuItem>
         </Menu>
@@ -75,30 +62,32 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeMount, nextTick,inject } from "vue";
-import { getCurrentInstance } from "vue";
+import { ref, computed, watch, onMounted, onBeforeMount, nextTick, inject } from "vue";
 import * as kui from "kui-icons";
-import { Close, ChevronDown, Loading } from "kui-icons";
+import { Close, ChevronDown } from "kui-icons";
 import id from "hash-sum";
 import { getTransitionHorProp } from "@/utils/transition";
 const animate = getTransitionHorProp("tab-fade");
-const { proxy } = getCurrentInstance();
+import { useStore } from "vuex";
+import { useRoute, useRouter } from "vue-router";
+const route = useRoute();
+const router = useRouter();
+const store = useStore();
+
 const $t = inject("$t");
 const showDrop = ref(false);
 const observe = ref(null);
 const rootRef = ref(null);
 const tabBoxRef = ref(null);
 
-const views = computed(() => proxy.$store.state.tabViews.views); //getters.views);
-const current = computed(() => proxy.$route.fullPath);
-const currentIndex = computed(() =>
-  views.value.findIndex((v) => v.fullPath == current.value)
-);
+const views = computed(() => store.state.tabViews.views); //getters.views);
+const current = computed(() => route.fullPath);
+const currentIndex = computed(() => views.value.findIndex((v) => v.fullPath == current.value));
 
 watch(
-  () => proxy.$route,
+  () => route.fullPath,
   (newRoute) => {
-    proxy.$store.commit("tabViews/addView", newRoute);
+    store.commit("tabViews/addView", newRoute);
     nextTick(() => {
       scrollToCenter();
       setDropShow(_$(".sys-tab-box"), tabBoxRef.value?.$el);
@@ -107,7 +96,7 @@ watch(
 );
 
 onBeforeMount(() => {
-  proxy.$store.commit("tabViews/addView", proxy.$route);
+  store.commit("tabViews/addView", route);
 });
 
 onMounted(() => {
@@ -162,7 +151,7 @@ const handle = ({ key }, view) => {
       close(view);
       break;
     case "close-other":
-      proxy.$store.commit("tabViews/closeOtherView", view);
+      store.commit("tabViews/closeOtherView", view);
       if (current.value != view.fullPath) {
         go(view);
       }
@@ -173,7 +162,7 @@ const handle = ({ key }, view) => {
       if (current.value != view.fullPath && cur_index > select_index) {
         go(view);
       }
-      proxy.$store.commit("tabViews/closeRightView", view);
+      store.commit("tabViews/closeRightView", view);
       break;
     case "close-left":
       cur_index = views.value.findIndex((x) => x.fullPath == current.value);
@@ -181,7 +170,7 @@ const handle = ({ key }, view) => {
       if (current.value != view.fullPath && cur_index < select_index) {
         go(view);
       }
-      proxy.$store.commit("tabViews/closeLeftView", view);
+      store.commit("tabViews/closeLeftView", view);
       break;
     default:
       break;
@@ -189,12 +178,12 @@ const handle = ({ key }, view) => {
 };
 
 const reload = (view) => {
-  let currentId = id(proxy.$route.fullPath);
+  let currentId = id(route.fullPath);
   if (currentId != view.key) {
-    proxy.$store.commit("tabViews/reloadSelectView", view);
+    store.commit("tabViews/reloadSelectView", view);
     return;
   }
-  proxy.$store.commit("tabViews/reloadView", view);
+  store.commit("tabViews/reloadView", view);
 };
 
 const close = (view) => {
@@ -211,15 +200,15 @@ const close = (view) => {
       index += 1;
     }
     let item = viewsArray[index];
-    proxy.$store.commit("tabViews/closeView", view);
+    store.commit("tabViews/closeView", view);
     go(item);
   } else {
-    proxy.$store.commit("tabViews/closeView", view);
+    store.commit("tabViews/closeView", view);
   }
 };
 
 const go = (item) => {
-  proxy.$router.push({
+  router.push({
     path: item.path,
     query: item.query,
     fullPath: item.fullPath,

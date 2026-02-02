@@ -14,12 +14,7 @@
         {{ format_content(value) }}
       </template>
       <template #completion="{ value }">
-        <Poptip
-          :title="$t('threads.col_completion')"
-          trigger="click"
-          placement="right"
-          class="spe"
-        >
+        <Poptip :title="$t('threads.col_completion')" trigger="click" placement="right" class="spe">
           <template #content>
             <pre>{{ value }}</pre>
           </template>
@@ -35,6 +30,9 @@
 import { ref, onMounted, getCurrentInstance, inject } from "vue";
 import { Chatbubble } from "kui-icons";
 const { proxy } = getCurrentInstance();
+import { useRoute } from "vue-router";
+const route = useRoute();
+
 const items = ref([]);
 const page = ref(1);
 const size = ref(15);
@@ -78,10 +76,10 @@ const format_content = (value) => {
 const get_data = () => {
   loading.value = true;
   let apiUrl = "/admin/thread/list";
-  if (proxy.$route.path.startsWith("/user")) {
+  if (route.path.startsWith("/user")) {
     apiUrl = "/user/thread/list";
   }
-  let sessionId = proxy.$route.params.session_id;
+  let sessionId = route.params.session_id;
   let { page: pageNum, size: sizeVal } = { page: page.value, size: size.value };
   proxy.$http
     .get(apiUrl, {

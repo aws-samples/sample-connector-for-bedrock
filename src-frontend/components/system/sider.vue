@@ -33,12 +33,13 @@
   </Sider>
 </template>
 <script setup>
-import { ref, onMounted, getCurrentInstance, watch } from "vue";
+import { ref, onMounted, watch } from "vue";
 import RecursiveMenu from "./recursiveMenu.vue";
 import { ChevronBack, ChevronForward } from "kui-icons";
-const { proxy } = getCurrentInstance();
 import * as pkg from "../../../package.json";
-
+import { useRoute, useRouter } from "vue-router";
+const route = useRoute();
+const router = useRouter();
 const openKeys = ref([]);
 const version = pkg.version;
 const collapsed = ref(false);
@@ -72,16 +73,16 @@ const getPath = (tree, targetKey) => {
   return found ? path.slice().reverse() : [];
 };
 
-const keys = getPath(props.routes, proxy.$route.path);
+const keys = getPath(props.routes, route.path);
 const activeMenu = ref(keys);
 
 watch(
-  () => proxy.$route,
+  () => route.fullPath,
   (nv) => {
-    const keys = getPath(props.routes, proxy.$route.path);
+    const keys = getPath(props.routes, route.path);
     console.log(keys);
     // activeMenu.value = keys;
-  },
+  }
 );
 
 onMounted(() => {
@@ -108,7 +109,7 @@ const go = ({ key }) => {
     return window.open(key);
   }
   // activeMenu.value = [key];
-  proxy.$router.push(key);
+  router.push(key);
 };
 </script>
 <style lang="less">
