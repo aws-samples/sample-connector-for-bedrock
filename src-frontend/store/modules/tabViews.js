@@ -12,7 +12,8 @@ const mutations = {
     state.routes = routes;
   },
   addView(state, route) {
-    state.keepKey = id(route.fullPath);
+    // console.log(route)
+    state.keepKey = route.fullPath;
     const { view, index, keepViewKey } = getView(state, route);
     view.keepAlive = true
     if (index < 0) {
@@ -73,7 +74,7 @@ const mutations = {
     route.loading = true;
     setTimeout(() => {
       state.keepViews.splice(index, 0, keepViewKey);
-      state.keepKey = id(route.fullPath);
+      state.keepKey = route.fullPath;
       route.loading = false;
     }, 500);
   },

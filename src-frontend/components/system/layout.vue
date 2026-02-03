@@ -57,12 +57,16 @@ const routes = computed(() => {
   let menus = [];
   routes.forEach((route) => {
     if (!route.children || route.children.length == 0) {
+      route.key = route.path;
       menus.push(route);
     } else {
       const children = route.children.filter((item) => !item.hidden);
       if (children.length == 1) {
-        menus.push(route.children[0]);
+        const r = children[0];
+        r.key = r.path;
+        menus.push(r);
       } else {
+        route.key = route.path;
         menus.push(route);
       }
     }
@@ -108,10 +112,6 @@ onMounted(() => {
   if (themeMode.value) {
     document.documentElement.setAttribute("theme-mode", themeMode.value);
   }
-  // let key = localStorage.getItem("key");
-  // if (!key) {
-  //   router.push("/login");
-  // }
 });
 
 onUnmounted(() => {
@@ -120,8 +120,8 @@ onUnmounted(() => {
 const changeLang = inject("changeLang");
 
 const sign_out = () => {
-  localStorage.setItem("key", "");
-  localStorage.setItem("role", "");
+  localStorage.removeItem("key");
+  localStorage.removeItem("role");
   store.commit("user/logout");
   router.push("/login");
 };
@@ -140,7 +140,6 @@ const sign_out = () => {
     height: calc(100% - 47px);
     flex: 1;
     overflow: auto;
-    // background-color: var(--kui-color-bg-layout);
   }
 
   .header-nav {

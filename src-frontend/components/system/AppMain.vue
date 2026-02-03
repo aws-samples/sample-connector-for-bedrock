@@ -1,18 +1,19 @@
 <template>
-  <transition name="route-fade" :time="50000">
+  <router-view v-slot="{ Component }">
     <keep-alive :include="keepViews" :max="100">
-      <router-view :key="key" />
+      <transition name="fade">
+        <component :is="Component" :key="key" />
+      </transition>
     </keep-alive>
-  </transition>
+  </router-view>
 </template>
 <script setup>
 import { computed } from "vue";
-import { getCurrentInstance } from "vue";
+import { useStore } from "vuex";
+const store = useStore();
 
-const { proxy } = getCurrentInstance();
-
-const keepViews = computed(() => proxy.$store.getters.keepViews);
-const key = computed(() => proxy.$store.getters.keepKey);
+const keepViews = computed(() => store.getters.keepViews);
+const key = computed(() => store.getters.keepKey);
 </script>
 <style lang="less">
 @keyframes route-fade {

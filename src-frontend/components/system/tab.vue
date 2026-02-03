@@ -1,7 +1,7 @@
 <template>
   <div class="sys-tab-wrapper">
     <div class="sys-tab-box" ref="rootRef">
-      <transition-group
+      <TransitionGroup
         class="tab-inner-box"
         ref="tabBoxRef"
         tag="div"
@@ -46,7 +46,7 @@
             </template>
           </Dropdown>
         </div>
-      </transition-group>
+      </TransitionGroup>
       <!-- </draggable> -->
     </div>
     <Dropdown trigger="hover" v-if="showDrop" placement="bottom" arrow>
@@ -62,7 +62,16 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeMount, nextTick, inject } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeMount,
+  TransitionGroup,
+  nextTick,
+  inject,
+} from "vue";
 import * as kui from "kui-icons";
 import { Close, ChevronDown } from "kui-icons";
 import id from "hash-sum";
@@ -178,7 +187,7 @@ const handle = ({ key }, view) => {
 };
 
 const reload = (view) => {
-  let currentId = id(route.fullPath);
+  let currentId = route.fullPath;
   if (currentId != view.key) {
     store.commit("tabViews/reloadSelectView", view);
     return;

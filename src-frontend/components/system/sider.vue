@@ -80,8 +80,8 @@ watch(
   () => route.fullPath,
   (nv) => {
     const keys = getPath(props.routes, route.path);
-    console.log(keys);
-    // activeMenu.value = keys;
+    // console.log(keys);
+    activeMenu.value = keys;
   }
 );
 

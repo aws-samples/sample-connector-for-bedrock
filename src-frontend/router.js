@@ -10,7 +10,7 @@ import {
   Person,
   Hammer,
   Key,
-  Menu,
+  Menu as MenuIcon,
   Reader,
   People,
   ExtensionPuzzle,
@@ -44,7 +44,7 @@ const routes = [
       {
         path: "/user/sessions",
         name: "userSessions",
-        meta: { title: "menu.topic_list", icon: Menu },
+        meta: { title: "menu.topic_list", icon: MenuIcon },
         component: () => import("./pages/sessions"),
         hidden: false,
       },
