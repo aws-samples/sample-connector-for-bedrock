@@ -50,7 +50,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src-frontend"),
-      "kui-vue": "/Users/xiaobei/Projects/My/kui-vue-4.x",
+      "kui-vue": "/Users/chiu/Projects/My/kui-vue-v4",
     },
     extensions: [".js", ".ts", ".jsx", ".tsx", ".json", ".vue"],
   },

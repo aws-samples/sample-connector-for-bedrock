@@ -5,14 +5,10 @@
   </Space>
 </template>
 <script setup>
-import {
-  ref,
-  reactive,
-  computed,
-  onMounted,
-  getCurrentInstance,
-  inject,
-} from "vue";
+import { ref, computed, onMounted, getCurrentInstance, inject } from "vue";
+defineOptions({
+  name: "Home",
+});
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
 const loading = ref(false);
@@ -69,38 +65,29 @@ const getMineInfo = () => {
 };
 const getAllInfo = () => {
   if (is_admin.value) {
-    proxy.$http
-      .get(host + "/admin/statistics/total", null, key)
-      .then(({ success, data }) => {
-        // console.log("total:", res);
-        if (success) {
-          total_info.value = data;
-          const {
-            total_fee,
-            total_month_fee,
-            count_key,
-            active_key,
-            active_key_this_month,
-          } = data;
-          items2.value[0].precision = get_precision(total_fee);
-          items2.value[0].value = total_fee * 1;
-          items2.value[1].precision = get_precision(total_month_fee);
-          items2.value[1].value = total_month_fee * 1;
-          items2.value[2].precision = get_precision(count_key);
-          items2.value[2].value = count_key * 1;
-          items2.value[3].precision = get_precision(active_key);
-          items2.value[3].value = active_key * 1;
-          items2.value[4].precision = get_precision(active_key_this_month);
-          items2.value[4].value = active_key_this_month * 1;
-        } else {
-          message.info(data);
-        }
-      });
+    proxy.$http.get(host + "/admin/statistics/total", null, key).then(({ success, data }) => {
+      // console.log("total:", res);
+      if (success) {
+        total_info.value = data;
+        const { total_fee, total_month_fee, count_key, active_key, active_key_this_month } = data;
+        items2.value[0].precision = get_precision(total_fee);
+        items2.value[0].value = total_fee * 1;
+        items2.value[1].precision = get_precision(total_month_fee);
+        items2.value[1].value = total_month_fee * 1;
+        items2.value[2].precision = get_precision(count_key);
+        items2.value[2].value = count_key * 1;
+        items2.value[3].precision = get_precision(active_key);
+        items2.value[3].value = active_key * 1;
+        items2.value[4].precision = get_precision(active_key_this_month);
+        items2.value[4].value = active_key_this_month * 1;
+      } else {
+        message.info(data);
+      }
+    });
   }
 };
 onMounted(() => {
-  const validHost =
-    host && (host.indexOf("http://") === 0 || host.indexOf("https://") === 0);
+  const validHost = host && (host.indexOf("http://") === 0 || host.indexOf("https://") === 0);
   if (!validHost) {
     return false;
   }

@@ -32,7 +32,9 @@ import { Chatbubble } from "kui-icons";
 const { proxy } = getCurrentInstance();
 import { useRoute } from "vue-router";
 const route = useRoute();
-
+defineOptions({
+  name: "userThreads",
+});
 const items = ref([]);
 const page = ref(1);
 const size = ref(15);

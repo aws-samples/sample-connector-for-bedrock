@@ -10,31 +10,17 @@
           <Button size="small" @click="edit(record)">
             {{ $t("common.edit") }}
           </Button>
-          <Popconfirm
-            :title="$t('group.tip_delete')"
-            @ok="del(record)"
-            :width="260"
-          >
+          <Popconfirm :title="$t('group.tip_delete')" @ok="del(record)" :width="260">
             <Button size="small">{{ $t("common.btn_delete") }}</Button>
           </Popconfirm>
-          <Button
-            size="small"
-            @click="listModels(record)"
-            :loading="record.loading"
-          >
+          <Button size="small" @click="listModels(record)" :loading="record.loading">
             {{ $t("group.btn_models") }}
           </Button>
         </Space>
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
-    <Drawer
-      :title="title"
-      v-model="show"
-      @ok="save"
-      :loading="saving"
-      :mask-closable="true"
-    >
+    <Drawer :title="title" v-model="show" @ok="save" :loading="saving" :mask-closable="true">
       <Form :model="form" :rules="rules" layout="vertical" ref="refForm">
         <FormItem :label="$t('group.name')" prop="name">
           <Input />
@@ -63,14 +49,7 @@
   </div>
 </template>
 <script setup>
-import {
-  ref,
-  reactive,
-  onMounted,
-  getCurrentInstance,
-  nextTick,
-  inject,
-} from "vue";
+import { ref, reactive, onMounted, getCurrentInstance, nextTick, inject } from "vue";
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
 import ModelList from "../components/modelList/index.vue";
@@ -90,7 +69,9 @@ const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
 const current_group_id = ref(0);
-
+defineOptions({
+  name: "adminGroup",
+});
 const form = reactive({ name: "", key: "", id: "" });
 
 const rules = {

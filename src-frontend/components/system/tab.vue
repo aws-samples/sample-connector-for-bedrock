@@ -74,7 +74,6 @@ import {
 } from "vue";
 import * as kui from "kui-icons";
 import { Close, ChevronDown } from "kui-icons";
-import id from "hash-sum";
 import { getTransitionHorProp } from "@/utils/transition";
 const animate = getTransitionHorProp("tab-fade");
 import { useStore } from "vuex";
@@ -95,8 +94,8 @@ const currentIndex = computed(() => views.value.findIndex((v) => v.fullPath == c
 
 watch(
   () => route.fullPath,
-  (newRoute) => {
-    store.commit("tabViews/addView", newRoute);
+  (_) => {
+    store.commit("tabViews/addView", route);
     nextTick(() => {
       scrollToCenter();
       setDropShow(_$(".sys-tab-box"), tabBoxRef.value?.$el);

@@ -15,6 +15,7 @@ export const getView = (state, route) => {
   let index = -1;
   view.meta.keepAlive = true;
   index = state?.views.findIndex((x) => x.path == view.path);
+  // console.log("view name", view.name);
   return { view, index, keepViewKey: view.name };
 };
 

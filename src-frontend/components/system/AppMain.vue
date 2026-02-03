@@ -1,10 +1,10 @@
 <template>
   <router-view v-slot="{ Component }">
-    <keep-alive :include="keepViews" :max="100">
-      <transition name="fade">
+    <transition name="fade">
+      <keep-alive :include="keepViews" :max="100">
         <component :is="Component" :key="key" />
-      </transition>
-    </keep-alive>
+      </keep-alive>
+    </transition>
   </router-view>
 </template>
 <script setup>
@@ -13,7 +13,11 @@ import { useStore } from "vuex";
 const store = useStore();
 
 const keepViews = computed(() => store.getters.keepViews);
+
 const key = computed(() => store.getters.keepKey);
+setInterval(() => {
+  console.log("keepKey:", `${JSON.stringify(keepViews.value)}`);
+}, 1000);
 </script>
 <style lang="less">
 @keyframes route-fade {

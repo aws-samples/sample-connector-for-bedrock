@@ -61,47 +61,24 @@
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
-    <Drawer
-      :title="title"
-      v-model="show"
-      @ok="save"
-      :loading="saving"
-      :mask-closable="true"
-    >
+    <Drawer :title="title" v-model="show" @ok="save" :loading="saving" :mask-closable="true">
       <Form :model="form" :rules="rules" layout="vertical" ref="refForm">
         <FormItem :label="$t('keys.col_name')" prop="name">
           <Input placeholder="Name" :readonly="action == 'recharge'" />
         </FormItem>
-        <FormItem
-          :label="$t('keys.col_email')"
-          prop="email"
-          :readonly="action == 'recharge'"
-        >
+        <FormItem :label="$t('keys.col_email')" prop="email" :readonly="action == 'recharge'">
           <Input placeholder="Email" />
         </FormItem>
-        <FormItem
-          :label="$t('keys.col_role')"
-          prop="role"
-          v-if="action != 'recharge'"
-        >
+        <FormItem :label="$t('keys.col_role')" prop="role" v-if="action != 'recharge'">
           <Select :width="200" placeholder="Role">
             <Option value="user" :label="$t('keys.op_normal')" />
             <Option value="admin" :label="$t('keys.op_admin')" />
           </Select>
         </FormItem>
-        <FormItem
-          :label="$t('keys.col_group')"
-          prop="group_id"
-          v-if="action != 'recharge'"
-        >
-          <Select :width="200" :options="groups" v-model="form.group_id">
-          </Select>
+        <FormItem :label="$t('keys.col_group')" prop="group_id" v-if="action != 'recharge'">
+          <Select :width="200" :options="groups" v-model="form.group_id"> </Select>
         </FormItem>
-        <FormItem
-          :label="$t('keys.btn_recharge')"
-          prop="balance"
-          v-if="action == 'recharge'"
-        >
+        <FormItem :label="$t('keys.btn_recharge')" prop="balance" v-if="action == 'recharge'">
           <Input placeholder="Balance" />
         </FormItem>
         <FormItem
@@ -121,12 +98,7 @@
       :loading="saving"
       :mask-closable="true"
     >
-      <Form
-        :model="importForm"
-        ref="refImportForm"
-        :rules="uploadRules"
-        :labelCol="{ span: 5 }"
-      >
+      <Form :model="importForm" ref="refImportForm" :rules="uploadRules" :labelCol="{ span: 5 }">
         <FormItem :label="$t('keys.upload_file')" prop="file">
           <Input style="width: 275px" readonly="true" v-model="importFileName">
             <template #suffix>
@@ -139,12 +111,7 @@
                 >
                   Help
                 </Button>
-                <input
-                  type="file"
-                  ref="file"
-                  style="display: none"
-                  @change="fileChange"
-                />
+                <input type="file" ref="file" style="display: none" @change="fileChange" />
               </Space>
             </template>
           </Input>
@@ -175,14 +142,7 @@
   </div>
 </template>
 <script setup>
-import {
-  ref,
-  reactive,
-  nextTick,
-  onMounted,
-  getCurrentInstance,
-  inject,
-} from "vue";
+import { ref, reactive, nextTick, onMounted, getCurrentInstance, inject, defineOptions } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { Copy, CloudUpload, FolderOpen, Settings } from "kui-icons";
 import ModelList from "../components/modelList/index.vue";
@@ -192,6 +152,9 @@ const { copy, isSupported } = useClipboard();
 const { proxy } = getCurrentInstance();
 let url = localStorage.getItem("host");
 const key = localStorage.getItem("key");
+defineOptions({
+  name: "AdminKeys",
+});
 if (url.endsWith("/")) {
   url = url.substring(0, url.length - 1);
 }
@@ -342,10 +305,7 @@ const submitExcel = () => {
       let { month_quota, group_id } = importForm;
       data.append("month_quota", month_quota);
       data.append("group_id", group_id);
-      data.append(
-        "file",
-        document.querySelector('input[type="file"]').files[0],
-      );
+      data.append("file", document.querySelector('input[type="file"]').files[0]);
 
       proxy.$http
         .post(uploadEndpoint, data)
@@ -391,15 +351,13 @@ const change = (pageVal) => {
 };
 
 const loadGroups = () => {
-  proxy.$http
-    .get("/admin/group/list", { limit: 1000, offset: 0 })
-    .then((res) => {
-      let items = res.data.items;
-      groups.value = items.map((it) => ({
-        label: it.name,
-        value: it.id,
-      }));
-    });
+  proxy.$http.get("/admin/group/list", { limit: 1000, offset: 0 }).then((res) => {
+    let items = res.data.items;
+    groups.value = items.map((it) => ({
+      label: it.name,
+      value: it.id,
+    }));
+  });
 };
 
 const listModels = (row) => {
@@ -416,16 +374,14 @@ const listModels = (row) => {
       let items = res.data.items;
       checked_models.value = items.map((it) => it.model_id);
 
-      proxy.$http
-        .get("/admin/model/list", { limit: 1000, offset: 0 })
-        .then((res) => {
-          let items = res.data.items;
-          models.value = items.map((it) => ({
-            label: it.name,
-            value: it.id,
-          }));
-          modelsShown.value = true;
-        });
+      proxy.$http.get("/admin/model/list", { limit: 1000, offset: 0 }).then((res) => {
+        let items = res.data.items;
+        models.value = items.map((it) => ({
+          label: it.name,
+          value: it.id,
+        }));
+        modelsShown.value = true;
+      });
     })
     .finally(() => {
       loading.value = false;
@@ -546,10 +502,7 @@ const save = () => {
 
   refForm.value.validate((v) => {
     if (v) {
-      const apiPath =
-        action.value == "new"
-          ? "/admin/api-key/apply"
-          : "/admin/api-key/update";
+      const apiPath = action.value == "new" ? "/admin/api-key/apply" : "/admin/api-key/update";
       proxy.$http
         .post(apiPath, form)
         .then(() => {

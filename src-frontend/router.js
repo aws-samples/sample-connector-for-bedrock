@@ -16,11 +16,38 @@ import {
   ExtensionPuzzle,
   Globe,
 } from "kui-icons";
+
+const modules = import.meta.glob("./pages/**/*.{vue,jsx}");
+const loadView = (view_path, view_name) => {
+  try {
+    const extensions = [".vue", ".jsx"];
+
+    for (const ext of extensions) {
+      const componentPath = `./pages/${view_path}${ext}`;
+      if (modules[componentPath]) {
+        return () =>
+          modules[componentPath]().then((module) => {
+            if (view_name) {
+              console.log(`Component ${view_path} ${view_name}loaded.`);
+              module.default.name = view_name;
+            }
+            return module;
+          });
+      }
+    }
+
+    console.error(`Component ${view_path} not found.`);
+    return null;
+  } catch (e) {
+    console.error(`Loading ${view_path} failed:`, e);
+    return null;
+  }
+};
 const routes = [
   {
     path: "/login",
     meta: { title: "Login", icon: "" },
-    component: () => import("./pages/login"),
+    component: loadView("login"),
     hidden: true,
   },
   {
@@ -32,7 +59,7 @@ const routes = [
         path: "/",
         name: "Home",
         meta: { title: "menu.dashboard", icon: Home },
-        component: () => import("./pages/home"),
+        component: loadView("home", "Home"),
       },
     ],
   },
@@ -45,14 +72,14 @@ const routes = [
         path: "/user/sessions",
         name: "userSessions",
         meta: { title: "menu.topic_list", icon: MenuIcon },
-        component: () => import("./pages/sessions"),
+        component: loadView("sessions", "userSessions"),
         hidden: false,
       },
       {
         path: "/user/sessions/:session_id/threads",
         name: "userThreads",
         meta: { title: "menu.chat_list", icon: ChatboxEllipses },
-        component: () => import("./pages/threads"),
+        component: loadView("threads", "userThreads"),
         hidden: true,
       },
     ],
@@ -67,47 +94,47 @@ const routes = [
         path: "/admin/keys",
         name: "AdminKeys",
         meta: { title: "menu.key", icon: Key },
-        component: () => import("./pages/keys"),
+        component: loadView("keys", "AdminKeys"),
         // hidden: localStorage.getItem('role') != 'admin'
       },
       {
         path: "/admin/kbs",
         name: "userKnowledgeBases",
         meta: { title: "menu.bedrock_kb", icon: School },
-        component: () => import("./pages/kbs"),
+        component: loadView("kbs", "userKnowledgeBases"),
         hidden: true,
       },
       {
         path: "/admin/model",
         name: "adminModel",
         meta: { title: "menu.model", icon: ExtensionPuzzle },
-        component: () => import("./pages/models"),
+        component: loadView("models", "adminModel"),
       },
       {
         path: "/admin/group",
         name: "adminGroup",
         meta: { title: "menu.group", icon: People },
-        component: () => import("./pages/groups"),
+        component: loadView("groups", "adminGroup"),
       },
       {
         path: "/admin/sessions",
         name: "adminSessions",
         meta: { title: "menu.topic_list", icon: Reader },
-        component: () => import("./pages/sessions"),
+        component: loadView("sessions", "adminSessions"),
         hidden: true,
       },
       {
         path: "/admin/sessions/:session_id/threads",
         name: "adminThreads",
         meta: { title: "menu.chat_list", icon: ChatboxEllipses },
-        component: () => import("./pages/threads"),
+        component: loadView("threads", "adminThreads"),
         hidden: true,
       },
       {
         path: "/admin/bot",
         name: "larkBot",
         meta: { title: "menu.webhook", icon: Globe },
-        component: () => import("./pages/webhook.vue"),
+        component: loadView("webhook", "larkBot"),
       },
     ],
   },
@@ -117,7 +144,7 @@ const routes = [
 // store.commit("tabViews/setRoutes", routes);
 
 const router = createRouter({
-  history: createWebHistory('/manager/'),
+  history: createWebHistory("/manager/"),
   routes,
 });
 

@@ -10,11 +10,7 @@
           <Button size="small" type="warning" @click="edit(record)">
             {{ $t("keys.btn_edit") }}
           </Button>
-          <Popconfirm
-            :title="$t('webhook.tip_delete')"
-            @ok="del(record)"
-            :width="260"
-          >
+          <Popconfirm :title="$t('webhook.tip_delete')" @ok="del(record)" :width="260">
             <Button size="small" type="danger">
               {{ $t("common.btn_delete") }}
             </Button>
@@ -26,13 +22,7 @@
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
-    <Drawer
-      :title="title"
-      v-model="show"
-      @ok="save"
-      :loading="saving"
-      :mask-closable="true"
-    >
+    <Drawer :title="title" v-model="show" @ok="save" :loading="saving" :mask-closable="true">
       <div>
         <Form
           :model="form"
@@ -46,12 +36,7 @@
             <Input :readonly="action == 'detail'" />
           </FormItem>
           <FormItem :label="$t('webhook.provider')" prop="provider">
-            <Select
-              :width="200"
-              :options="providers"
-              :disabled="action == 'detail'"
-            >
-            </Select>
+            <Select :width="200" :options="providers" :disabled="action == 'detail'"> </Select>
           </FormItem>
           <FormItem :label="$t('webhook.config')" prop="config">
             <TextArea :rows="8" :readonly="action == 'detail'" />
@@ -66,7 +51,9 @@ import { ref, reactive, onMounted, getCurrentInstance, inject } from "vue";
 const { proxy } = getCurrentInstance();
 import { message } from "kui-vue";
 const $t = inject("$t");
-
+defineOptions({
+  name: "larkBot",
+});
 const providers = ref([]);
 const items = ref([]);
 const title = ref("");

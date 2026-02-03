@@ -25,7 +25,9 @@ import { useRouter, useRoute } from "vue-router";
 const router = useRouter();
 const route = useRoute();
 const $t = inject("$t");
-
+defineOptions({
+  name: "userSessions",
+});
 const { proxy } = getCurrentInstance();
 const items = ref([]);
 const page = ref(1);
