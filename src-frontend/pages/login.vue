@@ -33,6 +33,11 @@
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance, inject } from "vue";
 import { message } from "kui-vue";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
+const router = useRouter();
+const store = useStore();
+
 const { proxy } = getCurrentInstance();
 const loading = ref(false);
 const $t = inject("$t");
@@ -79,13 +84,13 @@ const login = ({ valid }) => {
           role: res.data.role,
           host: host,
         };
-        proxy.$store.commit("user/login", userInfo);
+        store.commit("user/login", userInfo);
         localStorage.setItem("key", key);
         localStorage.setItem("name", res.data.name);
         localStorage.setItem("role", res.data.role);
         localStorage.setItem("host", host);
 
-        proxy.$router.push('/')
+        router.push("/");
       } else {
         alert(res.data);
       }

@@ -21,8 +21,13 @@
 <script setup>
 import { ref, onMounted, getCurrentInstance, inject } from "vue";
 import { ChatboxEllipses } from "kui-icons";
+import { useRouter, useRoute } from "vue-router";
+const router = useRouter();
+const route = useRoute();
 const $t = inject("$t");
-
+defineOptions({
+  name: "userSessions",
+});
 const { proxy } = getCurrentInstance();
 const items = ref([]);
 const page = ref(1);
@@ -57,7 +62,7 @@ const change = (pageVal) => {
 const get_data = () => {
   loading.value = true;
   let apiUrl = "/admin/session/list";
-  if (proxy.$route.path.startsWith("/user")) {
+  if (route.path.startsWith("/user")) {
     apiUrl = "/user/session/list";
   }
   let { page: currentPage, size: currentSize } = {
@@ -87,10 +92,10 @@ const get_data = () => {
 
 const threadDetail = (row) => {
   let newPath = "adminThreads";
-  if (proxy.$route.path.startsWith("/user")) {
+  if (route.path.startsWith("/user")) {
     newPath = "userThreads";
   }
-  proxy.$router.push({ name: newPath, params: { session_id: row.id } });
+  router.push({ name: newPath, params: { session_id: row.id } });
 };
 
 onMounted(() => {

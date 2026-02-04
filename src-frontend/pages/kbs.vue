@@ -32,16 +32,10 @@
         <FormItem :label="$t('knowledgebases.name')" prop="name">
           <Input placeholder="Name" :readonly="action == 'edit'" />
         </FormItem>
-        <FormItem
-          :label="$t('knowledgebases.knowledge_base_id')"
-          prop="knowledgeBaseId"
-        >
+        <FormItem :label="$t('knowledgebases.knowledge_base_id')" prop="knowledgeBaseId">
           <Input placeholder="" />
         </FormItem>
-        <FormItem
-          :label="$t('knowledgebases.summary_model')"
-          prop="summaryModel"
-        >
+        <FormItem :label="$t('knowledgebases.summary_model')" prop="summaryModel">
           <Select :width="200" placeholder="SummaryModel">
             <Option label="Claude3 Haiku" value="claude-3-haiku" />
             <Option label="Claude3 Sonnet" value="claude-3-sonnet" />
@@ -70,6 +64,9 @@ const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
 const refForm = ref(null);
+defineOptions({
+  name: "userKnowledgeBases",
+});
 const form = reactive({
   name: "",
   knowledgeBaseId: "",

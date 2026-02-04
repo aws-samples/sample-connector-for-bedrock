@@ -2,7 +2,7 @@ import id from "hash-sum";
 export const getView = (state, route) => {
   let { path, fullPath, query, params, meta, name, icon, loading } = route;
   const view = {
-    key: id(fullPath),
+    key: fullPath,
     loading: loading === undefined ? true : false,
     path,
     fullPath,
@@ -12,15 +12,10 @@ export const getView = (state, route) => {
     name,
     icon,
   };
-  const server = view.query.server || "";
   let index = -1;
   view.meta.keepAlive = true;
-  if (server) {
-    view.meta.title = server;
-    index = state?.views.findIndex((x) => x.fullPath == view.fullPath);
-  } else {
-    index = state?.views.findIndex((x) => x.path == view.path);
-  }
+  index = state?.views.findIndex((x) => x.path == view.path);
+  // console.log("view name", view.name);
   return { view, index, keepViewKey: view.name };
 };
 
@@ -28,7 +23,7 @@ export const updateLocalRoutes = (state) => {
   let routes = state.views.map(
     ({ icon, fullPath, params, name, query, path, meta, key, loading }) => {
       return {
-        key: key || id(fullPath),
+        key: key || fullPath,
         loading,
         icon,
         fullPath,

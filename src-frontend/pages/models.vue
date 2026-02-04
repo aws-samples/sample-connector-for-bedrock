@@ -13,16 +13,17 @@
         <Button @click="get_data">{{ $t("keys.btn_query") }}</Button>
       </InputGroup>
     </Space>
-    <Table :data="items" :columns="columns" :loading="loading" :scroll="{y:'calc(100vh - 230px)'}">
+    <Table
+      :data="items"
+      :columns="columns"
+      :loading="loading"
+      :scroll="{ y: 'calc(100vh - 230px)' }"
+    >
       <template #price_in="{ record }">
-        <div style="text-align: right">
-          {{ record.price_in }}/{{ $t("common.price_unit") }}
-        </div>
+        <div style="text-align: right">{{ record.price_in }}/{{ $t("common.price_unit") }}</div>
       </template>
       <template #price_out="{ record }">
-        <div style="text-align: right">
-          {{ record.price_out }}/{{ $t("common.price_unit") }}
-        </div>
+        <div style="text-align: right">{{ record.price_out }}/{{ $t("common.price_unit") }}</div>
       </template>
       <template #multiple="{ record }">
         {{ record.multiple ? "Y" : "N" }}
@@ -32,11 +33,7 @@
           <Button size="small" @click="edit(record)">
             {{ $t("keys.btn_edit") }}
           </Button>
-          <Popconfirm
-            :title="$t('model.tip_delete')"
-            @ok="del(record)"
-            :width="260"
-          >
+          <Popconfirm :title="$t('model.tip_delete')" @ok="del(record)" :width="260">
             <Button size="small">{{ $t("common.btn_delete") }}</Button>
           </Popconfirm>
           <Button size="small" @click="detail(record)">
@@ -46,13 +43,7 @@
       </template>
     </Table>
     <Page :current="page" :total="total" @change="change" :page-size="size" />
-    <Drawer
-      :title="title"
-      v-model="show"
-      @ok="save"
-      :loading="saving"
-      :mask-closable="true"
-    >
+    <Drawer :title="title" v-model="show" @ok="save" :loading="saving" :mask-closable="true">
       <div>
         <Form
           :model="form"
@@ -66,12 +57,7 @@
             <Input :readonly="action == 'detail'" />
           </FormItem>
           <FormItem :label="$t('model.provider')" prop="provider">
-            <Select
-              :width="200"
-              :options="providers"
-              :disabled="action == 'detail'"
-            >
-            </Select>
+            <Select :width="200" :options="providers" :disabled="action == 'detail'"> </Select>
           </FormItem>
           <FormItem :label="$t('model.multiple')" prop="multiple">
             <k-switch />
@@ -105,7 +91,9 @@
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance, inject } from "vue";
 const $t = inject("$t");
-
+defineOptions({
+  name: "adminModel",
+});
 import { message } from "kui-vue";
 const { proxy } = getCurrentInstance();
 

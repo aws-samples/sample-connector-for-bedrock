@@ -1,20 +1,13 @@
-import Vue from "vue";
+import { createApp } from "vue";
 import App from "./App.vue";
 import kui from "kui-vue";
 import router from "./router";
-import "kui-vue/dist/k-ui.css";
 import http from "./utils/http";
 import store from "./store/index";
+import "kui-vue/dist/k-ui.css";
 import "./assets/css/index.less";
 
-Vue.config.productionTip = false;
+const app = createApp(App);
+app.config.globalProperties.$http = http;
 
-Vue.prototype.$http = http;
-
-Vue.use(kui);
-
-new Vue({
-  router,
-  store,
-  render: (h) => h(App),
-}).$mount("#app");
+app.use(kui).use(store).use(router).mount("#app");
