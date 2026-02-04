@@ -28,7 +28,6 @@ const loadView = (view_path, view_name) => {
         return () =>
           modules[componentPath]().then((module) => {
             if (view_name) {
-              console.log(`Component ${view_path} ${view_name}loaded.`);
               module.default.name = view_name;
             }
             return module;

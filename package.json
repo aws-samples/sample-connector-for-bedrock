@@ -64,7 +64,7 @@
     "eslint-plugin-vue": "^10.7.0",
     "hash-sum": "^2.0.0",
     "kui-icons": "^4.2.0",
-    "kui-vue": "^3.6.10",
+    "kui-vue": "^4.0.0",
     "less": "^4.5.1",
     "less-loader": "^12.3.0",
     "nodemon": "^3.1.11",

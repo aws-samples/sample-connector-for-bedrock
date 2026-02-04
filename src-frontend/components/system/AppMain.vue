@@ -11,13 +11,8 @@
 import { computed } from "vue";
 import { useStore } from "vuex";
 const store = useStore();
-
 const keepViews = computed(() => store.getters.keepViews);
-
 const key = computed(() => store.getters.keepKey);
-setInterval(() => {
-  console.log("keepKey:", `${JSON.stringify(keepViews.value)}`);
-}, 1000);
 </script>
 <style lang="less">
 @keyframes route-fade {

@@ -3,7 +3,6 @@
     <div class="sys-tab-box" ref="rootRef">
       <TransitionGroup
         class="tab-inner-box"
-        ref="tabBoxRef"
         tag="div"
         name="sys-tab"
         :time="300"
@@ -83,14 +82,14 @@ const router = useRouter();
 const store = useStore();
 
 const $t = inject("$t");
-const showDrop = ref(false);
 const observe = ref(null);
 const rootRef = ref(null);
-const tabBoxRef = ref(null);
 
 const views = computed(() => store.state.tabViews.views); //getters.views);
 const current = computed(() => route.fullPath);
 const currentIndex = computed(() => views.value.findIndex((v) => v.fullPath == current.value));
+
+const showDrop = ref(false);
 
 watch(
   () => route.fullPath,
@@ -98,7 +97,6 @@ watch(
     store.commit("tabViews/addView", route);
     nextTick(() => {
       scrollToCenter();
-      setDropShow(_$(".sys-tab-box"), tabBoxRef.value?.$el);
     });
   }
 );
@@ -109,10 +107,10 @@ onBeforeMount(() => {
 
 onMounted(() => {
   observe.value = new ResizeObserver((e) => {
-    setDropShow(e[0].target, _$(".tab-inner-box"));
+    showDrop.value = rootRef.value?.clientWidth < rootRef.value?.scrollWidth;
     scrollToCenter();
   });
-  observe.value.observe(_$(".sys-tab-box"));
+  observe.value.observe(rootRef.value);
 });
 
 const dropGo = ({ key }) => {
@@ -120,32 +118,20 @@ const dropGo = ({ key }) => {
   go(view);
 };
 
-const _$ = (clsName) => {
-  return document.querySelector(clsName);
-};
-
-const setDropShow = (outer, inner) => {
-  if (!inner) return;
-  showDrop.value = outer.offsetWidth < inner.offsetWidth;
-};
-
 const scrollToCenter = (animate = true) => {
-  let box = tabBoxRef.value?.$el;
-  let children = box?.children || [];
-  for (let m of children) {
-    if (m.className.indexOf("active") > -1) {
-      const offset = m.offsetLeft;
-      const scrollDistance =
-        offset -
-        parseFloat((rootRef.value.clientWidth / 2).toFixed(2)) +
-        parseFloat((m.clientWidth / 2).toFixed(2));
-      if (animate) {
-        rootRef.value.scrollTo({ left: scrollDistance, behavior: "smooth" });
-      } else {
-        rootRef.value.scrollLeft = scrollDistance;
-      }
-      break;
-    }
+  let box = rootRef.value;
+  let items = box.children[0]?.children || [];
+  let item = items[currentIndex.value];
+  if (!item) return;
+  const offset = item.offsetLeft;
+  const scrollDistance =
+    offset -
+    parseFloat((rootRef.value.clientWidth / 2).toFixed(2)) +
+    parseFloat((item.clientWidth / 2).toFixed(2));
+  if (animate) {
+    rootRef.value.scrollTo({ left: scrollDistance, behavior: "smooth" });
+  } else {
+    rootRef.value.scrollLeft = scrollDistance;
   }
 };
 
