@@ -1,6 +1,7 @@
 import Router from "koa-router";
 // import chat from './controller/runtime/chat';
 import v1 from './controller/runtime/v1';
+import anthropic from './controller/runtime/anthropic';
 import models from './controller/runtime/models';
 import config from './config';
 import admin_statistics_controller from './controller/admin/StatisticsController';
@@ -32,6 +33,9 @@ router.post("/v1/completions", v1.completions);
 router.post("/v1/embeddings", v1.embeddings);
 router.post("/v1/images/generations", v1.images);
 router.get("/v1/models", models.list);
+
+// Anthropic Messages API
+router.post("/v1/messages", anthropic.messages);
 
 // Admin APIs
 admin_statistics_controller(router);

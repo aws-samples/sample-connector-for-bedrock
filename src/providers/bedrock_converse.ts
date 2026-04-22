@@ -8,6 +8,7 @@ import helper from "../util/helper";
 // import config from "../config";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
+import AnthropicResponse from '../util/anthropic_response';
 
 /**
 * BedrockConverse Provider uses boto3-converse api to invoke LLM models and support function calling.
@@ -488,6 +489,204 @@ export default class BedrockConverse extends AbstractProvider {
                 total_tokens: totalTokens
             }
         };
+    }
+
+    /**
+     * Anthropic Messages API compatible chat
+     * Reuses the same Bedrock Converse payload builder, but responds in Anthropic schema.
+     */
+    async chatAnthropic(chatRequest: ChatRequest, session_id: string, ctx: any) {
+        await this.init();
+
+        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
+        payload['modelId'] = chatRequest.model_id || this.modelId;
+
+        ctx.status = 200;
+
+        if (chatRequest.stream) {
+            ctx.set({
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            });
+            await this.chatAnthropicStream(ctx, payload, chatRequest, session_id);
+        } else {
+            ctx.set({ 'Content-Type': 'application/json' });
+            ctx.body = await this.chatAnthropicSync(ctx, payload, chatRequest, session_id);
+        }
+    }
+
+    async chatAnthropicStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+        
+        const command = new ConverseStreamCommand(input);
+        const response = await this.client.send(command);
+
+        if (!response.stream) throw new Error('No response stream.');
+
+        const msgId = AnthropicResponse.messageId();
+        let responseText = '';
+        let inputTokens = 0;
+        let outputTokens = 0;
+        let stopReason = 'end_turn';
+        let blockIndex = 0;
+        // contentBlockIndex (Bedrock) -> { toolIndex, toolId, toolName, argsBuffer }
+        const toolBlockMap: Map<number, { index: number, id: string, name: string, args: string }> = new Map();
+        let nextToolIndex = 0;
+        let textBlockOpen = false;
+        let thinkBlockOpen = false;
+
+        ctx.res.write(AnthropicResponse.ping());
+        // message_start with placeholder input tokens (updated at end)
+        ctx.res.write(AnthropicResponse.messageStart(msgId, chatRequest.model, 0));
+
+        for await (const item of response.stream) {
+            // Tool use block start
+            if (item.contentBlockStart?.start?.toolUse) {
+                const cbIdx = item.contentBlockStart.contentBlockIndex;
+                const tu = item.contentBlockStart.start.toolUse;
+                const toolIdx = nextToolIndex++;
+                toolBlockMap.set(cbIdx, { index: blockIndex, id: tu.toolUseId, name: tu.name, args: '' });
+                ctx.res.write(AnthropicResponse.contentBlockStart(blockIndex, {
+                    type: 'tool_use',
+                    id: tu.toolUseId,
+                    name: tu.name,
+                    input: {}
+                }));
+                blockIndex++;
+            }
+
+            if (item.contentBlockDelta) {
+                const cbIdx = item.contentBlockDelta.contentBlockIndex;
+                const delta = item.contentBlockDelta.delta;
+
+                // Thinking / reasoning
+                if (delta?.reasoningContent?.text) {
+                    if (!thinkBlockOpen) {
+                        ctx.res.write(AnthropicResponse.contentBlockStart(blockIndex, { type: 'thinking', thinking: '' }));
+                        thinkBlockOpen = true;
+                    }
+                    ctx.res.write(AnthropicResponse.contentBlockDelta(blockIndex, {
+                        type: 'thinking_delta',
+                        thinking: delta.reasoningContent.text
+                    }));
+                }
+
+                // Text
+                if (delta?.text) {
+                    if (thinkBlockOpen) {
+                        ctx.res.write(AnthropicResponse.contentBlockStop(blockIndex));
+                        thinkBlockOpen = false;
+                        blockIndex++;
+                    }
+                    if (!textBlockOpen) {
+                        ctx.res.write(AnthropicResponse.contentBlockStart(blockIndex, { type: 'text', text: '' }));
+                        textBlockOpen = true;
+                    }
+                    responseText += delta.text;
+                    ctx.res.write(AnthropicResponse.contentBlockDelta(blockIndex, {
+                        type: 'text_delta',
+                        text: delta.text
+                    }));
+                }
+
+                // Tool input args
+                if (delta?.toolUse?.input !== undefined) {
+                    const tb = toolBlockMap.get(cbIdx);
+                    if (tb) {
+                        tb.args += delta.toolUse.input;
+                        ctx.res.write(AnthropicResponse.contentBlockDelta(tb.index, {
+                            type: 'input_json_delta',
+                            partial_json: delta.toolUse.input
+                        }));
+                    }
+                }
+            }
+
+            if (item.contentBlockStop) {
+                const cbIdx = item.contentBlockStop.contentBlockIndex;
+                if (toolBlockMap.has(cbIdx)) {
+                    const tb = toolBlockMap.get(cbIdx)!;
+                    ctx.res.write(AnthropicResponse.contentBlockStop(tb.index));
+                } else if (textBlockOpen) {
+                    ctx.res.write(AnthropicResponse.contentBlockStop(blockIndex));
+                    textBlockOpen = false;
+                    blockIndex++;
+                } else if (thinkBlockOpen) {
+                    ctx.res.write(AnthropicResponse.contentBlockStop(blockIndex));
+                    thinkBlockOpen = false;
+                    blockIndex++;
+                }
+            }
+
+            if (item.messageStop?.stopReason) {
+                stopReason = AnthropicResponse.mapStopReason(item.messageStop.stopReason);
+            }
+
+            if (item.metadata) {
+                inputTokens = item.metadata.usage.inputTokens;
+                outputTokens = item.metadata.usage.outputTokens;
+            }
+        }
+
+        ctx.res.write(AnthropicResponse.messageDelta(stopReason, outputTokens));
+        ctx.res.write(AnthropicResponse.messageStop());
+        ctx.res.end();
+
+        await this.saveThread(ctx, session_id, chatRequest, {
+            text: responseText,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            invocation_latency: 0,
+            first_byte_latency: 0
+        });
+    }
+
+    async chatAnthropicSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+        
+        const command = new ConverseCommand(input);
+        const apiResponse = await this.client.send(command);
+
+        const rawContent = apiResponse.output.message?.content || [];
+        const { inputTokens, outputTokens } = apiResponse.usage;
+        const { latencyMs } = apiResponse.metrics;
+        const stopReason = AnthropicResponse.mapStopReason(apiResponse.stopReason || 'end_turn');
+
+        // Build Anthropic content array
+        const content: any[] = [];
+        let responseText = '';
+
+        for (const c of rawContent) {
+            if (c.reasoningContent) {
+                content.push({ type: 'thinking', thinking: c.reasoningContent.reasoningText?.text || '' });
+            }
+            if (c.text) {
+                responseText = c.text;
+                content.push({ type: 'text', text: c.text });
+            }
+            if (c.toolUse) {
+                content.push({
+                    type: 'tool_use',
+                    id: c.toolUse.toolUseId,
+                    name: c.toolUse.name,
+                    input: c.toolUse.input
+                });
+            }
+        }
+
+        await this.saveThread(ctx, session_id, chatRequest, {
+            text: responseText,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            invocation_latency: 0,
+            first_byte_latency: latencyMs
+        });
+
+        return AnthropicResponse.wrapSync(
+            chatRequest.model,
+            content,
+            stopReason,
+            { input_tokens: inputTokens, output_tokens: outputTokens }
+        );
     }
 }
 
