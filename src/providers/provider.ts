@@ -192,6 +192,165 @@ class Provider {
         return res.provider.chat(res.chatRequest, res.session_id, ctx);
     }
 
+    async anthropicMessages(ctx: any) {
+        const res = await this.initForAnthropic(ctx);
+        return (res.provider as any).chatAnthropic(res.chatRequest, res.session_id, ctx);
+    }
+
+    async initForAnthropic(ctx: any) {
+        if (ctx.user && ctx.user.id > 0) {
+            await this.checkFee(ctx, ctx.user);
+        }
+
+        // Convert Anthropic Messages API request → internal ChatRequest
+        const body = ctx.request.body;
+        const chatRequest: ChatRequest = this.convertAnthropicRequest(body);
+
+        const modelRes = helper.parseModelString(chatRequest.model);
+        if (modelRes) {
+            chatRequest.model = modelRes.model;
+            chatRequest.model_id = modelRes.model_id;
+        }
+
+        const session_id = ctx.headers["session-id"];
+        const modelData = await helper.refineModelParameters(chatRequest, ctx);
+
+        if (ctx.db) {
+            const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
+            if (!canAccessModel) {
+                throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
+            }
+        }
+
+        chatRequest.currency = modelData.config.currency || "USD";
+        chatRequest.price_in = modelData.price_in || 0;
+        chatRequest.price_out = modelData.price_out || 0;
+        chatRequest.model = modelData.name;
+
+        const provider: AbstractProvider = this[modelData.provider];
+        if (!provider) {
+            throw new Error("You need to configure the provider correctly.");
+        }
+        provider.setModelData(modelData);
+        provider.setKeyData(ctx.user);
+
+        return { provider, chatRequest, session_id };
+    }
+
+    /**
+     * Convert Anthropic Messages API request body → internal ChatRequest format
+     * Anthropic spec: https://docs.anthropic.com/en/api/messages
+     */
+    convertAnthropicRequest(body: any): ChatRequest {
+        const messages: any[] = [];
+
+        // system prompt → system message
+        if (body.system) {
+            const systemContent = typeof body.system === 'string'
+                ? body.system
+                : body.system.map((b: any) => b.text || '').join('');
+            messages.push({ role: 'system', content: systemContent });
+        }
+
+        // Convert Anthropic messages → OpenAI-style messages
+        for (const msg of (body.messages || [])) {
+            if (msg.role === 'user' || msg.role === 'assistant') {
+                const converted: any = { role: msg.role };
+
+                if (typeof msg.content === 'string') {
+                    converted.content = msg.content;
+                } else if (Array.isArray(msg.content)) {
+                    // Check for tool_use / tool_result blocks
+                    const toolUseBlocks = msg.content.filter((b: any) => b.type === 'tool_use');
+                    const toolResultBlocks = msg.content.filter((b: any) => b.type === 'tool_result');
+                    const textBlocks = msg.content.filter((b: any) => b.type === 'text' || b.type === 'image');
+
+                    if (toolResultBlocks.length > 0) {
+                        // tool result messages: emit one tool message per result
+                        for (const tr of toolResultBlocks) {
+                            const resultContent = Array.isArray(tr.content)
+                                ? tr.content.map((c: any) => c.text || '').join('')
+                                : (tr.content || '');
+                            messages.push({
+                                role: 'tool',
+                                tool_call_id: tr.tool_use_id,
+                                content: resultContent
+                            });
+                        }
+                        continue;
+                    }
+
+                    if (toolUseBlocks.length > 0) {
+                        // assistant tool_use → tool_calls
+                        converted.content = textBlocks
+                            .filter((b: any) => b.type === 'text')
+                            .map((b: any) => b.text)
+                            .join('') || null;
+                        converted.tool_calls = toolUseBlocks.map((b: any) => ({
+                            id: b.id,
+                            type: 'function',
+                            function: {
+                                name: b.name,
+                                arguments: typeof b.input === 'string' ? b.input : JSON.stringify(b.input)
+                            }
+                        }));
+                    } else {
+                        // regular content array → OpenAI content array
+                        converted.content = msg.content.map((b: any) => {
+                            if (b.type === 'text') return { type: 'text', text: b.text };
+                            if (b.type === 'image') {
+                                if (b.source?.type === 'base64') {
+                                    return {
+                                        type: 'image_url',
+                                        image_url: { url: `data:${b.source.media_type};base64,${b.source.data}` }
+                                    };
+                                } else if (b.source?.type === 'url') {
+                                    return { type: 'image_url', image_url: { url: b.source.url } };
+                                }
+                            }
+                            return b;
+                        });
+                    }
+                }
+                messages.push(converted);
+            }
+        }
+
+        // Convert Anthropic tools → OpenAI tools
+        const tools = body.tools?.map((t: any) => ({
+            type: 'function',
+            function: {
+                name: t.name,
+                description: t.description || '',
+                parameters: t.input_schema
+            }
+        }));
+
+        // Convert tool_choice
+        let tool_choice: any;
+        if (body.tool_choice) {
+            if (body.tool_choice.type === 'auto') tool_choice = 'auto';
+            else if (body.tool_choice.type === 'any') tool_choice = 'required';
+            else if (body.tool_choice.type === 'tool') {
+                tool_choice = { type: 'function', function: { name: body.tool_choice.name } };
+            }
+        }
+
+        const req: ChatRequest = {
+            model: body.model,
+            messages,
+            stream: body.stream || false,
+            max_tokens: body.max_tokens,
+            temperature: body.temperature,
+            top_p: body.top_p,
+        };
+        if (tools?.length) req.tools = tools;
+        if (tool_choice !== undefined) req.tool_choice = tool_choice;
+        if (body.stop_sequences?.length) req.stop = body.stop_sequences;
+
+        return req;
+    }
+
     async complete(ctx: any) {
         // let keyData = null;
         const res = await this.init(ctx);
