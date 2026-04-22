@@ -53,8 +53,14 @@ const authHandler = async (ctx: any, next: any) => {
         || pathName.indexOf("/v1") === 0
     ) {
         const authorization = ctx.header.authorization || "";
-
-        const api_key = authorization.length > 10 ? authorization.substring(7) : null;
+        // Support both OpenAI-style (Authorization: Bearer xxx) and Anthropic-style (x-api-key: xxx)
+        const xApiKey = ctx.header["x-api-key"] || "";
+        let api_key: string | null = null;
+        if (xApiKey) {
+            api_key = xApiKey;
+        } else if (authorization.length > 10) {
+            api_key = authorization.substring(7);
+        }
         if (!api_key) {
             throw new Error("Unauthorized: api key required.");
         }
