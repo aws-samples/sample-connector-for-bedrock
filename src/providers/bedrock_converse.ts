@@ -681,11 +681,18 @@ class MessageConverter {
         }
 
         if (config.modelId.includes("anthropic")) {
-            // fix: temperature and top_p cannot both be specified
-            if (chatRequest.top_p && (!chatRequest.temperature)) {
+            // claude-opus-4 and later models deprecated temperature/topP
+            const isOpus4OrLater = config.modelId.includes("claude-opus-4");
+            if (isOpus4OrLater) {
                 delete inferenceConfig.temperature;
-            } else {
                 delete inferenceConfig.topP;
+            } else {
+                // fix: temperature and top_p cannot both be specified
+                if (chatRequest.top_p && (!chatRequest.temperature)) {
+                    delete inferenceConfig.temperature;
+                } else {
+                    delete inferenceConfig.topP;
+                }
             }
             const anthropicBetaFeatures = [];
             if (config.modelId.includes("anthropic.claude-3-7-sonnet")) {
@@ -696,7 +703,6 @@ class MessageConverter {
                 anthropicBetaFeatures.push("context-1m-2025-08-07")
             }
             if (config.modelId.includes("anthropic.claude-sonnet-4-5")) {
-
                 anthropicBetaFeatures.push("context-management-2025-06-27")
             }
             additionalModelRequestFields["anthropic_beta"] = anthropicBetaFeatures;
