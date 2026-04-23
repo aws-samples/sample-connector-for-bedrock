@@ -1,5 +1,21 @@
 # Changelogs
 
+## 0.0.41
+
+1. **Anthropic Messages API Compatibility** - Added a new endpoint `POST /v1/messages` that is fully compatible with the Anthropic Messages API. Clients using the Anthropic SDK can now connect directly without modification. Supports text, tool use, thinking content blocks, and both streaming and non-streaming modes.
+
+2. **x-api-key Header Support** - Added support for the `x-api-key` header (Anthropic SDK default) in addition to the existing `Authorization: Bearer` header.
+
+3. **Bug Fix: claude-opus-4 temperature/topP** - Removed deprecated `temperature` and `topP` parameters for `claude-opus-4` and later models, which caused `invalid_request_error`.
+
+4. **Build Fix** - Removed hardcoded local path alias for `kui-vue` in `vite.config.js` that caused build failures on non-author machines. Downgraded `vite` from experimental `rolldown-vite` to stable `^6.3.3`.
+
+## 0.0.40
+
+1. **AWS Bedrock Bearer Token Support** - Added support for AWS Bedrock API Key (Bearer Token) authentication method in addition to traditional AKSK credentials.
+
+2. **Multi-tool Call Fix** - Fixed an issue where multiple tool calls in a single response were not handled correctly in streaming mode.
+
 ## 0.0.38
 
 1. **Bedrock App Profiles Support** - Added support for Bedrock application profiles, allowing better configuration management for different deployment scenarios. [#87](https://github.com/aws-samples/sample-connector-for-bedrock/issues/87)
