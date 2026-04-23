@@ -2,7 +2,7 @@
 
 This is a Bedrock (and other generative AI tools from AWS) API forwarding tool that can issue virtual keys, log chats, and manage costs.
 
-It is compatible with any OPENAI client that can define Host and API Key.
+It is compatible with any OPENAI client or Anthropic client that can define Host and API Key.
 
 ## Quick references
 
@@ -15,6 +15,14 @@ It is compatible with any OPENAI client that can define Host and API Key.
 Docker Image: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock)
 
 Docker Image for Lambda: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock-lambda/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda)
+
+## Usage with Claude Code
+
+```bash
+export ANTHROPIC_BASE_URL=https://your-endpoint
+export ANTHROPIC_API_KEY=your-api-key
+export ANTHROPIC_MODEL=your-model
+```
 
 ## Main Features
 
