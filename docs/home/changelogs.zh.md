@@ -1,5 +1,21 @@
 # 更新日志
 
+## 0.0.41
+
+1. **Anthropic Messages API 兼容** - 新增 `POST /v1/messages` 端点，完全兼容 Anthropic Messages API。使用 Anthropic SDK 的客户端无需任何修改即可直接接入。支持 text、tool use、thinking 内容块，以及流式和非流式两种模式。
+
+2. **支持 x-api-key 认证头** - 新增对 `x-api-key` header（Anthropic SDK 默认认证方式）的支持，同时保留原有的 `Authorization: Bearer` 方式。
+
+3. **Bug 修复：claude-opus-4 temperature/topP** - 修复了向 `claude-opus-4` 及更新模型发送已废弃的 `temperature` 和 `topP` 参数导致 `invalid_request_error` 的问题。
+
+4. **构建修复** - 移除了 `vite.config.js` 中硬编码的本地 `kui-vue` 路径别名（导致非作者机器构建失败），将 `vite` 从实验性的 `rolldown-vite` 降级为稳定版 `^6.3.3`。
+
+## 0.0.40
+
+1. **AWS Bedrock Bearer Token 支持** - 新增对 AWS Bedrock API Key（Bearer Token）认证方式的支持，可与传统 AKSK 凭证方式并用。
+
+2. **多工具调用修复** - 修复了流式模式下单次响应包含多个工具调用时处理不正确的问题。
+
 ## 0.0.38
 
 1. **Bedrock 应用配置文件支持** - 添加了对 Bedrock 应用配置文件的支持，允许为不同的部署场景提供更好的配置管理。[#87](https://github.com/aws-samples/sample-connector-for-bedrock/issues/87)

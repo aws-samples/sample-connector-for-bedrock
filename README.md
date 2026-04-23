@@ -44,22 +44,31 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
+## 0.0.41
+
+1. **Anthropic Messages API Compatibility** - Added a new endpoint `POST /v1/messages` that is fully compatible with the Anthropic Messages API. Clients using the Anthropic SDK can now connect directly without modification. Supports text, tool use, thinking content blocks, and both streaming and non-streaming modes.
+
+2. **x-api-key Header Support** - Added support for the `x-api-key` header (Anthropic SDK default) in addition to the existing `Authorization: Bearer` header.
+
+3. **Bug Fix: claude-opus-4 temperature/topP** - Removed deprecated `temperature` and `topP` parameters for `claude-opus-4` and later models.
+
+4. **Build Fix** - Removed hardcoded local path alias for `kui-vue` in `vite.config.js`. Downgraded `vite` from experimental `rolldown-vite` to stable `^6.3.3`.
+
+## 0.0.40
+
+1. **AWS Bedrock Bearer Token Support** - Added support for AWS Bedrock API Key (Bearer Token) authentication in addition to traditional AKSK credentials.
+
+2. **Multi-tool Call Fix** - Fixed an issue where multiple tool calls in a single response were not handled correctly in streaming mode.
+
 ## 0.0.38
 
-1. **Bedrock App Profiles Support** - Added support for Bedrock application profiles, allowing better configuration management for different deployment scenarios. [#87](https://github.com/aws-samples/sample-connector-for-bedrock/issues/87)
+1. **Bedrock App Profiles Support** - Added support for Bedrock application profiles. [#87](https://github.com/aws-samples/sample-connector-for-bedrock/issues/87)
 
-2. **PostgreSQL Database Upgrade** - Upgraded standalone PostgreSQL database from version 16.3 to 16.10 for improved performance and security. [#89](https://github.com/aws-samples/sample-connector-for-bedrock/pull/89)
+2. **PostgreSQL Database Upgrade** - Upgraded standalone PostgreSQL database from version 16.3 to 16.10. [#89](https://github.com/aws-samples/sample-connector-for-bedrock/pull/89)
 
 3. **Zero-Length Messages Fix** - Fixed an issue where Bedrock would fail when processing zero-length messages. [#90](https://github.com/aws-samples/sample-connector-for-bedrock/pull/90)
 
 4. **Tool Use Enhancement** - Improved tool use functionality with bug fixes and stability improvements. [#91](https://github.com/aws-samples/sample-connector-for-bedrock/pull/91) [#92](https://github.com/aws-samples/sample-connector-for-bedrock/pull/92)
-
-
-## 0.0.37
-
-1. **bedrock-converse Provider Fix** - Fixed an issue with Claude new models: 'The model returned the following errors: temperature and top_p cannot both be specified for this model. Please use only one.'
-
-2. **Frontend Caching Enhancement** - Added 1-month caching for frontend pages served by koa-static-server.
 
 [More changelogs](https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/)
 
