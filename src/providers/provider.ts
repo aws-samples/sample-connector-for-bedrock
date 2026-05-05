@@ -348,6 +348,9 @@ class Provider {
         if (tool_choice !== undefined) req.tool_choice = tool_choice;
         if (body.stop_sequences?.length) req.stop = body.stop_sequences;
 
+        // Carry system_blocks for cache_control support (Anthropic array system)
+        if (Array.isArray(body.system)) req.system_blocks = body.system;
+
         return req;
     }
 
