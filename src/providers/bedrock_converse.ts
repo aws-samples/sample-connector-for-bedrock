@@ -1027,7 +1027,21 @@ class MessageConverter {
 
             // 处理普通 user 消息
             if (message.role === 'user') {
-                message.content = await this.convertContent(message.content);
+                if (Array.isArray(message.content)) {
+                    // Preserve cache_control: convert each block individually,
+                    // injecting a cachePoint after any block that carries cache_control.
+                    const converted: any[] = [];
+                    for (const item of message.content) {
+                        const block = await this.convertConverseSingleType(item);
+                        if (block) converted.push(block);
+                        if (item.cache_control?.type === 'ephemeral') {
+                            converted.push({ cachePoint: { type: 'default' } });
+                        }
+                    }
+                    message.content = converted.length > 0 ? converted : [{ text: '.' }];
+                } else {
+                    message.content = await this.convertContent(message.content);
+                }
                 newMessages.push(message);
                 continue;
             }
@@ -1092,24 +1106,33 @@ class MessageConverter {
 
         const rtn: any = { messages: alternatingMessages, inferenceConfig, additionalModelRequestFields };
 
-        if (systemMessages.length > 0) {
+        if (systemMessages.length > 0 || chatRequest.system_blocks?.length > 0) {
             const system = [];
-            systemMessages.forEach(msg => {
-                if (msg.content && (typeof msg.content === "string")) {
-                    system.push({ text: msg.content });
-                } else if (msg.content && Array.isArray(msg.content)) {
-                    msg.content.forEach((msg2: any) => {
-                        msg2?.text && system.push({ text: msg2.text });
-                    })
+
+            // system_blocks: from Anthropic-format request with inline cache_control
+            if (chatRequest.system_blocks?.length > 0) {
+                for (const block of chatRequest.system_blocks) {
+                    if (block.text) system.push({ text: block.text });
+                    if (block.cache_control?.type === 'ephemeral') {
+                        system.push({ cachePoint: { type: 'default' } });
+                    }
                 }
-            });
-            // console.log("system", JSON.stringify(system, null, 2) );
-            if (pcFields.indexOf("system") >= 0) {
-                system.push({
-                    "cachePoint": {
-                        "type": "default"
+            } else {
+                // OpenAI-format system messages (no inline cache_control)
+                systemMessages.forEach(msg => {
+                    if (msg.content && (typeof msg.content === "string")) {
+                        system.push({ text: msg.content });
+                    } else if (msg.content && Array.isArray(msg.content)) {
+                        msg.content.forEach((msg2: any) => {
+                            msg2?.text && system.push({ text: msg2.text });
+                        })
                     }
                 });
+            }
+
+            // config-based prompt cache (backward compat)
+            if (pcFields.indexOf("system") >= 0) {
+                system.push({ cachePoint: { type: 'default' } });
             }
             rtn.system = system;
         }
@@ -1119,14 +1142,20 @@ class MessageConverter {
 
 
         if (tools && tools.length > 0) {
-            xtools = {};
-            xtools = tools.map((tool: any) => ({
-                toolSpec: {
-                    name: tool.function?.name,
-                    description: tool.function?.description || 'No description provided',
-                    inputSchema: { json: tool.function?.parameters }
+            xtools = [];
+            for (const tool of tools) {
+                xtools.push({
+                    toolSpec: {
+                        name: tool.function?.name,
+                        description: tool.function?.description || 'No description provided',
+                        inputSchema: { json: tool.function?.parameters }
+                    }
+                });
+                // Inline cache_control on tool definition → cachePoint after toolSpec
+                if (tool.cache_control?.type === 'ephemeral') {
+                    xtools.push({ cachePoint: { type: 'default' } });
                 }
-            }));
+            }
         }
 
         if (tool_choice) {

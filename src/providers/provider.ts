@@ -351,6 +351,9 @@ class Provider {
         // Carry thinking param from Anthropic request body
         if (body.thinking !== undefined) req.thinking = body.thinking;
 
+        // Carry system_blocks for cache_control support (Anthropic array system)
+        if (Array.isArray(body.system)) req.system_blocks = body.system;
+
         return req;
     }
 
