@@ -815,20 +815,28 @@ class MessageConverter {
         if (config.maxTokens && (maxTokens > config.maxTokens)) {
             maxTokens = config.maxTokens;
         }
-        let thinking = config && config.thinking;
-        if (!thinking) {
+        // Resolve thinking: request body takes precedence over model config.
+        // Anthropic SDK sends: { thinking: { type: "enabled", budget_tokens: N } }
+        let thinking = false;
+        let thinkBudget: number | undefined;
+
+        if (chatRequest.thinking?.type === 'enabled') {
+            // Client explicitly enabled thinking
+            thinking = true;
+            thinkBudget = chatRequest.thinking.budget_tokens;
+        } else if (chatRequest.thinking?.type === 'disabled') {
+            // Client explicitly disabled thinking — honour it even if config says true
             thinking = false;
+        } else if (config && config.thinking) {
+            // Fall back to model config (backward compat)
+            thinking = true;
+            thinkBudget = config.thinkBudget;
         }
 
-        // 只有在thinking=true时才处理thinkBudget
-        let thinkBudget;
         if (thinking) {
-            thinkBudget = config && config.thinkBudget;
             if (!thinkBudget || thinkBudget < 1024) {
-                thinkBudget = 1024; // 确保thinkBudget最小值为1024
+                thinkBudget = 1024; // minimum budget_tokens
             }
-
-            // 只有在thinking=true且thinkBudget有值时才校验maxTokens
             if (maxTokens <= thinkBudget) {
                 maxTokens = thinkBudget + 1024;
             }

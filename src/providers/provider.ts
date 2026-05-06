@@ -348,6 +348,9 @@ class Provider {
         if (tool_choice !== undefined) req.tool_choice = tool_choice;
         if (body.stop_sequences?.length) req.stop = body.stop_sequences;
 
+        // Carry thinking param from Anthropic request body
+        if (body.thinking !== undefined) req.thinking = body.thinking;
+
         return req;
     }
 
