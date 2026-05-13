@@ -2,6 +2,13 @@ import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
     BedrockRuntimeClient, ConverseStreamCommand, ConverseCommand
 } from "@aws-sdk/client-bedrock-runtime";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import helper from "../util/helper";
+// import config from "../config";
+import WebResponse from "../util/response";
+import AbstractProvider from "./abstract_provider";
+import AnthropicResponse from '../util/anthropic_response';
 
 /**
  * Anthropic beta headers that Bedrock does NOT support and must be stripped
@@ -20,13 +27,6 @@ const BEDROCK_BETA_BLOCKLIST: ReadonlySet<string> = new Set([
     // Advisor tool – Anthropic-internal
     "advisor-tool-2026-03-01",
 ]);
-import { NodeHttpHandler } from "@smithy/node-http-handler";
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import helper from "../util/helper";
-// import config from "../config";
-import WebResponse from "../util/response";
-import AbstractProvider from "./abstract_provider";
-import AnthropicResponse from '../util/anthropic_response';
 
 /**
 * BedrockConverse Provider uses boto3-converse api to invoke LLM models and support function calling.
@@ -820,7 +820,10 @@ class MessageConverter {
                 }
             }
         }
-        return contentItem;
+        // Strip Anthropic-only fields (e.g. cache_control) that Bedrock does not
+        // accept — forwarding them would cause a ValidationException.
+        const { cache_control, ...rest } = contentItem;
+        return rest;
     }
 
 
@@ -1060,6 +1063,7 @@ class MessageConverter {
 
             // 处理普通 user 消息
             if (message.role === 'user') {
+                let newContent: any;
                 if (Array.isArray(message.content)) {
                     // Preserve cache_control: convert each block individually,
                     // injecting a cachePoint after any block that carries cache_control.
@@ -1071,11 +1075,13 @@ class MessageConverter {
                             converted.push({ cachePoint: { type: 'default' } });
                         }
                     }
-                    message.content = converted.length > 0 ? converted : [{ text: '.' }];
+                    newContent = converted.length > 0 ? converted : [{ text: '.' }];
                 } else {
-                    message.content = await this.convertContent(message.content);
+                    newContent = await this.convertContent(message.content);
                 }
-                newMessages.push(message);
+                // Clone to avoid mutating the original chatRequest.messages array
+                // (important for retry scenarios where toPayload may be called again).
+                newMessages.push({ ...message, content: newContent });
                 continue;
             }
         }

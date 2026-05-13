@@ -245,11 +245,15 @@ class Provider {
         const messages: any[] = [];
 
         // system prompt → system message
+        // When body.system is an array, system_blocks carries the raw blocks
+        // (with cache_control) and toPayload reads them directly.  Only push a
+        // flattened role:'system' message for the plain-string case so that the
+        // two paths don't both fire and leave dead content in messages[].
         if (body.system) {
-            const systemContent = typeof body.system === 'string'
-                ? body.system
-                : body.system.map((b: any) => b.text || '').join('');
-            messages.push({ role: 'system', content: systemContent });
+            if (typeof body.system === 'string') {
+                messages.push({ role: 'system', content: body.system });
+            }
+            // Array form is handled via req.system_blocks below.
         }
 
         // Convert Anthropic messages → OpenAI-style messages
