@@ -2,6 +2,24 @@ import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
     BedrockRuntimeClient, ConverseStreamCommand, ConverseCommand
 } from "@aws-sdk/client-bedrock-runtime";
+
+/**
+ * Anthropic beta headers that Bedrock does NOT support and must be stripped
+ * before forwarding requests.  Claude Code (and other Anthropic SDK clients)
+ * send these automatically; passing them to Bedrock causes validation errors.
+ */
+const BEDROCK_BETA_BLOCKLIST: ReadonlySet<string> = new Set([
+    // Files API – Bedrock has no equivalent
+    "files-api-2025-04-14",
+    // Computer-use – not supported on Bedrock Converse
+    "computer-use-2025-01-24",
+    // Prompt-caching scope flag – Bedrock handles caching differently
+    "prompt-caching-scope-2026-01-05",
+    // Redact-thinking – Anthropic-internal, not a Bedrock feature
+    "redact-thinking-2026-02-12",
+    // Advisor tool – Anthropic-internal
+    "advisor-tool-2026-03-01",
+]);
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import helper from "../util/helper";
@@ -87,7 +105,8 @@ export default class BedrockConverse extends AbstractProvider {
 
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
-        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
+        const clientBetaHeader = ctx.headers?.["anthropic-beta"] as string | undefined;
+        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config, clientBetaHeader);
         if (chatRequest.model_id) {
             payload["modelId"] = chatRequest.model_id;
         } else {
@@ -127,7 +146,8 @@ export default class BedrockConverse extends AbstractProvider {
             // console.log(this.modelData.config)
         }
 
-        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
+        const clientBetaHeader = ctx.headers?.["anthropic-beta"] as string | undefined;
+        const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config, clientBetaHeader);
         if (chatRequest.model_id) {
             payload["modelId"] = chatRequest.model_id;
         } else {
@@ -804,7 +824,7 @@ class MessageConverter {
     }
 
 
-    async toPayload(chatRequest: ChatRequest, config: any): Promise<any> {
+    async toPayload(chatRequest: ChatRequest, config: any, clientBetaHeader?: string): Promise<any> {
 
         let maxTokens = config && config.maxTokens;
         if (!maxTokens || isNaN(maxTokens)) {
@@ -893,18 +913,31 @@ class MessageConverter {
                     delete inferenceConfig.topP;
                 }
             }
-            const anthropicBetaFeatures = [];
+            // Auto-inject model-specific beta features required by Bedrock.
+            const anthropicBetaFeatures = new Set<string>();
             if (config.modelId.includes("anthropic.claude-3-7-sonnet")) {
-                anthropicBetaFeatures.push("output-128k-2025-02-19")
-                anthropicBetaFeatures.push("token-efficient-tools-2025-02-19")
+                anthropicBetaFeatures.add("output-128k-2025-02-19");
+                anthropicBetaFeatures.add("token-efficient-tools-2025-02-19");
             }
             if (config.modelId.includes("anthropic.claude-sonnet-4")) {
-                anthropicBetaFeatures.push("context-1m-2025-08-07")
+                anthropicBetaFeatures.add("context-1m-2025-08-07");
             }
             if (config.modelId.includes("anthropic.claude-sonnet-4-5")) {
-                anthropicBetaFeatures.push("context-management-2025-06-27")
+                anthropicBetaFeatures.add("context-management-2025-06-27");
             }
-            additionalModelRequestFields["anthropic_beta"] = anthropicBetaFeatures;
+
+            // Merge client-supplied anthropic-beta header values, filtering out
+            // anything in BEDROCK_BETA_BLOCKLIST (Bedrock-unsupported headers).
+            if (clientBetaHeader) {
+                for (const value of clientBetaHeader.split(",")) {
+                    const trimmed = value.trim();
+                    if (trimmed && !BEDROCK_BETA_BLOCKLIST.has(trimmed)) {
+                        anthropicBetaFeatures.add(trimmed);
+                    }
+                }
+            }
+
+            additionalModelRequestFields["anthropic_beta"] = Array.from(anthropicBetaFeatures);
         }
         //First element must be user message
         const newMessages = [];
