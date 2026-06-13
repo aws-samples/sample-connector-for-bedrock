@@ -20,6 +20,9 @@ interface ChatRequest {
     max_completion_tokens?: number;
     temperature?: number;
     top_p?: number;
+    /** Raw Anthropic-format system blocks (set when body.system is an array).
+     *  Carries inline cache_control so toPayload can emit cachePoint entries. */
+    system_blocks?: Array<{ type: string; text?: string; cache_control?: { type: string } }>;
     [key: string]: any; // refined parameters
 }
 
