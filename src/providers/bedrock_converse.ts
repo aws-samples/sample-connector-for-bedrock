@@ -1,6 +1,6 @@
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
-    BedrockRuntimeClient, ConverseStreamCommand, ConverseCommand
+    BedrockRuntimeClient, BedrockRuntimeClientConfig, ConverseStreamCommand, ConverseCommand
 } from "@aws-sdk/client-bedrock-runtime";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -49,16 +49,19 @@ export default class BedrockConverse extends AbstractProvider {
         // 3. credentials array (traditional AKSK)
 
         let credentials = null;
-        let useBearerToken = false;
+        let bearerToken: string | undefined;
         if (this.modelData.config?.bearerToken) {
-            // Use AWS Bedrock Bearer Token (API Key)
-            // Set environment variable for AWS SDK to use
-            process.env.AWS_BEARER_TOKEN_BEDROCK = this.modelData.config.bearerToken;
-            useBearerToken = true;
+            // Use AWS Bedrock Bearer Token (API Key), scoped to this client. Do not put it in
+            // process.env: every model and provider in the process shares it, and the SDK prefers
+            // a token found there over the credentials a client was given.
+            bearerToken = this.modelData.config.bearerToken;
             this.currentAK = 'bearer-token';
         } else {
-            // Use credentials array (traditional AKSK)
-            credentials = helper.selectCredentials(this.modelData.config?.credentials, this.excludeAccessKeyId);
+            // Use credentials array (traditional AKSK). On retry, skip the key that just failed;
+            // if that leaves none, reuse it rather than fall back to the host's credentials.
+            const configured = this.modelData.config?.credentials;
+            credentials = helper.selectCredentials(configured, this.excludeAccessKeyId)
+                ?? helper.selectCredentials(configured, null);
             this.currentAK = credentials?.accessKeyId;
         }
 
@@ -67,11 +70,17 @@ export default class BedrockConverse extends AbstractProvider {
 
         // Configure proxy for local debugging
         const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
-        const clientConfig: any = { region };
+        const clientConfig: BedrockRuntimeClientConfig = { region };
 
-        // Only set credentials if not using bearer token
-        if (credentials && !useBearerToken) {
+        if (bearerToken) {
+            clientConfig.token = { token: bearerToken };
+            // Without this the SDK tries SigV4 first, which always finds an identity (the default
+            // chain), so the token would be ignored.
+            clientConfig.authSchemePreference = ["httpBearerAuth"];
+        } else if (credentials) {
             clientConfig.credentials = credentials;
+            // Explicit AK/SK wins over an ambient AWS_BEARER_TOKEN_BEDROCK.
+            clientConfig.authSchemePreference = ["sigv4"];
         }
 
         if (proxyUrl) {
