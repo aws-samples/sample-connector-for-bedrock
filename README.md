@@ -12,9 +12,9 @@ It is compatible with any OPENAI client or Anthropic client that can define Host
 
 [Providers](https://aws-samples.github.io/sample-connector-for-bedrock/providers/introduction/)
 
-Docker Image: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock)
+Docker Image: [`ghcr.io/aws-samples/sample-connector-for-bedrock`](https://github.com/aws-samples/sample-connector-for-bedrock/pkgs/container/sample-connector-for-bedrock), built by GitHub Actions from `main` and `v*` tags. Mirrors: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock) (used by the CloudFormation templates; may lag behind GHCR).
 
-Docker Image for Lambda: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock-lambda/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda)
+Docker Image for Lambda: [`ghcr.io/aws-samples/sample-connector-for-bedrock-lambda`](https://github.com/aws-samples/sample-connector-for-bedrock/pkgs/container/sample-connector-for-bedrock-lambda). Mirrors: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock-lambda/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda).
 
 ## Usage with Claude Code
 

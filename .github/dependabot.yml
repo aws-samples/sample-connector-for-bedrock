@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Keep the commit SHAs that the workflows pin actions to up to date.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait a week before proposing a new release, so a compromised release has time to be caught.
+    cooldown:
+      default-days: 7

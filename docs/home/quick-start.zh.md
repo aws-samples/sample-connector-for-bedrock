@@ -53,7 +53,7 @@ docker run --name brconnector \
  -e PGSQL_USER=postgres \
  -e PGSQL_PASSWORD=mysecretpassword \
  -e ADMIN_API_KEY=br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
- -d cloudbeer/sample-connector-for-bedrock
+ -d ghcr.io/aws-samples/sample-connector-for-bedrock
 ```
 
 ## 4. 测试
