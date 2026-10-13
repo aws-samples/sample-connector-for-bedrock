@@ -96,18 +96,29 @@ describe('relayChatStream', () => {
         expect(result).toMatchObject({ text: 'OK', sawDone: true });
         expect(result.error).toBeUndefined();
     });
-    // Streams always ask for usage, and the usage-only chunk is the last one before [DONE].
-    it('ends a stream reset after its usage chunk with a [DONE] for the client', async () => {
-        async function* resetAfterUsage() {
-            yield Buffer.from(content('OK'));
-            yield Buffer.from(usage);
-            throw Object.assign(new Error('aborted'), { code: 'ECONNRESET' });
-        }
+    // Streams always ask for usage: after the finish chunk, the usage-only chunk is the last one before [DONE].
+    const resetAfter = (...parts: string[]) => (async function* () {
+        for (const p of parts) yield Buffer.from(p);
+        throw Object.assign(new Error('aborted'), { code: 'ECONNRESET' });
+    })();
+    it('ends a stream reset after its finish and usage chunks with a [DONE] for the client', async () => {
         const written: string[] = [];
-        const result = await relayChatStream(resetAfterUsage(), (s) => written.push(s), { forwardUsageChunk: false });
-        expect(written).toEqual([content('OK'), DONE]);
+        const result = await relayChatStream(resetAfter(content('OK'), finish, usage), (s) => written.push(s), { forwardUsageChunk: false });
+        expect(written).toEqual([content('OK'), finish, DONE]);
         expect(result).toMatchObject({ text: 'OK', usage: USAGE, sawDone: true });
         expect(result.error).toBeUndefined();
+    });
+    it.each([
+        ['a usage-only chunk without a finish chunk', [content('OK'), usage]],
+        ['a finish chunk without the usage chunk', [content('OK'), finish]],
+        ['usage on a chunk that still has choices', [content('OK'), finish, ev({ id: 'c1', choices: [{ index: 0, delta: { content: 'x' } }], usage: USAGE })]],
+        ['content after the usage-only chunk', [content('OK'), finish, usage, content('more')]],
+    ])('reports a reset after %s as an error', async (_label, parts) => {
+        const written: string[] = [];
+        const result = await relayChatStream(resetAfter(...(parts as string[])), (s) => written.push(s), { forwardUsageChunk: false });
+        expect(written).not.toContain(DONE);
+        expect(result.sawDone).toBe(false);
+        expect(result.error).toBeInstanceOf(Error);
     });
     it('does not add a [DONE] after a failed write', async () => {
         const failure = new Error('client socket closed');

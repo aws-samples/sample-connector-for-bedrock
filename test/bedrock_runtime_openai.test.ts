@@ -12,6 +12,7 @@ const USAGE = { prompt_tokens: 2916, completion_tokens: 10, prompt_tokens_detail
 const completion = { id: 'c1', object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: 'OK' }, finish_reason: 'stop' }], usage: USAGE };
 const ev = (o: any) => `data: ${JSON.stringify(o)}\n\n`;
 const content = (t: string) => ev({ id: 'c1', object: 'chat.completion.chunk', choices: [{ index: 0, delta: { content: t } }] });
+const finishChunk = ev({ id: 'c1', object: 'chat.completion.chunk', choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] });
 const usageChunk = ev({ id: 'c1', object: 'chat.completion.chunk', choices: [], usage: USAGE });
 const DONE = 'data: [DONE]\n\n';
 const request = (extra: any = {}) => ({ model: 'kimi-k3', currency: 'USD', price_in: 3e-6, price_out: 15e-6, messages: [{ role: 'user', content: 'hi' }], ...extra });
@@ -361,13 +362,13 @@ describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies a
     });
     it('completes a stream reset after its usage chunk without logging a failure', async () => {
         const handler = scriptedHandler([async () => ({ response: { statusCode: 200, headers: {}, body: (async function* () {
-            yield Buffer.from(content('O') + content('K') + usageChunk);
+            yield Buffer.from(content('O') + content('K') + finishChunk + usageChunk);
             throw Object.assign(new Error('aborted'), { code: 'ECONNRESET' });
         })() } })]);
         const ctx = fakeCtx(model());
         await new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx);
         expect(ctx.logger.error).not.toHaveBeenCalled();
-        expect(ctx.res.chunks.join('')).toBe(content('O') + content('K') + DONE);
+        expect(ctx.res.chunks.join('')).toBe(content('O') + content('K') + finishChunk + DONE);
         expect(thread(ctx)).toMatchObject({ tokens_in: 2916, tokens_out: 10, completion: 'OK' });
     });
     it('does not log a connection reset that comes after [DONE] as a failure', async () => {
@@ -586,13 +587,11 @@ describe('bedrock-runtime-openai provider: upstream failures answer with a gatew
         expect(ctx.res.writableEnded).toBe(false);
         expect(thread(ctx)).toMatchObject({ tokens_in: 0, tokens_out: 0 });
     });
-    // The usage-only chunk is the last one before [DONE], so a stream that has sent it is complete.
-    it('completes a stream whose only event before the reset is the hidden usage chunk', async () => {
+    it('answers 502 when only the hidden usage chunk arrived before the stream broke off', async () => {
         const ctx = fakeCtx(model());
         const handler = scriptedHandler([brokenBody({}, usageChunk)]);
-        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx)).resolves.toBeUndefined();
-        expect(ctx.res.chunks).toEqual([DONE]);
-        expect(ctx.logger.error).not.toHaveBeenCalled();
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx)).rejects.toMatchObject({ statusCode: 502 });
+        expect(ctx.res.chunks).toEqual([]);
         expect(thread(ctx).tokens_in).toBe(2916);
     });
     it('resolves when the client has already left before a stream breaks off', async () => {
