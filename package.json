@@ -16,15 +16,20 @@
     "run": "node dist/server/index.js"
   },
   "dependencies": {
+    "@aws-crypto/sha256-js": "5.2.0",
     "@aws-sdk/client-bedrock-agent-runtime": "3.980.0",
     "@aws-sdk/client-bedrock-runtime": "3.980.0",
     "@aws-sdk/client-s3": "3.980.0",
     "@aws-sdk/client-sagemaker-runtime": "3.980.0",
+    "@aws-sdk/credential-provider-node": "3.972.4",
     "@aws-sdk/s3-request-presigner": "3.980.0",
     "@azure/openai": "^2.0.0",
     "@google/generative-ai": "^0.24.1",
     "@koa/cors": "^5.0.0",
     "@larksuiteoapi/node-sdk": "^1.58.0",
+    "@smithy/node-http-handler": "^4.4.9",
+    "@smithy/protocol-http": "5.3.8",
+    "@smithy/signature-v4": "5.3.8",
     "csv-parser": "^3.2.0",
     "dotenv": "17.2.1",
     "googleapis": "^144.0.0",
@@ -48,7 +53,6 @@
   "devDependencies": {
     "@babel/core": "^7.29.6",
     "@babel/eslint-parser": "^7.28.6",
-    "@smithy/node-http-handler": "^4.4.9",
     "@types/koa": "^2.15.0",
     "@types/koa-router": "^7.4.9",
     "@types/koa__cors": "^5.0.1",
