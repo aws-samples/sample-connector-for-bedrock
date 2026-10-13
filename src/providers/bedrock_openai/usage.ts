@@ -27,6 +27,17 @@ export function pricesOf(modelData: ModelData): ModelPrices {
     };
 }
 
+// The cache prices come from the free-form model config, so a value that is missing, blank or not a
+// finite number counts as not configured and bills at the input price. Without this a stray "" would
+// make cache tokens free and a stray "abc" would make the fee NaN.
+function cachePrice(configured: number | string | undefined, priceIn: number): number {
+    if (configured == null || (typeof configured === 'string' && configured.trim() === '')) {
+        return priceIn;
+    }
+    const price = Number(configured);
+    return Number.isFinite(price) ? price : priceIn;
+}
+
 export function computeUsageCost(usage: OpenAIUsage | null, prices: ModelPrices): UsageCost {
     const prompt = usage?.prompt_tokens ?? 0;
     const completion = usage?.completion_tokens ?? 0;
@@ -35,11 +46,11 @@ export function computeUsageCost(usage: OpenAIUsage | null, prices: ModelPrices)
     // prompt_tokens already counts the cached and cache-write tokens, so each token is billed once.
     const uncached = Math.max(0, prompt - cached - cacheWrite);
 
-    // A cache price that is not configured falls back to the plain input price.
+    const priceIn = Number(prices.price_in);
     const fee =
-        uncached * Number(prices.price_in) +
-        cached * Number(prices.price_cache_read ?? prices.price_in) +
-        cacheWrite * Number(prices.price_cache_write ?? prices.price_in) +
+        uncached * priceIn +
+        cached * cachePrice(prices.price_cache_read, priceIn) +
+        cacheWrite * cachePrice(prices.price_cache_write, priceIn) +
         completion * Number(prices.price_out);
 
     return { tokens_in: prompt, tokens_out: completion, cached_tokens: cached, cache_write_tokens: cacheWrite, fee };

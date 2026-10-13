@@ -41,6 +41,24 @@ describe('computeUsageCost', () => {
         expect(computeUsageCost({ prompt_tokens: 100, completion_tokens: 20 }, prices)).toEqual(expected);
         expect(computeUsageCost({ prompt_tokens: 100, completion_tokens: 20, prompt_tokens_details: null }, prices)).toEqual(expected);
     });
+    it.each([
+        ['an empty string', ''],
+        ['a whitespace-only string', '  '],
+        ['null', null],
+        ['text', 'abc'],
+        ['a number followed by text', '3e-7 USD'],
+        ['NaN', NaN],
+        ['Infinity', Infinity],
+    ])('bills the cache tokens at price_in when a cache price is %s', (_label, bad) => {
+        // 100 prompt tokens: 30 uncached, 60 read from the cache, 10 written to it.
+        const usage = { prompt_tokens: 100, completion_tokens: 20, prompt_tokens_details: { cached_tokens: 60, cache_write_tokens: 10 } };
+        const badRead = computeUsageCost(usage, { price_in: 3e-6, price_out: 15e-6, price_cache_read: bad, price_cache_write: 3.75e-6 });
+        expect(Number.isFinite(badRead.fee)).toBe(true);
+        expect(badRead.fee).toBeCloseTo(90 * 3e-6 + 10 * 3.75e-6 + 20 * 15e-6, 12);
+        const badWrite = computeUsageCost(usage, { price_in: 3e-6, price_out: 15e-6, price_cache_read: 0.3e-6, price_cache_write: bad });
+        expect(Number.isFinite(badWrite.fee)).toBe(true);
+        expect(badWrite.fee).toBeCloseTo(40 * 3e-6 + 60 * 0.3e-6 + 20 * 15e-6, 12);
+    });
 });
 
 describe('pricesOf', () => {
