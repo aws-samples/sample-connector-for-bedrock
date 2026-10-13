@@ -12,9 +12,11 @@ export interface ChatUsageRecord {
     invocation_latency?: number;
 }
 
-// Saves the session, the thread and the key fee of one chat call. It writes what
+// Saves the key fee, the session and the thread of one chat call. It writes what
 // AbstractProvider.saveThread and updateKeyFee write, but takes the model and the cost as arguments
 // and the key from ctx.user, because the provider instance is shared by concurrent requests.
+// The key is charged first and on its own: the quota check reads month_fee, so a session or thread row that
+// fails to save, for example on an overlong session key, must not keep the key from being charged.
 export async function recordChatUsage(ctx: any, rec: ChatUsageRecord): Promise<void> {
     // If the performanceMode is set, then chat history will not be saved.
     if (ctx.performanceMode || !ctx.db || !ctx.user) {
@@ -22,6 +24,12 @@ export async function recordChatUsage(ctx: any, rec: ChatUsageRecord): Promise<v
     }
     const { chatRequest, modelData, cost } = rec;
     const key = ctx.user;
+
+    try {
+        await addKeyFee(ctx, key, cost.fee);
+    } catch (error) {
+        ctx.logger.error({ message: 'could not charge the key', error: error instanceof Error ? error.message : String(error), keyId: key.id, fee: cost.fee });
+    }
 
     const dbSessionId = rec.session_id ? await saveSession(ctx, key, rec) : 0;
 
@@ -46,8 +54,6 @@ export async function recordChatUsage(ctx: any, rec: ChatUsageRecord): Promise<v
         session_id: dbSessionId,
         thread_type: chatRequest.stream ? 0 : 1,
     });
-
-    await addKeyFee(ctx, key, cost.fee);
 }
 
 // Adds the call to the session's running totals, creating the session on its first call.

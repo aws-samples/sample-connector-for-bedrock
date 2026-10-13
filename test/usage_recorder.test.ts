@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import Cache from '../src/util/cache';
 import { recordChatUsage } from '../src/providers/usage_recorder';
 import { fakeDb } from './helpers/fakes';
@@ -95,6 +95,26 @@ describe('recordChatUsage', () => {
         await recordChatUsage({ db: fakeDb(), user: key }, { chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
         expect(Cache.api_keys[0].month_fee).toBeCloseTo(1.0010923, 12);
         expect(Cache.api_keys[1].month_fee).toBe('5');
+    });
+    // A session or thread row can fail on its own, for example on a session key longer than the column. The key is
+    // charged first, so such a failure cannot leave month_fee unchanged and the key never blocked.
+    it.each(['save', 'insert'])('charges the key even when the %s of the session or thread fails', async (method) => {
+        const db: any = fakeDb();
+        db[method] = async () => { throw new Error('value too long for type character varying(128)'); };
+        await expect(recordChatUsage({ db, user: key, logger: { error: vi.fn() } }, { session_id: 'sess-1', chatRequest: chatRequest(), modelData: model, text: 'OK', cost }))
+            .rejects.toThrow('value too long');
+        const [, sql, params] = call(db, 'query');
+        expect(sql).toBe('update eiai_key set total_fee=total_fee+$1, month_fee=$2, updated_at=$3 where id=$4 RETURNING *');
+        expect(params[0]).toBe(0.0010923);
+    });
+    it('logs a failed key charge and still writes the session and the thread', async () => {
+        const db: any = fakeDb();
+        db.query = async () => { throw new Error('deadlock detected'); };
+        const logger = { error: vi.fn() };
+        await recordChatUsage({ db, user: key, logger }, { session_id: 'sess-1', chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
+        expect(call(db, 'save')).toBeDefined();
+        expect(call(db, 'insert')).toBeDefined();
+        expect(JSON.stringify(logger.error.mock.calls)).toContain('deadlock detected');
     });
     it('leaves ctx.user as it found it', async () => {
         const user = { ...key };

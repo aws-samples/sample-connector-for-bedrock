@@ -14,6 +14,8 @@ const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 // Failures to reach Bedrock at all. Anything else, such as a credential error, is final.
 const NETWORK_ERROR_CODES = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN']);
 const DEFAULT_MAX_RETRIES = 3;
+// The length of eiai_session.key and eiai_thread.session_key.
+const MAX_SESSION_ID_LENGTH = 128;
 
 function isNetworkError(error: any): boolean {
     return NETWORK_ERROR_CODES.has(error?.code) || error?.name === 'TimeoutError';
@@ -75,6 +77,10 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
         }
         if (chatRequest.model_id) {
             throw new BedrockHttpError(400, `The [${modelData.name}] model does not accept a model id override ("${modelData.name}/<model id>"). Send the model name only.`);
+        }
+        // A longer one could not be saved with the call's usage. Postgres counts characters, not UTF-16 units.
+        if (typeof session_id === 'string' && Array.from(session_id).length > MAX_SESSION_ID_LENGTH) {
+            throw new BedrockHttpError(400, `Session-Id must be at most ${MAX_SESSION_ID_LENGTH} characters.`);
         }
         const config = modelData.config || {};
         const modelId: string = config.modelId;

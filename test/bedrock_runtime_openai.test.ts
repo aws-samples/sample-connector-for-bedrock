@@ -363,6 +363,20 @@ describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies a
             .rejects.toThrow("You must specify the parameters 'modelId' in the backend model configuration.");
         expect(handler.seen).toHaveLength(0);
     });
+    // eiai_session.key and eiai_thread.session_key are varchar(128).
+    it('rejects a Session-Id longer than 128 characters with 400 before calling Bedrock', async () => {
+        const handler = stubHandler([{ status: 200, body: okBody }]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), 's'.repeat(129), fakeCtx(model())))
+            .rejects.toMatchObject({ statusCode: 400, message: 'Session-Id must be at most 128 characters.' });
+        expect(handler.seen).toHaveLength(0);
+    });
+    it('accepts a Session-Id of 128 characters', async () => {
+        const handler = stubHandler([{ status: 200, body: okBody }]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler).chat(request(), 's'.repeat(128), ctx);
+        expect(handler.seen).toHaveLength(1);
+        expect(thread(ctx).session_key).toBe('s'.repeat(128));
+    });
     it('reads the model only from ctx.state, never from the shared instance', async () => {
         const handler = stubHandler([{ status: 200, body: okBody }]);
         const provider = new BedrockRuntimeOpenAI(handler);
