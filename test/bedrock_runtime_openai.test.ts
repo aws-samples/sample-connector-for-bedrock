@@ -235,7 +235,7 @@ describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies a
             async () => { ctx.res.emit('close'); throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }); },
             reply(200, okBody),
         ]);
-        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', ctx)).rejects.toMatchObject({ code: 'ECONNRESET' });
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', ctx)).rejects.toMatchObject({ statusCode: 502, code: 'ECONNRESET' });
         expect(handler.seen).toHaveLength(1);
         expect(thread(ctx)).toBeUndefined();
     });
@@ -518,5 +518,61 @@ describe('bedrock-runtime-openai provider: Bedrock request ids', () => {
         ctx.db.insert = async () => { throw new Error('database is down'); };
         await new BedrockRuntimeOpenAI(scriptedHandler([replyWith(200, withId('req-billing'), okBody)]), noWait).chat(request(), '', ctx);
         expect(logged(ctx.logger.error)).toContainEqual(expect.objectContaining({ message: 'bedrock-runtime-openai could not record usage', requestId: 'req-billing' }));
+    });
+});
+
+describe('bedrock-runtime-openai provider: upstream failures answer with a gateway status', () => {
+    beforeEach(() => { for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value); });
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    const networkError = (fields: any) => Object.assign(new Error('socket hang up'), fields);
+    // A 200 whose body fails after the given chunks, the way a connection Bedrock drops looks.
+    const brokenBody = (headers: Record<string, string>, ...chunks: string[]): Step => async () => ({ response: { statusCode: 200, headers, body: (async function* () {
+        for (const c of chunks) yield Buffer.from(c);
+        throw networkError({ code: 'ECONNRESET' });
+    })() } });
+
+    it.each([
+        [{ code: 'ECONNRESET' }, 502],
+        [{ code: 'ENOTFOUND' }, 502],
+        [{ name: 'TimeoutError' }, 504],
+    ])('answers a network error %o that outlasts the retries with %s and its message', async (fields, status) => {
+        const handler = scriptedHandler([rejectWith(networkError(fields)), rejectWith(networkError(fields))]);
+        const error = await new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', fakeCtx(withConfig({ maxRetries: 1 }))).catch((e) => e);
+        expect(error).toMatchObject({ name: 'BedrockRuntimeOpenAIError', statusCode: status, message: 'socket hang up' });
+        expect(handler.seen).toHaveLength(2);
+    });
+    it('keeps the code of the network error, for the error log', async () => {
+        const handler = scriptedHandler([rejectWith(networkError({ code: 'ECONNREFUSED' }))]);
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', fakeCtx(withConfig({ maxRetries: 0 }))))
+            .rejects.toMatchObject({ statusCode: 502, code: 'ECONNREFUSED' });
+    });
+    it('answers 502 when a 200 response breaks off while it is read, and bills nothing', async () => {
+        const ctx = fakeCtx(model());
+        const handler = scriptedHandler([brokenBody({ 'x-amzn-requestid': 'req-cut' }, okBody.slice(0, 20))]);
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', ctx))
+            .rejects.toMatchObject({ statusCode: 502, message: expect.stringContaining('socket hang up'), $metadata: { requestId: 'req-cut' } });
+        expect(thread(ctx)).toBeUndefined();
+    });
+    it('answers 502 when a stream breaks off before its first event, and still records the call', async () => {
+        const ctx = fakeCtx(model());
+        const handler = scriptedHandler([brokenBody({ 'x-amzn-requestid': 'req-early' })]);
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx))
+            .rejects.toMatchObject({ statusCode: 502, message: expect.stringContaining('socket hang up'), $metadata: { requestId: 'req-early' } });
+        expect(ctx.res.chunks).toEqual([]);
+        expect(ctx.res.writableEnded).toBe(false);
+        expect(thread(ctx)).toMatchObject({ tokens_in: 0, tokens_out: 0 });
+    });
+    it('answers 502 when only the hidden usage chunk arrived before the stream broke off', async () => {
+        const ctx = fakeCtx(model());
+        const handler = scriptedHandler([brokenBody({}, usageChunk)]);
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx)).rejects.toMatchObject({ statusCode: 502 });
+        expect(ctx.res.chunks).toEqual([]);
+        expect(thread(ctx).tokens_in).toBe(2916);
+    });
+    it('resolves when the client has already left before a stream breaks off', async () => {
+        const ctx = fakeCtx(model());
+        const handler = scriptedHandler([async (options) => { ctx.res.emit('close'); return brokenBody({})(options); }]);
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx)).resolves.toBeUndefined();
     });
 });

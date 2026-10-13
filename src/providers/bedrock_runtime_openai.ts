@@ -44,6 +44,15 @@ function isNetworkError(error: any): boolean {
     return NETWORK_ERROR_CODES.has(error?.code) || error?.name === 'TimeoutError';
 }
 
+// A network error that ends the call. Left as it is, the error middleware would answer it with 400.
+function gatewayError(error: any): BedrockHttpError {
+    const failure = new BedrockHttpError(error?.name === 'TimeoutError' ? 504 : 502, messageOf(error));
+    if (error?.code) {
+        failure.code = error.code;
+    }
+    return failure;
+}
+
 // The access key the next attempt should avoid. A bearer token has none, so a retry reuses it.
 function keyToAvoid(auth: BedrockAuth): string | undefined {
     return auth.kind === 'sigv4' ? auth.accessKeyId : undefined;
@@ -137,8 +146,11 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
                 'Cache-Control': 'no-cache',
                 'Content-Type': 'text/event-stream',
             });
+            // Until the first write, nothing has been sent, so a failure can still get an error status.
+            let wrote = false;
             const result = await relayChatStream(upstream.body, (event) => {
                 if (!clientLeft && !ctx.res.writableEnded) {
+                    wrote = true;
                     ctx.res.write(event);
                 }
             }, { forwardUsageChunk: built.clientWantsUsage });
@@ -151,13 +163,22 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
                 ctx.logger.warn({ message: 'bedrock-runtime-openai stream had no usage, so it is billed as zero tokens', requestId, modelId });
             }
             await recordUsage(ctx, requestId, { session_id, chatRequest, modelData, text: result.text, usage: result.usage, first_byte_latency, invocation_latency });
+            // A client that has left hears nothing either way, so its call still resolves.
+            if (result.error && !wrote && !clientLeft) {
+                throw new BedrockHttpError(502, `Bedrock's stream broke off before its first event: ${messageOf(result.error)}`, undefined, requestId);
+            }
             if (!ctx.res.writableEnded) {
                 ctx.res.end();
             }
             return;
         }
 
-        const text = await readBody(upstream.body);
+        let text: string;
+        try {
+            text = await readBody(upstream.body);
+        } catch (error) {
+            throw new BedrockHttpError(502, `Bedrock's response broke off: ${messageOf(error)}`, undefined, requestId);
+        }
         const invocation_latency = Date.now() - started;
         let json: any;
         try {
@@ -198,14 +219,17 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
             try {
                 upstream = await postChatCompletions({ region, auth, body }, this.handler);
             } catch (error: any) {
-                if (attempt >= maxRetries || clientLeft() || !isNetworkError(error)) {
+                if (!isNetworkError(error)) {
                     throw error;
+                }
+                if (attempt >= maxRetries || clientLeft()) {
+                    throw gatewayError(error);
                 }
                 ctx.logger.warn({ message: 'bedrock-runtime-openai retry', error: error.code ?? error.name, attempt, auth: auth.label, modelId });
                 excludeKey = keyToAvoid(auth);
                 await this.sleep(backoffMs(attempt));
                 if (clientLeft()) {
-                    throw error;
+                    throw gatewayError(error);
                 }
                 continue;
             }

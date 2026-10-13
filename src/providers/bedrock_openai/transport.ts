@@ -126,6 +126,8 @@ export function requestIdOf(headers: Record<string, string> | undefined): string
 export class BedrockHttpError extends Error {
     statusCode: number;
     body?: string;
+    // The code of a network error this one stands for, such as ECONNRESET.
+    code?: string;
     $metadata?: { requestId: string; httpStatusCode: number };
 
     constructor(statusCode: number, message: string, body?: string, requestId?: string) {
