@@ -15,18 +15,17 @@ const DONE = 'data: [DONE]\n\n';
 const request = (extra: any = {}) => ({ model: 'kimi-k3', currency: 'USD', price_in: 3e-6, price_out: 15e-6, messages: [{ role: 'user', content: 'hi' }], ...extra });
 const signedKey = (authorization: string) => /Credential=([^/]+)\//.exec(authorization)?.[1];
 
-type Reply = { status: number; body?: string; chunks?: string[]; hangAfterFirst?: boolean; delayMs?: number };
+type Reply = { status: number; body?: string; chunks?: string[]; delayMs?: number };
 function stubHandler(replies: Reply[]) {
     const seen: any[] = [];
-    return { seen, handle: async (request: any, options?: { abortSignal?: AbortSignal }) => {
+    return { seen, handle: async (request: any) => {
         seen.push({ request, json: JSON.parse(request.body), authorization: request.headers.authorization });
         const r = replies.shift()!;
         if (r.delayMs) await new Promise((ok) => setTimeout(ok, r.delayMs));
         const parts = r.chunks ?? [r.body ?? ''];
         async function* body() {
-            for (const [i, p] of parts.entries()) {
+            for (const p of parts) {
                 yield Buffer.from(p);
-                if (r.hangAfterFirst && i === 0) await new Promise((_, fail) => options?.abortSignal?.addEventListener('abort', () => fail(new Error('aborted'))));
             }
         }
         return { response: { statusCode: r.status, headers: {}, body: body() } };
@@ -44,6 +43,29 @@ function fakeCtx(modelData: any) {
         logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } } as any;
 }
 const thread = (ctx: any) => ctx.db.calls.find((c: any[]) => c[0] === 'insert')?.[2];
+
+// Some cases need a call that fails before any response, a client that leaves mid-call, or a look at what the
+// provider did between two calls, so each step of this handler is a function.
+type Step = (options?: { abortSignal?: AbortSignal }) => Promise<any>;
+function scriptedHandler(steps: Step[]) {
+    const seen: any[] = [];
+    return { seen, handle: async (request: any, options?: { abortSignal?: AbortSignal }) => {
+        seen.push({ request, json: JSON.parse(request.body), authorization: request.headers.authorization });
+        return steps.shift()!(options);
+    } };
+}
+// Answers the way the real handler does: once the call is aborted, the body fails instead of yielding more.
+const reply = (status: number, ...chunks: string[]): Step => async (options) =>
+    ({ response: { statusCode: status, headers: {}, body: (async function* () {
+        for (const c of chunks) {
+            if (options?.abortSignal?.aborted) throw Object.assign(new Error('Request aborted'), { name: 'AbortError' });
+            yield Buffer.from(c);
+        }
+    })() } });
+const rejectWith = (error: any): Step => async () => { throw error; };
+const withConfig = (config: any) => model({ config: { ...model().config, ...config } });
+const twoKeys = [{ accessKeyId: 'test-ak-1', secretAccessKey: 'fake-secret' }, { accessKeyId: 'test-ak-2', secretAccessKey: 'fake-secret' }];
+const okBody = JSON.stringify(completion);
 
 describe('bedrock-runtime-openai provider', () => {
     // Every model here has its own keys, so the host's credential chain should never be reached; if it is, it finds only fakes.
@@ -129,21 +151,30 @@ describe('bedrock-runtime-openai provider', () => {
         await expect(provider.complete(request(), '', ctx)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('/v1/completions') });
         expect(handler.seen.length).toBe(0);
     });
-    it('aborts the upstream stream when the client disconnects and bills what it got', async () => {
-        const handler = stubHandler([{ status: 200, chunks: [content('par'), usageChunk, DONE], hangAfterFirst: true }]);
+    it('stream: keeps reading Bedrock to the end when the client disconnects, and bills the full usage', async () => {
+        const handler = scriptedHandler([reply(200, content('par'), content('tial'), usageChunk, DONE)]);
         const ctx = fakeCtx(model());
         const write = ctx.res.write;
         let writes = 0;
+        // The client closes right after the first event. Nothing holds the stream back, so a close scheduled for later
+        // would arrive only after the last event.
         ctx.res.write = (s: string) => {
             const ok = write(s);
-            if (++writes === 1) setImmediate(() => ctx.res.emit('close'));
+            if (++writes === 1) ctx.res.emit('close');
             return ok;
         };
         await expect(new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx)).resolves.toBeUndefined();
         expect(ctx.res.chunks).toEqual([content('par')]);
-        expect(thread(ctx).completion).toBe('par');
-        expect(thread(ctx).tokens_in).toBe(0);
+        expect(thread(ctx).tokens_in).toBe(2916);
+        expect(thread(ctx).completion).toBe('partial');
         expect(ctx.logger.error).not.toHaveBeenCalled();
+    });
+    it('non-stream: bills the full usage when the client disconnects before Bedrock answers', async () => {
+        const ctx = fakeCtx(model());
+        const handler = scriptedHandler([async (options) => { ctx.res.emit('close'); return reply(200, okBody)(options); }]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx)).resolves.toBeUndefined();
+        expect(thread(ctx)).toMatchObject({ tokens_in: 2916, tokens_out: 10, completion: 'OK' });
+        expect(thread(ctx).fee).toBeCloseTo(0.0010923, 12);
     });
     it('concurrent requests keep their own model, key and price', async () => {
         const modelA = model();
@@ -173,24 +204,6 @@ describe('bedrock-runtime-openai provider', () => {
     });
 });
 
-// Some cases need a call that fails before any response, or a look at what the provider did between two calls, so
-// each step of this handler is a function.
-type Step = (options?: { abortSignal?: AbortSignal }) => Promise<any>;
-function scriptedHandler(steps: Step[]) {
-    const seen: any[] = [];
-    return { seen, handle: async (request: any, options?: { abortSignal?: AbortSignal }) => {
-        seen.push({ request, json: JSON.parse(request.body), authorization: request.headers.authorization });
-        return steps.shift()!(options);
-    } };
-}
-const reply = (status: number, ...chunks: string[]): Step => async () =>
-    ({ response: { statusCode: status, headers: {}, body: (async function* () { for (const c of chunks) yield Buffer.from(c); })() } });
-const rejectWith = (error: any): Step => async () => { throw error; };
-const clientLeft = (options?: { abortSignal?: AbortSignal }) => new Promise((ok) => options!.abortSignal!.addEventListener('abort', ok));
-const withConfig = (config: any) => model({ config: { ...model().config, ...config } });
-const twoKeys = [{ accessKeyId: 'test-ak-1', secretAccessKey: 'fake-secret' }, { accessKeyId: 'test-ak-2', secretAccessKey: 'fake-secret' }];
-const okBody = JSON.stringify(completion);
-
 describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies and billing failures', () => {
     beforeEach(() => { for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value); });
     afterEach(() => { vi.restoreAllMocks(); });
@@ -211,24 +224,22 @@ describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies a
         await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(model()))).rejects.toBe(error);
         expect(handler.seen).toHaveLength(1);
     });
-    it('does not retry a network error once the client has disconnected', async () => {
+    it('does not retry a network error once the client has disconnected, and bills nothing', async () => {
+        const ctx = fakeCtx(model());
         const handler = scriptedHandler([
-            async (options) => { await clientLeft(options); throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }); },
+            async () => { ctx.res.emit('close'); throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }); },
             reply(200, okBody),
         ]);
-        const ctx = fakeCtx(model());
-        const call = new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
-        setImmediate(() => ctx.res.emit('close'));
-        await expect(call).rejects.toMatchObject({ code: 'ECONNRESET' });
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx)).rejects.toMatchObject({ code: 'ECONNRESET' });
         expect(handler.seen).toHaveLength(1);
+        expect(thread(ctx)).toBeUndefined();
     });
-    it('does not retry an error status once the client has disconnected', async () => {
-        const handler = scriptedHandler([async (options) => { await clientLeft(options); return reply(503)(); }, reply(200, okBody)]);
+    it('does not retry an error status once the client has disconnected, and bills nothing', async () => {
         const ctx = fakeCtx(model());
-        const call = new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
-        setImmediate(() => ctx.res.emit('close'));
-        await expect(call).rejects.toMatchObject({ statusCode: 503 });
+        const handler = scriptedHandler([async () => { ctx.res.emit('close'); return reply(503)(); }, reply(200, okBody)]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx)).rejects.toMatchObject({ statusCode: 503 });
         expect(handler.seen).toHaveLength(1);
+        expect(thread(ctx)).toBeUndefined();
     });
     it('reads a discarded error response to the end before retrying', async () => {
         let drained = false;
@@ -309,32 +320,16 @@ describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies a
         expect(ctx.body).toEqual(completion);
         expect(JSON.stringify(ctx.logger.error.mock.calls)).toContain('database is down');
     });
-    it('aborts the upstream stream even when an earlier close listener has already ended the response', async () => {
+    it('stops retrying once the client has left, even when an earlier close listener has already ended the response', async () => {
         // The error middleware in src/middleware/handlers.ts registers its close listener before any provider runs and
         // ends the response there. On a dropped connection the end never finishes, and close is not emitted again.
-        const handler = stubHandler([{ status: 200, chunks: [content('par'), usageChunk, DONE], hangAfterFirst: true }]);
         const ctx = fakeCtx(model());
         ctx.res.writableFinished = false;
         ctx.res.end = () => { ctx.res.writableEnded = true; };
         ctx.res.on('close', () => { if (!ctx.res.writableEnded) ctx.res.end(); });
-        const write = ctx.res.write;
-        let writes = 0;
-        ctx.res.write = (s: string) => {
-            const ok = write(s);
-            if (++writes === 1) setImmediate(() => ctx.res.emit('close'));
-            return ok;
-        };
-        await expect(new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx)).resolves.toBeUndefined();
-        expect(ctx.res.chunks).toEqual([content('par')]);
-        expect(thread(ctx).completion).toBe('par');
-    });
-    it('writes nothing to the client after it disconnects, even while Bedrock keeps sending', async () => {
-        const handler = stubHandler([{ status: 200, chunks: [content('a'), content('b'), DONE] }]);
-        const ctx = fakeCtx(model());
-        const write = ctx.res.write;
-        ctx.res.write = (s: string) => { const ok = write(s); ctx.res.emit('close'); return ok; };
-        await new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx);
-        expect(ctx.res.chunks).toEqual([content('a')]);
+        const handler = scriptedHandler([async () => { ctx.res.emit('close'); return reply(503)(); }, reply(200, okBody)]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx)).rejects.toMatchObject({ statusCode: 503 });
+        expect(handler.seen).toHaveLength(1);
     });
     it('stream: sets status 200 and the event-stream headers before the first event', async () => {
         const handler = stubHandler([{ status: 200, chunks: [content('O'), DONE] }]);
@@ -345,7 +340,7 @@ describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies a
         await new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx);
         expect(atFirstWrite).toEqual({ status: 200, headers: { 'Connection': 'keep-alive', 'Cache-Control': 'no-cache', 'Content-Type': 'text/event-stream' } });
     });
-    it('logs a stream that breaks off without a client disconnect at error level, and still bills and ends it', async () => {
+    it('logs a stream that breaks off at error level, records what arrived and ends the response', async () => {
         const handler = scriptedHandler([async () => ({ response: { statusCode: 200, headers: {}, body: (async function* () {
             yield Buffer.from(content('par'));
             throw Object.assign(new Error('connection reset by Bedrock'), { code: 'ECONNRESET' });

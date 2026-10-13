@@ -11,7 +11,7 @@ import { computeUsageCost, pricesOf } from "./bedrock_openai/usage";
 import { ChatUsageRecord, recordChatUsage } from "./usage_recorder";
 
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
-// Failures to reach Bedrock at all. Anything else, such as a credential error or the client's own abort, is final.
+// Failures to reach Bedrock at all. Anything else, such as a credential error, is final.
 const NETWORK_ERROR_CODES = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN']);
 const DEFAULT_MAX_RETRIES = 3;
 
@@ -83,18 +83,19 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
         }
         const built = buildRequestBody(chatRequest, modelId);
 
-        // A client that leaves before the response is complete aborts the call to Bedrock. This checks writableFinished,
-        // not writableEnded: the error middleware's close listener runs first and ends the response, so a response
-        // whose client left counts as ended here too. Only a completed response is finished.
-        const abort = new AbortController();
+        // A client that leaves early is sent nothing more, but Bedrock's response is still read to the end and billed in
+        // full, as bedrock-converse bills it. This checks writableFinished, not writableEnded: the error middleware's
+        // close listener runs first and ends the response, so a response whose client left counts as ended here too.
+        // Only a completed response is finished.
+        let clientLeft = false;
         ctx.res.on('close', () => {
             if (!ctx.res.writableFinished) {
-                abort.abort();
+                clientLeft = true;
             }
         });
 
         const started = Date.now();
-        const upstream = await this.send(ctx, config, modelId, JSON.stringify(built.body), abort.signal);
+        const upstream = await this.send(ctx, config, modelId, JSON.stringify(built.body), () => clientLeft);
         const first_byte_latency = Date.now() - started;
 
         if (built.body.stream) {
@@ -105,18 +106,14 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
                 'Content-Type': 'text/event-stream',
             });
             const result = await relayChatStream(upstream.body, (event) => {
-                if (!ctx.res.writableEnded && !abort.signal.aborted) {
+                if (!clientLeft && !ctx.res.writableEnded) {
                     ctx.res.write(event);
                 }
             }, { forwardUsageChunk: built.clientWantsUsage });
             const invocation_latency = Date.now() - started;
 
             if (result.error) {
-                if (abort.signal.aborted) {
-                    ctx.logger.info({ message: 'bedrock-runtime-openai client disconnected during the stream', modelId });
-                } else {
-                    ctx.logger.error({ message: 'bedrock-runtime-openai stream failed', error: messageOf(result.error), modelId });
-                }
+                ctx.logger.error({ message: 'bedrock-runtime-openai stream failed', error: messageOf(result.error), modelId });
             }
             if (!result.usage) {
                 ctx.logger.warn({ message: 'bedrock-runtime-openai stream had no usage, so it is billed as zero tokens', modelId });
@@ -159,7 +156,7 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
     // Sends the request. Throttling, server errors and network errors raised before any response are retried, each
     // time in a freshly picked region and, if another key is configured, with a key other than the one that failed.
     // Nothing is retried once the client has left.
-    private async send(ctx: any, config: any, modelId: string, body: string, abortSignal: AbortSignal): Promise<UpstreamResponse> {
+    private async send(ctx: any, config: any, modelId: string, body: string, clientLeft: () => boolean): Promise<UpstreamResponse> {
         const maxRetries = maxRetriesOf(config);
         let excludeKey: string | undefined;
         for (let attempt = 0; ; attempt++) {
@@ -167,9 +164,9 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
             const auth = selectAuth(config, excludeKey);
             let upstream: UpstreamResponse;
             try {
-                upstream = await postChatCompletions({ region, auth, body, abortSignal }, this.handler);
+                upstream = await postChatCompletions({ region, auth, body }, this.handler);
             } catch (error: any) {
-                if (attempt >= maxRetries || abortSignal.aborted || !isNetworkError(error)) {
+                if (attempt >= maxRetries || clientLeft() || !isNetworkError(error)) {
                     throw error;
                 }
                 ctx.logger.warn({ message: 'bedrock-runtime-openai retry', error: error.code ?? error.name, attempt, auth: auth.label, modelId });
@@ -183,7 +180,7 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
             }
             // The body is read even when the response is discarded, so its connection is released.
             const error = errorFromResponse(status, await readErrorBody(upstream.body));
-            if (attempt >= maxRetries || abortSignal.aborted || !RETRYABLE_STATUSES.has(status)) {
+            if (attempt >= maxRetries || clientLeft() || !RETRYABLE_STATUSES.has(status)) {
                 throw error;
             }
             ctx.logger.warn({ message: 'bedrock-runtime-openai retry', status, attempt, auth: auth.label, modelId });
