@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { selectAuth, postChatCompletions, errorFromResponse, readBody, BedrockHttpError } from '../src/providers/bedrock_openai/transport';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
@@ -175,10 +176,22 @@ describe('bedrock runtime Chat Completions transport', () => {
             await send();
             expect(built[0].httpsAgent.proxy.href).toBe('http://http-proxy.example.test:3128/');
         });
-        it('connects directly when no proxy is set', async () => {
+        // Left to itself NodeHttpHandler caps its agent at 50 sockets, and its connect timeout runs while a request
+        // waits for one, so the 51st concurrent stream would time out.
+        it('connects directly through a keep-alive agent with no socket cap when no proxy is set', async () => {
             const { built, send } = await freshTransport();
             await send();
-            expect(built[0].httpsAgent).toBeUndefined();
+            const agent = built[0].httpsAgent;
+            expect(agent).toBeInstanceOf(https.Agent);
+            expect(agent).not.toBeInstanceOf(HttpsProxyAgent);
+            expect(agent.keepAlive).toBe(true);
+            expect(agent.maxSockets).toBe(Infinity);
+        });
+        it('leaves the proxy agent without a socket cap', async () => {
+            const { built, send } = await freshTransport();
+            vi.stubEnv('HTTPS_PROXY', 'http://https-proxy.example.test:3128');
+            await send();
+            expect(built[0].httpsAgent.maxSockets).toBe(Infinity);
         });
         it('sets a connect timeout, so a dead route fails soon enough to retry', async () => {
             const { built, send } = await freshTransport();

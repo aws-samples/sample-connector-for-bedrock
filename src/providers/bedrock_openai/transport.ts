@@ -3,6 +3,7 @@ import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { HttpRequest } from '@smithy/protocol-http';
 import { SignatureV4 } from '@smithy/signature-v4';
+import https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import helper from '../../util/helper';
 
@@ -70,6 +71,8 @@ export interface UpstreamResponse {
 // One handler for the process, so requests share its connection pool. It is built on the first request,
 // which is when the proxy variables are read. The connect timeout turns a dead route into an error the
 // caller can retry elsewhere. The proxy handling is the same as in bedrock_converse.
+// The direct agent is given here because NodeHttpHandler's own allows 50 sockets, and its connect timeout
+// also runs while a request waits for a socket: past 50 concurrent streams, requests would time out.
 let sharedHandler: RequestHandler | undefined;
 function defaultHandler(): RequestHandler {
     if (!sharedHandler) {
@@ -77,7 +80,7 @@ function defaultHandler(): RequestHandler {
         // NodeHttpHandler types the response body as optional; an HTTP response always carries one.
         sharedHandler = new NodeHttpHandler({
             connectionTimeout: 10000,
-            ...(proxyUrl ? { httpsAgent: new HttpsProxyAgent(proxyUrl) } : {}),
+            httpsAgent: proxyUrl ? new HttpsProxyAgent(proxyUrl) : new https.Agent({ keepAlive: true, maxSockets: Infinity }),
         }) as RequestHandler;
     }
     return sharedHandler;
