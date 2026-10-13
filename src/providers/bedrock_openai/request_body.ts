@@ -54,11 +54,15 @@ export function buildRequestBody(chatRequest: ChatRequest, modelId: string): Bui
     }
     body.model = modelId;
 
+    // The provider takes the stream path on any truthy stream, so Bedrock gets a real boolean: a "false" sent as
+    // is would come back as JSON on the stream path and go unbilled.
     let clientWantsUsage = false;
     if (chatRequest.stream) {
+        body.stream = true;
         clientWantsUsage = chatRequest.stream_options?.include_usage === true;
         body.stream_options = { ...chatRequest.stream_options, include_usage: true };
     } else {
+        delete body.stream;
         delete body.stream_options;
     }
 

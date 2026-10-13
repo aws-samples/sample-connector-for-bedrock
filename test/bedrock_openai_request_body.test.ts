@@ -32,6 +32,19 @@ describe('buildRequestBody', () => {
         expect(built.body).not.toHaveProperty('stream_options');
         expect(built.clientWantsUsage).toBe(false);
     });
+    // The provider picks the stream path by truthiness, so Bedrock must be told the same thing.
+    it('sends any truthy stream as true, with usage requested', () => {
+        for (const stream of [true, 'false', 1]) {
+            const { body } = buildRequestBody(req({ stream }), K3);
+            expect(body.stream).toBe(true);
+            expect(body.stream_options.include_usage).toBe(true);
+        }
+    });
+    it('sends no stream field when stream is falsy', () => {
+        for (const stream of [false, 0, '', null]) {
+            expect(buildRequestBody(req({ stream }), K3).body).not.toHaveProperty('stream');
+        }
+    });
     it('renames max_tokens for GPT-5.6 and later', () => {
         const gpt61 = buildRequestBody(req({ max_tokens: 100 }), 'us.openai.gpt-6.1-sol').body;
         expect(gpt61).toMatchObject({ max_completion_tokens: 100 });
