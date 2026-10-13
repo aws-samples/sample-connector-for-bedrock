@@ -131,6 +131,10 @@ describe('bedrock runtime Chat Completions transport', () => {
         expect(errorFromResponse(400, '{"error":{"message":"  "},"message":"fallback"}').message).toBe('fallback');
         expect(errorFromResponse(400, '{"error":{"message":{"code":1}},"Message":"fallback"}').message).toBe('fallback');
     });
+    it('bounds an oversized message from a JSON error body to 2000 characters', () => {
+        const e = errorFromResponse(400, JSON.stringify({ error: { message: 'y'.repeat(3000) } }));
+        expect(e.message).toBe('y'.repeat(2000));
+    });
     it('bounds an oversized error page: the message keeps 500 characters and the stored body 2000', () => {
         const e = errorFromResponse(502, `  ${'x'.repeat(3000)}\n`);
         expect(e.message).toBe('x'.repeat(500));

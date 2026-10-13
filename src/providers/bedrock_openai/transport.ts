@@ -146,7 +146,8 @@ const MESSAGE_LIMIT = 500;
 const BODY_LIMIT = 2000;
 
 // The reason the upstream gave, so the client sees why the request was refused. Bedrock puts it in
-// error.message, message or Message. A body that is not JSON, or has none of those, is cut to MESSAGE_LIMIT.
+// error.message, message or Message, which is cut to BODY_LIMIT. A body that is not JSON, or has none of
+// those, is cut to MESSAGE_LIMIT.
 function upstreamMessage(statusCode: number, bodyText: string): string {
     const text = bodyText.trim();
     if (!text) {
@@ -156,7 +157,7 @@ function upstreamMessage(statusCode: number, bodyText: string): string {
         const parsed = JSON.parse(text);
         for (const candidate of [parsed?.error?.message, parsed?.message, parsed?.Message]) {
             if (typeof candidate === 'string' && candidate.trim()) {
-                return candidate;
+                return candidate.slice(0, BODY_LIMIT);
             }
         }
     } catch {
