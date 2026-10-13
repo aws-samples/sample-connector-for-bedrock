@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 import BedrockRuntimeOpenAI from '../src/providers/bedrock_runtime_openai';
 import { fakeDb } from './helpers/fakes';
@@ -170,5 +170,211 @@ describe('bedrock-runtime-openai provider', () => {
         await new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx);
         expect(thread(ctx).tokens_in).toBe(0);
         expect(ctx.logger.warn.mock.calls.some((args: any[]) => args.some((arg) => JSON.stringify(arg).includes('usage')))).toBe(true);
+    });
+});
+
+// Some cases need a call that fails before any response, or a look at what the provider did between two calls, so
+// each step of this handler is a function.
+type Step = (options?: { abortSignal?: AbortSignal }) => Promise<any>;
+function scriptedHandler(steps: Step[]) {
+    const seen: any[] = [];
+    return { seen, handle: async (request: any, options?: { abortSignal?: AbortSignal }) => {
+        seen.push({ request, json: JSON.parse(request.body), authorization: request.headers.authorization });
+        return steps.shift()!(options);
+    } };
+}
+const reply = (status: number, ...chunks: string[]): Step => async () =>
+    ({ response: { statusCode: status, headers: {}, body: (async function* () { for (const c of chunks) yield Buffer.from(c); })() } });
+const rejectWith = (error: any): Step => async () => { throw error; };
+const clientLeft = (options?: { abortSignal?: AbortSignal }) => new Promise((ok) => options!.abortSignal!.addEventListener('abort', ok));
+const withConfig = (config: any) => model({ config: { ...model().config, ...config } });
+const twoKeys = [{ accessKeyId: 'test-ak-1', secretAccessKey: 'fake-secret' }, { accessKeyId: 'test-ak-2', secretAccessKey: 'fake-secret' }];
+const okBody = JSON.stringify(completion);
+
+describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies and billing failures', () => {
+    beforeEach(() => { for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value); });
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    it.each([['code', 'ECONNRESET'], ['code', 'ECONNREFUSED'], ['code', 'ETIMEDOUT'], ['code', 'EPIPE'], ['code', 'ENOTFOUND'], ['code', 'EAI_AGAIN'], ['name', 'TimeoutError']])(
+        'retries a network error with %s %s raised before any response, using the other configured key', async (field, value) => {
+            // Without this the second pick could differ from the first by chance alone.
+            vi.spyOn(Math, 'random').mockReturnValue(0);
+            const handler = scriptedHandler([rejectWith(Object.assign(new Error('network failure'), { [field]: value })), reply(200, okBody)]);
+            const ctx = fakeCtx(withConfig({ credentials: twoKeys }));
+            await new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
+            expect(handler.seen.map((s) => signedKey(s.authorization))).toEqual(['test-ak-1', 'test-ak-2']);
+            expect(ctx.body).toEqual(completion);
+        });
+    it.each(['CredentialsProviderError', 'AbortError'])('does not retry a call that fails with %s', async (name) => {
+        const error = Object.assign(new Error('not a network failure'), { name });
+        const handler = scriptedHandler([rejectWith(error), reply(200, okBody)]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(model()))).rejects.toBe(error);
+        expect(handler.seen).toHaveLength(1);
+    });
+    it('does not retry a network error once the client has disconnected', async () => {
+        const handler = scriptedHandler([
+            async (options) => { await clientLeft(options); throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }); },
+            reply(200, okBody),
+        ]);
+        const ctx = fakeCtx(model());
+        const call = new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
+        setImmediate(() => ctx.res.emit('close'));
+        await expect(call).rejects.toMatchObject({ code: 'ECONNRESET' });
+        expect(handler.seen).toHaveLength(1);
+    });
+    it('does not retry an error status once the client has disconnected', async () => {
+        const handler = scriptedHandler([async (options) => { await clientLeft(options); return reply(503)(); }, reply(200, okBody)]);
+        const ctx = fakeCtx(model());
+        const call = new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
+        setImmediate(() => ctx.res.emit('close'));
+        await expect(call).rejects.toMatchObject({ statusCode: 503 });
+        expect(handler.seen).toHaveLength(1);
+    });
+    it('reads a discarded error response to the end before retrying', async () => {
+        let drained = false;
+        let drainedBeforeRetry: boolean | undefined;
+        const handler = scriptedHandler([
+            async () => ({ response: { statusCode: 503, headers: {}, body: (async function* () { yield Buffer.from('busy'); drained = true; })() } }),
+            async () => { drainedBeforeRetry = drained; return reply(200, okBody)(); },
+        ]);
+        await new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(model()));
+        expect(drainedBeforeRetry).toBe(true);
+    });
+    it('retries an error status even when its body breaks off', async () => {
+        const handler = scriptedHandler([
+            async () => ({ response: { statusCode: 503, headers: {}, body: (async function* () {
+                yield Buffer.from('bu');
+                throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+            })() } }),
+            reply(200, okBody),
+        ]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
+        expect(handler.seen).toHaveLength(2);
+        expect(ctx.body).toEqual(completion);
+    });
+    it('logs each retry with what failed, the attempt, the key label and the model id', async () => {
+        const handler = scriptedHandler([rejectWith(Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })), reply(503), reply(200, okBody)]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
+        expect(ctx.logger.warn.mock.calls).toEqual([
+            [{ message: 'bedrock-runtime-openai retry', error: 'ECONNRESET', attempt: 0, auth: 'test-ak-...', modelId: 'global.moonshotai.kimi-k3' }],
+            [{ message: 'bedrock-runtime-openai retry', status: 503, attempt: 1, auth: 'test-ak-...', modelId: 'global.moonshotai.kimi-k3' }],
+        ]);
+    });
+    it.each([429, 500, 502, 503, 504])('retries HTTP %s', async (status) => {
+        const handler = scriptedHandler([reply(status), reply(200, okBody)]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
+        expect(handler.seen).toHaveLength(2);
+        expect(ctx.body).toEqual(completion);
+    });
+    it.each([401, 403])('relays HTTP %s with that status and without retrying', async (status) => {
+        const handler = scriptedHandler([reply(status, JSON.stringify({ message: 'The security token included in the request is invalid.' })), reply(200, okBody)]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(model()))).rejects.toMatchObject({ statusCode: status });
+        expect(handler.seen).toHaveLength(1);
+    });
+    it.each([undefined, 'abc'])('retries 3 times when maxRetries is %s', async (maxRetries) => {
+        const handler = scriptedHandler([reply(503), reply(503), reply(503), reply(503), reply(200, okBody)]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(withConfig({ maxRetries }))))
+            .rejects.toMatchObject({ statusCode: 503 });
+        expect(handler.seen).toHaveLength(4);
+    });
+    it('switches to the other configured key even when the random pick would repeat the failed one', async () => {
+        vi.spyOn(Math, 'random').mockReturnValue(0);
+        const handler = scriptedHandler([reply(429), reply(200, okBody)]);
+        await new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(withConfig({ credentials: twoKeys })));
+        expect(handler.seen.map((s) => signedKey(s.authorization))).toEqual(['test-ak-1', 'test-ak-2']);
+    });
+    it('picks the region afresh for each attempt', async () => {
+        vi.spyOn(Math, 'random').mockReturnValueOnce(0).mockReturnValueOnce(0.99);
+        const handler = scriptedHandler([reply(503), reply(200, okBody)]);
+        await new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(withConfig({ regions: ['us-east-1', 'us-west-2'] })));
+        expect(handler.seen.map((s) => s.request.hostname)).toEqual(['bedrock-runtime.us-east-1.amazonaws.com', 'bedrock-runtime.us-west-2.amazonaws.com']);
+    });
+    it('records whole-millisecond latencies, with the first byte timed when the response arrives', async () => {
+        const handler = stubHandler([{ status: 200, body: okBody, delayMs: 20 }]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler).chat(request(), '', ctx);
+        const { first_byte_latency, invocation_latency } = thread(ctx);
+        expect(Number.isInteger(first_byte_latency)).toBe(true);
+        expect(Number.isInteger(invocation_latency)).toBe(true);
+        expect(first_byte_latency).toBeGreaterThanOrEqual(15);
+        expect(invocation_latency).toBeGreaterThanOrEqual(first_byte_latency);
+    });
+    it('logs a billing failure and still delivers the completion', async () => {
+        const ctx = fakeCtx(model());
+        ctx.db.insert = async () => { throw new Error('database is down'); };
+        await new BedrockRuntimeOpenAI(stubHandler([{ status: 200, body: okBody }])).chat(request(), '', ctx);
+        expect(ctx.body).toEqual(completion);
+        expect(JSON.stringify(ctx.logger.error.mock.calls)).toContain('database is down');
+    });
+    it('aborts the upstream stream even when an earlier close listener has already ended the response', async () => {
+        // The error middleware in src/middleware/handlers.ts registers its close listener before any provider runs and
+        // ends the response there. On a dropped connection the end never finishes, and close is not emitted again.
+        const handler = stubHandler([{ status: 200, chunks: [content('par'), usageChunk, DONE], hangAfterFirst: true }]);
+        const ctx = fakeCtx(model());
+        ctx.res.writableFinished = false;
+        ctx.res.end = () => { ctx.res.writableEnded = true; };
+        ctx.res.on('close', () => { if (!ctx.res.writableEnded) ctx.res.end(); });
+        const write = ctx.res.write;
+        let writes = 0;
+        ctx.res.write = (s: string) => {
+            const ok = write(s);
+            if (++writes === 1) setImmediate(() => ctx.res.emit('close'));
+            return ok;
+        };
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx)).resolves.toBeUndefined();
+        expect(ctx.res.chunks).toEqual([content('par')]);
+        expect(thread(ctx).completion).toBe('par');
+    });
+    it('writes nothing to the client after it disconnects, even while Bedrock keeps sending', async () => {
+        const handler = stubHandler([{ status: 200, chunks: [content('a'), content('b'), DONE] }]);
+        const ctx = fakeCtx(model());
+        const write = ctx.res.write;
+        ctx.res.write = (s: string) => { const ok = write(s); ctx.res.emit('close'); return ok; };
+        await new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx);
+        expect(ctx.res.chunks).toEqual([content('a')]);
+    });
+    it('stream: sets status 200 and the event-stream headers before the first event', async () => {
+        const handler = stubHandler([{ status: 200, chunks: [content('O'), DONE] }]);
+        const ctx = fakeCtx(model());
+        const write = ctx.res.write;
+        let atFirstWrite: any;
+        ctx.res.write = (s: string) => { atFirstWrite ??= { status: ctx.status, headers: { ...ctx.responseHeaders } }; return write(s); };
+        await new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx);
+        expect(atFirstWrite).toEqual({ status: 200, headers: { 'Connection': 'keep-alive', 'Cache-Control': 'no-cache', 'Content-Type': 'text/event-stream' } });
+    });
+    it('logs a stream that breaks off without a client disconnect at error level, and still bills and ends it', async () => {
+        const handler = scriptedHandler([async () => ({ response: { statusCode: 200, headers: {}, body: (async function* () {
+            yield Buffer.from(content('par'));
+            throw Object.assign(new Error('connection reset by Bedrock'), { code: 'ECONNRESET' });
+        })() } })]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler).chat(request({ stream: true }), '', ctx);
+        expect(JSON.stringify(ctx.logger.error.mock.calls)).toContain('connection reset by Bedrock');
+        expect(thread(ctx).completion).toBe('par');
+        expect(ctx.res.writableEnded).toBe(true);
+    });
+    it('answers 502 with the first 200 characters when a 200 response is not JSON', async () => {
+        const page = `<html>${'maintenance '.repeat(30)}</html>`;
+        const handler = stubHandler([{ status: 200, body: page }]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(model())))
+            .rejects.toMatchObject({ statusCode: 502, message: `Bedrock returned a response that is not JSON: ${page.slice(0, 200)}` });
+    });
+    it('rejects a model without a configured modelId before calling Bedrock', async () => {
+        const handler = stubHandler([]);
+        await expect(new BedrockRuntimeOpenAI(handler).chat(request(), '', fakeCtx(withConfig({ modelId: undefined }))))
+            .rejects.toThrow("You must specify the parameters 'modelId' in the backend model configuration.");
+        expect(handler.seen).toHaveLength(0);
+    });
+    it('reads the model only from ctx.state, never from the shared instance', async () => {
+        const handler = stubHandler([{ status: 200, body: okBody }]);
+        const provider = new BedrockRuntimeOpenAI(handler);
+        provider.setModelData(model());
+        const ctx = fakeCtx(model());
+        ctx.state = {};
+        await expect(provider.chat(request(), '', ctx)).rejects.toThrow('Model data is missing for this request.');
+        expect(handler.seen).toHaveLength(0);
     });
 });
