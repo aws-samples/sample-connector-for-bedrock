@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
+import Cache from '../src/util/cache';
 import { recordChatUsage } from '../src/providers/usage_recorder';
 import { fakeDb } from './helpers/fakes';
 
@@ -9,6 +10,8 @@ const chatRequest = () => ({ model: 'kimi-k3', currency: 'USD', stream: true, me
 const call = (db: any, name: string) => db.calls.find((c: any[]) => c[0] === name);
 
 describe('recordChatUsage', () => {
+    afterEach(() => { Cache.api_keys = []; });
+
     it('does nothing without a database or in performance mode', async () => {
         await expect(recordChatUsage({ user: key }, { chatRequest: chatRequest(), modelData: model, text: 'OK', cost })).resolves.toBeUndefined();
         const db = fakeDb();
@@ -42,5 +45,62 @@ describe('recordChatUsage', () => {
         await recordChatUsage({ db, user: key }, { session_id: 'sess-1', chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
         expect(call(db, 'save')[2]).toMatchObject({ id: 3, total_in_tokens: 2926, total_out_tokens: 15, total_fee: expect.closeTo(0.5010923, 12) });
         expect(call(db, 'insert')[2].session_id).toBe(3);
+    });
+    it('does nothing without an API key', async () => {
+        const db = fakeDb();
+        await recordChatUsage({ db }, { chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
+        expect(db.calls).toEqual([]);
+    });
+    it('creates the session on its first call', async () => {
+        const db = fakeDb();
+        await recordChatUsage({ db, user: key }, { session_id: 'sess-1', chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
+        expect(call(db, 'loadByKV').slice(1)).toEqual(['eiai_session', 'key', 'sess-1']);
+        expect(call(db, 'save').slice(1)).toEqual(['eiai_session', { key: 'sess-1', key_id: 7, total_in_tokens: 2916, total_out_tokens: 10, total_fee: 0.0010923 }]);
+        expect(call(db, 'insert')[2]).toMatchObject({ session_key: 'sess-1', session_id: 11 });
+    });
+    it('stamps the update time on an existing session', async () => {
+        const db = fakeDb({ id: 3, total_in_tokens: 0, total_out_tokens: 0, total_fee: '0' });
+        await recordChatUsage({ db, user: key }, { session_id: 'sess-1', chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
+        expect(call(db, 'save')[2].updated_at).toBeInstanceOf(Date);
+    });
+    it('titles the session with the first 30 characters of the reply, for non-stream requests only', async () => {
+        const existing = { id: 3, total_in_tokens: 0, total_out_tokens: 0, total_fee: '0' };
+        const text = 'x'.repeat(40);
+        const plain = fakeDb(existing);
+        await recordChatUsage({ db: plain, user: key }, { session_id: 'sess-1', chatRequest: { ...chatRequest(), stream: false }, modelData: model, text, cost });
+        expect(call(plain, 'save')[2].title).toBe('x'.repeat(30));
+        const streamed = fakeDb(existing);
+        await recordChatUsage({ db: streamed, user: key }, { session_id: 'sess-1', chatRequest: chatRequest(), modelData: model, text, cost });
+        expect(call(streamed, 'save')[2]).not.toHaveProperty('title');
+    });
+    it('marks the thread of a non-stream request as type 1', async () => {
+        const db = fakeDb();
+        await recordChatUsage({ db, user: key }, { chatRequest: { ...chatRequest(), stream: false }, modelData: model, text: 'OK', cost });
+        expect(call(db, 'insert')[2].thread_type).toBe(1);
+    });
+    it('records the currency of the request', async () => {
+        const db = fakeDb();
+        await recordChatUsage({ db, user: key }, { chatRequest: { ...chatRequest(), currency: 'CNY' }, modelData: model, text: 'OK', cost });
+        expect(call(db, 'insert')[2].currency).toBe('CNY');
+    });
+    it('stops month_fee at the monthly quota while total_fee gets the whole fee', async () => {
+        const db = fakeDb();
+        await recordChatUsage({ db, user: { ...key, month_fee: '9.9995' } }, { chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
+        const params = call(db, 'query')[2];
+        expect(params[0]).toBe(0.0010923);
+        expect(params[1]).toBe(10);
+    });
+    it('updates the cached month_fee of the key', async () => {
+        Cache.api_keys = [{ id: 7, month_fee: '1' }, { id: 8, month_fee: '5' }];
+        await recordChatUsage({ db: fakeDb(), user: key }, { chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
+        expect(Cache.api_keys[0].month_fee).toBeCloseTo(1.0010923, 12);
+        expect(Cache.api_keys[1].month_fee).toBe('5');
+    });
+    it('leaves ctx.user as it found it', async () => {
+        const user = { ...key };
+        const ctx = { db: fakeDb(), user };
+        await recordChatUsage(ctx, { chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
+        expect(ctx.user).toBe(user);
+        expect(user).toEqual(key);
     });
 });
