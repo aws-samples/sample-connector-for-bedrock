@@ -9,6 +9,7 @@ import AbstractProvider from "./abstract_provider";
 import BedrockKnowledgeBase from "./bedrock_knowledge_base";
 import OllamaAProvider from "./ollama_provider";
 import BedrockConverse from "./bedrock_converse";
+import BedrockRuntimeOpenAI from "./bedrock_runtime_openai";
 import SagemakerLMI from "./sagemaker_lmi"
 import Painter from "./painter";
 import WebMiner from "./web_miner";
@@ -30,6 +31,7 @@ import GeminiConverse from "./gemini_converse";
 class Provider {
     constructor() {
         this["bedrock-converse"] = new BedrockConverse();
+        this["bedrock-runtime-openai"] = new BedrockRuntimeOpenAI();
         this["smart-router"] = new SmartRouter();
         // this["simple-action"] = new SimpleAction();
         this["sagemaker-lmi"] = new SagemakerLMI();
@@ -173,6 +175,9 @@ class Provider {
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
         chatRequest.model = modelData.name;
+        // Provider instances are shared by concurrent requests, so each request carries its own model data.
+        ctx.state = ctx.state || {};
+        ctx.state.modelData = modelData;
         const provider: AbstractProvider = this[modelData.provider];
         if (!provider) {
             throw new Error("You need to configure the provider correctly.");
@@ -226,6 +231,9 @@ class Provider {
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
         chatRequest.model = modelData.name;
+        // Provider instances are shared by concurrent requests, so each request carries its own model data.
+        ctx.state = ctx.state || {};
+        ctx.state.modelData = modelData;
 
         const provider: AbstractProvider = this[modelData.provider];
         if (!provider) {
