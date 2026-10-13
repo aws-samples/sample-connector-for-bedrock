@@ -79,3 +79,17 @@ GLM 5.3. It is available only to eligible accounts; ask your AWS account team.
   "regions": ["us-east-1"]
 }
 ```
+
+## Preset models
+
+A new installation creates these models on this provider (`src/scripts/patch-0.0.5.sql`). Existing databases are not changed; add the models in the admin console if you want them. Prices are us-east-1 on-demand prices per 1 million tokens. The in-Region model ids must be available in the Region BRConnector calls.
+
+| Model name | `modelId` | Input | Output |
+|---|---|---|---|
+| `kimi-k3` | `global.moonshotai.kimi-k3` | 3.00 | 15.00 (cache read 0.30, cache write 3.75) |
+| `kimi-k2-5` | `moonshotai.kimi-k2.5` | 0.60 | 3.00 |
+| `glm-5` | `zai.glm-5` | 1.00 | 3.20 |
+| `deepseek-v3-2` | `deepseek.v3.2` | 0.62 | 1.85 |
+| `gpt-oss-120b` | `openai.gpt-oss-120b-1:0` | 0.15 | 0.60 |
+| `qwen3-coder-next` | `qwen.qwen3-coder-next` | 0.50 | 1.20 |
+| `minimax-m2-5` | `minimax.minimax-m2.5` | 0.30 | 1.20 |

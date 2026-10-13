@@ -79,3 +79,17 @@ GLM 5.3。只对符合条件的账号开放，请联系你的 AWS 账户团队�
   "regions": ["us-east-1"]
 }
 ```
+
+## 预置模型
+
+新安装会在这个 provider 上创建下面这些模型（`src/scripts/patch-0.0.5.sql`）。已有的数据库不会改动；需要的话请在管理后台自行添加。价格是 us-east-1 按需价格，单位是每 100 万 token。In-Region 的 model id 必须在 BRConnector 调用的 Region 里可用。
+
+| 模型名 | `modelId` | 输入 | 输出 |
+|---|---|---|---|
+| `kimi-k3` | `global.moonshotai.kimi-k3` | 3.00 | 15.00（缓存读 0.30，缓存写 3.75） |
+| `kimi-k2-5` | `moonshotai.kimi-k2.5` | 0.60 | 3.00 |
+| `glm-5` | `zai.glm-5` | 1.00 | 3.20 |
+| `deepseek-v3-2` | `deepseek.v3.2` | 0.62 | 1.85 |
+| `gpt-oss-120b` | `openai.gpt-oss-120b-1:0` | 0.15 | 0.60 |
+| `qwen3-coder-next` | `qwen.qwen3-coder-next` | 0.50 | 1.20 |
+| `minimax-m2-5` | `minimax.minimax-m2.5` | 0.30 | 1.20 |
