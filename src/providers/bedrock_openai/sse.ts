@@ -25,8 +25,8 @@ function parseJson(text: string): any {
 }
 
 // Relays a Chat Completions SSE stream to the client one event at a time and collects what the caller
-// needs to bill and log the call. It never throws: if the source or write fails, it returns what it
-// has so far with error set, and stops reading the source.
+// needs to bill and log the call. It never throws: if the source or write fails before [DONE], it returns
+// what it has so far with error set, and stops reading the source.
 export async function relayChatStream(
     source: AsyncIterable<Uint8Array | string>,
     write: (event: string) => void,
@@ -77,9 +77,13 @@ export async function relayChatStream(
         }
         relayEvent(buffer);
     } catch (error) {
-        // The unfinished event in the buffer is dropped, because half an event would corrupt whatever the
-        // caller writes next.
-        result.error = error;
+        // Bedrock answers with connection: close and often resets the socket right after [DONE], so a
+        // failure once [DONE] has arrived ends a complete stream and is not an error.
+        if (!result.sawDone) {
+            // The unfinished event in the buffer is dropped, because half an event would corrupt whatever
+            // the caller writes next.
+            result.error = error;
+        }
     }
     return result;
 }

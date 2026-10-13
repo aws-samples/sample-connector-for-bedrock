@@ -359,6 +359,18 @@ describe('bedrock-runtime-openai provider: retry rules, disconnects, latencies a
         expect(thread(ctx).completion).toBe('par');
         expect(ctx.res.writableEnded).toBe(true);
     });
+    it('does not log a connection reset that comes after [DONE] as a failure', async () => {
+        const handler = scriptedHandler([async () => ({ response: { statusCode: 200, headers: {}, body: (async function* () {
+            yield Buffer.from(content('O') + content('K') + usageChunk + DONE);
+            throw Object.assign(new Error('aborted'), { code: 'ECONNRESET' });
+        })() } })]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx);
+        expect(ctx.logger.error).not.toHaveBeenCalled();
+        expect(ctx.res.chunks.join('')).toBe(content('O') + content('K') + DONE);
+        expect(thread(ctx)).toMatchObject({ tokens_in: 2916, tokens_out: 10, completion: 'OK' });
+        expect(ctx.res.writableEnded).toBe(true);
+    });
     it('answers 502 with the first 200 characters when a 200 response is not JSON', async () => {
         const page = `<html>${'maintenance '.repeat(30)}</html>`;
         const handler = stubHandler([{ status: 200, body: page }]);

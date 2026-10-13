@@ -70,6 +70,20 @@ describe('relayChatStream', () => {
         expect(result.text).toBe('partial');
         expect(result.error).toBeInstanceOf(Error);
     });
+    // Bedrock answers streams with connection: close and often resets the socket right after [DONE].
+    it('treats a connection reset after [DONE] as a normal end', async () => {
+        async function* resetAfterDone() {
+            yield Buffer.from(content('OK'));
+            yield Buffer.from(usage);
+            yield Buffer.from(DONE);
+            throw Object.assign(new Error('aborted'), { code: 'ECONNRESET' });
+        }
+        const written: string[] = [];
+        const result = await relayChatStream(resetAfterDone(), (s) => written.push(s), { forwardUsageChunk: false });
+        expect(written).toEqual([content('OK'), DONE]);
+        expect(result).toMatchObject({ text: 'OK', usage: USAGE, sawDone: true });
+        expect(result.error).toBeUndefined();
+    });
 
     it('relays each event once when a chunk holds several and ends inside another', async () => {
         const c = content('c');
