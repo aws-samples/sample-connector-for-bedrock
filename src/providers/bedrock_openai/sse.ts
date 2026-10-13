@@ -27,7 +27,8 @@ function parseJson(text: string): any {
 // Relays a Chat Completions SSE stream to the client one event at a time and collects what the caller
 // needs to bill and log the call. It never throws: if the source or a write fails before [DONE] has been
 // relayed, it returns what it has so far with error set, and stops reading the source. A source failure
-// after [DONE] has been relayed ends the stream normally.
+// once the stream is complete (after [DONE], or after the final usage chunk) ends it normally, and the
+// client gets a [DONE] it missed.
 export async function relayChatStream(
     source: AsyncIterable<Uint8Array | string>,
     write: (event: string) => void,
@@ -35,6 +36,7 @@ export async function relayChatStream(
 ): Promise<RelayResult> {
     const result: RelayResult = { usage: null, text: '', sawDone: false };
     let writeFailed = false;
+    let sawFinalUsage = false;
 
     const relayEvent = (raw: string) => {
         // Runs of blank lines between events carry nothing, so they are not relayed.
@@ -50,9 +52,12 @@ export async function relayChatStream(
             const usage = chunk?.usage;
             if (usage) {
                 result.usage = usage;
-                // Streams always ask Bedrock for usage, so a client that did not ask must not see its chunk.
-                if (!opts.forwardUsageChunk && Array.isArray(chunk.choices) && chunk.choices.length === 0) {
-                    forward = false;
+                if (Array.isArray(chunk.choices) && chunk.choices.length === 0) {
+                    sawFinalUsage = true;
+                    // Streams always ask Bedrock for usage, so a client that did not ask must not see its chunk.
+                    if (!opts.forwardUsageChunk) {
+                        forward = false;
+                    }
                 }
             }
             const content = chunk?.choices?.[0]?.delta?.content;
@@ -87,13 +92,15 @@ export async function relayChatStream(
         }
         relayEvent(buffer);
     } catch (error) {
-        // Bedrock answers with connection: close and often resets the socket right after [DONE], so a
-        // source failure once [DONE] has been relayed ends a complete stream and is not an error. A [DONE]
-        // the reset cut off before its blank line is relayed first.
+        // Bedrock answers with connection: close and often resets the socket at the very end of a stream:
+        // after [DONE], inside it, or between the final usage chunk and [DONE]. Streams always ask for
+        // usage, and the usage-only chunk is the last one before [DONE], so in each case the stream is
+        // complete: the client gets the [DONE] it missed and no error is reported.
         let failure = error;
-        if (!writeFailed && !result.sawDone && eventData(buffer.replace(/^\n+|\n+$/g, '')) === '[DONE]') {
+        const doneCutOff = eventData(buffer.replace(/^\n+|\n+$/g, '')) === '[DONE]';
+        if (!writeFailed && !result.sawDone && (doneCutOff || sawFinalUsage)) {
             try {
-                relayEvent(buffer);
+                relayEvent('data: [DONE]');
             } catch (writeError) {
                 failure = writeError;
             }
