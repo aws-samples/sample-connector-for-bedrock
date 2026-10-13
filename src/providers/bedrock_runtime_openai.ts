@@ -17,6 +17,29 @@ const DEFAULT_MAX_RETRIES = 3;
 // The length of eiai_session.key and eiai_thread.session_key.
 const MAX_SESSION_ID_LENGTH = 128;
 
+// Retries back off with full jitter: a random wait below a ceiling that doubles with each attempt, so clients
+// throttled together do not all come back together.
+const BACKOFF_BASE_MS = 200;
+const BACKOFF_CAP_MS = 2000;
+// A retry-after longer than this is cut short, so a client is not kept waiting on one retry for minutes.
+const RETRY_AFTER_CAP_MS = 5000;
+
+export type Sleep = (ms: number) => Promise<void>;
+const realSleep: Sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function backoffMs(attempt: number): number {
+    return Math.floor(Math.random() * Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** attempt));
+}
+
+// The wait a retry-after header asks for, when it is a number of seconds. The HTTP-date form is ignored.
+function retryAfterMs(headers: Record<string, string> | undefined): number | undefined {
+    const value = headers?.['retry-after'];
+    if (typeof value !== 'string' || !/^\d+(\.\d+)?$/.test(value.trim())) {
+        return undefined;
+    }
+    return Math.min(RETRY_AFTER_CAP_MS, Number(value) * 1000);
+}
+
 function isNetworkError(error: any): boolean {
     return NETWORK_ERROR_CODES.has(error?.code) || error?.name === 'TimeoutError';
 }
@@ -63,11 +86,13 @@ async function recordUsage(ctx: any, rec: Omit<ChatUsageRecord, 'cost'> & { usag
  */
 export default class BedrockRuntimeOpenAI extends AbstractProvider {
     private readonly handler?: RequestHandler;
+    private readonly sleep: Sleep;
 
-    // Without a handler, the transport's shared one is used.
-    constructor(handler?: RequestHandler) {
+    // Without a handler, the transport's shared one is used. Tests pass a sleep that does not wait.
+    constructor(handler?: RequestHandler, sleep: Sleep = realSleep) {
         super();
         this.handler = handler;
+        this.sleep = sleep;
     }
 
     async chat(chatRequest: ChatRequest, session_id: string, ctx: any): Promise<void> {
@@ -159,9 +184,9 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
         throw new BedrockHttpError(400, `The [${name}] model does not support /v1/completions. Use /v1/chat/completions.`);
     }
 
-    // Sends the request. Throttling, server errors and network errors raised before any response are retried, each
-    // time in a freshly picked region and, if another key is configured, with a key other than the one that failed.
-    // Nothing is retried once the client has left.
+    // Sends the request. Throttling, server errors and network errors raised before any response are retried after a
+    // wait, each time in a freshly picked region and, if another key is configured, with a key other than the one that
+    // failed. Nothing is retried once the client has left, including while it waits.
     private async send(ctx: any, config: any, modelId: string, body: string, clientLeft: () => boolean): Promise<UpstreamResponse> {
         const maxRetries = maxRetriesOf(config);
         let excludeKey: string | undefined;
@@ -177,6 +202,10 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
                 }
                 ctx.logger.warn({ message: 'bedrock-runtime-openai retry', error: error.code ?? error.name, attempt, auth: auth.label, modelId });
                 excludeKey = keyToAvoid(auth);
+                await this.sleep(backoffMs(attempt));
+                if (clientLeft()) {
+                    throw error;
+                }
                 continue;
             }
 
@@ -191,6 +220,10 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
             }
             ctx.logger.warn({ message: 'bedrock-runtime-openai retry', status, attempt, auth: auth.label, modelId });
             excludeKey = keyToAvoid(auth);
+            await this.sleep(retryAfterMs(upstream.headers) ?? backoffMs(attempt));
+            if (clientLeft()) {
+                throw error;
+            }
         }
     }
 }
