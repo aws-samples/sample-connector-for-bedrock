@@ -35,6 +35,12 @@ describe('relayChatStream', () => {
         expect(written).toEqual([content('Hello '), content('world'), DONE]);
         expect(result).toMatchObject({ text: 'Hello world', usage: USAGE });
     });
+    it('joins a CRLF that is cut between chunks', async () => {
+        const a = 'data: {"id":"c1","choices":[{"index":0,"delta":{"content":"a"}}]}';
+        const { written, result } = await run([a + '\r', '\n\r', '\ndata: [DONE]\r\n\r\n']);
+        expect(written).toEqual([a + '\n\n', DONE]);
+        expect(result).toMatchObject({ text: 'a', sawDone: true });
+    });
     it('keeps multi-byte characters split across chunks', async () => {
         const bytes = Buffer.from(content('你好'));
         const cut = bytes.indexOf(Buffer.from('你')) + 1;
