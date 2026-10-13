@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 import BedrockRuntimeOpenAI from '../src/providers/bedrock_runtime_openai';
 import helper from '../src/util/helper';
+import { extractErrorDetails } from '../src/util/response';
 import { fakeDb } from './helpers/fakes';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
 
@@ -469,5 +470,53 @@ describe('bedrock-runtime-openai provider: waits between retries', () => {
         await done;
         expect(handler.seen).toHaveLength(2);
         expect(ctx.body).toEqual(completion);
+    });
+});
+
+describe('bedrock-runtime-openai provider: Bedrock request ids', () => {
+    beforeEach(() => { for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value); });
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    const withId = (requestId: string) => ({ 'x-amzn-requestid': requestId });
+    const logged = (fn: any) => fn.mock.calls.map((args: any[]) => args[0]);
+
+    it('puts the request id of an error response on the thrown error', async () => {
+        const handler = scriptedHandler([replyWith(400, withId('req-400'), JSON.stringify({ error: { message: 'bad top_p' } }))]);
+        const error = await new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', fakeCtx(model())).catch((e) => e);
+        expect(error).toMatchObject({ statusCode: 400, message: 'bad top_p', $metadata: { requestId: 'req-400', httpStatusCode: 400 } });
+        expect(extractErrorDetails(error).request_id).toBe('req-400');
+    });
+    it('puts the request id of the last attempt on the error after the retries run out', async () => {
+        const handler = scriptedHandler([replyWith(503, withId('req-a')), replyWith(503, withId('req-b'))]);
+        const ctx = fakeCtx(withConfig({ maxRetries: 1 }));
+        const error = await new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', ctx).catch((e) => e);
+        expect(error.$metadata).toEqual({ requestId: 'req-b', httpStatusCode: 503 });
+        expect(logged(ctx.logger.warn)).toEqual([expect.objectContaining({ message: 'bedrock-runtime-openai retry', status: 503, requestId: 'req-a' })]);
+    });
+    it('puts the request id on the 502 for a 200 response that is not JSON', async () => {
+        const handler = scriptedHandler([replyWith(200, withId('req-html'), '<html>maintenance</html>')]);
+        await expect(new BedrockRuntimeOpenAI(handler, noWait).chat(request(), '', fakeCtx(model())))
+            .rejects.toMatchObject({ statusCode: 502, $metadata: { requestId: 'req-html', httpStatusCode: 502 } });
+    });
+    it('logs the request id of a stream that ends without usage', async () => {
+        const handler = scriptedHandler([replyWith(200, withId('req-nousage'), content('x'), DONE)]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx);
+        expect(logged(ctx.logger.warn)).toEqual([expect.objectContaining({ message: expect.stringContaining('no usage'), requestId: 'req-nousage' })]);
+    });
+    it('logs the request id of a stream that breaks off', async () => {
+        const handler = scriptedHandler([async () => ({ response: { statusCode: 200, headers: withId('req-broken'), body: (async function* () {
+            yield Buffer.from(content('par'));
+            throw Object.assign(new Error('connection reset by Bedrock'), { code: 'ECONNRESET' });
+        })() } })]);
+        const ctx = fakeCtx(model());
+        await new BedrockRuntimeOpenAI(handler, noWait).chat(request({ stream: true }), '', ctx);
+        expect(logged(ctx.logger.error)).toContainEqual(expect.objectContaining({ message: 'bedrock-runtime-openai stream failed', requestId: 'req-broken' }));
+    });
+    it('logs the request id of a call whose usage could not be recorded', async () => {
+        const ctx = fakeCtx(model());
+        ctx.db.insert = async () => { throw new Error('database is down'); };
+        await new BedrockRuntimeOpenAI(scriptedHandler([replyWith(200, withId('req-billing'), okBody)]), noWait).chat(request(), '', ctx);
+        expect(logged(ctx.logger.error)).toContainEqual(expect.objectContaining({ message: 'bedrock-runtime-openai could not record usage', requestId: 'req-billing' }));
     });
 });

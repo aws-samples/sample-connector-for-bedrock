@@ -4,7 +4,7 @@ import AbstractProvider from "./abstract_provider";
 import { buildRequestBody } from "./bedrock_openai/request_body";
 import { relayChatStream } from "./bedrock_openai/sse";
 import {
-    BedrockAuth, BedrockHttpError, RequestHandler, UpstreamResponse, errorFromResponse, postChatCompletions, readBody, selectAuth,
+    BedrockAuth, BedrockHttpError, RequestHandler, UpstreamResponse, errorFromResponse, postChatCompletions, readBody, requestIdOf, selectAuth,
 } from "./bedrock_openai/transport";
 import { OpenAIUsage } from "./bedrock_openai/types";
 import { computeUsageCost, pricesOf } from "./bedrock_openai/usage";
@@ -70,12 +70,12 @@ function messageOf(error: unknown): string {
 }
 
 // A billing failure is logged, not thrown: Bedrock has answered, and a streamed answer has already reached the client.
-async function recordUsage(ctx: any, rec: Omit<ChatUsageRecord, 'cost'> & { usage: OpenAIUsage | null }): Promise<void> {
+async function recordUsage(ctx: any, requestId: string | undefined, rec: Omit<ChatUsageRecord, 'cost'> & { usage: OpenAIUsage | null }): Promise<void> {
     const { usage, ...call } = rec;
     try {
         await recordChatUsage(ctx, { ...call, cost: computeUsageCost(usage, pricesOf(rec.modelData)) });
     } catch (error) {
-        ctx.logger.error({ message: 'bedrock-runtime-openai could not record usage', error: messageOf(error), modelId: rec.modelData.config?.modelId });
+        ctx.logger.error({ message: 'bedrock-runtime-openai could not record usage', error: messageOf(error), requestId, modelId: rec.modelData.config?.modelId });
     }
 }
 
@@ -128,6 +128,7 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
         const started = Date.now();
         const upstream = await this.send(ctx, config, modelId, JSON.stringify(built.body), () => clientLeft);
         const first_byte_latency = Date.now() - started;
+        const requestId = requestIdOf(upstream.headers);
 
         if (built.body.stream) {
             ctx.status = 200;
@@ -144,12 +145,12 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
             const invocation_latency = Date.now() - started;
 
             if (result.error) {
-                ctx.logger.error({ message: 'bedrock-runtime-openai stream failed', error: messageOf(result.error), modelId });
+                ctx.logger.error({ message: 'bedrock-runtime-openai stream failed', error: messageOf(result.error), requestId, modelId });
             }
             if (!result.usage) {
-                ctx.logger.warn({ message: 'bedrock-runtime-openai stream had no usage, so it is billed as zero tokens', modelId });
+                ctx.logger.warn({ message: 'bedrock-runtime-openai stream had no usage, so it is billed as zero tokens', requestId, modelId });
             }
-            await recordUsage(ctx, { session_id, chatRequest, modelData, text: result.text, usage: result.usage, first_byte_latency, invocation_latency });
+            await recordUsage(ctx, requestId, { session_id, chatRequest, modelData, text: result.text, usage: result.usage, first_byte_latency, invocation_latency });
             if (!ctx.res.writableEnded) {
                 ctx.res.end();
             }
@@ -162,10 +163,10 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
         try {
             json = JSON.parse(text);
         } catch {
-            throw new BedrockHttpError(502, `Bedrock returned a response that is not JSON: ${text.slice(0, 200)}`);
+            throw new BedrockHttpError(502, `Bedrock returned a response that is not JSON: ${text.slice(0, 200)}`, undefined, requestId);
         }
         const content = json?.choices?.[0]?.message?.content;
-        await recordUsage(ctx, {
+        await recordUsage(ctx, requestId, {
             session_id, chatRequest, modelData, text: typeof content === 'string' ? content : '', usage: json?.usage ?? null,
             first_byte_latency, invocation_latency,
         });
@@ -214,11 +215,12 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
                 return upstream;
             }
             // The body is read even when the response is discarded, so its connection is released.
-            const error = errorFromResponse(status, await readErrorBody(upstream.body));
+            const requestId = requestIdOf(upstream.headers);
+            const error = errorFromResponse(status, await readErrorBody(upstream.body), requestId);
             if (attempt >= maxRetries || clientLeft() || !RETRYABLE_STATUSES.has(status)) {
                 throw error;
             }
-            ctx.logger.warn({ message: 'bedrock-runtime-openai retry', status, attempt, auth: auth.label, modelId });
+            ctx.logger.warn({ message: 'bedrock-runtime-openai retry', status, requestId, attempt, auth: auth.label, modelId });
             excludeKey = keyToAvoid(auth);
             await this.sleep(retryAfterMs(upstream.headers) ?? backoffMs(attempt));
             if (clientLeft()) {

@@ -114,17 +114,28 @@ export async function postChatCompletions(
     return { statusCode: response.statusCode, headers: response.headers, body: response.body };
 }
 
+// The id Bedrock gives each request, for matching a call with AWS's side of it.
+export function requestIdOf(headers: Record<string, string> | undefined): string | undefined {
+    return headers?.['x-amzn-requestid'];
+}
+
 // An error response from the endpoint. src/middleware/handlers.ts answers the client with statusCode and
-// shows body in the error details.
+// shows body in the error details. A Bedrock request id goes in $metadata, the field the AWS SDK uses, so the
+// handler logs it and src/util/response.ts reports it as request_id. handlers.ts takes the status from
+// $metadata first, so it holds statusCode, not the upstream status.
 export class BedrockHttpError extends Error {
     statusCode: number;
     body?: string;
+    $metadata?: { requestId: string; httpStatusCode: number };
 
-    constructor(statusCode: number, message: string, body?: string) {
+    constructor(statusCode: number, message: string, body?: string, requestId?: string) {
         super(message);
         this.name = 'BedrockRuntimeOpenAIError';
         this.statusCode = statusCode;
         this.body = body;
+        if (requestId) {
+            this.$metadata = { requestId, httpStatusCode: statusCode };
+        }
     }
 }
 
@@ -152,8 +163,8 @@ function upstreamMessage(statusCode: number, bodyText: string): string {
     return text.slice(0, MESSAGE_LIMIT);
 }
 
-export function errorFromResponse(statusCode: number, bodyText: string): BedrockHttpError {
-    return new BedrockHttpError(statusCode, upstreamMessage(statusCode, bodyText), bodyText.slice(0, BODY_LIMIT));
+export function errorFromResponse(statusCode: number, bodyText: string, requestId?: string): BedrockHttpError {
+    return new BedrockHttpError(statusCode, upstreamMessage(statusCode, bodyText), bodyText.slice(0, BODY_LIMIT), requestId);
 }
 
 // Reads a response body to the end. The bytes are joined before decoding, so a multi-byte character split

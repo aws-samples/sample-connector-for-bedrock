@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { selectAuth, postChatCompletions, errorFromResponse, readBody, BedrockHttpError } from '../src/providers/bedrock_openai/transport';
+import { extractErrorDetails } from '../src/util/response';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
 
 // Stands in for the request handler: records what it is given and answers with a canned response.
@@ -134,6 +135,18 @@ describe('bedrock runtime Chat Completions transport', () => {
         const e = errorFromResponse(502, `  ${'x'.repeat(3000)}\n`);
         expect(e.message).toBe('x'.repeat(500));
         expect(e.body).toHaveLength(2000);
+    });
+    // src/util/response.ts reports $metadata.requestId as request_id, and src/middleware/handlers.ts answers with
+    // $metadata.httpStatusCode ahead of statusCode, so the two must agree.
+    it('carries the Bedrock request id in $metadata, with the same status', () => {
+        const e = errorFromResponse(429, '{"message":"slow down"}', 'req-1');
+        expect(e.$metadata).toEqual({ requestId: 'req-1', httpStatusCode: 429 });
+        expect(extractErrorDetails(e)).toMatchObject({ request_id: 'req-1', http_status: 429 });
+        expect(new BedrockHttpError(502, 'not JSON', undefined, 'req-2').$metadata).toEqual({ requestId: 'req-2', httpStatusCode: 502 });
+    });
+    it('leaves $metadata unset without a request id', () => {
+        expect(errorFromResponse(429, '').$metadata).toBeUndefined();
+        expect(new BedrockHttpError(400, 'bad request').$metadata).toBeUndefined();
     });
     it('returns a BedrockHttpError that keeps the upstream body for the error middleware', () => {
         const e = errorFromResponse(429, '{"message":"slow down"}');
