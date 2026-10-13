@@ -84,6 +84,32 @@ describe('relayChatStream', () => {
         expect(result).toMatchObject({ text: 'OK', usage: USAGE, sawDone: true });
         expect(result.error).toBeUndefined();
     });
+    it('relays a [DONE] that the reset cut off before its blank line, and ends normally', async () => {
+        async function* resetInsideDone() {
+            yield Buffer.from(content('OK'));
+            yield Buffer.from('data: [DONE]');
+            throw Object.assign(new Error('aborted'), { code: 'ECONNRESET' });
+        }
+        const written: string[] = [];
+        const result = await relayChatStream(resetInsideDone(), (s) => written.push(s), { forwardUsageChunk: false });
+        expect(written).toEqual([content('OK'), DONE]);
+        expect(result).toMatchObject({ text: 'OK', sawDone: true });
+        expect(result.error).toBeUndefined();
+    });
+    it('does not relay a buffered [DONE] after a failed write', async () => {
+        const failure = new Error('client socket closed');
+        const written: string[] = [];
+        const result = await relayChatStream(source(content('a') + 'data: [DONE]'), (s) => { if (s !== DONE) throw failure; written.push(s); }, { forwardUsageChunk: false });
+        expect(written).toEqual([]);
+        expect(result.sawDone).toBe(false);
+        expect(result.error).toBe(failure);
+    });
+    it('reports a failed write of [DONE] as an error', async () => {
+        const failure = new Error('client socket closed');
+        const result = await relayChatStream(source(content('OK'), DONE), (s) => { if (s === DONE) throw failure; }, { forwardUsageChunk: false });
+        expect(result.sawDone).toBe(false);
+        expect(result.error).toBe(failure);
+    });
 
     it('relays each event once when a chunk holds several and ends inside another', async () => {
         const c = content('c');
