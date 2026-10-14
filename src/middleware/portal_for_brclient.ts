@@ -46,24 +46,21 @@ const autoLoginHandler = async (ctx: any, next: any) => {
                             
                             const currentUrl = window.location;
                             const BRProxyUrl = currentUrl.protocol + '//' + currentUrl.host;
-                            
+                            // This BRClient is served by BRConnector, so it always talks to BRConnector, even
+                            // before it has an API key. Otherwise it calls Bedrock directly and asks for AWS keys.
+                            existingConfig.state.BRProxyUrl = BRProxyUrl;
+                            existingConfig.state.useBRProxy = "True";
+
                             try {
                                 const response = await fetch('/open/get-shared-api-key');
-                                if (response.status === 404) {
-                                    existingConfig.state.BRProxyUrl = BRProxyUrl;
-                                } else {
+                                if (response.status !== 404) {
                                     const result = await response.json();
                                     if (result.success) {
-                                        existingConfig.state.BRProxyUrl = BRProxyUrl;
                                         existingConfig.state.openaiApiKey = result.data;
-                                        existingConfig.state.useBRProxy = "True";
-                                    } else {
-                                        existingConfig.state.BRProxyUrl = BRProxyUrl;
                                     }
                                 }
                             } catch (error) {
                                 console.error('Error fetching API key:', error);
-                                existingConfig.state.BRProxyUrl = BRProxyUrl;
                             }
 
                                 existingConfig.state.lastUpdateTime = Date.now();
@@ -73,7 +70,9 @@ const autoLoginHandler = async (ctx: any, next: any) => {
                             console.error('Error parsing existing config:', e);
                         }
 
-                        window.location.href = '/brclient/';
+                        // Without an API key BRClient cannot call BRConnector yet, so open the settings page,
+                        // where the user enters one.
+                        window.location.href = existingConfig.state.openaiApiKey ? '/brclient/' : '/brclient/#/settings';
                     } catch (error) {
                         console.error('Error:', error);
                         document.body.innerHTML = \`
