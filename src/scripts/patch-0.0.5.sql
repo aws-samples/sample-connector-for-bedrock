@@ -65,6 +65,22 @@ VALUES ('llama3-8b', 0, 'bedrock-converse','{"modelId": "meta.llama3-8b-instruct
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) 
 VALUES ('llama3-70b', 0, 'bedrock-converse','{"modelId": "meta.llama3-70b-instruct-v1:0"}', 2.65e-6, 3.5e-6) ON CONFLICT (name) DO NOTHING;
 
+-- OpenAI-format models on bedrock-runtime (Chat Completions). Prices are us-east-1 on-demand, per token.
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('kimi-k3', 1, 'bedrock-runtime-openai', '{"modelId": "global.moonshotai.kimi-k3", "price_cache_read": 0.3e-6, "price_cache_write": 3.75e-6}', 3e-6, 15e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('kimi-k2-5', 1, 'bedrock-runtime-openai', '{"modelId": "moonshotai.kimi-k2.5"}', 0.6e-6, 3e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('glm-5', 0, 'bedrock-runtime-openai', '{"modelId": "zai.glm-5"}', 1e-6, 3.2e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('deepseek-v3-2', 0, 'bedrock-runtime-openai', '{"modelId": "deepseek.v3.2"}', 0.62e-6, 1.85e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('gpt-oss-120b', 0, 'bedrock-runtime-openai', '{"modelId": "openai.gpt-oss-120b-1:0"}', 0.15e-6, 0.6e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('qwen3-coder-next', 0, 'bedrock-runtime-openai', '{"modelId": "qwen.qwen3-coder-next"}', 0.5e-6, 1.2e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('minimax-m2-5', 0, 'bedrock-runtime-openai', '{"modelId": "minimax.minimax-m2.5"}', 0.3e-6, 1.2e-6) ON CONFLICT (name) DO NOTHING;
+
 
 INSERT INTO eiai_group (name) VALUES ('group 1');
 

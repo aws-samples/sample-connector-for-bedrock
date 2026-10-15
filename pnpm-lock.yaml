@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@aws-crypto/sha256-js':
+        specifier: 5.2.0
+        version: 5.2.0
       '@aws-sdk/client-bedrock-agent-runtime':
         specifier: 3.980.0
         version: 3.980.0
@@ -20,6 +23,9 @@ importers:
       '@aws-sdk/client-sagemaker-runtime':
         specifier: 3.980.0
         version: 3.980.0
+      '@aws-sdk/credential-provider-node':
+        specifier: 3.972.4
+        version: 3.972.4
       '@aws-sdk/s3-request-presigner':
         specifier: 3.980.0
         version: 3.980.0
@@ -35,6 +41,15 @@ importers:
       '@larksuiteoapi/node-sdk':
         specifier: ^1.58.0
         version: 1.58.0
+      '@smithy/node-http-handler':
+        specifier: ^4.4.9
+        version: 4.4.9
+      '@smithy/protocol-http':
+        specifier: 5.3.8
+        version: 5.3.8
+      '@smithy/signature-v4':
+        specifier: 5.3.8
+        version: 5.3.8
       csv-parser:
         specifier: ^3.2.0
         version: 3.2.0
@@ -87,9 +102,6 @@ importers:
       '@babel/eslint-parser':
         specifier: ^7.28.6
         version: 7.28.6(@babel/core@7.29.6)(eslint@9.39.2)
-      '@smithy/node-http-handler':
-        specifier: ^4.4.9
-        version: 4.4.9
       '@types/koa':
         specifier: ^2.15.0
         version: 2.15.0
