@@ -4,6 +4,10 @@ import config from './config';
 import path from 'path';
 
 export default async function () {
+    if (config.skipDbInstall) {
+        console.log("[init] SKIP_DB_INSTALL is set, skip database migrations.");
+        return;
+    }
     if (!config.pgsql.host || !config.pgsql.database) {
         console.error("❌ Postgres not configured, skip installation.");
         console.log("💡 You can only access BRConnector using the API key stored in the ADMIN_API_KEY environment variable.");

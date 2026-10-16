@@ -20,13 +20,8 @@ import serve from "koa-static-server";
 import config from "./config";
 import path from "path";
 const fs = require("fs");
-import install from "./install";
 import { version } from "../package.json";
-install();
-
-import cache from "./util/cache";
-
-cache.run();
+import { startUp } from "./util/warmup";
 
 const app = new Koa();
 
@@ -115,7 +110,11 @@ const onListening = () => {
   }
 };
 
-// No host when the platform supplied none: Node then binds dual-stack (`::`, IPv4 and IPv6).
-listenHost === undefined
-  ? app.listen(listenPort, onListening)
-  : app.listen(listenPort, listenHost, onListening);
+(async () => {
+  const warm = await startUp();
+  console.log(warm ? "Cache is warm." : "Cache is cold, requests may miss until it loads.");
+  // No host when the platform supplied none: Node then binds dual-stack (`::`, IPv4 and IPv6).
+  listenHost === undefined
+    ? app.listen(listenPort, onListening)
+    : app.listen(listenPort, listenHost, onListening);
+})();

@@ -7,29 +7,33 @@ const cache = {
   models: [],
   api_keys: [],
   connectors: [],
-  run: () => {
+  run: (): Promise<boolean> | null => {
     let db: any;
     if (config.pgsql.host && config.pgsql.database) {
       db = DB.build(config.pgsql);
     }
     if (!db) {
-      return false;
+      return null;
     }
 
     logger.defaultMeta.path = "global";
     logger.info("Loading models and api keys data to cache.");
 
-    function load() {
-      cache.loadData(db).then(res => {
+    // Resolves true/false and never rejects, so the first call can be awaited safely.
+    function load(): Promise<boolean> {
+      return cache.loadData(db).then(res => {
         logger.defaultMeta.path = "global";
         logger.info("The cache has been flushed.")
+        return true;
       }).catch((err) => {
         logger.defaultMeta.path = "global";
         logger.error("err", err);
+        return false;
       });
     }
-    load();
+    const first = load();
     setInterval(load, 60000);
+    return first;
   },
   loadData: async (db: any) => {
 

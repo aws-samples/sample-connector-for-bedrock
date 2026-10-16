@@ -24,5 +24,7 @@ export default {
         pass: process.env.SMTP_PASS,
         from: process.env.SMPT_FROM
     },
-    performanceMode: process.env.PERFORMANCE_MODE === "true" || process.env.PERFORMANCE_MODE === "1" || false
+    performanceMode: process.env.PERFORMANCE_MODE === "true" || process.env.PERFORMANCE_MODE === "1" || false,
+    cacheWarmupTimeoutMs: Number(process.env.CACHE_WARMUP_TIMEOUT_MS) || 1500,
+    skipDbInstall: process.env.SKIP_DB_INSTALL === "true" || process.env.SKIP_DB_INSTALL === "1" || false
 }
