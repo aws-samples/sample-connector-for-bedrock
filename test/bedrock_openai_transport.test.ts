@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import { selectAuth, postChatCompletions, errorFromResponse, readBody, BedrockHttpError } from '../src/providers/bedrock_openai/transport';
+import { selectAuth, selectAuthAt, postBedrock, postChatCompletions, errorFromResponse, readBody, BedrockHttpError } from '../src/providers/bedrock_openai/transport';
 import { extractErrorDetails } from '../src/util/response';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
 
@@ -221,5 +221,50 @@ describe('bedrock runtime Chat Completions transport', () => {
             await send();
             expect(built).toHaveLength(1);
         });
+    });
+});
+
+describe('bedrock runtime generalised transport', () => {
+    beforeEach(() => { for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value); });
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    const sigv4 = () => ({ kind: 'sigv4' as const, credentials: { accessKeyId: 'test-ak-1', secretAccessKey: 'fake' }, label: 'x' });
+
+    it('postBedrock signs and sends the given path and extra headers', async () => {
+        const h = captureHandler();
+        await postBedrock({ region: 'us-east-1', auth: sigv4(), path: '/anthropic/v1/messages', body: '{}', headers: { 'anthropic-version': '2023-06-01', 'anthropic-beta': 'a,b' } }, h);
+        expect(h.seen[0].path).toBe('/anthropic/v1/messages');
+        expect(h.seen[0].headers['anthropic-beta']).toBe('a,b');
+        expect(h.seen[0].headers.authorization).toMatch(/SignedHeaders=[^,]*anthropic-beta/);
+    });
+
+    it('postChatCompletions still posts to /openai/v1/chat/completions', async () => {
+        const h = captureHandler();
+        await postChatCompletions({ region: 'us-east-1', auth: sigv4(), body: '{}' }, h);
+        expect(h.seen[0].path).toBe('/openai/v1/chat/completions');
+    });
+
+    it('errorFromResponse keeps retry-after and x-should-retry only', () => {
+        const e = errorFromResponse(429, '{}', 'rid', { 'retry-after': '7', 'x-should-retry': 'true', 'set-cookie': 'x' });
+        expect(e.headers).toEqual({ 'retry-after': '7', 'x-should-retry': 'true' });
+    });
+
+    it('errorFromResponse leaves headers unset when none are given or none are kept', () => {
+        expect(errorFromResponse(500, '{}').headers).toBeUndefined();
+        expect(errorFromResponse(500, '{}', undefined, { 'set-cookie': 'x' }).headers).toBeUndefined();
+    });
+
+    it('selectAuthAt picks the credential at the index, wrapping around', () => {
+        const config = { credentials: [{ accessKeyId: 'test-ak-1', secretAccessKey: 's' }, { accessKeyId: 'test-ak-2', secretAccessKey: 's' }] };
+        expect((selectAuthAt(config, 0) as any).accessKeyId).toBe('test-ak-1');
+        expect((selectAuthAt(config, 3) as any).accessKeyId).toBe('test-ak-2');
+        expect(selectAuthAt({ bearerToken: 'fake-token' }, 1).kind).toBe('bearer');
+    });
+
+    it('selectAuthAt falls back to the environment token, then the default chain', () => {
+        vi.stubEnv('AWS_BEARER_TOKEN_BEDROCK', 'fake-env-token');
+        expect(selectAuthAt({}, 0).kind).toBe('bearer');
+        vi.stubEnv('AWS_BEARER_TOKEN_BEDROCK', '');
+        expect(selectAuthAt({}, 0).label).toBe('default-chain');
     });
 });

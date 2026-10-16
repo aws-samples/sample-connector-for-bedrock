@@ -49,7 +49,31 @@ export function selectAuth(config: any, excludeAccessKeyId?: string | null): Bed
         };
     }
 
-    // Read on each call, not when the module loads.
+    return ambientAuth();
+}
+
+// Like selectAuth, but takes the credential at the given index (wrapping around) instead of a random one,
+// so a caller can pin a session to one key and step to the next on a retry.
+export function selectAuthAt(config: any, index: number): BedrockAuth {
+    if (config?.bearerToken) {
+        return { kind: 'bearer', token: config.bearerToken, label: 'bearer-token' };
+    }
+    const configured = config?.credentials;
+    if (Array.isArray(configured) && configured.length > 0) {
+        const credentials = configured[index % configured.length];
+        return {
+            kind: 'sigv4',
+            credentials,
+            accessKeyId: credentials.accessKeyId,
+            label: `${String(credentials.accessKeyId).slice(0, 8)}...`,
+        };
+    }
+    return ambientAuth();
+}
+
+// What the host provides when the model has no credentials of its own. Read on each call, not when the
+// module loads.
+function ambientAuth(): BedrockAuth {
     const ambientToken = process.env.AWS_BEARER_TOKEN_BEDROCK;
     if (ambientToken) {
         return { kind: 'bearer', token: ambientToken, label: 'bearer-token' };
@@ -86,15 +110,16 @@ function defaultHandler(): RequestHandler {
     return sharedHandler;
 }
 
-// Sends one Chat Completions request, signed with SigV4 or carrying a bearer token. The response comes back
-// as it is, error statuses included: the caller decides what to retry and reads the body itself.
-export async function postChatCompletions(
-    req: { region: string; auth: BedrockAuth; body: string; abortSignal?: AbortSignal },
+// Sends one request to bedrock-runtime at the given path, signed with SigV4 or carrying a bearer token. Extra
+// headers are set before signing, so SigV4 covers them. The response comes back as it is, error statuses
+// included: the caller decides what to retry and reads the body itself.
+export async function postBedrock(
+    req: { region: string; auth: BedrockAuth; path: string; body: string; headers?: Record<string, string>; abortSignal?: AbortSignal },
     handler: RequestHandler = defaultHandler(),
 ): Promise<UpstreamResponse> {
     const { region, auth } = req;
     const hostname = `bedrock-runtime.${region}.amazonaws.com`;
-    const headers: Record<string, string> = { host: hostname, 'content-type': 'application/json' };
+    const headers: Record<string, string> = { ...req.headers, host: hostname, 'content-type': 'application/json' };
     if (auth.kind === 'bearer') {
         headers.authorization = `Bearer ${auth.token}`;
     }
@@ -102,7 +127,7 @@ export async function postChatCompletions(
         method: 'POST',
         protocol: 'https:',
         hostname,
-        path: '/openai/v1/chat/completions',
+        path: req.path,
         headers,
         body: req.body,
     });
@@ -112,6 +137,14 @@ export async function postChatCompletions(
         : await new SignatureV4({ service: 'bedrock', region, credentials: auth.credentials, sha256: Sha256 }).sign(request);
     const { response } = await handler.handle(outgoing, { abortSignal: req.abortSignal });
     return { statusCode: response.statusCode, headers: response.headers, body: response.body };
+}
+
+// Sends one Chat Completions request.
+export function postChatCompletions(
+    req: { region: string; auth: BedrockAuth; body: string; abortSignal?: AbortSignal },
+    handler?: RequestHandler,
+): Promise<UpstreamResponse> {
+    return postBedrock({ ...req, path: '/openai/v1/chat/completions' }, handler);
 }
 
 // The id Bedrock gives each request, for matching a call with AWS's side of it.
@@ -128,6 +161,8 @@ export class BedrockHttpError extends Error {
     body?: string;
     // The code of a network error this one stands for, such as ECONNRESET.
     code?: string;
+    // The upstream headers a retry decision needs: retry-after and x-should-retry.
+    headers?: Record<string, string>;
     $metadata?: { requestId: string; httpStatusCode: number };
 
     constructor(statusCode: number, message: string, body?: string, requestId?: string) {
@@ -166,8 +201,20 @@ function upstreamMessage(statusCode: number, bodyText: string): string {
     return text.slice(0, MESSAGE_LIMIT);
 }
 
-export function errorFromResponse(statusCode: number, bodyText: string, requestId?: string): BedrockHttpError {
-    return new BedrockHttpError(statusCode, upstreamMessage(statusCode, bodyText), bodyText.slice(0, BODY_LIMIT), requestId);
+const KEPT_ERROR_HEADERS = ['retry-after', 'x-should-retry'];
+
+export function errorFromResponse(statusCode: number, bodyText: string, requestId?: string, headers?: Record<string, string>): BedrockHttpError {
+    const error = new BedrockHttpError(statusCode, upstreamMessage(statusCode, bodyText), bodyText.slice(0, BODY_LIMIT), requestId);
+    const kept: Record<string, string> = {};
+    for (const name of KEPT_ERROR_HEADERS) {
+        if (typeof headers?.[name] === 'string') {
+            kept[name] = headers[name];
+        }
+    }
+    if (Object.keys(kept).length > 0) {
+        error.headers = kept;
+    }
+    return error;
 }
 
 // Reads a response body to the end. The bytes are joined before decoding, so a multi-byte character split

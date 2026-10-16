@@ -6,76 +6,16 @@ import { relayChatStream } from "./bedrock_openai/sse";
 import {
     BedrockAuth, BedrockHttpError, RequestHandler, UpstreamResponse, errorFromResponse, postChatCompletions, readBody, requestIdOf, selectAuth,
 } from "./bedrock_openai/transport";
+import {
+    MAX_SESSION_ID_LENGTH, RETRYABLE_STATUSES, Sleep, backoffMs, gatewayError, isNetworkError, maxRetriesOf, messageOf, readErrorBody, realSleep, retryAfterMs,
+} from "./bedrock_openai/retry";
 import { OpenAIUsage } from "./bedrock_openai/types";
 import { computeUsageCost, pricesOf } from "./bedrock_openai/usage";
 import { ChatUsageRecord, recordChatUsage } from "./usage_recorder";
 
-const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
-// Failures to reach Bedrock at all. Anything else, such as a credential error, is final.
-const NETWORK_ERROR_CODES = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN']);
-const DEFAULT_MAX_RETRIES = 3;
-// The length of eiai_session.key and eiai_thread.session_key.
-const MAX_SESSION_ID_LENGTH = 128;
-
-// Retries back off with full jitter: a random wait below a ceiling that doubles with each attempt, so clients
-// throttled together do not all come back together.
-const BACKOFF_BASE_MS = 200;
-const BACKOFF_CAP_MS = 2000;
-// A retry-after longer than this is cut short, so a client is not kept waiting on one retry for minutes.
-const RETRY_AFTER_CAP_MS = 5000;
-
-export type Sleep = (ms: number) => Promise<void>;
-const realSleep: Sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function backoffMs(attempt: number): number {
-    return Math.floor(Math.random() * Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** attempt));
-}
-
-// The wait a retry-after header asks for, when it is a number of seconds. The HTTP-date form is ignored.
-function retryAfterMs(headers: Record<string, string> | undefined): number | undefined {
-    const value = headers?.['retry-after'];
-    if (typeof value !== 'string' || !/^\d+(\.\d+)?$/.test(value.trim())) {
-        return undefined;
-    }
-    return Math.min(RETRY_AFTER_CAP_MS, Number(value) * 1000);
-}
-
-function isNetworkError(error: any): boolean {
-    return NETWORK_ERROR_CODES.has(error?.code) || error?.name === 'TimeoutError';
-}
-
-// A network error that ends the call. Left as it is, the error middleware would answer it with 400.
-function gatewayError(error: any): BedrockHttpError {
-    const failure = new BedrockHttpError(error?.name === 'TimeoutError' ? 504 : 502, messageOf(error));
-    if (error?.code) {
-        failure.code = error.code;
-    }
-    return failure;
-}
-
 // The access key the next attempt should avoid. A bearer token has none, so a retry reuses it.
 function keyToAvoid(auth: BedrockAuth): string | undefined {
     return auth.kind === 'sigv4' ? auth.accessKeyId : undefined;
-}
-
-// maxRetries comes from the free-form model config. Anything but a whole number of zero or more means the default,
-// so a typo cannot make the retries endless.
-function maxRetriesOf(config: any): number {
-    const value = config.maxRetries;
-    return Number.isInteger(value) && value >= 0 ? value : DEFAULT_MAX_RETRIES;
-}
-
-// An error body that breaks off counts as empty, so the client still gets the upstream status.
-async function readErrorBody(body: AsyncIterable<Uint8Array>): Promise<string> {
-    try {
-        return await readBody(body);
-    } catch {
-        return '';
-    }
-}
-
-function messageOf(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
 }
 
 // A billing failure is logged, not thrown: Bedrock has answered, and a streamed answer has already reached the client.
