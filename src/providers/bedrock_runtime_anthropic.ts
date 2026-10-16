@@ -215,7 +215,7 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
             // The body is read even when the response is discarded, so its connection is released.
             const requestId = requestIdOf(upstream.headers);
             const errorBody = await readErrorBody(upstream.body);
-            if (status === 400 && !stripped) {
+            if (status === 400 && !stripped && !clientLeft()) {
                 const rejected = parseRejectedBetas(errorBody).filter((beta) => betas.includes(beta));
                 if (rejected.length > 0) {
                     this.denylist.add(modelId, rejected);

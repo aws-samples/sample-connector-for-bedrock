@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
 import BedrockRuntimeAnthropic from '../src/providers/bedrock_runtime_anthropic';
+import { PING_EVENT } from '../src/providers/bedrock_anthropic/sse';
 import { BetaDenylist } from '../src/providers/bedrock_anthropic/request';
 import { toAnthropicError } from '../src/util/anthropic_error';
 import { fakeDb } from './helpers/fakes';
@@ -64,6 +65,8 @@ describe('bedrock-runtime-anthropic provider', () => {
         expect(ctx.responseHeaders).toMatchObject({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
         expect(ctx.res.writableEnded).toBe(true);
         expect(thread(ctx)).toMatchObject({ tokens_in: 90870, tokens_out: 4, completion: 'OK', whole_prompt: JSON.stringify(body().messages) });
+        // input 2 x 2e-6, cache read 90868 x 0.1e-6, output 4 x 10e-6, no cache writes.
+        expect(thread(ctx).fee).toBeCloseTo(2 * 2e-6 + 90868 * 0.1e-6 + 4 * 10e-6, 12);
         expect(ctx.logger.error).not.toHaveBeenCalled();
     });
     it('non-stream: returns the JSON and bills the usage and text', async () => {
@@ -99,11 +102,12 @@ describe('bedrock-runtime-anthropic provider', () => {
     });
     it('sends the client anthropic-version and a beta list, and omits an empty beta header', async () => {
         const h = stubHandler([{ status: 200, body: okJson }, { status: 200, body: okJson }]);
-        const ctx = fakeCtx(model()); ctx.headers['anthropic-version'] = '2023-06-01'; ctx.headers['anthropic-beta'] = 'a-1, b-2';
+        const ctx = fakeCtx(model()); ctx.headers['anthropic-version'] = '2024-10-22'; ctx.headers['anthropic-beta'] = 'a-1, b-2';
         await new BedrockRuntimeAnthropic(h, noWait).messages(body(), '', ctx);
         await new BedrockRuntimeAnthropic(h, noWait).messages(body(), '', fakeCtx(model()));
         expect(h.seen[0].request.headers['anthropic-beta']).toBe('a-1,b-2');
-        expect(h.seen[0].request.headers['anthropic-version']).toBe('2023-06-01');
+        expect(h.seen[0].request.headers['anthropic-version']).toBe('2024-10-22');
+        expect(h.seen[1].request.headers['anthropic-version']).toBe('2023-06-01');
         expect(h.seen[1].request.headers['anthropic-beta']).toBeUndefined();
     });
     it('drops a beta Bedrock rejects, retries once and remembers it for the model', async () => {
@@ -213,6 +217,42 @@ describe('bedrock-runtime-anthropic provider', () => {
         const handler = { handle: async () => { ctx.res.emit('close'); return { response: { statusCode: 200, headers: {}, body: (async function* () { yield Buffer.from(okJson); })() } }; } };
         await expect(new BedrockRuntimeAnthropic(handler, noWait).messages(body(), 's', ctx)).resolves.toBeUndefined();
         expect(thread(ctx)).toMatchObject({ tokens_in: 90870, tokens_out: 4, completion: 'OK' });
+    });
+    it('does not resend a rejected beta once the client has left', async () => {
+        const ctx = fakeCtx(model()); ctx.headers['anthropic-beta'] = 'b-1,b-2';
+        const h = { seen: 0, handle: async () => { h.seen++; ctx.res.emit('close'); return { response: { statusCode: 400, headers: {}, body: (async function* () { yield Buffer.from(betaRejection('b-1')); })() } }; } };
+        await expect(new BedrockRuntimeAnthropic(h, noWait, { denylist: new BetaDenylist() }).messages(body(), 's', ctx)).rejects.toMatchObject({ statusCode: 400 });
+        expect(h.seen).toBe(1);
+    });
+    it('retries a network error and then succeeds', async () => {
+        const h = stubHandler([{ status: 200, body: okJson }]); const ctx = fakeCtx(model());
+        const handler = { handle: async (request: any, options?: any) => {
+            if (h.seen.length === 0 && !(handler as any).failed) { (handler as any).failed = true; throw Object.assign(new Error('reset'), { code: 'ECONNRESET' }); }
+            return h.handle(request);
+        } };
+        await new BedrockRuntimeAnthropic(handler, noWait).messages(body(), 's', ctx);
+        expect(h.seen.length).toBe(1);
+        expect(ctx.logger.warn).toHaveBeenCalledWith(expect.objectContaining({ message: 'bedrock-runtime-anthropic retry', error: 'ECONNRESET' }));
+        expect(ctx.body).toEqual(JSON.parse(okJson));
+    });
+    it('answers 504 for a timeout when no retries are left', async () => {
+        let calls = 0;
+        const handler = { handle: async () => { calls++; throw Object.assign(new Error('timed out'), { name: 'TimeoutError' }); } };
+        await expect(new BedrockRuntimeAnthropic(handler, noWait).messages(body(), 's', fakeCtx(withConfig({ maxRetries: 0 })))).rejects.toMatchObject({ statusCode: 504 });
+        expect(calls).toBe(1);
+    });
+    it('writes a ping while the client waits through upstream silence', async () => {
+        const ctx = fakeCtx(model());
+        const handler = { handle: async () => ({ response: { statusCode: 200, headers: {}, body: (async function* () {
+            yield Buffer.from(start);
+            await sleepMs(120);
+            yield Buffer.from(text('OK'));
+            yield Buffer.from(delta);
+            yield Buffer.from(stop);
+        })() } }) };
+        await new BedrockRuntimeAnthropic(handler, noWait, { pingIntervalMs: 10 }).messages(body({ stream: true }), 's', ctx);
+        expect(ctx.res.chunks).toContain(PING_EVENT);
+        expect(ctx.res.chunks.join('')).toContain(start + PING_EVENT);
     });
     it('does not retry once the client has left', async () => {
         const ctx = fakeCtx(model());
