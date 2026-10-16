@@ -55,12 +55,15 @@ describe('BetaDenylist limits', () => {
         const d = new BetaDenylist(); d.add('m', ['ok-1', 'Bad Value', '', 'x'.repeat(65), '-lead', 'a'.repeat(64)]);
         expect(d.strip('m', ['ok-1', 'Bad Value', '', 'x'.repeat(65), '-lead', 'a'.repeat(64)])).toEqual(['Bad Value', '', 'x'.repeat(65), '-lead']);
     });
-    it('caps each model at 64 entries and ignores new values after that', () => {
+    it('caps each model at 64 entries and evicts the oldest for a new value', () => {
         const d = new BetaDenylist();
         d.add('m', Array.from({ length: 70 }, (_, i) => `b-${i}`));
-        expect(d.strip('m', ['b-0', 'b-63', 'b-64'])).toEqual(['b-64']);
+        // 70 values into 64 slots: the six oldest are gone, the newest 64 are kept.
+        expect(d.strip('m', ['b-0', 'b-5', 'b-6', 'b-69'])).toEqual(['b-0', 'b-5']);
         d.add('m', ['late']);
-        expect(d.strip('m', ['late'])).toEqual(['late']);
+        expect(d.strip('m', ['late'])).toEqual([]);
+        expect(d.strip('m', ['b-6'])).toEqual(['b-6']);
+        expect(d.strip('m', ['b-7'])).toEqual([]);
         d.add('other', ['late']);
         expect(d.strip('other', ['late'])).toEqual([]);
     });

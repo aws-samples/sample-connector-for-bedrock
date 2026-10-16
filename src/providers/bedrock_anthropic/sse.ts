@@ -154,7 +154,7 @@ export async function relayAnthropicStream(
         for (;;) {
             const step: IteratorResult<any> = await new Promise((resolve, reject) => {
                 failPing = reject;
-                iterator.next().then(resolve, reject);
+                Promise.resolve(iterator.next()).then(resolve, reject);
             });
             failPing = () => {};
             if (step.done) {

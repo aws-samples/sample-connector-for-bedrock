@@ -59,8 +59,10 @@ export class BetaDenylist {
             this.rejected.set(modelId, denied);
         }
         for (const value of values) {
-            if (denied.size >= MAX_DENIED_PER_MODEL) break;
-            if (BETA_NAME_PATTERN.test(value)) denied.add(value);
+            if (!BETA_NAME_PATTERN.test(value) || denied.has(value)) continue;
+            // At the cap the oldest goes (a Set keeps insertion order), so one client cannot fill it and lock out real ones.
+            if (denied.size >= MAX_DENIED_PER_MODEL) denied.delete(denied.values().next().value as string);
+            denied.add(value);
         }
     }
 }

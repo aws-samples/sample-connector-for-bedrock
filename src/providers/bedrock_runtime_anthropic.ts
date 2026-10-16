@@ -191,6 +191,9 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
         let native = buildNativeRequest(body, modelId, betas, anthropicVersion);
         // A beta Bedrock rejects is dropped and the call resent once, however many retries follow.
         let stripped = false;
+        // Rejected values are learned only once the resend without them succeeds. A key holder can make Bedrock echo
+        // a valid beta as "rejected" through a junk header value, and learning it at once would drop it for everyone.
+        let pendingLearn: string[] | undefined;
         let attempt = 0;
         for (;;) {
             const region = regions[stickyIndex(session_id, attempt, regions.length)];
@@ -199,16 +202,17 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
             try {
                 upstream = await postBedrock({ region, auth, path: '/anthropic/v1/messages', body: native.json, headers: native.headers }, this.handler);
             } catch (error: any) {
+                pendingLearn = undefined;
                 if (!isNetworkError(error)) {
                     throw error;
                 }
                 if (attempt >= maxRetries || clientLeft()) {
-                    throw gatewayError(error);
+                    throw named(gatewayError(error));
                 }
                 ctx.logger.warn({ message: 'bedrock-runtime-anthropic retry', error: error.code ?? error.name, attempt, auth: auth.label, modelId });
                 await this.sleep(backoffMs(attempt));
                 if (clientLeft()) {
-                    throw gatewayError(error);
+                    throw named(gatewayError(error));
                 }
                 attempt++;
                 continue;
@@ -216,16 +220,20 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
 
             const status = upstream.statusCode;
             if (status < 400) {
+                if (pendingLearn) {
+                    this.denylist.add(modelId, pendingLearn);
+                    ctx.logger.info({ message: 'bedrock-runtime-anthropic dropped betas Bedrock rejected', modelId, betas: pendingLearn, requestId: requestIdOf(upstream.headers) });
+                }
                 return upstream;
             }
+            pendingLearn = undefined;
             // The body is read even when the response is discarded, so its connection is released.
             const requestId = requestIdOf(upstream.headers);
             const errorBody = await readErrorBody(upstream.body);
             if (status === 400 && !stripped && !clientLeft()) {
                 const rejected = parseRejectedBetas(errorBody).filter((beta) => betas.includes(beta));
                 if (rejected.length > 0) {
-                    this.denylist.add(modelId, rejected);
-                    ctx.logger.info({ message: 'bedrock-runtime-anthropic dropped betas Bedrock rejected', modelId, betas: rejected, requestId });
+                    pendingLearn = rejected;
                     betas = betas.filter((beta) => !rejected.includes(beta));
                     native = buildNativeRequest(body, modelId, betas, anthropicVersion);
                     stripped = true;

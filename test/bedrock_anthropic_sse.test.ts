@@ -9,6 +9,16 @@ const text = (t: string) => e('content_block_delta', { index: 0, delta: { type: 
 const delta = e('message_delta', { delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 4 } });
 const stop = e('message_stop', {});
 
+describe('relayAnthropicStream with a hand-written iterator', () => {
+    it('accepts next() that returns plain result objects', async () => {
+        const parts = [Buffer.from(start), Buffer.from(stop)]; let i = 0;
+        const source: any = { [Symbol.asyncIterator]: () => ({ next: () => (i < parts.length ? { done: false, value: parts[i++] } : { done: true, value: undefined }) }) };
+        const r = await relayAnthropicStream(source, () => {});
+        expect(r).toMatchObject({ sawMessageStop: true, wroteAny: true });
+        expect(r.error).toBeUndefined();
+    });
+});
+
 describe('relayAnthropicStream', () => {
     it('relays events verbatim and collects usage and text', async () => {
         const written: string[] = [];

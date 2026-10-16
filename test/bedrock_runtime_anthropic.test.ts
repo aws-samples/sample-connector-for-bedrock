@@ -124,6 +124,24 @@ describe('bedrock-runtime-anthropic provider', () => {
         expect(learned).toHaveLength(1);
         expect(learned[0][0]).toMatchObject({ betas: ['prompt-caching-scope-2026-01-05'], modelId: expect.any(String) });
     });
+    it('learns nothing when the resend with the beta stripped is also refused (poisoning)', async () => {
+        const second = '{"type":"error","error":{"type":"invalid_request_error","message":"junk header value"}}';
+        const h = stubHandler([{ status: 400, body: betaRejection('context-1m-2025-08-07') }, { status: 400, body: second }]);
+        const ctx = fakeCtx(model()); ctx.headers['anthropic-beta'] = 'context-1m-2025-08-07, x`context-1m-2025-08-07';
+        const deny = new BetaDenylist();
+        await expect(new BedrockRuntimeAnthropic(h, noWait, { denylist: deny }).messages(body(), 's', ctx)).rejects.toMatchObject({ statusCode: 400, body: second });
+        expect(deny.strip('global.anthropic.claude-sonnet-5-5', ['context-1m-2025-08-07'])).toEqual(['context-1m-2025-08-07']);
+        expect(ctx.logger.info).not.toHaveBeenCalled();
+    });
+    it('learns nothing when the resend hits a 503, and still retries as usual', async () => {
+        const h = stubHandler([{ status: 400, body: betaRejection('b-1') }, { status: 503 }, { status: 200, body: okJson }]);
+        const ctx = fakeCtx(model()); ctx.headers['anthropic-beta'] = 'b-1,b-2';
+        const deny = new BetaDenylist();
+        await new BedrockRuntimeAnthropic(h, noWait, { denylist: deny }).messages(body(), 's', ctx);
+        expect(deny.strip('global.anthropic.claude-sonnet-5-5', ['b-1'])).toEqual(['b-1']);
+        expect(ctx.logger.info).not.toHaveBeenCalled();
+        expect(h.seen.length).toBe(3);
+    });
     it('omits the beta header when every beta was rejected', async () => {
         const h = stubHandler([{ status: 400, body: betaRejection('only-beta') }, { status: 200, body: okJson }]);
         const ctx = fakeCtx(model()); ctx.headers['anthropic-beta'] = 'only-beta';
@@ -241,7 +259,7 @@ describe('bedrock-runtime-anthropic provider', () => {
     it('answers 504 for a timeout when no retries are left', async () => {
         let calls = 0;
         const handler = { handle: async () => { calls++; throw Object.assign(new Error('timed out'), { name: 'TimeoutError' }); } };
-        await expect(new BedrockRuntimeAnthropic(handler, noWait).messages(body(), 's', fakeCtx(withConfig({ maxRetries: 0 })))).rejects.toMatchObject({ statusCode: 504 });
+        await expect(new BedrockRuntimeAnthropic(handler, noWait).messages(body(), 's', fakeCtx(withConfig({ maxRetries: 0 })))).rejects.toMatchObject({ statusCode: 504, name: 'BedrockRuntimeAnthropicError' });
         expect(calls).toBe(1);
     });
     it('writes a ping while the client waits through upstream silence', async () => {
