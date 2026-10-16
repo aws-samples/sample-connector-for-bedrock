@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { toAnthropicError, withAnthropicType, isAnthropicPath } from '../src/util/anthropic_error';
-import { errorFromResponse } from '../src/providers/bedrock_openai/transport';
+import { errorFromResponse, BedrockHttpError } from '../src/providers/bedrock_openai/transport';
 import { errorHandler, authHandler } from '../src/middleware/handlers';
 import providers from '../src/providers/provider';
 import helper from '../src/util/helper';
@@ -29,6 +29,18 @@ describe('toAnthropicError', () => {
     it.each([[503, 'overloaded_error'], [502, 'api_error'], [504, 'timeout_error'], [403, 'permission_error'], [429, 'rate_limit_error']])('types an untyped %i as %s', (status, type) => {
         expect(toAnthropicError(errorFromResponse(status, '<html>bad gateway</html>')).body.error.type).toBe(type);
         expect(toAnthropicError({ message: 'sdk', $metadata: { httpStatusCode: status } }).status).toBe(status);
+    });
+    it('does not pass a non-JSON upstream page through as the message', () => {
+        const { body } = toAnthropicError(errorFromResponse(502, '<html>bad gateway</html>'));
+        expect(body.error.message).toBe('Bedrock returned HTTP 502.');
+        expect(body.error.message).not.toContain('<html');
+    });
+    it('keeps the upstream message of a JSON body that is not in Anthropic format', () => {
+        expect(toAnthropicError(errorFromResponse(429, '{"message":"Too many requests"}')).body.error.message).toBe('Too many requests');
+    });
+    it('keeps the own message of an error without an upstream body', () => {
+        const ex = new BedrockHttpError(502, "Bedrock's stream broke off before its first event: x");
+        expect(toAnthropicError(ex).body.error).toEqual({ type: 'api_error', message: "Bedrock's stream broke off before its first event: x" });
     });
     it('keeps an unclassified error at 400 invalid_request_error', () => {
         expect(toAnthropicError(new Error('boom'))).toMatchObject({ status: 400, body: { error: { type: 'invalid_request_error', message: 'boom' } } });

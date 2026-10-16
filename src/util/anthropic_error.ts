@@ -79,6 +79,18 @@ function upstreamAnthropicBody(ex: any): AnthropicErrorResponse['body'] | undefi
     return undefined;
 }
 
+function isNonJsonBody(body: unknown): boolean {
+    if (typeof body !== 'string' || !body.trim()) {
+        return false;
+    }
+    try {
+        JSON.parse(body);
+        return false;
+    } catch {
+        return true;
+    }
+}
+
 export function toAnthropicError(ex: any): AnthropicErrorResponse {
     const message = ex?.message ?? String(ex);
     const headers = forwardedHeaders(ex);
@@ -93,7 +105,9 @@ export function toAnthropicError(ex: any): AnthropicErrorResponse {
     }
     const status = ex?.$metadata?.httpStatusCode || ex?.statusCode;
     if (status) {
-        return { status, body: { type: 'error', error: { type: typeOfStatus(status), message } }, headers };
+        // A body that is not JSON is a proxy's page, not a reason: the client gets a short text instead of it.
+        const text = isNonJsonBody(ex.body) ? `Bedrock returned HTTP ${status}.` : message;
+        return { status, body: { type: 'error', error: { type: typeOfStatus(status), message: text } }, headers };
     }
     return { status: 400, body: { type: 'error', error: { type: 'invalid_request_error', message } }, headers };
 }
