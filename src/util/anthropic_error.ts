@@ -35,7 +35,8 @@ export function withAnthropicType<E extends Error>(error: E, type: AnthropicErro
 }
 
 export function isAnthropicPath(path: string): boolean {
-    return path === '/v1/messages' || path.startsWith('/v1/messages/');
+    const lower = path.toLowerCase();
+    return lower === '/v1/messages' || lower.startsWith('/v1/messages/');
 }
 
 function typeOfStatus(status: number): AnthropicErrorType {
@@ -79,16 +80,14 @@ function upstreamAnthropicBody(ex: any): AnthropicErrorResponse['body'] | undefi
     return undefined;
 }
 
+// A body that does not look like JSON is a proxy's page. One that starts like JSON but does not parse is an upstream
+// body cut at the stored limit, and its message is already in the error.
 function isNonJsonBody(body: unknown): boolean {
-    if (typeof body !== 'string' || !body.trim()) {
+    if (typeof body !== 'string') {
         return false;
     }
-    try {
-        JSON.parse(body);
-        return false;
-    } catch {
-        return true;
-    }
+    const trimmed = body.trim();
+    return trimmed !== '' && !trimmed.startsWith('{') && !trimmed.startsWith('[');
 }
 
 export function toAnthropicError(ex: any): AnthropicErrorResponse {

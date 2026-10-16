@@ -57,7 +57,20 @@ describe('toAnthropicError', () => {
     });
 });
 
+describe('truncated Anthropic bodies', () => {
+    it('keeps the upstream message when the stored body was cut off', () => {
+        const long = '{"type":"error","error":{"type":"invalid_request_error","message":"too big: ' + 'x'.repeat(2500) + '"}}';
+        const { body } = toAnthropicError(errorFromResponse(400, long));
+        expect(body.error.message).toMatch(/^too big: x+/);
+        expect(body.error.message).not.toContain('Bedrock returned HTTP');
+    });
+});
+
 describe('isAnthropicPath', () => {
+    it('is case-insensitive', () => {
+        expect(isAnthropicPath('/V1/Messages')).toBe(true);
+        expect(isAnthropicPath('/V1/MESSAGES/count_tokens')).toBe(true);
+    });
     it('matches /v1/messages and what is under it only', () => {
         expect(isAnthropicPath('/v1/messages')).toBe(true);
         expect(isAnthropicPath('/v1/messages/count_tokens')).toBe(true);
