@@ -3,11 +3,12 @@ import config from '../config';
 import DB from '../util/postgres';
 import Cache from '../util/cache';
 import logger from '../util/logger';
+import { isAnthropicPath, toAnthropicError, withAnthropicType } from '../util/anthropic_error';
 
 const getUserFromCache = (cache: any, api_key: string) => {
     const keys = cache.api_keys.filter((e: any) => e.api_key === api_key);
     if (!keys || keys.length < 1) {
-        throw new Error("Your key does not exist. If it was just created, please try again after a short wait.");
+        throw withAnthropicType(new Error("Your key does not exist. If it was just created, please try again after a short wait."), 'authentication_error');
     }
     return keys[0];
 }
@@ -62,7 +63,7 @@ const authHandler = async (ctx: any, next: any) => {
             api_key = authorization.substring(7);
         }
         if (!api_key) {
-            throw new Error("Unauthorized: api key required.");
+            throw withAnthropicType(new Error("Unauthorized: api key required."), 'authentication_error');
         }
         if (api_key === config.admin_api_key) {
             ctx.user = {
@@ -77,7 +78,7 @@ const authHandler = async (ctx: any, next: any) => {
         } else if (ctx.cache) {
             ctx.user = getUserFromCache(ctx.cache, api_key);
         } else {
-            throw new Error("Unauthorized: api key error.");
+            throw withAnthropicType(new Error("Unauthorized: api key error."), 'authentication_error');
         }
 
         // console.log(ctx.user);
@@ -148,6 +149,15 @@ const errorHandler = async (ctx: any, next: any) => {
             console.error('=== Full Error Details ===');
             console.error(ex);
             console.error('=== End Error Details ===');
+        }
+
+        // Claude Code reads Anthropic-format errors; every other route keeps its own format.
+        if (isAnthropicPath(ctx.path)) {
+            const { status, body, headers } = toAnthropicError(ex);
+            ctx.status = status;
+            ctx.set(headers);
+            ctx.body = body;
+            return;
         }
 
         // 提取错误详情

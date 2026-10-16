@@ -5,6 +5,7 @@ import config from '../config';
 import nodemailer from 'nodemailer';
 import { exec } from 'child_process';
 import logger from './logger';
+import { withAnthropicType } from './anthropic_error';
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 const crypto = require('crypto');
 
@@ -92,7 +93,7 @@ const helper = {
             if (models.length > 0) {
                 return models[0];
             }
-            throw new Error(`The model [${model}] not found.`);
+            throw withAnthropicType(new Error(`The model [${model}] not found.`), 'not_found_error');
         }
         if (ctx.db) {
             let rtn = await modelService.loadByName(ctx.db, model);
@@ -106,7 +107,7 @@ const helper = {
             }
             if (!rtn) {
                 // rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
-                throw new Error(`The model [${model}] not found.`);
+                throw withAnthropicType(new Error(`The model [${model}] not found.`), 'not_found_error');
             }
 
             return rtn;

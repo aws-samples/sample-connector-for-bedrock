@@ -1,5 +1,6 @@
 import { ChatRequest, EmbeddingRequest, ImageRequest, ModelData } from "../entity/chat_request"
 import helper from '../util/helper';
+import { withAnthropicType } from '../util/anthropic_error';
 import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
 // Providers
@@ -225,7 +226,7 @@ class Provider {
         if (ctx.db) {
             const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
             if (!canAccessModel) {
-                throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
+                throw withAnthropicType(new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`), 'permission_error');
             }
         }
 
@@ -390,7 +391,7 @@ class Provider {
             }
         }
         if (month_fee >= month_quota && balance <= 0) {
-            throw new Error("Please recharge.")
+            throw withAnthropicType(new Error("Please recharge."), 'billing_error');
         }
     }
 
