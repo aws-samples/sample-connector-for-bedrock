@@ -15,7 +15,13 @@ import { ChatUsageRecord, recordChatUsage } from "./usage_recorder";
 
 // A request the client got wrong is answered in Anthropic's error shape, as invalid_request_error.
 function badRequest(message: string): BedrockHttpError {
-    return withAnthropicType(new BedrockHttpError(400, message), 'invalid_request_error');
+    return withAnthropicType(named(new BedrockHttpError(400, message)), 'invalid_request_error');
+}
+
+// BedrockHttpError carries phase 1's name, which is shared and must not change. Errors raised here say which provider they came from.
+function named<E extends Error>(error: E): E {
+    error.name = 'BedrockRuntimeAnthropicError';
+    return error;
 }
 
 // A billing failure is logged, not thrown: Bedrock has answered, and a streamed answer has already reached the client.
@@ -124,7 +130,7 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
             });
             // A client that has left hears nothing either way, so its call still resolves.
             if (result.error && !result.wroteAny && !clientLeft) {
-                throw new BedrockHttpError(502, `Bedrock's stream broke off before its first event: ${messageOf(result.error)}`, undefined, requestId);
+                throw named(new BedrockHttpError(502, `Bedrock's stream broke off before its first event: ${messageOf(result.error)}`, undefined, requestId));
             }
             if (!ctx.res.writableEnded) {
                 ctx.res.end();
@@ -136,14 +142,14 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
         try {
             text = await readBody(upstream.body);
         } catch (error) {
-            throw new BedrockHttpError(502, `Bedrock's response broke off: ${messageOf(error)}`, undefined, requestId);
+            throw named(new BedrockHttpError(502, `Bedrock's response broke off: ${messageOf(error)}`, undefined, requestId));
         }
         const invocation_latency = Date.now() - started;
         let json: any;
         try {
             json = JSON.parse(text);
         } catch {
-            throw new BedrockHttpError(502, `Bedrock returned a response that is not JSON: ${text.slice(0, 200)}`, undefined, requestId);
+            throw named(new BedrockHttpError(502, `Bedrock returned a response that is not JSON: ${text.slice(0, 200)}`, undefined, requestId));
         }
         const blocks: any[] = Array.isArray(json?.content) ? json.content : [];
         const answer = blocks.filter((block) => block?.type === 'text' && typeof block.text === 'string').map((block) => block.text).join('');
@@ -219,6 +225,7 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
                 const rejected = parseRejectedBetas(errorBody).filter((beta) => betas.includes(beta));
                 if (rejected.length > 0) {
                     this.denylist.add(modelId, rejected);
+                    ctx.logger.info({ message: 'bedrock-runtime-anthropic dropped betas Bedrock rejected', modelId, betas: rejected, requestId });
                     betas = betas.filter((beta) => !rejected.includes(beta));
                     native = buildNativeRequest(body, modelId, betas, anthropicVersion);
                     stripped = true;

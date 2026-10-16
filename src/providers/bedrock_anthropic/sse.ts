@@ -112,12 +112,9 @@ export async function relayAnthropicStream(
         collect(event);
     };
 
-    // A failed ping write ends the relay at once, even while the source is still silent.
+    // A failed ping write ends the relay at once, even while the source is still silent. It rejects the read in
+    // progress; each read has its own promise, so nothing long-lived collects a reaction per chunk.
     let failPing: (error: unknown) => void = () => {};
-    const pingFailed = new Promise<never>((_, reject) => {
-        failPing = reject;
-    });
-    pingFailed.catch(() => {});
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     let done = false;
@@ -155,7 +152,11 @@ export async function relayAnthropicStream(
     let finished = false;
     try {
         for (;;) {
-            const step = await Promise.race([iterator.next(), pingFailed]);
+            const step: IteratorResult<any> = await new Promise((resolve, reject) => {
+                failPing = reject;
+                iterator.next().then(resolve, reject);
+            });
+            failPing = () => {};
             if (step.done) {
                 finished = true;
                 break;

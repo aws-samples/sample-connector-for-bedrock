@@ -32,3 +32,39 @@ it('remembers rejected betas per model id', () => {
     expect(d.strip('m1', ['a', 'p'])).toEqual(['a']);
     expect(d.strip('m2', ['a', 'p'])).toEqual(['a', 'p']);
 });
+
+describe('parseRejectedBetas leniency and limits', () => {
+    const text = (v: string) => `Unexpected value(s) \`${v}\` for the \`anthropic-beta\` header. Please consult our documentation at platform.claude.com/docs or try again without the header.`;
+    it('reads the real captured body', () => {
+        const body = '{"type":"error","error":{"type":"invalid_request_error","message":"' + text('prompt-caching-scope-2026-01-05') + '"}}';
+        expect(parseRejectedBetas(body)).toEqual(['prompt-caching-scope-2026-01-05']);
+    });
+    it('reads the AWS envelope, both message spellings, a prefixed message and raw text', () => {
+        expect(parseRejectedBetas(JSON.stringify({ message: text('a-1') }))).toEqual(['a-1']);
+        expect(parseRejectedBetas(JSON.stringify({ Message: text('a-2') }))).toEqual(['a-2']);
+        expect(parseRejectedBetas(JSON.stringify({ message: 'Validation error: ' + text('a-3') }))).toEqual(['a-3']);
+        expect(parseRejectedBetas(text('a-4'))).toEqual(['a-4']);
+    });
+    it('reads two values and returns [] for a body that does not match', () => {
+        expect(parseRejectedBetas(JSON.stringify({ message: text('a-1`, `b-2') }))).toEqual(['a-1', 'b-2']);
+        expect(parseRejectedBetas('{"message":"nothing to see"}')).toEqual([]);
+    });
+});
+describe('BetaDenylist limits', () => {
+    it('learns only well-formed beta names', () => {
+        const d = new BetaDenylist(); d.add('m', ['ok-1', 'Bad Value', '', 'x'.repeat(65), '-lead', 'a'.repeat(64)]);
+        expect(d.strip('m', ['ok-1', 'Bad Value', '', 'x'.repeat(65), '-lead', 'a'.repeat(64)])).toEqual(['Bad Value', '', 'x'.repeat(65), '-lead']);
+    });
+    it('caps each model at 64 entries and ignores new values after that', () => {
+        const d = new BetaDenylist();
+        d.add('m', Array.from({ length: 70 }, (_, i) => `b-${i}`));
+        expect(d.strip('m', ['b-0', 'b-63', 'b-64'])).toEqual(['b-64']);
+        d.add('m', ['late']);
+        expect(d.strip('m', ['late'])).toEqual(['late']);
+        d.add('other', ['late']);
+        expect(d.strip('other', ['late'])).toEqual([]);
+    });
+});
+it('falls back to 2023-06-01 for an empty anthropic-version', () => {
+    expect(buildNativeRequest({ model: 'x' }, 'm', [], '').headers['anthropic-version']).toBe('2023-06-01');
+});

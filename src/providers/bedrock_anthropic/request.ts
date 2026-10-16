@@ -1,5 +1,10 @@
 // Bedrock's 400 for a beta it does not support. The back-quoted values come before "for the `anthropic-beta` header".
-const REJECTED_BETAS_PATTERN = /^Unexpected value\(s\) (.*) for the `anthropic-beta` header/;
+// Not anchored: a gateway may put text in front, and the capture is lazy so it stops at the first such header mention.
+const REJECTED_BETAS_PATTERN = /Unexpected value\(s\) (.*?) for the `anthropic-beta` header/;
+
+// Only plain beta names are remembered, and only so many per model, so a hostile or odd error body cannot grow the denylist.
+const BETA_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
+const MAX_DENIED_PER_MODEL = 64;
 
 // The client's anthropic-version is passed through; this is the fallback when it sends none.
 const DEFAULT_ANTHROPIC_VERSION = '2023-06-01';
@@ -22,7 +27,9 @@ export function parseRejectedBetas(errorBody: string): string[] {
     let message = errorBody;
     try {
         const parsed = JSON.parse(errorBody);
-        if (typeof parsed?.error?.message === 'string') message = parsed.error.message;
+        // Anthropic's own body nests the message; the AWS envelope puts it at the top, as message or Message.
+        const found = [parsed?.error?.message, parsed?.message, parsed?.Message].find((m) => typeof m === 'string');
+        if (found !== undefined) message = found;
     } catch {
         // Not JSON: match the raw text.
     }
@@ -51,7 +58,10 @@ export class BetaDenylist {
             denied = new Set<string>();
             this.rejected.set(modelId, denied);
         }
-        for (const value of values) denied.add(value);
+        for (const value of values) {
+            if (denied.size >= MAX_DENIED_PER_MODEL) break;
+            if (BETA_NAME_PATTERN.test(value)) denied.add(value);
+        }
     }
 }
 
@@ -71,7 +81,7 @@ export function buildNativeRequest(
     const rewritten = { ...body, model: modelId };
     delete rewritten.metadata;
 
-    const headers: Record<string, string> = { 'anthropic-version': anthropicVersion ?? DEFAULT_ANTHROPIC_VERSION };
+    const headers: Record<string, string> = { 'anthropic-version': anthropicVersion || DEFAULT_ANTHROPIC_VERSION };
     if (betas.length > 0) headers['anthropic-beta'] = betas.join(',');
 
     return { json: JSON.stringify(rewritten), headers, stream: body.stream === true };

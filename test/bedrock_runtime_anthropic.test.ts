@@ -120,6 +120,9 @@ describe('bedrock-runtime-anthropic provider', () => {
         const ctx2 = fakeCtx(model()); ctx2.headers['anthropic-beta'] = 'claude-code-20250219,prompt-caching-scope-2026-01-05';
         await new BedrockRuntimeAnthropic(h, noWait, { denylist: deny }).messages(body(), 's', ctx2);
         expect(h.seen[2].request.headers['anthropic-beta']).toBe('claude-code-20250219');
+        const learned = ctx.logger.info.mock.calls.filter((c: any[]) => c[0]?.message === 'bedrock-runtime-anthropic dropped betas Bedrock rejected');
+        expect(learned).toHaveLength(1);
+        expect(learned[0][0]).toMatchObject({ betas: ['prompt-caching-scope-2026-01-05'], modelId: expect.any(String) });
     });
     it('omits the beta header when every beta was rejected', async () => {
         const h = stubHandler([{ status: 400, body: betaRejection('only-beta') }, { status: 200, body: okJson }]);
@@ -184,7 +187,7 @@ describe('bedrock-runtime-anthropic provider', () => {
     it('chat, complete and chatAnthropic refuse', async () => {
         const h = stubHandler([]); const provider = new BedrockRuntimeAnthropic(h, noWait); const ctx = fakeCtx(model());
         await expect(provider.chat({ model: 'x' } as any, '', ctx)).rejects.toMatchObject({ statusCode: 400, anthropicType: 'invalid_request_error',
-            message: 'The [claude-sonnet-5-5] model does not support /v1/chat/completions. Use /v1/messages.' });
+            message: 'The [claude-sonnet-5-5] model does not support /v1/chat/completions. Use /v1/messages.', name: 'BedrockRuntimeAnthropicError' });
         await expect(provider.complete({ model: 'x' } as any, '', ctx)).rejects.toMatchObject({ statusCode: 400,
             message: 'The [claude-sonnet-5-5] model does not support /v1/completions. Use /v1/messages.' });
         await expect(provider.chatAnthropic({ model: 'x' } as any, '', ctx)).rejects.toThrow('bedrock-runtime-anthropic requests are dispatched to messages()');
