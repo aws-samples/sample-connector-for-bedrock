@@ -98,13 +98,33 @@ Parameters:
     Default: ''
 
   ComputeType:
-    Description: Choose using Lambda, EC2 or ECS to running BRConnector
+    Description: >-
+      Choose using Lambda, EC2, ECS or Lambda Web Functions to running BRConnector.
+      lambda-web runs on Lambda Web Functions, which need no adapter and support
+      native response streaming, and is only available in the Regions that offer them.
     Type: String
     AllowedValues:
       - ec2
       - lambda
+      - lambda-web
       - ecs
     Default: ec2
+
+  SourceRepoUrl:
+    Description: >-
+      Only used by ComputeType lambda-web. The git repository the helper EC2 clones to
+      build the deployment package. Change it to build from a fork, for example while a
+      change is still under review upstream.
+    Type: String
+    Default: https://github.com/aws-samples/sample-connector-for-bedrock.git
+
+  SourceRef:
+    Description: >-
+      Only used by ComputeType lambda-web. The git ref of SourceRepoUrl that the helper
+      EC2 builds the deployment package from. The upstream repository publishes no tags,
+      so this is a branch or a commit.
+    Type: String
+    Default: main
 
   ECSTaskCPU:
     Description: CPU units for ECS task (1 vCPU = 1024 CPU units)
@@ -134,7 +154,11 @@ Parameters:
     Default: false
 
   EC2InstanceType:
-    Description: Choose EC2 instance type, OS will be Amazon Linux 2023
+    Description: >-
+      Choose EC2 instance type, OS will be Amazon Linux 2023. Ignored when
+      ComputeType is lambda-web, which always uses t4g.medium: that path builds the
+      deployment package on this instance, Lambda Web Functions run arm64 only, and
+      the build host has to match the runtime architecture.
     Type: String
     AllowedValues:
       - t3.medium
@@ -237,10 +261,15 @@ Conditions:
   IsEc2: !Equals [!Ref ComputeType, 'ec2']
   IsLambda: !Equals [!Ref ComputeType, 'lambda']
   IsEcs: !Equals [!Ref ComputeType, 'ecs']
+  IsLambdaWeb: !Equals [!Ref ComputeType, 'lambda-web']
+  # EC2Integrated means a Postgres container on the helper EC2, reachable only from that
+  # host, so the off-host compute types treat it as having no database. lambda-web joins
+  # lambda and ecs here; without this it would be handed 172.17.0.1 and could never connect.
   IsNoDB: !Or
     - !Equals [!Ref DatabaseMode, 'NoDB']
     - !And [!Equals [!Ref ComputeType, 'lambda'], !Equals [!Ref DatabaseMode, 'EC2Integrated']]
     - !And [!Equals [!Ref ComputeType, 'ecs'], !Equals [!Ref DatabaseMode, 'EC2Integrated']]
+    - !And [!Equals [!Ref ComputeType, 'lambda-web'], !Equals [!Ref DatabaseMode, 'EC2Integrated']]
   # IsPerformanceMode: !Or
   #   - !Equals [!Ref PerformanceMode, 'true']
   #   - !Condition IsNoDB
@@ -248,6 +277,10 @@ Conditions:
   IsStandaloneDB: !Or
     - !Equals [!Ref DatabaseMode, 'Standalone']
     - !And [!Condition IsLambda, !Condition DeployDB]
+    - !And [!Condition IsLambdaWeb, !Condition DeployDB]
+  # A Web Function reaches the database only through a network connector, so the
+  # connector and the RDS wiring exist only when lambda-web actually has a database.
+  IsLambdaWebWithDB: !And [!Condition IsLambdaWeb, !Condition DeployDB]
   IsEC2IntegratedDB: !Equals [!Ref DatabaseMode, 'EC2Integrated']
   IsEnableCloudfrontEc2: !Equals [!Ref ComputeType, 'ec2']
   IsEnableCloudfrontLambda: !And
@@ -469,12 +502,22 @@ Resources:
       # - PrivateECRRepository
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: 
-        Ref: EC2InstanceType
-      ImageId: !Join
-        - ''
-        - - resolve:ssm:/aws/service/ami-amazon-linux-latest/
-          - !FindInMap [EC2InstanceAMIMapping, !Ref EC2InstanceType, EC2InstanceAMI]
+      # lambda-web builds the arm64 deployment package here, so the build host must be
+      # arm64 too. Forcing it is deliberate: an x86 build uploads and the stack still
+      # goes green, and the only symptom is the Web Function failing to load sharp.
+      InstanceType: !If [IsLambdaWeb, t4g.medium, !Ref EC2InstanceType]
+      # Fn::If is not allowed inside Fn::FindInMap's arguments, so the choice is made
+      # around the whole value and each branch does its own lookup with a fixed key.
+      ImageId: !If
+        - IsLambdaWeb
+        - !Join
+          - ''
+          - - resolve:ssm:/aws/service/ami-amazon-linux-latest/
+            - !FindInMap [EC2InstanceAMIMapping, t4g.medium, EC2InstanceAMI]
+        - !Join
+          - ''
+          - - resolve:ssm:/aws/service/ami-amazon-linux-latest/
+            - !FindInMap [EC2InstanceAMIMapping, !Ref EC2InstanceType, EC2InstanceAMI]
       KeyName: !Ref "AWS::NoValue"
       IamInstanceProfile: !Ref EC2InstanceProfile
       NetworkInterfaces:
@@ -533,6 +576,43 @@ Resources:
           aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
           
+          # lambda-web takes a zip from S3, not an image, so build it here. This instance is
+          # forced to t4g.medium for this path, so the build is native arm64 and sharp
+          # resolves its linux-arm64 prebuild. The script also forces the platform flags and
+          # asserts the result, which is what catches a wrong binary before it ships.
+          if [[ ${ComputeType} == "lambda-web" ]]; then
+            build_webfn_zip() {
+              dnf install -y git tar gzip zip
+              export HOME=/root
+              curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+              . /root/.nvm/nvm.sh
+              nvm install 24
+              node --version
+              rm -rf /root/src
+              git clone --depth 1 --branch ${SourceRef} ${SourceRepoUrl} /root/src
+              cd /root/src
+              test -f scripts/build-web-function-zip.sh || {
+                echo "scripts/build-web-function-zip.sh is missing from ${SourceRepoUrl} at ref ${SourceRef}"
+                return 1
+              }
+              npx -y pnpm@10.34.6 install --frozen-lockfile
+              bash scripts/build-web-function-zip.sh
+              # The bucket name is built here rather than Ref'd: WebFnCodeBucket is a
+              # conditional resource, and referencing it from this shared UserData would
+              # break the ec2, lambda and ecs paths, where it does not exist.
+              aws s3 cp build/webfn/function.zip s3://brconnector-webfn-${AWS::AccountId}-${AWS::Region}-${RandomString}/brconnector/function.zip
+              cd /root
+            }
+            # Report a build failure to the WaitCondition instead of letting bash -xe exit
+            # before cfn-signal runs. Without this a broken build is indistinguishable from
+            # a slow one, and the stack sits until the WaitCondition times out: a two-minute
+            # failure cost a fifty-minute rollback during development.
+            if ! build_webfn_zip; then
+              /opt/aws/bin/cfn-signal -e 1 -r "lambda-web zip build failed; see this instance's console output" '${PrivateWaitHandle}'
+              exit 1
+            fi
+          fi
+
           if [[ ${ComputeType} == "lambda" ]]; then
             AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
             ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
@@ -598,7 +678,7 @@ Resources:
 
           # call back to cfn
           /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
-          if [[ ${KeepEc2} != "true" && ${ComputeType} == "lambda" ]]; then        
+          if [[ ${KeepEc2} != "true" && ( ${ComputeType} == "lambda" || ${ComputeType} == "lambda-web" ) ]]; then
             aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
           fi
 
@@ -610,7 +690,12 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     Properties:
       Handle: !Ref PrivateWaitHandle
-      Timeout: '600' # about 2-4 min will receive signal
+      # The other paths copy a published image and signal in about 2-4 min. lambda-web
+      # additionally installs Node, clones the repository, builds, installs ~240 MB of
+      # production dependencies and uploads the zip, so it gets a longer budget. Timing
+      # out here rolls back a stack that has already created RDS, which is slow and
+      # expensive, so the budget is generous rather than tight.
+      Timeout: !If [IsLambdaWeb, '2400', '600']
       Count: 1
 
   # ECRPullThroughCacheRule:
@@ -1477,7 +1562,316 @@ Resources:
           Values:
           - !Sub ${AWS::StackName}
 
+
+  # ---------------------------------------------------------------------------
+  # ComputeType: lambda-web  (AWS Lambda Web Functions)
+  #
+  # The helper EC2 builds the deployment package and uploads it here, then signals
+  # PrivateWaitCondition. Everything below waits on that signal, so the object exists
+  # before the Web Function's revision is created.
+  # ---------------------------------------------------------------------------
+
+  WebFnCodeBucket:
+    Condition: IsLambdaWeb
+    Type: AWS::S3::Bucket
+    Properties:
+      # Name is deterministic so the shared UserData can build it with Sub instead of
+      # Ref'ing this conditional resource.
+      BucketName: !Sub brconnector-webfn-${AWS::AccountId}-${AWS::Region}-${RandomString}
+      # Versioning is required: a Web Function revision reads the object by version.
+      VersioningConfiguration:
+        Status: Enabled
+      # SSE-S3 on purpose. Lambda cannot read an object encrypted with the AWS managed
+      # aws/s3 KMS key, because that key's policy cannot be changed to allow it.
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+  WebFnCodeBucketPolicy:
+    Condition: IsLambdaWeb
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebFnCodeBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowLambdaWebFunctionRead
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+            Resource: !Sub arn:${AWS::Partition}:s3:::${WebFnCodeBucket}/*
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                # The source is the revision, not the function, so this must end in /*.
+                aws:SourceArn: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:web-function/brconnector-webfn-${AWS::StackName}/revision/*
+          - Sid: DenyPlaintextTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${WebFnCodeBucket}
+              - !Sub arn:${AWS::Partition}:s3:::${WebFnCodeBucket}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  # Attached to the shared EC2Role rather than editing it, so the other paths are untouched.
+  WebFnBuildUploadPolicy:
+    Condition: IsLambdaWeb
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-webfn-upload-${AWS::StackName}
+      Roles:
+        - !Ref EC2Role
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:PutObject'
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+            Resource: !Sub arn:${AWS::Partition}:s3:::${WebFnCodeBucket}/*
+
+  BRConnectorWebFnExecRole:
+    Condition: IsLambdaWeb
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: MyInlinePolicy-bedrock
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Sid: InvokeModel
+                Action:
+                  - 'bedrock:InvokeModelWithResponseStream'
+                  - 'bedrock:InvokeModel'
+                Resource:
+                  - 'arn:aws:bedrock:*::foundation-model/*'
+                  - 'arn:aws:bedrock:*:*:inference-profile/*'
+              - Effect: Allow
+                Sid: ListFM
+                Action:
+                  - 'bedrock:ListFoundationModels'
+                Resource: '*'
+
+  # Only exists when lambda-web has a database. A Web Function runs outside your VPC, so
+  # this is the only way it reaches RDS. The connector sits in RdsSecurityGroup, whose
+  # self-referencing 5432 ingress rule then covers it; default egress is allow-all, which
+  # is what lets Bedrock traffic out through the private subnets' NAT route.
+  BRConnectorWebFnConnector:
+    Condition: IsLambdaWebWithDB
+    Type: AWS::Serverless::NetworkConnector
+    Properties:
+      Name: !Sub brconnector-webfn-${AWS::StackName}
+      ComputeTypes:
+        - WebFunction
+      VpcConfig:
+        SubnetIds:
+          - !If
+            - UseExistingVpcStack
+            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet1Id"
+            - !Ref PrivateSubnet1Id
+          - !If
+            - UseExistingVpcStack
+            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet2Id"
+            - !Ref PrivateSubnet2Id
+        SecurityGroupIds:
+          - !Ref RdsSecurityGroup
+        NetworkProtocol: IPv4
+
+  BRConnectorWebFn:
+    Condition: IsLambdaWeb
+    # The zip has to be in the bucket before the revision is created, and the admin key
+    # has to be seeded before the first request. Both happen on the helper EC2, which
+    # signals PrivateWaitCondition when it is done.
+    DependsOn:
+      - PrivateWaitCondition
+      - WebFnCodeBucketPolicy
+    Type: AWS::Serverless::WebFunction
+    Properties:
+      FunctionName: !Sub brconnector-webfn-${AWS::StackName}
+      Runtime: nodejs24.x
+      # IamAuth, not ApplicationManaged: the endpoint domain is public, and BRConnector's
+      # own API key would otherwise be the only thing in front of Bedrock spend. CloudFront
+      # signs on the viewer's behalf through OAC below.
+      AuthType: IamAuth
+      # Supplied explicitly. Omitting it makes SAM generate a role whose logical id is
+      # <logical-id>Role, which collided with ours at transform time.
+      ExecutionRoleArn: !GetAtt BRConnectorWebFnExecRole.Arn
+      EndpointName: !Sub brc-${RandomString}
+      EndpointType: HomeRegion
+      CodeUri:
+        Bucket: !Sub brconnector-webfn-${AWS::AccountId}-${AWS::Region}-${RandomString}
+        Key: brconnector/function.zip
+      # 900 rather than the lambda path's 60, so a long stream is not truncated.
+      Timeout: 900
+      EgressNetworkConnectorArn: !If
+        - IsLambdaWebWithDB
+        # Must be version-qualified; the unqualified Arn is rejected.
+        - !GetAtt BRConnectorWebFnConnector.LatestVersionArn
+        - !Ref AWS::NoValue
+      # Values cannot be empty, so each key is omitted individually rather than set to "".
+      EnvironmentVariables:
+        ADMIN_API_KEY: !GetAtt MySSMParameterAdminKey.Value
+        PERFORMANCE_MODE: !Ref PerformanceMode
+        # Migrations are applied once by the helper EC2's container against the same RDS.
+        # Without this every cold environment re-runs them, and two starting together on an
+        # empty database can race on CREATE TABLE.
+        SKIP_DB_INSTALL: 'true'
+        PGSQL_HOST: !If [IsNoDB, !Ref AWS::NoValue, !GetAtt MyPG.Endpoint.Address]
+        PGSQL_DATABASE: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGDatabase]
+        PGSQL_USER: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGUser]
+        PGSQL_PASSWORD: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGPassword]
+
+
+  # CloudFront is how a browser reaches an IamAuth endpoint: no browser can SigV4-sign,
+  # so OAC signs each origin request instead. It is always created for lambda-web; the
+  # EnableCloudfront parameter does not apply to this path.
+  WebFnOac:
+    Condition: IsLambdaWeb
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub brconnector-webfn-oac-${AWS::StackName}
+        Description: OAC for the BRConnector Lambda Web Function origin
+        OriginAccessControlOriginType: lambda
+        # sigv4 because the endpoint is regional (HomeRegion). A MultiRegion endpoint
+        # would need sigv4a.
+        SigningProtocol: sigv4
+        # The only behaviour a Web Function origin accepts. CloudFront adds its signature
+        # in its own header and passes the viewer's Authorization through untouched, which
+        # is what lets BRConnector keep reading the caller's API key. It also supplies
+        # x-amz-content-sha256, which a direct signed caller would have to send itself.
+        SigningBehavior: always-amz-auth
+
+  # No managed cache policy forwards Authorization, and without it CloudFront strips the
+  # header from GET and HEAD and BRConnector never sees the caller's key.
+  WebFnCachePolicy:
+    Condition: IsLambdaWeb
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub brconnector-webfn-cache-${AWS::StackName}
+        Comment: Forward Authorization and do not cache; BRConnector responses are per-caller
+        DefaultTTL: 0
+        MinTTL: 0
+        MaxTTL: 1
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: false
+          EnableAcceptEncodingBrotli: false
+          CookiesConfig:
+            CookieBehavior: all
+          HeadersConfig:
+            HeaderBehavior: whitelist
+            Headers:
+              - Authorization
+              - x-api-key
+              - Content-Type
+              - Session-Id
+          QueryStringsConfig:
+            QueryStringBehavior: all
+
+  WebFnDistribution:
+    Condition: IsLambdaWeb
+    DependsOn: BRConnectorWebFn
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub BRConnector on Lambda Web Functions - ${AWS::StackName}
+        HttpVersion: http2and3
+        PriceClass: PriceClass_All
+        Origins:
+          - Id: WebFnOrigin
+            # SAM names the generated endpoint <logical-id>Endpoint.
+            DomainName: !GetAtt BRConnectorWebFnEndpoint.DomainName
+            OriginAccessControlId: !GetAtt WebFnOac.Id
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols:
+                - TLSv1.2
+        DefaultCacheBehavior:
+          TargetOriginId: WebFnOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+          CachedMethods: [GET, HEAD]
+          Compress: false
+          CachePolicyId: !Ref WebFnCachePolicy
+          # AllViewerExceptHostHeader, not AllViewer: the endpoint expects Host to be its
+          # own domain and answers 404 if it is the distribution's.
+          OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+          # No Lambda@Edge association. CloudFront rejects an origin-request trigger on a
+          # Web Function origin with OAC, which is also why lambda-edge-use1.yaml is not
+          # needed on this path.
+
+  # Without this CloudFront gets 403 from the endpoint. Note AWS::Lambda::Permission
+  # cannot express it: its FunctionName pattern rejects a web-function ARN.
+  WebFnResourcePolicy:
+    Condition: IsLambdaWeb
+    Type: AWS::Lambda::ResourcePolicy
+    Properties:
+      ResourceArn: !GetAtt BRConnectorWebFn.FunctionArn
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOACAccess
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: 'lambda:InvokeWebFunctionEndpoint'
+            Resource: !GetAtt BRConnectorWebFnEndpoint.EndpointArn
+            Condition:
+              StringEquals:
+                aws:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${WebFnDistribution}
+
 Outputs:
+  WebFnCloudFrontURL:
+    Condition: IsLambdaWeb
+    Description: BRConnector URL on Lambda Web Functions, through CloudFront. Use this one.
+    Value: !Sub https://${WebFnDistribution.DomainName}
+  WebFnManagerURL:
+    Condition: IsLambdaWeb
+    Description: BRConnector admin UI
+    Value: !Sub https://${WebFnDistribution.DomainName}/manager/
+  WebFnEndpointDomain:
+    Condition: IsLambdaWeb
+    Description: >-
+      The Web Function endpoint itself. It is reachable directly, but only by a caller that
+      SigV4-signs for service lambda AND sends an X-Amz-Content-SHA256 header, which even a
+      request with no body must include. Prefer the CloudFront URL.
+    Value: !GetAtt BRConnectorWebFnEndpoint.DomainName
+  WebFnCodeBucketName:
+    Condition: IsLambdaWeb
+    Description: Bucket holding the deployment package built by the helper EC2
+    Value: !Ref WebFnCodeBucket
   CloudFrontEc2URL:
     Condition: IsEnableCloudfrontEc2
     Description: BRConnector URL
