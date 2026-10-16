@@ -36,8 +36,9 @@ export async function recordChatUsage(ctx: any, rec: ChatUsageRecord): Promise<v
     // saveThread pops the last message to get the prompt; reading it leaves the caller's request intact.
     const messages = chatRequest.messages;
     const lastMessage = messages[messages.length - 1];
+    // A native Messages call can arrive with no messages at all; its prompt is then empty, not an error.
     await ctx.db.insert('eiai_thread', {
-        prompt: JSON.stringify(lastMessage.content),
+        prompt: lastMessage ? JSON.stringify(lastMessage.content) : '',
         completion: rec.text,
         whole_prompt: JSON.stringify(messages),
         key_id: key.id,

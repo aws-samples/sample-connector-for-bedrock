@@ -30,6 +30,11 @@ describe('recordChatUsage', () => {
         });
         expect(req.messages).toHaveLength(2);
     });
+    it('stores an empty prompt when the request has no messages', async () => {
+        const db = fakeDb();
+        await recordChatUsage({ db, user: key }, { chatRequest: { ...chatRequest(), messages: [] }, modelData: model, text: 'OK', cost });
+        expect(call(db, 'insert')[2]).toMatchObject({ prompt: '', whole_prompt: '[]', completion: 'OK' });
+    });
     it('adds the fee to the key with the same SQL as the other providers', async () => {
         const db = fakeDb();
         await recordChatUsage({ db, user: key }, { chatRequest: chatRequest(), modelData: model, text: 'OK', cost });
