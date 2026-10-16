@@ -10,6 +10,7 @@ const userA = userOf(1);
 const userB = userOf(3);
 const modelA = { id: 7, name: 'model-a', provider: 'bedrock-converse', multiple: 1, model_type: 1, price_in: 1e-6, price_out: 2e-6, config: { modelId: 'anthropic.claude-test-a', regions: ['us-east-1'] } };
 const modelB = { ...modelA, id: 8, name: 'model-b', config: { modelId: 'anthropic.claude-test-b', regions: ['us-east-1'] } };
+const richModel = { ...modelA, created_at: new Date('2026-10-01T00:00:00Z'), config: { ...modelA.config, credentials: [{ accessKeyId: 'fake-a', secretAccessKey: 'fake-secret' }], promptCache: { fields: ['system'], messagePositions: [-1] } } };
 const ctxFor = (body: any, opts: { user?: any; models?: any[] } = {}) => ({ request: { body }, headers: {}, state: {} as any, user: opts.user ?? userA, db: { exists: async () => true }, cache: { models: opts.models ?? [k3] } });
 
 const msgs = [{ role: 'user', content: 'hi' }];
@@ -29,12 +30,15 @@ describe('provider registry', () => {
         const ctx = ctxFor({ model: 'kimi-k3', messages: [{ role: 'user', content: 'hi' }] });
         const res = await providers.init(ctx);
         expect(res.provider).toBeInstanceOf(BedrockRuntimeOpenAI);
-        expect(ctx.state.modelData).toBe(k3);
+        expect(ctx.state.modelData).toEqual(k3);
+        expect(ctx.state.modelData).not.toBe(k3);
+        expect(ctx.state.modelData).toBe(res.provider.modelData);
     });
     it('hands each Anthropic request its own model data', async () => {
         const ctx = ctxFor({ model: 'kimi-k3', max_tokens: 10, messages: [{ role: 'user', content: 'hi' }] });
         await providers.initForAnthropic(ctx);
-        expect(ctx.state.modelData).toBe(k3);
+        expect(ctx.state.modelData).toEqual(k3);
+        expect(ctx.state.modelData).not.toBe(k3);
     });
 
     it('keeps the registered provider names and their order', () => {
@@ -56,6 +60,19 @@ describe('provider registry', () => {
             expect(a.provider.keyData.id).toBe(1);
             expect(b.provider.modelData.name).toBe('model-b');
             expect(b.provider.keyData.id).toBe(3);
+        });
+    });
+
+    describe.each(ENTRY_POINTS)('%s copy', (_name, call, body) => {
+        it('gives the provider a copy of the cached model data', async () => {
+            const ctx: any = ctxFor(body('model-a'), { models: [richModel] });
+            const res: any = await call(ctx);
+            expect(res.provider.modelData).toEqual(richModel);
+            expect(res.provider.modelData).not.toBe(richModel);
+            expect(res.provider.modelData.config).not.toBe(richModel.config);
+            expect(res.provider.modelData.config.credentials).not.toBe(richModel.config.credentials);
+            expect(res.provider.modelData.created_at).toEqual(richModel.created_at);
+            expect(ctx.state.modelData).toBe(res.provider.modelData);
         });
     });
 
@@ -88,6 +105,26 @@ describe('provider registry', () => {
             await expect(res.provider.chat(res.chatRequest, undefined, ctx))
                 .rejects.toThrow('Maximum retry attempts (3) exceeded. Last error: boom');
             expect(res.provider.chatSync).toHaveBeenCalledTimes(4);
+        });
+
+        it('a think-budget header on one request does not turn thinking on for the next', async () => {
+            const cached = structuredClone(modelA);
+            const run = async (budget?: string) => {
+                const ctx: any = ctxFor({ model: 'model-a', messages: msgs }, { models: [cached] });
+                ctx.set = vi.fn();
+                ctx.logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() };
+                if (budget) ctx.headers['think-budget'] = budget;
+                const res: any = await providers.init(ctx);
+                res.provider.chatSync = vi.fn().mockResolvedValue({});
+                await res.provider.chat(res.chatRequest, undefined, ctx);
+                return res.provider.chatSync.mock.calls[0][1];
+            };
+            const first = await run('2048');
+            expect(first.additionalModelRequestFields.thinking).toEqual({ type: 'enabled', budget_tokens: 2048 });
+            expect(cached.config).not.toHaveProperty('thinking');
+            expect(cached.config).not.toHaveProperty('thinkBudget');
+            const second = await run();
+            expect(second.additionalModelRequestFields?.thinking).toBeUndefined();
         });
     });
 });

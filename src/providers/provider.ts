@@ -67,9 +67,10 @@ class Provider {
     // Gives the request a new provider instance and binds the request's model data and key data to it.
     private bindProvider(ctx: any, modelData: ModelData): AbstractProvider {
         ctx.state = ctx.state || {};
-        ctx.state.modelData = modelData;
+        const ownData: ModelData = structuredClone(modelData);
+        ctx.state.modelData = ownData;
         const provider = this.createProvider(modelData.provider);
-        provider.setModelData(modelData);
+        provider.setModelData(ownData);
         provider.setKeyData(ctx.user);
         return provider;
     }
