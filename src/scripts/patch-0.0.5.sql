@@ -81,6 +81,20 @@ VALUES ('qwen3-coder-next', 0, 'bedrock-runtime-openai', '{"modelId": "qwen.qwen
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
 VALUES ('minimax-m2-5', 0, 'bedrock-runtime-openai', '{"modelId": "minimax.minimax-m2.5"}', 0.3e-6, 1.2e-6) ON CONFLICT (name) DO NOTHING;
 
+-- Claude models on bedrock-runtime's native Messages API. Prices are us-east-1 global on-demand, per token.
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('claude-opus-5-5', 1, 'bedrock-runtime-anthropic', '{"modelId": "global.anthropic.claude-opus-5-5", "price_cache_read": 0.2e-6, "price_cache_write": 5e-6, "price_cache_write_1h": 8e-6}', 4e-6, 20e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('claude-sonnet-5-5', 1, 'bedrock-runtime-anthropic', '{"modelId": "global.anthropic.claude-sonnet-5-5", "price_cache_read": 0.1e-6, "price_cache_write": 2.5e-6, "price_cache_write_1h": 4e-6}', 2e-6, 10e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('claude-haiku-5-5', 1, 'bedrock-runtime-anthropic', '{"modelId": "global.anthropic.claude-haiku-5-5", "price_cache_read": 0.01e-6, "price_cache_write": 0.125e-6, "price_cache_write_1h": 0.2e-6}', 0.1e-6, 0.5e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('claude-opus-4-8', 1, 'bedrock-runtime-anthropic', '{"modelId": "global.anthropic.claude-opus-4-8", "price_cache_read": 0.5e-6, "price_cache_write": 6.25e-6, "price_cache_write_1h": 10e-6}', 5e-6, 25e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('claude-sonnet-4-6', 1, 'bedrock-runtime-anthropic', '{"modelId": "global.anthropic.claude-sonnet-4-6", "price_cache_read": 0.3e-6, "price_cache_write": 3.75e-6, "price_cache_write_1h": 6e-6}', 3e-6, 15e-6) ON CONFLICT (name) DO NOTHING;
+INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
+VALUES ('claude-haiku-4-5', 1, 'bedrock-runtime-anthropic', '{"modelId": "global.anthropic.claude-haiku-4-5-20251001-v1:0", "price_cache_read": 0.1e-6, "price_cache_write": 1.25e-6, "price_cache_write_1h": 2e-6}', 1e-6, 5e-6) ON CONFLICT (name) DO NOTHING;
+
 
 INSERT INTO eiai_group (name) VALUES ('group 1');
 
