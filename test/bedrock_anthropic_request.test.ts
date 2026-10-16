@@ -1,0 +1,34 @@
+import { describe, it, expect } from 'vitest';
+import { betaDenylist, BetaDenylist, betasOf, buildNativeRequest, parseRejectedBetas } from '../src/providers/bedrock_anthropic/request';
+
+const cc = { model: 'claude-sonnet-5-5', max_tokens: 32000, stream: true, metadata: { user_id: '{"device_id":"x"}' },
+  system: [{ type: 'text', text: 'a' }, { type: 'text', text: 'b', cache_control: { type: 'ephemeral' } }],
+  thinking: { type: 'adaptive', display: 'omitted' }, output_config: { effort: 'medium' }, context_management: { edits: [{ type: 'clear_thinking_20251015', keep: 'all' }] },
+  safeguards: [{ type: 'dangerous_tool_use' }], tools: [{ name: 'Bash', description: 'd', input_schema: { type: 'object' } }],
+  messages: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }, { role: 'assistant', content: [{ type: 'thinking', thinking: '', signature: 'sig==' }, { type: 'text', text: 'ok' }] }] };
+it('changes only model and metadata, and keeps stream as sent', () => {
+    const r = buildNativeRequest(cc, 'global.anthropic.claude-sonnet-5-5', ['claude-code-20250219']);
+    const { model, metadata, ...rest } = cc;
+    expect(JSON.parse(r.json)).toEqual({ ...rest, model: 'global.anthropic.claude-sonnet-5-5' });
+    expect(r.stream).toBe(true);
+    expect(cc.model).toBe('claude-sonnet-5-5');
+    expect(r.headers).toEqual({ 'anthropic-version': '2023-06-01', 'anthropic-beta': 'claude-code-20250219' });
+});
+it('omits anthropic-beta when no beta is left, and keeps the client anthropic-version', () => {
+    expect(buildNativeRequest({ model: 'x', messages: [] }, 'm', [], '2023-01-01').headers).toEqual({ 'anthropic-version': '2023-01-01' });
+});
+it('normalises the beta header', () => {
+    expect(betasOf(' a, b,,a ')).toEqual(['a', 'b']);
+    expect(betasOf(['a,b', 'c'])).toEqual(['a', 'b', 'c']);
+    expect(betasOf(undefined)).toEqual([]);
+});
+it("reads the rejected values from Bedrock's message", () => {
+    const body = '{"type":"error","error":{"type":"invalid_request_error","message":"Unexpected value(s) `prompt-caching-scope-2026-01-05`, `x-2099` for the `anthropic-beta` header. Please consult our documentation at platform.claude.com/docs or try again without the header."}}';
+    expect(parseRejectedBetas(body)).toEqual(['prompt-caching-scope-2026-01-05', 'x-2099']);
+    expect(parseRejectedBetas('{"type":"error","error":{"type":"invalid_request_error","message":"max_tokens: Field required"}}')).toEqual([]);
+});
+it('remembers rejected betas per model id', () => {
+    const d = new BetaDenylist(); d.add('m1', ['p']);
+    expect(d.strip('m1', ['a', 'p'])).toEqual(['a']);
+    expect(d.strip('m2', ['a', 'p'])).toEqual(['a', 'p']);
+});
