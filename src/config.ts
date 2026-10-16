@@ -1,3 +1,10 @@
+// Unset, blank or non-numeric falls back to 1500; any non-negative number, including 0 ("do not wait"), is used as given.
+function parseWarmupMs(raw: string | undefined): number {
+    if (raw === undefined || raw.trim() === "") return 1500;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : 1500;
+}
+
 export default {
     pgsql: {
         host: process.env.PGSQL_HOST,
@@ -25,6 +32,6 @@ export default {
         from: process.env.SMPT_FROM
     },
     performanceMode: process.env.PERFORMANCE_MODE === "true" || process.env.PERFORMANCE_MODE === "1" || false,
-    cacheWarmupTimeoutMs: Number(process.env.CACHE_WARMUP_TIMEOUT_MS) || 1500,
+    cacheWarmupTimeoutMs: parseWarmupMs(process.env.CACHE_WARMUP_TIMEOUT_MS),
     skipDbInstall: process.env.SKIP_DB_INSTALL === "true" || process.env.SKIP_DB_INSTALL === "1" || false
 }

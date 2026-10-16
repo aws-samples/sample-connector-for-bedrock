@@ -112,6 +112,54 @@ describe('startUp', () => {
     });
 });
 
+describe('startUp budget', () => {
+    const never = () => new Promise<never>(() => {});
+    it('resolves within the cap when install never settles, and reports install outstanding', async () => {
+        const { startUp } = await import('../src/util/warmup');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const cacheRun = vi.fn(() => Promise.resolve(true));
+        const t = Date.now();
+        expect(await startUp({ install: never, cacheRun, skipInstall: false, capMs: 30 })).toBe(false);
+        expect(Date.now() - t).toBeLessThan(1000);
+        expect(cacheRun).not.toHaveBeenCalled();
+        expect(warn.mock.calls.join('\n')).toMatch(/install was still running/);
+        warn.mockRestore();
+    });
+    it('resolves within the cap when the cache load never settles, and reports cache outstanding', async () => {
+        const { startUp } = await import('../src/util/warmup');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const t = Date.now();
+        expect(await startUp({ install: async () => {}, cacheRun: () => never(), skipInstall: false, capMs: 30 })).toBe(false);
+        expect(Date.now() - t).toBeLessThan(1000);
+        const out = warn.mock.calls.join('\n');
+        expect(out).toMatch(/first cache load was still running/);
+        expect(out).not.toMatch(/install was still running/);
+        warn.mockRestore();
+    });
+    it('a cap of 0 does not wait for an unsettled install', async () => {
+        const { startUp } = await import('../src/util/warmup');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        expect(await startUp({ install: never, cacheRun: () => null, skipInstall: false, capMs: 0 })).toBe(false);
+        warn.mockRestore();
+    });
+});
+
+describe('CACHE_WARMUP_TIMEOUT_MS parsing', () => {
+    const cap = async (v: string | undefined) => {
+        vi.resetModules();
+        if (v === undefined) delete process.env.CACHE_WARMUP_TIMEOUT_MS; else vi.stubEnv('CACHE_WARMUP_TIMEOUT_MS', v);
+        return (await import('../src/config')).default.cacheWarmupTimeoutMs;
+    };
+    it('0 is used as given', async () => { expect(await cap('0')).toBe(0); });
+    it('"2500" gives 2500', async () => { expect(await cap('2500')).toBe(2500); });
+    it('"abc", "" and unset give 1500', async () => {
+        expect(await cap('abc')).toBe(1500);
+        expect(await cap('')).toBe(1500);
+        expect(await cap(undefined)).toBe(1500);
+    });
+    it('negative gives 1500', async () => { expect(await cap('-5')).toBe(1500); });
+});
+
 describe('install', () => {
     it('install does nothing when SKIP_DB_INSTALL is set', async () => {
         vi.resetModules();
