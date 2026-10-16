@@ -10,6 +10,19 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import AnthropicResponse from '../util/anthropic_response';
 
+// Claude models that answer 400 when temperature or top_p is sent. Measured on Converse in us-east-1 on 2026-10-16:
+// Opus 4.8, Opus 5.5, Sonnet 5.5 and Haiku 5.5 reject both, while Sonnet 4.6 and Haiku 4.5 accept them. Opus 4.x
+// was already treated this way, and later generations are assumed to follow 5.5.
+const SAMPLING_DEPRECATED = /claude-(?:opus-4|[a-z]+-(?:[5-9]|\d{2,}))/;
+
+// How many regions a retry can move between. selectRandomRegion accepts a comma-separated string or an array.
+function regionCount(regions: any): number {
+    if (typeof regions === 'string') {
+        return regions.split(',').map((region) => region.trim()).filter(Boolean).length || 1;
+    }
+    return Array.isArray(regions) && regions.length > 0 ? regions.length : 1;
+}
+
 /**
 * BedrockConverse Provider uses boto3-converse api to invoke LLM models and support function calling.
 */
@@ -177,6 +190,14 @@ export default class BedrockConverse extends AbstractProvider {
                 modelId: this.modelId
             });
 
+            // Bedrock rejected the request itself. Another key gets the same answer, so with a single region there
+            // is nothing a retry could change. With several regions a retry is kept: a model id can be valid in
+            // one region and not in another.
+            if (err.name === 'ValidationException' && regionCount(this.modelData.config?.regions) <= 1) {
+                this.excludeAccessKeyId = null;
+                this.retryCount = 0;
+                throw err;
+            }
             this.excludeAccessKeyId = this.currentAK;
             if (this.retryCount <= this.maxRetry) {
                 await this.chat(chatRequest, session_id, ctx);
@@ -896,13 +917,17 @@ class MessageConverter {
             }
         }
 
+        // These models reject the parameters even when the client sent them. An application inference profile's
+        // ARN does not name its model, so the check reads baseModelId first; without one, such a profile is not
+        // recognised.
+        const samplingDeprecated = SAMPLING_DEPRECATED.test(config.baseModelId || config.modelId);
+        if (samplingDeprecated) {
+            delete inferenceConfig.temperature;
+            delete inferenceConfig.topP;
+        }
+
         if (config.modelId.includes("anthropic")) {
-            // claude-opus-4 and later models deprecated temperature/topP
-            const isOpus4OrLater = config.modelId.includes("claude-opus-4");
-            if (isOpus4OrLater) {
-                delete inferenceConfig.temperature;
-                delete inferenceConfig.topP;
-            } else {
+            if (!samplingDeprecated) {
                 // fix: temperature and top_p cannot both be specified
                 if (chatRequest.top_p && (!chatRequest.temperature)) {
                     delete inferenceConfig.temperature;
