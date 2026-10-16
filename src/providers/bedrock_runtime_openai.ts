@@ -90,7 +90,7 @@ async function recordUsage(ctx: any, requestId: string | undefined, rec: Omit<Ch
 
 /**
  * Passes OpenAI Chat Completions requests through to Bedrock's runtime endpoint, /openai/v1/chat/completions.
- * One instance serves concurrent requests, so a request's model comes from ctx.state and its retry state lives in
+ * A fresh instance serves each request, and the model still comes from ctx.state, with the retry state kept in
  * local variables.
  */
 export default class BedrockRuntimeOpenAI extends AbstractProvider {

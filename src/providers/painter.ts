@@ -49,7 +49,7 @@ export default class Painter extends AbstractProvider {
       // throw new Error("You must specify the parameter 's3Prefix'.")
     }
     if (s3Prefix.endsWith("/")) {
-      s3Prefix = s3Prefix.substring(0, this.s3Prefix.length - 1);
+      s3Prefix = s3Prefix.slice(0, -1);
     }
 
     let regions: any = this.modelData.config && this.modelData.config.regions;
