@@ -110,6 +110,19 @@ Parameters:
       - ecs
     Default: ec2
 
+  WebFnAuthType:
+    Description: >-
+      Only used by ComputeType lambda-web. ApplicationManaged leaves the endpoint public
+      and BRConnector's own API key is the only check, which is the same posture as
+      ComputeType lambda's default public function URL. IamAuth makes Lambda authorize
+      every request and requires a resource policy granting CloudFront
+      lambda:InvokeWebFunctionEndpoint, which some organizations deny by SCP.
+    Type: String
+    AllowedValues:
+      - ApplicationManaged
+      - IamAuth
+    Default: ApplicationManaged
+
   SourceRepoUrl:
     Description: >-
       Only used by ComputeType lambda-web. The git repository the helper EC2 clones to
@@ -281,6 +294,10 @@ Conditions:
   # A Web Function reaches the database only through a network connector, so the
   # connector and the RDS wiring exist only when lambda-web actually has a database.
   IsLambdaWebWithDB: !And [!Condition IsLambdaWeb, !Condition DeployDB]
+  # OAC and the resource policy exist only for the IamAuth variant. With
+  # ApplicationManaged, Lambda does not evaluate the resource policy at all, so signing
+  # the origin request would buy nothing.
+  IsLambdaWebIamAuth: !And [!Condition IsLambdaWeb, !Equals [!Ref WebFnAuthType, 'IamAuth']]
   IsEC2IntegratedDB: !Equals [!Ref DatabaseMode, 'EC2Integrated']
   IsEnableCloudfrontEc2: !Equals [!Ref ComputeType, 'ec2']
   IsEnableCloudfrontLambda: !And
@@ -1574,6 +1591,14 @@ Resources:
   WebFnCodeBucket:
     Condition: IsLambdaWeb
     Type: AWS::S3::Bucket
+    # Retained on purpose. CloudFormation will not delete a bucket that still has
+    # objects, and versioning is required here, so a rollback would have to remove every
+    # version. Without Retain a failed create ends in ROLLBACK_FAILED and the operator has
+    # to run delete-stack twice, the second time with --retain-resources, before the stack
+    # will go away. Leaving an empty-cost bucket behind is the smaller problem; delete it
+    # by hand after deleting the stack.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       # Name is deterministic so the shared UserData can build it with Sub instead of
       # Ref'ing this conditional resource.
@@ -1719,10 +1744,7 @@ Resources:
     Properties:
       FunctionName: !Sub brconnector-webfn-${AWS::StackName}
       Runtime: nodejs24.x
-      # IamAuth, not ApplicationManaged: the endpoint domain is public, and BRConnector's
-      # own API key would otherwise be the only thing in front of Bedrock spend. CloudFront
-      # signs on the viewer's behalf through OAC below.
-      AuthType: IamAuth
+      AuthType: !Ref WebFnAuthType
       # Supplied explicitly. Omitting it makes SAM generate a role whose logical id is
       # <logical-id>Role, which collided with ours at transform time.
       ExecutionRoleArn: !GetAtt BRConnectorWebFnExecRole.Arn
@@ -1756,7 +1778,7 @@ Resources:
   # so OAC signs each origin request instead. It is always created for lambda-web; the
   # EnableCloudfront parameter does not apply to this path.
   WebFnOac:
-    Condition: IsLambdaWeb
+    Condition: IsLambdaWebIamAuth
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
@@ -1772,33 +1794,6 @@ Resources:
         # x-amz-content-sha256, which a direct signed caller would have to send itself.
         SigningBehavior: always-amz-auth
 
-  # No managed cache policy forwards Authorization, and without it CloudFront strips the
-  # header from GET and HEAD and BRConnector never sees the caller's key.
-  WebFnCachePolicy:
-    Condition: IsLambdaWeb
-    Type: AWS::CloudFront::CachePolicy
-    Properties:
-      CachePolicyConfig:
-        Name: !Sub brconnector-webfn-cache-${AWS::StackName}
-        Comment: Forward Authorization and do not cache; BRConnector responses are per-caller
-        DefaultTTL: 0
-        MinTTL: 0
-        MaxTTL: 1
-        ParametersInCacheKeyAndForwardedToOrigin:
-          EnableAcceptEncodingGzip: false
-          EnableAcceptEncodingBrotli: false
-          CookiesConfig:
-            CookieBehavior: all
-          HeadersConfig:
-            HeaderBehavior: whitelist
-            Headers:
-              - Authorization
-              - x-api-key
-              - Content-Type
-              - Session-Id
-          QueryStringsConfig:
-            QueryStringBehavior: all
-
   WebFnDistribution:
     Condition: IsLambdaWeb
     DependsOn: BRConnectorWebFn
@@ -1813,7 +1808,7 @@ Resources:
           - Id: WebFnOrigin
             # SAM names the generated endpoint <logical-id>Endpoint.
             DomainName: !GetAtt BRConnectorWebFnEndpoint.DomainName
-            OriginAccessControlId: !GetAtt WebFnOac.Id
+            OriginAccessControlId: !If [IsLambdaWebIamAuth, !GetAtt WebFnOac.Id, !Ref AWS::NoValue]
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
               OriginSSLProtocols:
@@ -1824,7 +1819,11 @@ Resources:
           AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
           CachedMethods: [GET, HEAD]
           Compress: false
-          CachePolicyId: !Ref WebFnCachePolicy
+          # Caching Disabled. Two reasons it must be disabled rather than tuned: the docs
+          # say Authorization is only forwarded if it is in the cache key OR caching is
+          # off, and BRConnector's responses are per-caller and metered, so a cached
+          # response must never be served to a different key.
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
           # AllViewerExceptHostHeader, not AllViewer: the endpoint expects Host to be its
           # own domain and answers 404 if it is the distribution's.
           OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
@@ -1835,7 +1834,7 @@ Resources:
   # Without this CloudFront gets 403 from the endpoint. Note AWS::Lambda::Permission
   # cannot express it: its FunctionName pattern rejects a web-function ARN.
   WebFnResourcePolicy:
-    Condition: IsLambdaWeb
+    Condition: IsLambdaWebIamAuth
     Type: AWS::Lambda::ResourcePolicy
     Properties:
       ResourceArn: !GetAtt BRConnectorWebFn.FunctionArn
@@ -1864,13 +1863,19 @@ Outputs:
   WebFnEndpointDomain:
     Condition: IsLambdaWeb
     Description: >-
-      The Web Function endpoint itself. It is reachable directly, but only by a caller that
-      SigV4-signs for service lambda AND sends an X-Amz-Content-SHA256 header, which even a
-      request with no body must include. Prefer the CloudFront URL.
+      The Web Function endpoint itself; prefer the CloudFront URL. What reaches it depends
+      on WebFnAuthType. With ApplicationManaged it is reachable by anyone on the internet
+      who knows this name, with no AWS-layer authentication, so BRConnector's own API key
+      is the only check and this name bypasses anything attached to the distribution. With
+      IamAuth a caller must SigV4-sign for service lambda AND send an X-Amz-Content-SHA256
+      header, which even a request with no body must include.
     Value: !GetAtt BRConnectorWebFnEndpoint.DomainName
   WebFnCodeBucketName:
     Condition: IsLambdaWeb
-    Description: Bucket holding the deployment package built by the helper EC2
+    Description: >-
+      Bucket holding the deployment package built by the helper EC2. It is retained when
+      the stack is deleted, because CloudFormation cannot delete a non-empty versioned
+      bucket; empty and remove it by hand afterwards.
     Value: !Ref WebFnCodeBucket
   CloudFrontEc2URL:
     Condition: IsEnableCloudfrontEc2
