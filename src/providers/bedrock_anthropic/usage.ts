@@ -33,9 +33,12 @@ export function mergeAnthropicUsage(start: AnthropicUsage | null, delta: Anthrop
     if (start == null && delta == null) {
         return null;
     }
-    const merged: AnthropicUsage = { ...(start ?? {}), ...(delta ?? {}) };
-    if (delta?.cache_creation == null && start?.cache_creation != null) {
-        merged.cache_creation = start.cache_creation;
+    // A null or missing delta field says nothing, so it must not wipe the start value (that would under-bill).
+    const defined = (usage: AnthropicUsage | null) =>
+        Object.fromEntries(Object.entries(usage ?? {}).filter(([, value]) => value != null));
+    const merged: AnthropicUsage = { ...defined(start), ...defined(delta) };
+    if (start?.cache_creation != null) {
+        merged.cache_creation = { ...defined(start.cache_creation), ...defined(delta?.cache_creation ?? null) };
     }
     return merged;
 }
@@ -47,8 +50,11 @@ export function computeAnthropicCost(usage: AnthropicUsage | null, prices: Anthr
 
     // Without a cache_creation breakdown, all cache writes are billed as 5-minute writes.
     const breakdown = usage?.cache_creation;
-    const write5m = breakdown ? breakdown.ephemeral_5m_input_tokens ?? 0 : usage?.cache_creation_input_tokens ?? 0;
+    const total = usage?.cache_creation_input_tokens ?? 0;
+    const part5m = breakdown ? breakdown.ephemeral_5m_input_tokens ?? 0 : total;
     const write1h = breakdown ? breakdown.ephemeral_1h_input_tokens ?? 0 : 0;
+    // A breakdown that adds up to less than the total leaves the rest unexplained, and that is billed as 5-minute writes.
+    const write5m = part5m + Math.max(0, total - part5m - write1h);
     const cacheWrite = write5m + write1h;
 
     const priceIn = Number(prices.price_in);

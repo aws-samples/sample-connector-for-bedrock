@@ -23,7 +23,23 @@ describe('computeAnthropicCost', () => {
     });
 });
 
+describe('partial cache_creation breakdown', () => {
+    it('bills the part the breakdown leaves out as 5m writes', () => {
+        const c = computeAnthropicCost({ input_tokens: 1, cache_creation_input_tokens: 1000, cache_creation: { ephemeral_5m_input_tokens: 100, ephemeral_1h_input_tokens: 200 } }, sonnet);
+        expect(c.tokens_in).toBe(1001);
+        expect(c.cache_write_tokens).toBe(1000);
+        expect(c.fee).toBeCloseTo(1 * 2e-6 + 800 * 2.5e-6 + 200 * 4e-6, 12);
+    });
+});
+
 describe('mergeAnthropicUsage', () => {
+    it('keeps start values where the delta field is null or undefined, nested ones included', () => {
+        const m = mergeAnthropicUsage(
+            { input_tokens: 10, cache_read_input_tokens: 100, cache_creation: { ephemeral_5m_input_tokens: 7, ephemeral_1h_input_tokens: 3 }, output_tokens: 1 },
+            { input_tokens: null as any, cache_read_input_tokens: null as any, output_tokens: 5, cache_creation: { ephemeral_5m_input_tokens: null as any, ephemeral_1h_input_tokens: 4 } });
+        expect(m).toEqual({ input_tokens: 10, cache_read_input_tokens: 100, output_tokens: 5, cache_creation: { ephemeral_5m_input_tokens: 7, ephemeral_1h_input_tokens: 4 } });
+        expect(computeAnthropicCost(m, sonnet).fee).toBeCloseTo(10 * 2e-6 + 100 * 0.1e-6 + 7 * 2.5e-6 + 4 * 4e-6 + 5 * 10e-6, 12);
+    });
     it('merges stream usage: the delta wins, start keeps cache_creation', () => {
         expect(mergeAnthropicUsage({ input_tokens: 2, cache_creation: { ephemeral_5m_input_tokens: 9 }, output_tokens: 1 }, { output_tokens: 40 }))
             .toEqual({ input_tokens: 2, cache_creation: { ephemeral_5m_input_tokens: 9 }, output_tokens: 40 });
