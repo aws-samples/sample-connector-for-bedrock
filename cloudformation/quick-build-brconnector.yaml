@@ -972,6 +972,7 @@ Resources:
 
   DeleteEC2Lambda:
     Type: AWS::Lambda::Function
+    DependsOn: DeleteEC2LambdaExecutionRole
     Properties:
       Code:
         ZipFile: !Sub |
@@ -1297,6 +1298,7 @@ Resources:
   CodeBuildProject:
     Condition: IsAutoUpdateLambda
     Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
     Properties:
       Name: !Sub MyCodeBuildProject-${AWS::StackName}
       Artifacts:
