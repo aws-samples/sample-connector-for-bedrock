@@ -1,4 +1,4 @@
-import { ChatRequest, EmbeddingRequest, ImageRequest } from "../entity/chat_request"
+import { ChatRequest, EmbeddingRequest, ImageRequest, ModelData } from "../entity/chat_request"
 import helper from '../util/helper';
 import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
@@ -30,30 +30,48 @@ import GeminiConverse from "./gemini_converse";
 
 class Provider {
     constructor() {
-        this["bedrock-converse"] = new BedrockConverse();
-        this["bedrock-runtime-openai"] = new BedrockRuntimeOpenAI();
-        this["smart-router"] = new SmartRouter();
-        // this["simple-action"] = new SimpleAction();
-        this["sagemaker-lmi"] = new SagemakerLMI();
-        this["bedrock-knowledge-base"] = new BedrockKnowledgeBase();
-        this["bedrock-agent"] = new BedrockAgent();
-        this["painter"] = new Painter();
-        this["nova-canvas"] = new NovaCanvas();
-        this["ollama"] = new OllamaAProvider();
-        this["web-miner"] = new WebMiner();
-        this["continue-coder"] = new ContinueCoder();
-        this["urls-reader"] = new UrlsReader();
-        this["aws-executor"] = new AWSExecutor();
-        // this["bedrock-claude3"] = new BedrockClaude();
-        // this["bedrock-mistral"] = new BedrockMixtral();
-        // this["bedrock-llama3"] = new BedrockLlama3();
-        this["titan-embeddings"] = new TitanEmbeddings();
-        this["openai-compatible"] = new OpenAICompatible();
-        this["bedrock-deepseek"] = new BedrockDeepSeek();
-        this["sagemaker-deepseek"] = new SagemakerDeepSeek();
-        this["azure-openai"] = new AzureOpenAI();
-        this["azure-openai-image"] = new AzureOpenAIImage();
-        this["gemini-converse"] = new GeminiConverse();
+        this["bedrock-converse"] = BedrockConverse;
+        this["bedrock-runtime-openai"] = BedrockRuntimeOpenAI;
+        this["smart-router"] = SmartRouter;
+        // this["simple-action"] = SimpleAction;
+        this["sagemaker-lmi"] = SagemakerLMI;
+        this["bedrock-knowledge-base"] = BedrockKnowledgeBase;
+        this["bedrock-agent"] = BedrockAgent;
+        this["painter"] = Painter;
+        this["nova-canvas"] = NovaCanvas;
+        this["ollama"] = OllamaAProvider;
+        this["web-miner"] = WebMiner;
+        this["continue-coder"] = ContinueCoder;
+        this["urls-reader"] = UrlsReader;
+        this["aws-executor"] = AWSExecutor;
+        // this["bedrock-claude3"] = BedrockClaude;
+        // this["bedrock-mistral"] = BedrockMixtral;
+        // this["bedrock-llama3"] = BedrockLlama3;
+        this["titan-embeddings"] = TitanEmbeddings;
+        this["openai-compatible"] = OpenAICompatible;
+        this["bedrock-deepseek"] = BedrockDeepSeek;
+        this["sagemaker-deepseek"] = SagemakerDeepSeek;
+        this["azure-openai"] = AzureOpenAI;
+        this["azure-openai-image"] = AzureOpenAIImage;
+        this["gemini-converse"] = GeminiConverse;
+    }
+
+    /** Returns a new instance of the named provider, so no state is shared between requests. */
+    createProvider(name: string): AbstractProvider {
+        if (!Object.prototype.hasOwnProperty.call(this, name)) {
+            throw new Error("You need to configure the provider correctly.");
+        }
+        return new this[name]();
+    }
+
+    // Gives the request a new provider instance and binds the request's model data and key data to it.
+    private bindProvider(ctx: any, modelData: ModelData): AbstractProvider {
+        ctx.state = ctx.state || {};
+        ctx.state.modelData = modelData;
+        const provider = this.createProvider(modelData.provider);
+        provider.setModelData(modelData);
+        provider.setKeyData(ctx.user);
+        return provider;
     }
 
     async initForEmbeddings(ctx: any) {
@@ -87,12 +105,7 @@ class Provider {
         embeddingRequest.price_in = modelData.price_in || 0;
         embeddingRequest.price_out = modelData.price_out || 0;
         embeddingRequest.model = modelData.name;
-        const provider: AbstractProvider = this[modelData.provider];
-        if (!provider) {
-            throw new Error("You need to configure the provider correctly.");
-        }
-        provider.setModelData(modelData);
-        provider.setKeyData(ctx.user);
+        const provider = this.bindProvider(ctx, modelData);
 
         return {
             provider, embeddingRequest, session_id
@@ -130,12 +143,7 @@ class Provider {
         request.price_in = modelData.price_in || 0;
         request.price_out = modelData.price_out || 0;
         request.model = modelData.name;
-        const provider: AbstractProvider = this[modelData.provider];
-        if (!provider) {
-            throw new Error("You need to configure the provider correctly.");
-        }
-        provider.setModelData(modelData);
-        provider.setKeyData(ctx.user);
+        const provider = this.bindProvider(ctx, modelData);
 
         return {
             provider, request, session_id
@@ -175,15 +183,8 @@ class Provider {
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
         chatRequest.model = modelData.name;
-        // Provider instances are shared by concurrent requests, so each request carries its own model data.
-        ctx.state = ctx.state || {};
-        ctx.state.modelData = modelData;
-        const provider: AbstractProvider = this[modelData.provider];
-        if (!provider) {
-            throw new Error("You need to configure the provider correctly.");
-        }
-        provider.setModelData(modelData);
-        provider.setKeyData(ctx.user);
+        // Each request gets a new provider instance, bound below with its own model data.
+        const provider = this.bindProvider(ctx, modelData);
 
         return {
             provider, chatRequest, session_id
@@ -231,16 +232,8 @@ class Provider {
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
         chatRequest.model = modelData.name;
-        // Provider instances are shared by concurrent requests, so each request carries its own model data.
-        ctx.state = ctx.state || {};
-        ctx.state.modelData = modelData;
-
-        const provider: AbstractProvider = this[modelData.provider];
-        if (!provider) {
-            throw new Error("You need to configure the provider correctly.");
-        }
-        provider.setModelData(modelData);
-        provider.setKeyData(ctx.user);
+        // Each request gets a new provider instance, bound below with its own model data.
+        const provider = this.bindProvider(ctx, modelData);
 
         return { provider, chatRequest, session_id };
     }
