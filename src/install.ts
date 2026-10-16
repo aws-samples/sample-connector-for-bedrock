@@ -20,6 +20,9 @@ export default async function () {
         database: config.pgsql.database,
         user: config.pgsql.user,
         password: config.pgsql.password,
+        // A blackholed host otherwise waits out the OS TCP timeout (~75-130 s). 10 s matches the
+        // platform's init limit; it does not bound the query path.
+        connectionTimeoutMillis: 10000,
     })
     try {
         await client.connect();

@@ -1,8 +1,8 @@
-// Unset, blank or non-numeric falls back to 1500; any non-negative number, including 0 ("do not wait"), is used as given.
+// Unset, blank or non-numeric falls back to 1500; a number is used as given, 0 and negatives meaning "do not wait".
 function parseWarmupMs(raw: string | undefined): number {
     if (raw === undefined || raw.trim() === "") return 1500;
     const n = Number(raw);
-    return Number.isFinite(n) && n >= 0 ? n : 1500;
+    return Number.isFinite(n) ? Math.max(0, n) : 1500;
 }
 
 export default {

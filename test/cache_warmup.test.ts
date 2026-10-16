@@ -70,6 +70,7 @@ describe('warmUpCache', () => {
 describe('startUp', () => {
     it('the default cap is 1500ms', async () => {
         vi.resetModules();
+        vi.stubEnv('CACHE_WARMUP_TIMEOUT_MS', undefined as any);
         const config = (await import('../src/config')).default;
         expect(config.cacheWarmupTimeoutMs).toBe(1500);
     });
@@ -82,7 +83,7 @@ describe('startUp', () => {
             skipInstall: false,
         });
         expect(order).toEqual(['install', 'cacheRun']);
-        expect(warm).toBe(true);
+        expect(warm).toBe('warm');
     });
     it('startUp skips install when skipDbInstall is set, and still loads the cache', async () => {
         const { startUp } = await import('../src/util/warmup');
@@ -106,7 +107,7 @@ describe('startUp', () => {
         const { startUp } = await import('../src/util/warmup');
         const err = vi.spyOn(console, 'error').mockImplementation(() => {});
         const cacheRun = vi.fn(() => Promise.resolve(true));
-        expect(await startUp({ install: async () => { throw new Error('bad migration'); }, cacheRun, skipInstall: false })).toBe(true);
+        expect(await startUp({ install: async () => { throw new Error('bad migration'); }, cacheRun, skipInstall: false })).toBe('warm');
         expect(cacheRun).toHaveBeenCalled();
         err.mockRestore();
     });
@@ -119,9 +120,8 @@ describe('startUp budget', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const cacheRun = vi.fn(() => Promise.resolve(true));
         const t = Date.now();
-        expect(await startUp({ install: never, cacheRun, skipInstall: false, capMs: 30 })).toBe(false);
+        expect(await startUp({ install: never, cacheRun, skipInstall: false, capMs: 30 })).toBe('cold');
         expect(Date.now() - t).toBeLessThan(1000);
-        expect(cacheRun).not.toHaveBeenCalled();
         expect(warn.mock.calls.join('\n')).toMatch(/install was still running/);
         warn.mockRestore();
     });
@@ -129,7 +129,7 @@ describe('startUp budget', () => {
         const { startUp } = await import('../src/util/warmup');
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const t = Date.now();
-        expect(await startUp({ install: async () => {}, cacheRun: () => never(), skipInstall: false, capMs: 30 })).toBe(false);
+        expect(await startUp({ install: async () => {}, cacheRun: () => never(), skipInstall: false, capMs: 30 })).toBe('cold');
         expect(Date.now() - t).toBeLessThan(1000);
         const out = warn.mock.calls.join('\n');
         expect(out).toMatch(/first cache load was still running/);
@@ -139,15 +139,62 @@ describe('startUp budget', () => {
     it('a cap of 0 does not wait for an unsettled install', async () => {
         const { startUp } = await import('../src/util/warmup');
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        expect(await startUp({ install: never, cacheRun: () => null, skipInstall: false, capMs: 0 })).toBe(false);
+        expect(await startUp({ install: never, cacheRun: () => null, skipInstall: false, capMs: 0 })).toBe('no-database');
         warn.mockRestore();
+    });
+});
+
+describe('startUp with a stalled install', () => {
+    const never = () => new Promise<never>(() => {});
+    it('still starts the cache exactly once when the cap fires with install outstanding', async () => {
+        const { startUp } = await import('../src/util/warmup');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const cacheRun = vi.fn(() => Promise.resolve(true));
+        await startUp({ install: never, cacheRun, skipInstall: false, capMs: 20 });
+        expect(cacheRun).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+    });
+    it('never starts the cache twice when install settles after the cap', async () => {
+        const { startUp } = await import('../src/util/warmup');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        let settle!: () => void;
+        const install = () => new Promise<void>((r) => { settle = r; });
+        const cacheRun = vi.fn(() => Promise.resolve(true));
+        await startUp({ install, cacheRun, skipInstall: false, capMs: 20 });
+        settle();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(cacheRun).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+    });
+    it('reports no-database when there is nothing to load', async () => {
+        const { startUp } = await import('../src/util/warmup');
+        expect(await startUp({ install: async () => {}, cacheRun: () => null, skipInstall: false, capMs: 20 })).toBe('no-database');
+    });
+    it('a cap of 0 does not print the budget warning', async () => {
+        const { startUp } = await import('../src/util/warmup');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        await startUp({ install: never, cacheRun: () => null, skipInstall: false, capMs: 0 });
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+    it('the defaults are the real install and cache.run', async () => {
+        vi.resetModules();
+        const installSpy = vi.fn(async () => {});
+        vi.doMock('../src/install', () => ({ default: installSpy }));
+        const cacheMod = (await import('../src/util/cache')).default;
+        const runSpy = vi.spyOn(cacheMod, 'run').mockReturnValue(null);
+        const { startUp } = await import('../src/util/warmup');
+        await startUp({ capMs: 0, skipInstall: false });
+        expect(installSpy).toHaveBeenCalledTimes(1);
+        expect(runSpy).toHaveBeenCalledTimes(1);
+        vi.doUnmock('../src/install');
     });
 });
 
 describe('CACHE_WARMUP_TIMEOUT_MS parsing', () => {
     const cap = async (v: string | undefined) => {
         vi.resetModules();
-        if (v === undefined) delete process.env.CACHE_WARMUP_TIMEOUT_MS; else vi.stubEnv('CACHE_WARMUP_TIMEOUT_MS', v);
+        vi.stubEnv('CACHE_WARMUP_TIMEOUT_MS', v as any);
         return (await import('../src/config')).default.cacheWarmupTimeoutMs;
     };
     it('0 is used as given', async () => { expect(await cap('0')).toBe(0); });
@@ -157,7 +204,7 @@ describe('CACHE_WARMUP_TIMEOUT_MS parsing', () => {
         expect(await cap('')).toBe(1500);
         expect(await cap(undefined)).toBe(1500);
     });
-    it('negative gives 1500', async () => { expect(await cap('-5')).toBe(1500); });
+    it('negative means do not wait', async () => { expect(await cap('-5')).toBe(0); });
 });
 
 describe('install', () => {
@@ -172,6 +219,7 @@ describe('install', () => {
         const log = vi.spyOn(console, 'log').mockImplementation(() => {});
         const install = (await import('../src/install')).default;
         await expect(install()).resolves.toBeUndefined();
+        expect(log.mock.calls.join('\n')).toMatch(/SKIP_DB_INSTALL/);
         expect(ctor).not.toHaveBeenCalled();
         expect(connect).not.toHaveBeenCalled();
         log.mockRestore();

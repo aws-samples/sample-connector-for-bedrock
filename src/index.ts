@@ -111,8 +111,14 @@ const onListening = () => {
 };
 
 (async () => {
-  const warm = await startUp();
-  console.log(warm ? "Cache is warm." : "Cache is cold, requests may miss until it loads.");
+  const result = await startUp();
+  console.log(
+    result === "warm"
+      ? "Cache is warm."
+      : result === "no-database"
+        ? "No database configured, running without a cache."
+        : "Cache is cold, requests may miss until it loads.",
+  );
   // No host when the platform supplied none: Node then binds dual-stack (`::`, IPv4 and IPv6).
   listenHost === undefined
     ? app.listen(listenPort, onListening)

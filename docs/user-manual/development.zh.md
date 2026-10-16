@@ -53,6 +53,8 @@ yarn
 | SMTP_PASS | no |  |  SMTP server password |
 | SMPT_FROM | no |  | SMTP sender email address, your SMTP server maybe verify this |
 | PERFORMANCE_MODE | no |  | 如果您设置了这个环境变量，那么将不再保存聊天记录和更新消费了。意味着控费功能将失效。 |
+| SKIP_DB_INSTALL | no | false | 设置为 `true` 或 `1` 时，启动时跳过数据库建表/迁移。 |
+| CACHE_WARMUP_TIMEOUT_MS | no | 1500 | 启动时在开始监听前，等待迁移和首次缓存加载的最长毫秒数。`0` 表示不等待。未设置或非数字时使用默认值。 |
 
 ### 启动后台
 
