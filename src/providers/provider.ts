@@ -11,6 +11,7 @@ import BedrockKnowledgeBase from "./bedrock_knowledge_base";
 import OllamaAProvider from "./ollama_provider";
 import BedrockConverse from "./bedrock_converse";
 import BedrockRuntimeOpenAI from "./bedrock_runtime_openai";
+import BedrockRuntimeAnthropic from "./bedrock_runtime_anthropic";
 import SagemakerLMI from "./sagemaker_lmi"
 import Painter from "./painter";
 import WebMiner from "./web_miner";
@@ -33,6 +34,7 @@ class Provider {
     constructor() {
         this["bedrock-converse"] = BedrockConverse;
         this["bedrock-runtime-openai"] = BedrockRuntimeOpenAI;
+        this["bedrock-runtime-anthropic"] = BedrockRuntimeAnthropic;
         this["smart-router"] = SmartRouter;
         // this["simple-action"] = SimpleAction;
         this["sagemaker-lmi"] = SagemakerLMI;
@@ -202,6 +204,10 @@ class Provider {
 
     async anthropicMessages(ctx: any) {
         const res = await this.initForAnthropic(ctx);
+        if (res.native) {
+            // The native provider takes the raw Anthropic body, so nothing is converted on the way in.
+            return (res.provider as BedrockRuntimeAnthropic).messages(res.body, res.session_id, ctx);
+        }
         return (res.provider as any).chatAnthropic(res.chatRequest, res.session_id, ctx);
     }
 
@@ -210,18 +216,15 @@ class Provider {
             await this.checkFee(ctx, ctx.user);
         }
 
-        // Convert Anthropic Messages API request → internal ChatRequest
         const body = ctx.request.body;
-        const chatRequest: ChatRequest = this.convertAnthropicRequest(body);
 
-        const modelRes = helper.parseModelString(chatRequest.model);
-        if (modelRes) {
-            chatRequest.model = modelRes.model;
-            chatRequest.model_id = modelRes.model_id;
-        }
-
-        const session_id = ctx.headers["session-id"];
-        const modelData = await helper.refineModelParameters(chatRequest, ctx);
+        // Resolve the model from the raw body first, because the native provider needs the
+        // provider name before anything is converted. A missing or non-string model is left to
+        // refineModelParameters to report, rather than raising a TypeError in parseModelString.
+        const rawModel = body?.model;
+        const modelRes = typeof rawModel === 'string' ? helper.parseModelString(rawModel) : null;
+        const baseModel = modelRes ? modelRes.model : rawModel;
+        const modelData = await helper.refineModelParameters({ model: baseModel } as ChatRequest, ctx);
 
         if (ctx.db) {
             const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
@@ -230,13 +233,30 @@ class Provider {
             }
         }
 
+        if (modelData.provider === 'bedrock-runtime-anthropic') {
+            // Native path: the body goes through untouched (including a "name/override" model
+            // string, which the provider rejects) and the provider reads ctx.state.modelData.
+            const provider = this.bindProvider(ctx, modelData);
+            const session_id = ctx.headers["session-id"] || ctx.headers["x-claude-code-session-id"];
+            return { provider, chatRequest: { model: modelData.name } as ChatRequest, session_id, native: true, body };
+        }
+
+        // Convert Anthropic Messages API request → internal ChatRequest
+        const chatRequest: ChatRequest = this.convertAnthropicRequest(body);
+        if (modelRes) {
+            chatRequest.model = modelRes.model;
+            chatRequest.model_id = modelRes.model_id;
+        }
+
+        const session_id = ctx.headers["session-id"];
+
         chatRequest.currency = modelData.config.currency || "USD";
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
         chatRequest.model = modelData.name;
         const provider = this.bindProvider(ctx, modelData);
 
-        return { provider, chatRequest, session_id };
+        return { provider, chatRequest, session_id, native: false, body };
     }
 
     /**
