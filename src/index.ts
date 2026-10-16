@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
+// Load-bearing order: util/self reads process.env at import, so it must stay below
+// dotenv.config(). This holds because the emit is CommonJS; do not hoist or go ESM blindly.
 import { listenHost, listenPort } from "./util/self";
 
 import Koa from "koa";
@@ -99,8 +101,8 @@ app.use(router.routes());
 
 app.use(autoLoginHandler);
 
-app.listen(listenPort, listenHost, () => {
-  console.log(`🚀 BRConnector is running on http://${listenHost}:${listenPort}/`);
+const onListening = () => {
+  console.log(`🚀 BRConnector is running on http://${listenHost ?? '0.0.0.0'}:${listenPort}/`);
   console.log(`📖 Version ${version}`);
   if (config.performanceMode) {
     console.log(`Performance mode is ${config.performanceMode}.`);
@@ -111,4 +113,9 @@ app.listen(listenPort, listenHost, () => {
   if (config.pgsql.debugMode) {
     console.log(`Sql mode is on.`);
   }
-});
+};
+
+// No host when the platform supplied none: Node then binds dual-stack (`::`, IPv4 and IPv6).
+listenHost === undefined
+  ? app.listen(listenPort, onListening)
+  : app.listen(listenPort, listenHost, onListening);

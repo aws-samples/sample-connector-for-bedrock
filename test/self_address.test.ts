@@ -29,7 +29,10 @@ describe('parseListenAddress', () => {
     ])('parses %s', (input, expected) => {
         expect(parseListenAddress(input as string)).toEqual(expected);
     });
-    it.each(['', 'abc', 'host:', ':3000', 'host:notaport', 'host:0', 'host:70000'])(
+    it('trims surrounding whitespace', () => {
+        expect(parseListenAddress(' 0.0.0.0:8866 ')).toEqual({ host: '0.0.0.0', port: 8866 });
+    });
+    it.each(['', 'abc', 'host:', ':3000', 'host:notaport', 'host:0', 'host:70000', 'http://0.0.0.0:8866', 'a b:80'])(
         'rejects %s', (input) => {
             expect(() => parseListenAddress(input)).toThrow('AWS_LAMBDA_HTTP_ENDPOINT');
         });
@@ -50,7 +53,7 @@ describe('selfBaseUrlFor', () => {
 });
 
 it('no source file still points a self-callback at a fixed port', () => {
-    expect(filesUnderSrcContaining('localhost:8866')).toEqual([]);
+    expect(filesUnderSrcContaining(':8866')).toEqual([]);
 });
 
 describe('self-callback target', () => {
@@ -64,5 +67,30 @@ describe('self-callback target', () => {
         vi.stubGlobal('fetch', fetchMock);
         await new TestProvider().localCompleteSync({ user: { api_key: 'k' } }, { prompt: 'hi' }, 'sess');
         expect(fetchMock.mock.calls[0][0]).toBe(`${selfBaseUrl}/v1/completions`);
+    });
+});
+
+describe('module-level exports follow the environment', () => {
+    afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
+    const load = async () => { vi.resetModules(); return await import('../src/util/self'); };
+
+    it('leaves the host unset by default so the socket stays dual-stack', async () => {
+        vi.stubEnv('AWS_LAMBDA_HTTP_ENDPOINT', undefined as any);
+        delete process.env.AWS_LAMBDA_HTTP_ENDPOINT;
+        const m = await load();
+        expect(m.listenHost).toBeUndefined();
+        expect(m.listenPort).toBe(8866);
+        expect(m.selfBaseUrl).toBe('http://127.0.0.1:8866');
+    });
+    it('uses the platform address when set', async () => {
+        vi.stubEnv('AWS_LAMBDA_HTTP_ENDPOINT', '0.0.0.0:3000');
+        const m = await load();
+        expect(m.listenHost).toBe('0.0.0.0');
+        expect(m.listenPort).toBe(3000);
+        expect(m.selfBaseUrl).toBe('http://127.0.0.1:3000');
+    });
+    it('fails the import on a bad value', async () => {
+        vi.stubEnv('AWS_LAMBDA_HTTP_ENDPOINT', 'nope');
+        await expect(load()).rejects.toThrow('AWS_LAMBDA_HTTP_ENDPOINT');
     });
 });
