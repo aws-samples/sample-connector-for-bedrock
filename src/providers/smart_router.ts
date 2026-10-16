@@ -1,5 +1,6 @@
 import { ChatRequest, ResponseData } from "../entity/chat_request";
 import AbstractProvider from "./abstract_provider";
+import { selfBaseUrl } from "../util/self";
 
 
 export default class SmartRouter extends AbstractProvider {
@@ -100,7 +101,7 @@ Respond with model name only. No explanation or additional text.
 `
     });
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

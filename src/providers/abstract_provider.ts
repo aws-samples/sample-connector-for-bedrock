@@ -1,6 +1,7 @@
 import { ChatRequest, ResponseData, EmbeddingRequest, ImageRequest } from "../entity/chat_request";
 import Cache from '../util/cache';
 import crypto from 'crypto';
+import { selfBaseUrl } from "../util/self";
 
 export default abstract class AbstractProvider {
     keyData: any;
@@ -45,7 +46,7 @@ export default abstract class AbstractProvider {
             'Content-Type': 'text/event-stream',
         });
         // console.log("openAIRequest", openAIRequest)
-        const response = await fetch("http://localhost:8866/v1/completions", {
+        const response = await fetch(`${selfBaseUrl}/v1/completions`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -70,7 +71,7 @@ export default abstract class AbstractProvider {
     }
 
     async localCompleteSync(ctx: any, openAIRequest: any, session_id: string) {
-        const response = await fetch("http://localhost:8866/v1/completions", {
+        const response = await fetch(`${selfBaseUrl}/v1/completions`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -91,7 +92,7 @@ export default abstract class AbstractProvider {
             'Content-Type': 'text/event-stream',
         });
 
-        const response = await fetch("http://localhost:8866/v1/chat/completions", {
+        const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -116,7 +117,7 @@ export default abstract class AbstractProvider {
     }
 
     async localChatSync(ctx: any, openAIRequest: any, session_id: string) {
-        const response = await fetch("http://localhost:8866/v1/chat/completions", {
+        const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',

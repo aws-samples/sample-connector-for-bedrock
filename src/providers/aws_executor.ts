@@ -2,6 +2,7 @@ import { ChatRequest, ResponseData } from "../entity/chat_request"
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import helper from '../util/helper';
+import { selfBaseUrl } from "../util/self";
 
 
 export default class AWSExecutor extends AbstractProvider {
@@ -138,7 +139,7 @@ export default class AWSExecutor extends AbstractProvider {
 
     // console.log(JSON.stringify(kRequest, null, 2));
     // console.log(chatRequest, ctx.user);
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -182,7 +183,7 @@ Please answer the question directly and do not repeat it. To beautify your answe
 
   async chatSync(ctx: any, chatRequest: ChatRequest, session_id: string) {
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -209,7 +210,7 @@ Please answer the question directly and do not repeat it. To beautify your answe
 
   async chatStream(ctx: any, chatRequest: ChatRequest, session_id: string, cli: any) {
     // console.log(chatRequest, ctx.user);
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

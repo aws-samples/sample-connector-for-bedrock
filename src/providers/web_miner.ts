@@ -2,6 +2,7 @@ import { ChatRequest } from "../entity/chat_request"
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import { google } from 'googleapis';
+import { selfBaseUrl } from "../util/self";
 
 
 export default class WebMiner extends AbstractProvider {
@@ -72,7 +73,7 @@ export default class WebMiner extends AbstractProvider {
   async chatStream(ctx: any, chatRequest: ChatRequest, session_id: string, refItems: any) {
     // console.log(chatRequest, ctx.user);
     refItems = refItems || [];
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -155,7 +156,7 @@ export default class WebMiner extends AbstractProvider {
       tool_choice: "auto"
     }
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -174,7 +175,7 @@ export default class WebMiner extends AbstractProvider {
 
   async chatSync(ctx: any, chatRequest: ChatRequest, session_id: string) {
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

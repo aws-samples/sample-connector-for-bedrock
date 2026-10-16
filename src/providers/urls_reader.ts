@@ -1,6 +1,7 @@
 import { ChatRequest } from "../entity/chat_request"
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
+import { selfBaseUrl } from "../util/self";
 
 
 
@@ -41,7 +42,7 @@ export default class UrlsReader extends AbstractProvider {
             'Content-Type': 'text/event-stream',
         });
 
-        const response = await fetch("http://localhost:8866/v1/chat/completions", {
+        const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -66,7 +67,7 @@ export default class UrlsReader extends AbstractProvider {
 
     }
     async chatSync(ctx: any, chatRequest: ChatRequest, session_id: string) {
-        const response = await fetch("http://localhost:8866/v1/chat/completions", {
+        const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',

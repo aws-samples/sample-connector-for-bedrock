@@ -11,6 +11,7 @@ import helper from "../util/helper";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import logger from "../util/logger";
+import { selfBaseUrl } from "../util/self";
 
 /**
 * Use llm and sdxl to chat with openai completions api
@@ -150,7 +151,7 @@ export default class Painter extends AbstractProvider {
 
   async chatSync(ctx: any, chatRequest: ChatRequest, session_id: string) {
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -213,7 +214,7 @@ export default class Painter extends AbstractProvider {
       content: `You're a great AI painter and a master of semantic understanding, and you'll need to listen to your customers' input, find out the positive and negative keywords and size information, and I'll give you tips in the tool. Please note that the keywords you extract must be in English. In response to a user question, please include the following meaning: Wait a minute, I'm sorting out the keywords and starting to draw`
     });
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

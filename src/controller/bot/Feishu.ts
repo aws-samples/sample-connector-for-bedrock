@@ -5,6 +5,7 @@ import {ChatRequest} from "../../entity/chat_request";
 import AbstractController from "../AbstractController";
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { selfBaseUrl } from "../../util/self";
 
 
 const WAITING_TITLE = '正在思考中';
@@ -162,7 +163,7 @@ const chat = async (client: lark.Client,
   if (newMsg.content.length > 0) {
     chatRequest.messages.push(newMsg);
   }
-  return await fetch("http://localhost:8866/v1/chat/completions", {
+  return await fetch(`${selfBaseUrl}/v1/chat/completions`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',

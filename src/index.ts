@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import { listenHost, listenPort } from "./util/self";
 
 import Koa from "koa";
 import { koaBody as bodyParser } from "koa-body";
@@ -98,10 +99,8 @@ app.use(router.routes());
 
 app.use(autoLoginHandler);
 
-const port = 8866;
-
-app.listen(port, () => {
-  console.log(`🚀 BRConnector is running on port http://0.0.0.0:${port}/`);
+app.listen(listenPort, listenHost, () => {
+  console.log(`🚀 BRConnector is running on http://${listenHost}:${listenPort}/`);
   console.log(`📖 Version ${version}`);
   if (config.performanceMode) {
     console.log(`Performance mode is ${config.performanceMode}.`);
