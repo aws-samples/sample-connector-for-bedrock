@@ -169,7 +169,12 @@ export async function relayAnthropicStream(
             events.forEach(relayEvent);
             armTimer();
         }
-        relayEvent(buffer);
+        // A tail without the closing blank line is relayed only when its data is complete JSON; a cut-off
+        // event is dropped.
+        const tail = buffer.replace(/^\n+|\n+$/g, '');
+        if (tail && parseJson(eventData(tail))) {
+            relayEvent(tail);
+        }
     } catch (error) {
         // Any unfinished event in the buffer is dropped, because half an event would corrupt whatever the
         // caller writes next.

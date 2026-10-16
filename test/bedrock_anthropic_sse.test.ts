@@ -97,4 +97,16 @@ describe('relayAnthropicStream', () => {
         expect(written).toEqual([start]);
         expect((r.error as Error).message).toBe('reset');
     });
+    it('drops a half-received event when the source ends normally', async () => {
+        const written: string[] = [];
+        const r = await relayAnthropicStream(source(start + 'event: content_bl'), (s) => written.push(s));
+        expect(written).toEqual([start]);
+        expect(r.error).toBeUndefined();
+    });
+    it('relays a final complete event that lacks the trailing blank line', async () => {
+        const written: string[] = [];
+        const r = await relayAnthropicStream(source(start, 'event: message_stop\ndata: {"type":"message_stop"}'), (s) => written.push(s));
+        expect(written).toEqual([start, 'event: message_stop\ndata: {"type":"message_stop"}\n\n']);
+        expect(r.sawMessageStop).toBe(true);
+    });
 });
