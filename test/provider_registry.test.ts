@@ -91,7 +91,7 @@ describe('provider registry', () => {
         }
     });
 
-    describe('retry', () => {
+    describe('bedrock-converse chat', () => {
         beforeEach(() => {
             for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value);
         });

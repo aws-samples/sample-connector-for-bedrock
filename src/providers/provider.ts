@@ -64,7 +64,8 @@ class Provider {
         return new this[name]();
     }
 
-    // Gives the request a new provider instance and binds the request's model data and key data to it.
+    // Gives the request a new provider instance and binds a copy of the model data and the key data to it.
+    // It binds a copy because providers may write to the data, and the original is the cached row that every request reads.
     private bindProvider(ctx: any, modelData: ModelData): AbstractProvider {
         ctx.state = ctx.state || {};
         const ownData: ModelData = structuredClone(modelData);
@@ -184,7 +185,6 @@ class Provider {
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
         chatRequest.model = modelData.name;
-        // Each request gets a new provider instance, bound below with its own model data.
         const provider = this.bindProvider(ctx, modelData);
 
         return {
@@ -233,7 +233,6 @@ class Provider {
         chatRequest.price_in = modelData.price_in || 0;
         chatRequest.price_out = modelData.price_out || 0;
         chatRequest.model = modelData.name;
-        // Each request gets a new provider instance, bound below with its own model data.
         const provider = this.bindProvider(ctx, modelData);
 
         return { provider, chatRequest, session_id };
