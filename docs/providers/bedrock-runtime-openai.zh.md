@@ -93,3 +93,12 @@ GLM 5.3。只对符合条件的账号开放，请联系你的 AWS 账户团队�
 | `gpt-oss-120b` | `openai.gpt-oss-120b-1:0` | 0.15 | 0.60 |
 | `qwen3-coder-next` | `qwen.qwen3-coder-next` | 0.50 | 1.20 |
 | `minimax-m2-5` | `minimax.minimax-m2.5` | 0.30 | 1.20 |
+| `gpt-6-1-sol` | `global.openai.gpt-6.1-sol` | 2.00 | 10.00（缓存读 0.10，缓存写 2.50） |
+| `gpt-6-sol` | `global.openai.gpt-6-sol` | 2.00 | 10.00（缓存读 0.20，缓存写 2.50） |
+| `gpt-6-astra` | `global.openai.gpt-6-astra` | 10.00 | 50.00（缓存读 1.00，缓存写 12.50） |
+| `gpt-6-luna` | `global.openai.gpt-6-luna` | 0.10 | 0.50（缓存读 0.01，缓存写 0.125） |
+| `gpt-5-6-sol` | `global.openai.gpt-5.6-sol` | 4.00 | 20.00（缓存读 0.40，缓存写 5.00） |
+| `gpt-5-6-terra` | `global.openai.gpt-5.6-terra` | 2.00 | 12.00（缓存读 0.20，缓存写 2.50） |
+| `gpt-5-6-luna` | `global.openai.gpt-5.6-luna` | 0.20 | 1.20（缓存读 0.02，缓存写 0.25） |
+
+GPT 的价格是 Global CRIS、标准档、输入不超过 272K token 时的价格。输入超过 272K token 时，Bedrock 对整个请求按更高的长上下文价格计费（例如 GPT-6 Sol：输入 4.00 而不是 2.00，输出 15.00 而不是 10.00），BRConnector 仍按短上下文价格记账。GPT-5.6 及以后的模型不接受 `max_tokens`，这个 provider 会把它改成 `max_completion_tokens`。

@@ -93,3 +93,12 @@ A new installation creates these models on this provider (`src/scripts/patch-0.0
 | `gpt-oss-120b` | `openai.gpt-oss-120b-1:0` | 0.15 | 0.60 |
 | `qwen3-coder-next` | `qwen.qwen3-coder-next` | 0.50 | 1.20 |
 | `minimax-m2-5` | `minimax.minimax-m2.5` | 0.30 | 1.20 |
+| `gpt-6-1-sol` | `global.openai.gpt-6.1-sol` | 2.00 | 10.00 (cache read 0.10, cache write 2.50) |
+| `gpt-6-sol` | `global.openai.gpt-6-sol` | 2.00 | 10.00 (cache read 0.20, cache write 2.50) |
+| `gpt-6-astra` | `global.openai.gpt-6-astra` | 10.00 | 50.00 (cache read 1.00, cache write 12.50) |
+| `gpt-6-luna` | `global.openai.gpt-6-luna` | 0.10 | 0.50 (cache read 0.01, cache write 0.125) |
+| `gpt-5-6-sol` | `global.openai.gpt-5.6-sol` | 4.00 | 20.00 (cache read 0.40, cache write 5.00) |
+| `gpt-5-6-terra` | `global.openai.gpt-5.6-terra` | 2.00 | 12.00 (cache read 0.20, cache write 2.50) |
+| `gpt-5-6-luna` | `global.openai.gpt-5.6-luna` | 0.20 | 1.20 (cache read 0.02, cache write 0.25) |
+
+The GPT prices are Global CRIS, standard tier, for requests of 272K input tokens or fewer. Above 272K input tokens, Bedrock bills the whole request at the higher long-context rates (GPT-6 Sol, for example: input 4.00 instead of 2.00, output 15.00 instead of 10.00), and BRConnector still records the short-context price. GPT-5.6 and later reject `max_tokens`; this provider moves it to `max_completion_tokens` for them.
