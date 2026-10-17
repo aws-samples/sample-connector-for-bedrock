@@ -14,4 +14,7 @@ RUN npm install --omit=dev
 
 EXPOSE 8866
 
+# Lambda runs the function as its own least-privileged user. Outside Lambda, this keeps the image off root as well.
+USER node
+
 CMD ["node", "server/index.js"]
