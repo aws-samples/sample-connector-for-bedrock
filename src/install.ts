@@ -4,6 +4,10 @@ import config from './config';
 import path from 'path';
 
 export default async function () {
+    if (config.skipDbInstall) {
+        console.log("[init] SKIP_DB_INSTALL is set, skip database migrations.");
+        return;
+    }
     if (!config.pgsql.host || !config.pgsql.database) {
         console.error("❌ Postgres not configured, skip installation.");
         console.log("💡 You can only access BRConnector using the API key stored in the ADMIN_API_KEY environment variable.");
@@ -16,6 +20,9 @@ export default async function () {
         database: config.pgsql.database,
         user: config.pgsql.user,
         password: config.pgsql.password,
+        // A blackholed host otherwise waits out the OS TCP timeout (~75-130 s). 10 s matches the
+        // platform's init limit; it does not bound the query path.
+        connectionTimeoutMillis: 10000,
     })
     try {
         await client.connect();

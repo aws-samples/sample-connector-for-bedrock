@@ -55,6 +55,8 @@ The connector supports the following environment variables:
 | SMTP_PASS | no |  |  SMTP server password |
 | SMPT_FROM | no |  | SMTP sender email address, your SMTP server maybe verify this |
 | PERFORMANCE_MODE | no |  | If you set this environment variable, then chat logs and billing updates will no longer be saved. This means the cost control feature will be disabled.|
+| SKIP_DB_INSTALL | no | false | Set to `true` or `1` to skip the database table creation and migrations at startup. |
+| CACHE_WARMUP_TIMEOUT_MS | no | 1500 | Maximum milliseconds to wait at startup, before listening, for the migrations and the first cache load. `0` means do not wait. Unset or non-numeric values use the default. |
 
 ### Run backend
 

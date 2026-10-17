@@ -38,6 +38,9 @@ bower_components
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
+# Lambda Web Functions zip build output (scripts/build-web-function-zip.sh)
+/build/
+
 # Dependency directories
 node_modules/
 jspm_packages/

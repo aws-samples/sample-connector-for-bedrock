@@ -4,6 +4,7 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import helper from '../util/helper';
 import key from "../service/key";
+import { selfBaseUrl } from "../util/self";
 
 
 export default class SimpleAction extends AbstractProvider {
@@ -144,7 +145,7 @@ ${JSON.stringify(result, null, 2)}
     console.log(messages);
 
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -214,7 +215,7 @@ ${JSON.stringify(result, null, 2)}
 
     }, null, 2));
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

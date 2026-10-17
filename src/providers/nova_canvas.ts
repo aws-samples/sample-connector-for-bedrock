@@ -13,6 +13,7 @@ import AbstractProvider from "./abstract_provider";
 // import logger from "../util/logger";
 
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { selfBaseUrl } from "../util/self";
 // const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 export default class NovaCanvas extends AbstractProvider {
@@ -679,7 +680,7 @@ You must return all parameters through function calls only. Do not output parame
 `
     });
 
-    const response = await fetch("http://localhost:8866/v1/chat/completions", {
+    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
