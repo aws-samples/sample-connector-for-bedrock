@@ -106,6 +106,13 @@
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-knowledge-base/"/>
     </url>
     <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-runtime-anthropic/</loc>
+        <lastmod>2026-10-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-runtime-anthropic/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-runtime-anthropic/"/>
+    </url>
+    <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-runtime-openai/</loc>
         <lastmod>2026-10-17</lastmod>
         <changefreq>daily</changefreq>
@@ -370,6 +377,13 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-knowledge-base/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-knowledge-base/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-runtime-anthropic/</loc>
+        <lastmod>2026-10-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-runtime-anthropic/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-runtime-anthropic/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/providers/bedrock-runtime-openai/</loc>
