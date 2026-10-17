@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import providers from '../src/providers/provider';
 import BedrockRuntimeOpenAI from '../src/providers/bedrock_runtime_openai';
+import BedrockRuntimeAnthropic from '../src/providers/bedrock_runtime_anthropic';
 import AbstractProvider from '../src/providers/abstract_provider';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
 
 const k3 = { id: 5, name: 'kimi-k3', provider: 'bedrock-runtime-openai', multiple: 1, model_type: 1, price_in: 3e-6, price_out: 15e-6, config: { modelId: 'global.moonshotai.kimi-k3' } };
+const claude = { id: 9, name: 'claude-sonnet-5-5', provider: 'bedrock-runtime-anthropic', multiple: 1, model_type: 1, price_in: 2e-6, price_out: 10e-6, config: { modelId: 'global.anthropic.claude-sonnet-5-5' } };
 const userOf = (id: number) => ({ id, group_id: 2, month_fee: '0', month_quota: '10', balance: '0', updated_at: new Date() });
 const userA = userOf(1);
 const userB = userOf(3);
@@ -41,9 +43,88 @@ describe('provider registry', () => {
         expect(ctx.state.modelData).not.toBe(k3);
     });
 
+    it('registers bedrock-runtime-anthropic right after bedrock-runtime-openai', () => {
+        const keys = Object.keys(providers);
+        expect(keys.indexOf('bedrock-runtime-anthropic')).toBe(keys.indexOf('bedrock-runtime-openai') + 1);
+    });
+
+    describe('native /v1/messages dispatch', () => {
+        const raw = () => ({ model: 'claude-sonnet-5-5', max_tokens: 10, system: [{ type: 'text', text: 's', cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: 'hi' }] });
+        beforeEach(() => {
+            for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value);
+        });
+        afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+
+        it('hands the raw body to the native provider without converting it', async () => {
+            const spy = vi.spyOn(providers, 'convertAnthropicRequest');
+            const body = raw();
+            const ctx: any = ctxFor(body, { models: [claude] });
+            ctx.headers['x-claude-code-session-id'] = 'cc-sess';
+            const res: any = await providers.initForAnthropic(ctx);
+            expect(spy).not.toHaveBeenCalled();
+            expect(res).toMatchObject({ native: true, session_id: 'cc-sess' });
+            expect(res.body).toBe(body);
+            expect(res.chatRequest).toEqual({ model: 'claude-sonnet-5-5' });
+            expect(res.provider).toBeInstanceOf(BedrockRuntimeAnthropic);
+            expect(ctx.state.modelData).toEqual(claude);
+            expect(ctx.state.modelData).not.toBe(claude);
+        });
+        it('prefers the session-id header over x-claude-code-session-id', async () => {
+            const ctx: any = ctxFor(raw(), { models: [claude] });
+            ctx.headers['session-id'] = 'explicit';
+            ctx.headers['x-claude-code-session-id'] = 'cc-sess';
+            expect((await providers.initForAnthropic(ctx)).session_id).toBe('explicit');
+        });
+        it('leaves a name/override model string untouched for the provider to reject', async () => {
+            const body = { ...raw(), model: 'claude-sonnet-5-5/override' };
+            const res: any = await providers.initForAnthropic(ctxFor(body, { models: [claude] }));
+            expect(res.native).toBe(true);
+            expect(res.body.model).toBe('claude-sonnet-5-5/override');
+        });
+        it('keeps the converse path: converts, and ignores x-claude-code-session-id', async () => {
+            const spy = vi.spyOn(providers, 'convertAnthropicRequest');
+            const ctx: any = ctxFor({ model: 'model-a', max_tokens: 10, messages: msgs }, { models: [modelA, claude] });
+            ctx.headers['x-claude-code-session-id'] = 'cc-sess';
+            const res: any = await providers.initForAnthropic(ctx);
+            expect(spy).toHaveBeenCalledTimes(1);
+            expect(res.native).toBe(false);
+            expect(res.session_id).toBeUndefined();
+            expect(res.chatRequest.model).toBe('model-a');
+            expect(res.chatRequest.price_in).toBe(1e-6);
+        });
+        it('denies a native model the user may not access with a permission_error', async () => {
+            const ctx: any = ctxFor(raw(), { models: [claude] });
+            ctx.db = { exists: async () => false };
+            await expect(providers.initForAnthropic(ctx)).rejects.toMatchObject({
+                anthropicType: 'permission_error',
+                message: 'You do not have permission to access the [claude-sonnet-5-5] model, please contact the administrator.',
+            });
+        });
+        it('does not raise a TypeError for a missing model', async () => {
+            const ctx: any = ctxFor({ max_tokens: 10, messages: msgs }, { models: [claude] });
+            await expect(providers.initForAnthropic(ctx)).rejects.toMatchObject({ anthropicType: 'not_found_error' });
+        });
+        it('anthropicMessages calls messages() for the native provider', async () => {
+            const spy = vi.spyOn(BedrockRuntimeAnthropic.prototype, 'messages').mockResolvedValue('done' as any);
+            const body = raw();
+            const ctx: any = ctxFor(body, { models: [claude] });
+            ctx.headers['x-claude-code-session-id'] = 'cc-sess';
+            await expect(providers.anthropicMessages(ctx)).resolves.toBe('done');
+            expect(spy).toHaveBeenCalledTimes(1);
+            expect(spy).toHaveBeenCalledWith(body, 'cc-sess', ctx);
+        });
+        it('anthropicMessages still calls chatAnthropic for a converse model', async () => {
+            const ctx: any = ctxFor({ model: 'model-a', max_tokens: 10, messages: msgs }, { models: [modelA, claude] });
+            const chatAnthropic = vi.fn().mockResolvedValue('conv');
+            vi.spyOn(providers, 'initForAnthropic').mockResolvedValue({ provider: { chatAnthropic }, chatRequest: { model: 'model-a' }, session_id: 's', native: false, body: {} } as any);
+            await expect(providers.anthropicMessages(ctx)).resolves.toBe('conv');
+            expect(chatAnthropic).toHaveBeenCalledWith({ model: 'model-a' }, 's', ctx);
+        });
+    });
+
     it('keeps the registered provider names and their order', () => {
         expect(Object.keys(providers)).toEqual([
-            'bedrock-converse', 'bedrock-runtime-openai', 'smart-router', 'sagemaker-lmi',
+            'bedrock-converse', 'bedrock-runtime-openai', 'bedrock-runtime-anthropic', 'smart-router', 'sagemaker-lmi',
             'bedrock-knowledge-base', 'bedrock-agent', 'painter', 'nova-canvas', 'ollama',
             'web-miner', 'continue-coder', 'urls-reader', 'aws-executor', 'titan-embeddings',
             'openai-compatible', 'bedrock-deepseek', 'sagemaker-deepseek', 'azure-openai',

@@ -25,6 +25,20 @@ describe('preset models', () => {
     it('give Kimi K3 its cache prices', () => {
         expect(rows.find((r) => r.name === 'kimi-k3')?.config).toEqual({ modelId: 'global.moonshotai.kimi-k3', price_cache_read: 0.3e-6, price_cache_write: 3.75e-6 });
     });
+    it('seed the Claude models on bedrock-runtime-anthropic with their model ids and us-east-1 prices', () => {
+        const seeded = rows.filter((r) => r.provider === 'bedrock-runtime-anthropic')
+            .map((r) => [r.name, r.multiple, r.config, r.priceIn, r.priceOut]);
+        const cfg = (modelId: string, read: number, write: number, write1h: number) =>
+            ({ modelId, price_cache_read: read, price_cache_write: write, price_cache_write_1h: write1h });
+        expect(seeded).toEqual([
+            ['claude-opus-5-5', 1, cfg('global.anthropic.claude-opus-5-5', 0.2e-6, 5e-6, 8e-6), 4e-6, 20e-6],
+            ['claude-sonnet-5-5', 1, cfg('global.anthropic.claude-sonnet-5-5', 0.1e-6, 2.5e-6, 4e-6), 2e-6, 10e-6],
+            ['claude-haiku-5-5', 1, cfg('global.anthropic.claude-haiku-5-5', 0.01e-6, 0.125e-6, 0.2e-6), 0.1e-6, 0.5e-6],
+            ['claude-opus-4-8', 1, cfg('global.anthropic.claude-opus-4-8', 0.5e-6, 6.25e-6, 10e-6), 5e-6, 25e-6],
+            ['claude-sonnet-4-6', 1, cfg('global.anthropic.claude-sonnet-4-6', 0.3e-6, 3.75e-6, 6e-6), 3e-6, 15e-6],
+            ['claude-haiku-4-5', 1, cfg('global.anthropic.claude-haiku-4-5-20251001-v1:0', 0.1e-6, 1.25e-6, 2e-6), 1e-6, 5e-6],
+        ]);
+    });
     it('only use registered providers and unique names', () => {
         // Every INSERT is parsed, so a row the pattern misses cannot slip past these checks.
         expect(rows).toHaveLength(sql.match(/INSERT INTO eiai_model/g)!.length);

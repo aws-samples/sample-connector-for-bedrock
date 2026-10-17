@@ -30,7 +30,7 @@ export function pricesOf(modelData: ModelData): ModelPrices {
 // The cache prices come from the free-form model config, so a value that is missing, blank or not a
 // finite number counts as not configured and bills at the input price. Without this a stray "" would
 // make cache tokens free and a stray "abc" would make the fee NaN.
-function cachePrice(configured: number | string | undefined, priceIn: number): number {
+export function cachePrice(configured: number | string | undefined, priceIn: number): number {
     if (configured == null || (typeof configured === 'string' && configured.trim() === '')) {
         return priceIn;
     }
