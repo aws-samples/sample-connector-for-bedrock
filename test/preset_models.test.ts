@@ -20,7 +20,27 @@ describe('preset models', () => {
             ['gpt-oss-120b', 0, 'openai.gpt-oss-120b-1:0', 0.15e-6, 0.6e-6],
             ['qwen3-coder-next', 0, 'qwen.qwen3-coder-next', 0.5e-6, 1.2e-6],
             ['minimax-m2-5', 0, 'minimax.minimax-m2.5', 0.3e-6, 1.2e-6],
+            ['gpt-6-1-sol', 1, 'global.openai.gpt-6.1-sol', 2e-6, 10e-6],
+            ['gpt-6-sol', 1, 'global.openai.gpt-6-sol', 2e-6, 10e-6],
+            ['gpt-6-astra', 1, 'global.openai.gpt-6-astra', 10e-6, 50e-6],
+            ['gpt-6-luna', 1, 'global.openai.gpt-6-luna', 0.1e-6, 0.5e-6],
+            ['gpt-5-6-sol', 1, 'global.openai.gpt-5.6-sol', 4e-6, 20e-6],
+            ['gpt-5-6-terra', 1, 'global.openai.gpt-5.6-terra', 2e-6, 12e-6],
+            ['gpt-5-6-luna', 1, 'global.openai.gpt-5.6-luna', 0.2e-6, 1.2e-6],
         ]);
+    });
+    it('give the GPT models their Global CRIS cache prices', () => {
+        const cache = Object.fromEntries(rows.filter((r) => r.name.startsWith('gpt-') && r.name !== 'gpt-oss-120b')
+            .map((r) => [r.name, [r.config.price_cache_read, r.config.price_cache_write]]));
+        expect(cache).toEqual({
+            'gpt-6-1-sol': [0.1e-6, 2.5e-6],
+            'gpt-6-sol': [0.2e-6, 2.5e-6],
+            'gpt-6-astra': [1e-6, 12.5e-6],
+            'gpt-6-luna': [0.01e-6, 0.125e-6],
+            'gpt-5-6-sol': [0.4e-6, 5e-6],
+            'gpt-5-6-terra': [0.2e-6, 2.5e-6],
+            'gpt-5-6-luna': [0.02e-6, 0.25e-6],
+        });
     });
     it('give Kimi K3 its cache prices', () => {
         expect(rows.find((r) => r.name === 'kimi-k3')?.config).toEqual({ modelId: 'global.moonshotai.kimi-k3', price_cache_read: 0.3e-6, price_cache_write: 3.75e-6 });
