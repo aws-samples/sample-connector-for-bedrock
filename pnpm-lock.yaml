@@ -78,8 +78,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       nodemailer:
-        specifier: ^7.0.13
-        version: 7.0.13
+        specifier: ^10.0.9
+        version: 10.1.2
       ollama:
         specifier: ^0.5.18
         version: 0.5.18
@@ -2911,9 +2911,9 @@ packages:
     resolution: {integrity: sha512-J6l92tKHX6w8Jy5nO1Vuc01NoIiRGi/d6qBKVxh+IQ8Cr3b6HbVNfKiF8ZpFKufTwpwxMmce2W3iQZ861ZRyTg==}
     engines: {node: '>=18'}
 
-  nodemailer@7.0.13:
-    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
-    engines: {node: '>=6.0.0'}
+  nodemailer@10.1.2:
+    resolution: {integrity: sha512-rnQn9Rzh8RAwcp42MVsIvxbsv6YZ2a2/av+uyJ/LPU1+2QSlrRgFsWWZTKenyRUqkIl8urOI0c4+CEcmFdsvQw==}
+    engines: {node: '>=20.0.0'}
 
   nodemon@3.1.11:
     resolution: {integrity: sha512-is96t8F/1//UHAjNPHpbsNY46ELPpftGUoSVNXwUfMk/qdjSylYrWSu1XavVTBOn526kFiOR733ATgNBCQyH0g==}
@@ -7245,7 +7245,7 @@ snapshots:
 
   node-releases@2.0.50: {}
 
-  nodemailer@7.0.13: {}
+  nodemailer@10.1.2: {}
 
   nodemon@3.1.11:
     dependencies:
