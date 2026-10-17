@@ -6,6 +6,7 @@ import AbstractController from "../AbstractController";
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { selfBaseUrl } from "../../util/self";
+import { tempFilePath as tempPath } from "../../util/temp_file";
 
 
 const WAITING_TITLE = '正在思考中';
@@ -254,7 +255,7 @@ const handleFileContent = async (client: lark.Client, messageId: string, fileCon
     // If fileData has a writeFile method, it's likely a Readable stream or similar
     let {name, ext} = path.parse(fileContent.file_name);
     ext = ext.substring(1);
-    const tempFilePath = path.join(__dirname, `${name}_${Date.now()}.${ext}`);
+    const tempFilePath = tempPath(`${name}_${Date.now()}.${ext}`);
     await fileData.writeFile(tempFilePath)
     const bufferFileData = await fs.readFile(tempFilePath);
     await fs.unlink(tempFilePath); // Clean up temp file
@@ -289,7 +290,7 @@ const handleImageContent = async (client: lark.Client, messageId: string, image_
     );
 
     // If imageData has a writeFile method, it's likely a Readable stream or similar
-    const tempFilePath = path.join(__dirname, `temp_image_${Date.now()}.tmp`);
+    const tempFilePath = tempPath(`temp_image_${Date.now()}.tmp`);
     await imageData.writeFile(tempFilePath)
     let bufferImageData: Buffer;
     bufferImageData = await fs.readFile(tempFilePath);
