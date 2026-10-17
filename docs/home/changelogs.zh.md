@@ -1,5 +1,30 @@
 # 更新日志
 
+## 0.0.42
+
+1. **新增 bedrock-runtime-anthropic Provider** - 面向 Claude Code 等 Anthropic Messages 客户端。`POST /v1/messages` 直接透传到 Bedrock 原生的 `/anthropic/v1/messages`，`system`、`tools`、`thinking`、`cache_control`、`context_management` 原样送达模型。计费覆盖输入、缓存读、5 分钟与 1 小时缓存写入和输出；同一会话固定 region 和凭证，让 prompt cache 持续命中。新库预置 6 个 Claude 模型。[#147](https://github.com/aws-samples/sample-connector-for-bedrock/pull/147)
+
+2. **新增 bedrock-runtime-openai Provider** - 将 OpenAI Chat Completions 请求透传到 Bedrock 的 `/openai/v1/chat/completions`，用于 Kimi K3、GLM 等 OpenAI 格式的模型。新库预置 7 个模型。[#141](https://github.com/aws-samples/sample-connector-for-bedrock/pull/141)
+
+3. **/v1/messages 返回 Anthropic 格式错误** - `/v1/messages` 的错误改为 `{"type":"error","error":{...}}`，状态码与类型对应，例如 401 `authentication_error`、403 `permission_error`，Anthropic SDK 可以直接识别。其他路由不变。[#147](https://github.com/aws-samples/sample-connector-for-bedrock/pull/147)
+
+4. **支持 AWS Lambda Web Functions** - CloudFormation 模板新增 `lambda-web` ComputeType，在 Lambda Web Functions 上运行 BRConnector：无需 adapter、原生流式响应、按活跃 CPU 计费、请求最长 900 秒。endpoint 默认 `IamAuth`，只允许 CloudFront 访问，并且每个请求还要校验回源共享密钥。原有的 `lambda` ComputeType 不变。[#145](https://github.com/aws-samples/sample-connector-for-bedrock/pull/145) [#148](https://github.com/aws-samples/sample-connector-for-bedrock/pull/148)
+
+5. **并发修复：每个请求独立的 Provider 实例** - 并发请求不再共享 provider 状态和模型数据。[#144](https://github.com/aws-samples/sample-connector-for-bedrock/pull/144)
+
+6. **bedrock-converse 修复**
+   - 不再向不接受 `temperature`、`top_p` 的 Claude 模型（Opus 4.x 与 Claude 5.x）发送这两个参数；单 region 模型遇到 `ValidationException` 不再重试。[#146](https://github.com/aws-samples/sample-connector-for-bedrock/pull/146)
+   - Bedrock API key 和 AK/SK 凭证只作用于各自的模型。[#138](https://github.com/aws-samples/sample-connector-for-bedrock/pull/138)
+   - 从 Anthropic 请求体读取 `thinking` 参数。[#122](https://github.com/aws-samples/sample-connector-for-bedrock/pull/122)
+
+7. **BRClient 入口页** - 没有保存 API key 时，自动开启 BRConnector 模式并打开设置页。[#142](https://github.com/aws-samples/sample-connector-for-bedrock/pull/142)
+
+8. **容器以非 root 运行** - 两个 Docker 镜像改为以 `node` 用户运行；健康检查不再依赖 curl（之前容器一直显示 unhealthy）；飞书机器人的临时文件改写到系统临时目录。[#150](https://github.com/aws-samples/sample-connector-for-bedrock/pull/150)
+
+9. **构建与依赖** - `dist/package.json` 不再包含 devDependencies [#140](https://github.com/aws-samples/sample-connector-for-bedrock/pull/140)。依赖升级：[#109](https://github.com/aws-samples/sample-connector-for-bedrock/pull/109) [#110](https://github.com/aws-samples/sample-connector-for-bedrock/pull/110) [#111](https://github.com/aws-samples/sample-connector-for-bedrock/pull/111) [#114](https://github.com/aws-samples/sample-connector-for-bedrock/pull/114) [#115](https://github.com/aws-samples/sample-connector-for-bedrock/pull/115) [#116](https://github.com/aws-samples/sample-connector-for-bedrock/pull/116) [#128](https://github.com/aws-samples/sample-connector-for-bedrock/pull/128) [#132](https://github.com/aws-samples/sample-connector-for-bedrock/pull/132) [#133](https://github.com/aws-samples/sample-connector-for-bedrock/pull/133) [#134](https://github.com/aws-samples/sample-connector-for-bedrock/pull/134) [#135](https://github.com/aws-samples/sample-connector-for-bedrock/pull/135) [#136](https://github.com/aws-samples/sample-connector-for-bedrock/pull/136) [#137](https://github.com/aws-samples/sample-connector-for-bedrock/pull/137) [#143](https://github.com/aws-samples/sample-connector-for-bedrock/pull/143)
+
+升级提示：预置模型只会写入新建的数据库；已有数据库请在管理后台手动添加需要的模型。后台的 Price-In / Price-Out 按每百万 token 填写，模型 config 里的缓存价按每 token 填写。
+
 ## 0.0.41
 
 1. **Anthropic Messages API 兼容** - 新增 `POST /v1/messages` 端点，完全兼容 Anthropic Messages API。使用 Anthropic SDK 的客户端无需任何修改即可直接接入。支持 text、tool use、thinking 内容块，以及流式和非流式两种模式。
