@@ -112,16 +112,17 @@ Parameters:
 
   WebFnAuthType:
     Description: >-
-      Only used by ComputeType lambda-web. ApplicationManaged leaves the endpoint public
-      and BRConnector's own API key is the only check, which is the same posture as
-      ComputeType lambda's default public function URL. IamAuth makes Lambda authorize
-      every request and requires a resource policy granting CloudFront
-      lambda:InvokeWebFunctionEndpoint, which some organizations deny by SCP.
+      Only used by ComputeType lambda-web. IamAuth has Lambda reject any caller that is
+      not this stack's CloudFront distribution, so the endpoint domain stops being a way
+      around it; this is the default. ApplicationManaged leaves that domain reachable by
+      anyone who knows the name, with BRConnector's own API key as the only check - pick
+      it only if callers must reach the endpoint directly, or if lambda:PutResourcePolicy
+      is unavailable, in which case the stack fails on WebFnResourcePolicy.
     Type: String
     AllowedValues:
       - ApplicationManaged
       - IamAuth
-    Default: ApplicationManaged
+    Default: IamAuth
 
   SourceRepoUrl:
     Description: >-
@@ -1864,11 +1865,12 @@ Outputs:
     Condition: IsLambdaWeb
     Description: >-
       The Web Function endpoint itself; prefer the CloudFront URL. What reaches it depends
-      on WebFnAuthType. With ApplicationManaged it is reachable by anyone on the internet
-      who knows this name, with no AWS-layer authentication, so BRConnector's own API key
-      is the only check and this name bypasses anything attached to the distribution. With
-      IamAuth a caller must SigV4-sign for service lambda AND send an X-Amz-Content-SHA256
-      header, which even a request with no body must include.
+      on WebFnAuthType. Under IamAuth (the default) a caller must SigV4-sign for service
+      lambda AND send an X-Amz-Content-SHA256 header, which even a request with no body
+      must include; CloudFront supplies both, so browsers use the distribution. Under
+      ApplicationManaged this name is reachable by anyone on the internet who knows it,
+      with no AWS-layer authentication, so BRConnector's own API key is the only check and
+      this name bypasses anything attached to the distribution.
     Value: !GetAtt BRConnectorWebFnEndpoint.DomainName
   WebFnCodeBucketName:
     Condition: IsLambdaWeb
