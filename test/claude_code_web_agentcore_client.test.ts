@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { invokeRuntime, runtimeRegion, stopRuntimeSession } from '../src/claude_code_web/agentcore_client';
 import { CC_SESSION_HEADER } from '../src/claude_code_web/constants';
 
@@ -52,5 +52,21 @@ describe('agentcore client', () => {
         const h = Object.fromEntries(Object.entries(calls[0].init.headers).map(([k, v]) => [k.toLowerCase(), v]));
         expect(h[CC_SESSION_HEADER.toLowerCase()]).toBe('sess-2');
         expect(String(h.authorization)).toMatch(/^AWS4-HMAC-SHA256 /);
+    });
+});
+
+describe('default credential chain', () => {
+    it('builds the default provider once and reuses it', async () => {
+        vi.resetModules();
+        const provider = vi.fn(async () => ({ accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'secretexample' }));
+        const defaultProvider = vi.fn(() => provider);
+        vi.doMock('@aws-sdk/credential-provider-node', () => ({ defaultProvider }));
+        const mod = await import('../src/claude_code_web/agentcore_client');
+        const { f } = fakeFetch();
+        await mod.invokeRuntime(config, { sessionId: 's', body: '{}', contentType: 'application/json', headers: {} }, { fetch: f });
+        await mod.invokeRuntime(config, { sessionId: 's', body: '{}', contentType: 'application/json', headers: {} }, { fetch: f });
+        expect(defaultProvider).toHaveBeenCalledTimes(1);
+        expect(provider).toHaveBeenCalledTimes(2);
+        vi.doUnmock('@aws-sdk/credential-provider-node');
     });
 });

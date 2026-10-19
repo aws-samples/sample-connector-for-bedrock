@@ -8,6 +8,13 @@ import type { CcConfig } from './config';
 type AwsCredentialIdentityProvider = ReturnType<typeof defaultProvider>;
 type Deps = { fetch?: typeof fetch; credentials?: AwsCredentialIdentityProvider };
 
+// Shared default chain: created on first use because it caches and refreshes what it resolves.
+let hostCredentialChain: AwsCredentialIdentityProvider | undefined;
+function hostCredentials(): AwsCredentialIdentityProvider {
+    if (!hostCredentialChain) hostCredentialChain = defaultProvider();
+    return hostCredentialChain;
+}
+
 export function runtimeRegion(runtimeArn: string): string {
     return runtimeArn.split(':')[3];
 }
@@ -36,7 +43,7 @@ async function signedFetch(
     const signed = await new SignatureV4({
         service: 'bedrock-agentcore',
         region,
-        credentials: deps.credentials ?? defaultProvider(),
+        credentials: deps.credentials ?? hostCredentials(),
         sha256: Sha256,
     }).sign(request);
 

@@ -72,3 +72,29 @@ describe('withSseKeepalive', () => {
         expect(vi.getTimerCount()).toBe(0);
     });
 });
+
+describe('withSseKeepalive edge cases', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('treats nothing written yet as a boundary', async () => {
+        const src = new PassThrough();
+        const out = collect(withSseKeepalive(src));
+        await vi.advanceTimersByTimeAsync(16000);
+        expect(out.text()).toBe(': keepalive\n\n');
+    });
+
+    it('keeps the final event intact when the source ends while the output is paused', async () => {
+        const src = new PassThrough();
+        const out = withSseKeepalive(src);
+        const errors: Error[] = [];
+        out.on('error', (e) => errors.push(e));
+        src.end('data: last\n\n');
+        await vi.advanceTimersByTimeAsync(20000);
+        let buf = '';
+        out.on('data', (c) => (buf += c.toString()));
+        await vi.advanceTimersByTimeAsync(20000);
+        expect(errors).toEqual([]);
+        expect(buf).toBe('data: last\n\n');
+    });
+});

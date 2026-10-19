@@ -6,7 +6,8 @@ const KEEPALIVE = ': keepalive\n\n';
 // written when the bytes already emitted end with a blank line, so it never lands inside a half-written event.
 export function withSseKeepalive(source: Readable, opts: { intervalMs?: number } = {}): Readable {
     const intervalMs = opts.intervalMs ?? 15000;
-    let tail = '';
+    // Starts as a boundary: with nothing written yet, a comment cannot split an event.
+    let tail = '\n\n';
     let timer: NodeJS.Timeout | undefined;
 
     const out = new Transform({
@@ -15,6 +16,11 @@ export function withSseKeepalive(source: Readable, opts: { intervalMs?: number }
             tail = (tail + s).slice(-2);
             arm();
             cb(null, chunk);
+        },
+        // Runs when the source has ended, before the consumer drains: no push may follow EOF.
+        flush(cb) {
+            stop();
+            cb();
         },
     });
 
