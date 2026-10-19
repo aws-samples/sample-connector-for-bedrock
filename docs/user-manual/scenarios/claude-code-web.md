@@ -79,6 +79,6 @@ Logging out stops your microVM. Your files stay in S3 and come back the next tim
 - `ec2` and `ecs` cannot use Claude Code Web until a BRConnector release with `/cc` is published upstream and the maintainers push the public image.
 - With `lambda-web`, a single message stream lasts at most 15 minutes (the Lambda timeout is 900 seconds). With `ec2` and `ecs`, AgentCore's 15-minute limit for a synchronous request applies.
 - An idle microVM is reclaimed after 15 minutes. The workspace comes back from S3, but processes running in the terminal are lost.
-- Users can see their own key and their own temporary AWS credentials in their shell. Those credentials reach only their own workspace prefix.
+- Users can see their own key and their own temporary AWS credentials in their shell. Those credentials reach only their own workspace prefix. The shell can also use the runtime's own role, but that role can only pull the image, write this runtime's logs, traces and metrics, and request this runtime's workload access tokens; it has no Bedrock or S3 access.
 - The first visit cold-starts a microVM, which can take a few tens of seconds.
 - GitHub OAuth is not supported, and neither is the `lambda` compute type.

@@ -79,6 +79,6 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 - 在上游发布带 `/cc` 的 BRConnector 版本、维护者推送公开镜像之前，`ec2` 和 `ecs` 形态用不了 Claude Code Web。
 - `lambda-web` 形态下，单次消息流最长 15 分钟（Lambda 超时 900 秒）；`ec2` 和 `ecs` 下受 AgentCore 同步请求 15 分钟的限制。
 - microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。
-- 用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀。
+- 用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标，以及获取这个 Runtime 的 workload access token，没有任何 Bedrock 或 S3 权限。
 - 第一次进入要冷启动 microVM，可能要等几十秒。
 - 不支持 GitHub OAuth，也不支持 `lambda` 计算形态。

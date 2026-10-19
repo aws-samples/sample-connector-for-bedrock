@@ -5,8 +5,11 @@ Run from anywhere inside the repository:
 
     uv run --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py [BASE_REF]
 
-BASE_REF defaults to upstream/main. The script evaluates the current template as if the
-switch were off and compares the result with the template at BASE_REF:
+BASE_REF must be a commit from before Claude Code Web was added; it defaults to 7ba1548,
+the upstream main this feature branched from. Do not pass upstream/main once the feature
+is merged: that template already contains it, and the check would then always fail. The
+script evaluates the current template as if the switch were off and compares the result
+with the template at BASE_REF:
 
 - resources and outputs with `Condition: IsClaudeCodeWeb` are dropped;
 - the new parameters, the IsClaudeCodeWeb condition, the new rule and the new parameter
@@ -32,6 +35,8 @@ from pathlib import Path
 import yaml
 
 TEMPLATE = 'cloudformation/quick-build-brconnector.yaml'
+# Last upstream main without Claude Code Web.
+DEFAULT_BASE_REF = '7ba1548'
 GATE = 'IsClaudeCodeWeb'
 PREFIX = 'ClaudeCodeWeb'
 NEW_PARAMETERS = {'EnableClaudeCodeWeb', 'ClaudeCodeDefaultModel', 'ClaudeCodeBackgroundModel'}
@@ -208,7 +213,7 @@ def check_ec2_docker_run_on(template):
 
 
 def main():
-    base_ref = sys.argv[1] if len(sys.argv) > 1 else 'upstream/main'
+    base_ref = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_BASE_REF
     root = Path(__file__).resolve().parents[2]
     current = load((root / TEMPLATE).read_text())
     base_text = subprocess.run(
