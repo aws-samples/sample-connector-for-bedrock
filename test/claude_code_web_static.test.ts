@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import Koa from 'koa';
 import fs from 'fs';
 import os from 'os';
+import http from 'http';
 import path from 'path';
 import type { AddressInfo } from 'net';
 import { ccStaticHandler } from '../src/middleware/claude_code_web_static';
@@ -19,7 +20,7 @@ beforeAll(() => {
 });
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
-async function withServer(enabled: boolean, fn: (get: (p: string) => Promise<Response>, isEnabled: any) => Promise<void>) {
+async function withServer(enabled: boolean, fn: (get: (p: string) => Promise<Response>, isEnabled: any, port: number) => Promise<void>) {
     const isEnabled = vi.fn(async () => enabled);
     const app = new Koa();
     app.use(ccStaticHandler({ staticDir, isEnabled }));
@@ -29,10 +30,10 @@ async function withServer(enabled: boolean, fn: (get: (p: string) => Promise<Res
     });
     const server = app.listen(0);
     const port = (server.address() as AddressInfo).port;
-    // raw path so %2e%2e and ../ reach the server undecoded/unnormalised
+    // note: fetch normalises ../ and %2e%2e client-side; raw traversal is tested via http.request below
     const get = (p: string) => fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual' });
     try {
-        await fn(get, isEnabled);
+        await fn(get, isEnabled, port);
     } finally {
         server.close();
     }
@@ -89,11 +90,24 @@ describe('ccStaticHandler', () => {
             expect(await (await get('/other')).text()).toBe('NEXT');
         }));
 
-    it('cannot escape staticDir', () =>
-        withServer(true, async (get) => {
-            for (const p of ['/cc/../secret.txt', '/cc/%2e%2e/secret.txt', '/cc/..%2fsecret.txt', '/cc/assets/..%2f..%2fsecret.txt', '/cc/%2e%2e%2fsecret.txt']) {
-                const r = await get(p);
-                expect(await r.text(), p).not.toContain('SECRET');
+    it('cannot escape staticDir (raw request paths, not normalised by the client)', () =>
+        withServer(true, async (_get, _isEnabled, port) => {
+            // http.request sends `path` literally, so the server really sees the traversal.
+            const raw = (p: string) =>
+                new Promise<{ status: number; body: string }>((resolve, reject) => {
+                    const req = http.request({ host: '127.0.0.1', port, path: p, method: 'GET' }, (res) => {
+                        let body = '';
+                        res.on('data', (c) => (body += c));
+                        res.on('end', () => resolve({ status: res.statusCode!, body }));
+                    });
+                    req.on('error', reject);
+                    req.end();
+                });
+            for (const p of ['/cc/../secret.txt', '/cc/a/../../secret.txt', '/cc//etc/hosts']) {
+                const r = await raw(p);
+                expect(r.status, p).toBe(404);
+                expect(r.body, p).not.toContain('SECRET');
+                expect(r.body, p).not.toContain('localhost');
             }
         }));
 });
