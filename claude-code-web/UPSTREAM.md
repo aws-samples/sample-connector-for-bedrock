@@ -38,6 +38,15 @@ directory must be listed here.
   and `/github/create-project` fail closed with HTTP 400 `missing BRConnector session user`
   when no session user exists; the two project POST branches always set `user_id` to it.
 - `backend/tests/`: new tests (`test_brc_identity.py`, `test_brc_user_override.py`); upstream has none.
+- `backend/core/paths.py` (new), `backend/api/mcp_servers.py`, `backend/api/plugins.py`,
+  `backend/core/session.py`, `backend/core/workspace_sync.py`: upstream hardcodes `/root/.claude`
+  (and `/root` as the `HOME` fallback), which fails for the non-root `node` user
+  (`Permission denied: '/root/.claude/mcp.json'`). Added `claude_dir()` / `mcp_config_path()`,
+  resolved at call time from `HOME`; the MCP endpoints and session loader use them. In
+  `plugins.py` the import-time constants (`CLAUDE_DIR`, `CLAUDE_PLUGINS_DIR`, `INSTALLED_PLUGINS_PATH`,
+  `KNOWN_MARKETPLACES_PATH`, `MARKETPLACES_DIR`, `SETTINGS_PATH`) became functions
+  (`_plugins_dir()`, ...). `workspace_sync.py` falls back to `os.path.expanduser("~")`. Docstrings updated.
+  Tests in `backend/tests/test_home_paths.py`.
 - `Dockerfile` (upstream `deploy/Dockerfile`): rewritten. Pinned versions, checked
   on 2026-10-19: base image `public.ecr.aws/docker/library/node:24.22.0-trixie-slim`
   (current LTS line "Krypton"; tag confirmed in public ECR), `@anthropic-ai/claude-code@2.1.303`

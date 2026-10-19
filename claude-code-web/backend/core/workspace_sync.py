@@ -542,7 +542,7 @@ async def sync_claude_dir_from_s3(
 
     # Get home directory
     if local_home is None:
-        local_home = os.environ.get("HOME", "/root")
+        local_home = os.environ.get("HOME", os.path.expanduser("~"))
 
     local_claude_dir = Path(local_home) / ".claude"
 
@@ -763,7 +763,7 @@ async def backup_claude_dir_to_s3(
 
     # Get home directory
     if local_home is None:
-        local_home = os.environ.get("HOME", "/root")
+        local_home = os.environ.get("HOME", os.path.expanduser("~"))
 
     local_claude_dir = Path(local_home) / ".claude"
 

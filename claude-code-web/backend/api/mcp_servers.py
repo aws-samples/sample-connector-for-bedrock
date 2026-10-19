@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from ..core.paths import mcp_config_path as get_mcp_config_path
 from ..models.schemas import (
     AddMCPServerRequest,
     AddMCPServerResponse,
@@ -27,9 +28,9 @@ router = APIRouter()
 @router.get("/mcp-servers", response_model=ListMCPServersResponse)
 async def list_mcp_servers():
     """
-    List all MCP servers from /root/.claude/mcp.json configuration file.
+    List all MCP servers from ~/.claude/mcp.json configuration file.
 
-    Reads the MCP server configuration from /root/.claude/mcp.json and returns
+    Reads the MCP server configuration from ~/.claude/mcp.json and returns
     the list of configured servers with their settings.
 
     Returns:
@@ -38,7 +39,7 @@ async def list_mcp_servers():
     Raises:
         HTTPException: If config file cannot be read
     """
-    mcp_config_path = "/root/.claude/mcp.json"
+    mcp_config_path = str(get_mcp_config_path())
     logger.info(f"Reading MCP servers from {mcp_config_path}")
 
     # Check if file exists
@@ -99,7 +100,7 @@ async def list_mcp_servers():
 @router.post("/mcp-servers", response_model=AddMCPServerResponse)
 async def add_mcp_server(request: AddMCPServerRequest):
     """
-    Add a new MCP server to /root/.claude/mcp.json configuration file.
+    Add a new MCP server to ~/.claude/mcp.json configuration file.
 
     Creates the config file if it doesn't exist, then adds the new server
     configuration.
@@ -118,7 +119,7 @@ async def add_mcp_server(request: AddMCPServerRequest):
     Raises:
         HTTPException: If server name already exists, validation fails, or operation fails
     """
-    mcp_config_path = "/root/.claude/mcp.json"
+    mcp_config_path = str(get_mcp_config_path())
     logger.info(f"Adding MCP server '{request.name}' (type: {request.type}) to {mcp_config_path}")
 
     # Validate required fields based on type
@@ -207,7 +208,7 @@ async def add_mcp_server(request: AddMCPServerRequest):
 @router.delete("/mcp-servers/{server_name}", response_model=DeleteMCPServerResponse)
 async def delete_mcp_server(server_name: str):
     """
-    Delete an MCP server from /root/.claude/mcp.json configuration file.
+    Delete an MCP server from ~/.claude/mcp.json configuration file.
 
     Removes the specified server from the configuration.
 
@@ -220,7 +221,7 @@ async def delete_mcp_server(server_name: str):
     Raises:
         HTTPException: If config file doesn't exist, server not found, or operation fails
     """
-    mcp_config_path = "/root/.claude/mcp.json"
+    mcp_config_path = str(get_mcp_config_path())
     logger.info(f"Deleting MCP server '{server_name}' from {mcp_config_path}")
 
     config_file = Path(mcp_config_path)

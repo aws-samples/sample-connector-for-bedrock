@@ -294,7 +294,7 @@ class AgentSession:
 
     async def _load_mcp_servers(self) -> dict[str, Any]:
         """
-        Load MCP servers configuration from /root/.claude/mcp.json.
+        Load MCP servers configuration from ~/.claude/mcp.json.
 
         Returns:
             Dictionary of MCP server configurations keyed by server name
@@ -302,7 +302,9 @@ class AgentSession:
         import json
         from pathlib import Path
 
-        mcp_config_path = "/root/.claude/mcp.json"
+        from .paths import mcp_config_path as get_mcp_config_path
+
+        mcp_config_path = str(get_mcp_config_path())
         config_file = Path(mcp_config_path)
 
         if not config_file.exists():

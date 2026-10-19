@@ -18,17 +18,31 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from ..core.paths import claude_dir
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Configuration paths
-CLAUDE_DIR = Path("/root/.claude")
-CLAUDE_PLUGINS_DIR = CLAUDE_DIR / "plugins"
-INSTALLED_PLUGINS_PATH = CLAUDE_PLUGINS_DIR / "installed_plugins.json"
-KNOWN_MARKETPLACES_PATH = CLAUDE_PLUGINS_DIR / "known_marketplaces.json"
-MARKETPLACES_DIR = CLAUDE_PLUGINS_DIR / "marketplaces"
-SETTINGS_PATH = CLAUDE_DIR / "settings.json"
+# Configuration paths (resolved at call time from HOME, see core.paths)
+def _plugins_dir() -> Path:
+    return claude_dir() / "plugins"
+
+
+def _installed_plugins_path() -> Path:
+    return _plugins_dir() / "installed_plugins.json"
+
+
+def _known_marketplaces_path() -> Path:
+    return _plugins_dir() / "known_marketplaces.json"
+
+
+def _marketplaces_dir() -> Path:
+    return _plugins_dir() / "marketplaces"
+
+
+def _settings_path() -> Path:
+    return claude_dir() / "settings.json"
 
 
 # Request/Response models
@@ -144,20 +158,20 @@ def _write_json_file(path: Path, data: dict):
 
 def _enable_plugin_in_settings(plugin_key: str):
     """Add plugin to enabledPlugins in settings.json."""
-    settings = _read_json_file(SETTINGS_PATH)
+    settings = _read_json_file(_settings_path())
     if 'enabledPlugins' not in settings:
         settings['enabledPlugins'] = {}
     settings['enabledPlugins'][plugin_key] = True
-    _write_json_file(SETTINGS_PATH, settings)
+    _write_json_file(_settings_path(), settings)
     logger.info(f"Enabled plugin '{plugin_key}' in settings.json")
 
 
 def _disable_plugin_in_settings(plugin_key: str):
     """Remove plugin from enabledPlugins in settings.json."""
-    settings = _read_json_file(SETTINGS_PATH)
+    settings = _read_json_file(_settings_path())
     if 'enabledPlugins' in settings and plugin_key in settings['enabledPlugins']:
         del settings['enabledPlugins'][plugin_key]
-        _write_json_file(SETTINGS_PATH, settings)
+        _write_json_file(_settings_path(), settings)
         logger.info(f"Disabled plugin '{plugin_key}' in settings.json")
 
 
@@ -211,10 +225,10 @@ async def list_plugins():
     logger.info("Listing plugins and marketplaces")
 
     # Load known marketplaces
-    known_marketplaces = _read_json_file(KNOWN_MARKETPLACES_PATH)
+    known_marketplaces = _read_json_file(_known_marketplaces_path())
 
     # Load installed plugins
-    installed_data = _read_json_file(INSTALLED_PLUGINS_PATH)
+    installed_data = _read_json_file(_installed_plugins_path())
     installed_plugins_raw = installed_data.get('plugins', {})
 
     # Convert installed plugins to response format
@@ -283,7 +297,7 @@ async def add_marketplace(request: AddMarketplaceRequest):
     logger.info(f"Adding marketplace '{request.name}' from {request.git_url}")
 
     # Check if marketplace already exists
-    known_marketplaces = _read_json_file(KNOWN_MARKETPLACES_PATH)
+    known_marketplaces = _read_json_file(_known_marketplaces_path())
     if request.name in known_marketplaces:
         raise HTTPException(
             status_code=400,
@@ -291,7 +305,7 @@ async def add_marketplace(request: AddMarketplaceRequest):
         )
 
     # Determine install location
-    install_location = MARKETPLACES_DIR / request.name
+    install_location = _marketplaces_dir() / request.name
 
     if install_location.exists():
         raise HTTPException(
@@ -302,7 +316,7 @@ async def add_marketplace(request: AddMarketplaceRequest):
     # Clone the repository
     try:
         # Ensure parent directory exists
-        MARKETPLACES_DIR.mkdir(parents=True, exist_ok=True)
+        _marketplaces_dir().mkdir(parents=True, exist_ok=True)
 
         # Clone using git
         process = await asyncio.create_subprocess_exec(
@@ -338,7 +352,7 @@ async def add_marketplace(request: AddMarketplaceRequest):
             "lastUpdated": datetime.now(timezone.utc).isoformat()
         }
 
-        _write_json_file(KNOWN_MARKETPLACES_PATH, known_marketplaces)
+        _write_json_file(_known_marketplaces_path(), known_marketplaces)
 
         logger.info(f"Successfully added marketplace '{request.name}'")
         return AddMarketplaceResponse(
@@ -380,7 +394,7 @@ async def delete_marketplace(marketplace_name: str):
     logger.info(f"Deleting marketplace '{marketplace_name}'")
 
     # Load known marketplaces
-    known_marketplaces = _read_json_file(KNOWN_MARKETPLACES_PATH)
+    known_marketplaces = _read_json_file(_known_marketplaces_path())
 
     if marketplace_name not in known_marketplaces:
         raise HTTPException(
@@ -394,7 +408,7 @@ async def delete_marketplace(marketplace_name: str):
 
         # Remove from known_marketplaces.json
         del known_marketplaces[marketplace_name]
-        _write_json_file(KNOWN_MARKETPLACES_PATH, known_marketplaces)
+        _write_json_file(_known_marketplaces_path(), known_marketplaces)
 
         # Delete the directory
         if install_location and Path(install_location).exists():
@@ -402,7 +416,7 @@ async def delete_marketplace(marketplace_name: str):
             logger.info(f"Deleted marketplace directory: {install_location}")
 
         # Also remove any installed plugins from this marketplace
-        installed_data = _read_json_file(INSTALLED_PLUGINS_PATH)
+        installed_data = _read_json_file(_installed_plugins_path())
         installed_plugins = installed_data.get('plugins', {})
 
         # Find and remove plugins from this marketplace
@@ -419,7 +433,7 @@ async def delete_marketplace(marketplace_name: str):
 
         if keys_to_remove:
             installed_data['plugins'] = installed_plugins
-            _write_json_file(INSTALLED_PLUGINS_PATH, installed_data)
+            _write_json_file(_installed_plugins_path(), installed_data)
 
         logger.info(f"Successfully deleted marketplace '{marketplace_name}'")
         return DeleteMarketplaceResponse(
@@ -457,7 +471,7 @@ async def install_plugin(request: InstallPluginRequest):
     logger.info(f"Installing plugin '{request.plugin_name}' from '{request.marketplace_name}'")
 
     # Verify marketplace exists
-    known_marketplaces = _read_json_file(KNOWN_MARKETPLACES_PATH)
+    known_marketplaces = _read_json_file(_known_marketplaces_path())
     if request.marketplace_name not in known_marketplaces:
         raise HTTPException(
             status_code=404,
@@ -484,7 +498,7 @@ async def install_plugin(request: InstallPluginRequest):
 
     try:
         # Load installed plugins
-        installed_data = _read_json_file(INSTALLED_PLUGINS_PATH)
+        installed_data = _read_json_file(_installed_plugins_path())
         if 'version' not in installed_data:
             installed_data['version'] = 2
         if 'plugins' not in installed_data:
@@ -504,7 +518,7 @@ async def install_plugin(request: InstallPluginRequest):
 
         # Create install entry
         from datetime import datetime, timezone
-        cache_path = CLAUDE_PLUGINS_DIR / "cache" / request.marketplace_name / request.plugin_name / (plugin_info.version or "unknown")
+        cache_path = _plugins_dir() / "cache" / request.marketplace_name / request.plugin_name / (plugin_info.version or "unknown")
 
         now = datetime.now(timezone.utc).isoformat()
         install_entry = {
@@ -519,7 +533,7 @@ async def install_plugin(request: InstallPluginRequest):
         installed_data['plugins'][plugin_key] = [install_entry]
 
         # Write updated installed plugins
-        _write_json_file(INSTALLED_PLUGINS_PATH, installed_data)
+        _write_json_file(_installed_plugins_path(), installed_data)
 
         # Also update settings.json to enable the plugin
         _enable_plugin_in_settings(plugin_key)
@@ -563,7 +577,7 @@ async def uninstall_plugin(plugin_key: str):
 
     try:
         # Load installed plugins
-        installed_data = _read_json_file(INSTALLED_PLUGINS_PATH)
+        installed_data = _read_json_file(_installed_plugins_path())
         installed_plugins = installed_data.get('plugins', {})
 
         if plugin_key not in installed_plugins:
@@ -577,7 +591,7 @@ async def uninstall_plugin(plugin_key: str):
         installed_data['plugins'] = installed_plugins
 
         # Write updated installed plugins
-        _write_json_file(INSTALLED_PLUGINS_PATH, installed_data)
+        _write_json_file(_installed_plugins_path(), installed_data)
 
         # Also update settings.json to disable the plugin
         _disable_plugin_in_settings(plugin_key)
@@ -617,7 +631,7 @@ async def get_plugin_detail(marketplace_name: str, plugin_name: str):
     logger.info(f"Getting details for plugin '{plugin_name}' from '{marketplace_name}'")
 
     # Verify marketplace exists
-    known_marketplaces = _read_json_file(KNOWN_MARKETPLACES_PATH)
+    known_marketplaces = _read_json_file(_known_marketplaces_path())
     if marketplace_name not in known_marketplaces:
         raise HTTPException(
             status_code=404,
@@ -643,7 +657,7 @@ async def get_plugin_detail(marketplace_name: str, plugin_name: str):
         )
 
     # Check if installed
-    installed_data = _read_json_file(INSTALLED_PLUGINS_PATH)
+    installed_data = _read_json_file(_installed_plugins_path())
     installed_plugins = installed_data.get('plugins', {})
     plugin_key = f"{plugin_name}@{marketplace_name}"
 
@@ -686,7 +700,7 @@ async def update_marketplace(marketplace_name: str):
     logger.info(f"Updating marketplace '{marketplace_name}'")
 
     # Verify marketplace exists
-    known_marketplaces = _read_json_file(KNOWN_MARKETPLACES_PATH)
+    known_marketplaces = _read_json_file(_known_marketplaces_path())
     if marketplace_name not in known_marketplaces:
         raise HTTPException(
             status_code=404,
@@ -722,7 +736,7 @@ async def update_marketplace(marketplace_name: str):
         # Update lastUpdated timestamp
         from datetime import datetime, timezone
         known_marketplaces[marketplace_name]['lastUpdated'] = datetime.now(timezone.utc).isoformat()
-        _write_json_file(KNOWN_MARKETPLACES_PATH, known_marketplaces)
+        _write_json_file(_known_marketplaces_path(), known_marketplaces)
 
         output = stdout.decode() if stdout else ""
         logger.info(f"Successfully updated marketplace '{marketplace_name}': {output}")
