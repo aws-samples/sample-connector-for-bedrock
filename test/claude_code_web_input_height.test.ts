@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
     INPUT_AREA_DEFAULT_HEIGHT,
+    INPUT_AREA_GAP,
+    INPUT_ATTACHMENT_ROW_HEIGHT,
     INPUT_AREA_MAX_HEIGHT,
     INPUT_AREA_MIN_HEIGHT,
     INPUT_TEXTAREA_MIN_HEIGHT,
     clampInputHeight,
+    inputAreaHeight,
 } from '../claude-code-web/web_client/src/utils/inputHeight.js';
 
 describe('clampInputHeight', () => {
@@ -21,5 +24,15 @@ describe('clampInputHeight', () => {
     it('rejects non-finite values', () => {
         expect(clampInputHeight(NaN)).toBeNull();
         expect(clampInputHeight(Infinity)).toBeNull();
+    });
+});
+
+describe('inputAreaHeight', () => {
+    it('adds the attachment row and one gap while the row is shown', () => {
+        expect(inputAreaHeight(200, false)).toBe(200);
+        expect(inputAreaHeight(200, true)).toBe(200 + INPUT_ATTACHMENT_ROW_HEIGHT + INPUT_AREA_GAP);
+    });
+    it('leaves room for the 48px thumbnails', () => {
+        expect(INPUT_ATTACHMENT_ROW_HEIGHT).toBeGreaterThanOrEqual(48);
     });
 });

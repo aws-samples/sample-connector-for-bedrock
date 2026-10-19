@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from ..core import SessionManager
+from ..core.message_log import summarize_message
 from ..models import (
     SendMessageRequest,
     SendMessageResponse,
@@ -100,7 +101,8 @@ async def send_message_stream(session_id: str, request: SendMessageRequest):
     if isinstance(request.message, str):
         print(f"[API] request.message (string): {request.message[:200]}...")
     else:
-        print(f"[API] request.message (dict): {request.message}")
+        # Block types and sizes only: the content may carry base64 images
+        print(f"[API] request.message (dict): {summarize_message(request.message)}")
     print(f"[API] request.model: {request.model}")
     print(f"[API] request.mcp_server_ids: {request.mcp_server_ids}")
 

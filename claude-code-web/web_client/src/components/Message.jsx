@@ -2,9 +2,10 @@ import { Wrench, CheckCircle, XCircle, ShieldAlert, Zap } from 'lucide-react'
 import QuestionCard from './QuestionCard'
 import TodoList from './TodoList'
 import { formatMessageContent } from '../utils/formatMessage'
+import { isImageDataUrl } from '../utils/imageAttachments.js'
 
 function Message({ message, onPermissionRespond, onQuestionAnswer }) {
-  const { type, role, content, toolName, toolInput, toolUseId, isError, permission } = message
+  const { type, role, content, images, toolName, toolInput, toolUseId, isError, permission } = message
 
   const formatToolContent = (text) => {
     if (!text) return ''
@@ -149,6 +150,8 @@ function Message({ message, onPermissionRespond, onQuestionAnswer }) {
 
   const icon = role === 'user' ? '👤' : '🤖'
   const label = role === 'user' ? 'You' : 'Claude'
+  // Attached images: only base64 data: URLs of the allowed image types
+  const imageUrls = (images || []).filter(isImageDataUrl)
 
   return (
     <div className={`message ${role}`}>
@@ -156,10 +159,19 @@ function Message({ message, onPermissionRespond, onQuestionAnswer }) {
         <span className="message-icon">{icon}</span>
         <span className="message-label">{label}</span>
       </div>
-      <div
-        className="message-content"
-        dangerouslySetInnerHTML={{ __html: formatMessageContent(content) }}
-      />
+      {imageUrls.length > 0 && (
+        <div className="message-images">
+          {imageUrls.map((src, i) => (
+            <img key={i} src={src} alt={`Attached image ${i + 1}`} className="message-image" />
+          ))}
+        </div>
+      )}
+      {(content || imageUrls.length === 0) && (
+        <div
+          className="message-content"
+          dangerouslySetInnerHTML={{ __html: formatMessageContent(content) }}
+        />
+      )}
     </div>
   )
 }

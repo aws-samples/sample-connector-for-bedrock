@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createAPIClient } from '../api/client'
 import { generateAgentCoreSessionId } from '../utils/sessionUtils'
+import { splitImageContent } from '../utils/imageAttachments.js'
 
 // Helper function to format model names
 const formatModel = (model) => {
@@ -245,8 +246,10 @@ export function useClaudeAgent(initialServerUrl = 'http://127.0.0.1:8000', userI
   }, [sessionId, addSystemMessage, addErrorMessage])
 
   // Send message with streaming
+  // message: plain string, or a user message dict whose content has image blocks (buildUserMessage)
   const sendMessage = useCallback(async (message) => {
-    if (!message.trim() || !apiClientRef.current) return
+    const isEmpty = typeof message === 'string' ? !message.trim() : !message?.content?.length
+    if (isEmpty || !apiClientRef.current) return
 
     try {
       // If no session exists yet, create one first
@@ -285,8 +288,13 @@ export function useClaudeAgent(initialServerUrl = 'http://127.0.0.1:8000', userI
         console.log(`✅ Session created: ${currentSessionId}`)
       }
 
-      // Add user message to UI
-      setMessages(prev => [...prev, { type: 'text', role: 'user', content: message }])
+      // Add user message to UI (with image thumbnails when the message carries images)
+      if (typeof message === 'string') {
+        setMessages(prev => [...prev, { type: 'text', role: 'user', content: message }])
+      } else {
+        const { text, images } = splitImageContent(message.content)
+        setMessages(prev => [...prev, { type: 'text', role: 'user', content: text, images }])
+      }
 
       // Use streaming endpoint with current model and MCP servers
       const eventSource = await apiClientRef.current.sendMessageStream(
@@ -604,6 +612,15 @@ export function useClaudeAgent(initialServerUrl = 'http://127.0.0.1:8000', userI
                 toolUseId: msg.tool_use_id,
                 content: msg.content,
                 isError: msg.is_error
+              }
+            } else if (Array.isArray(msg.content)) {
+              // User message with pasted images: image and text blocks
+              const { text, images } = splitImageContent(msg.content)
+              return {
+                type: 'text',
+                role: msg.role,
+                content: text,
+                images
               }
             } else {
               // Regular text message

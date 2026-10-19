@@ -2,7 +2,18 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, X, Loader2, AlertTriangle, RefreshCw, Square } from 'lucide-react'
 import Message from './Message'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { INPUT_AREA_DEFAULT_HEIGHT, clampInputHeight } from '../utils/inputHeight.js'
+import { INPUT_AREA_DEFAULT_HEIGHT, clampInputHeight, inputAreaHeight } from '../utils/inputHeight.js'
+import {
+  MAX_IMAGES_PER_MESSAGE,
+  browserImageCodec,
+  buildUserMessage,
+  hasDraggedFiles,
+  pickDroppedImages,
+  pickPastedImages,
+  prepareImage,
+  takeImageSlots,
+  totalSizeError
+} from '../utils/imageAttachments.js'
 
 function ChatContainer({
   sessionInfo,
@@ -32,6 +43,12 @@ function ChatContainer({
   const [isRunning, setIsRunning] = useState(false) // Track if assistant is currently responding
   const [availableMcpServers, setAvailableMcpServers] = useState({})
   const [showMcpSelector, setShowMcpSelector] = useState(false)
+  const [images, setImages] = useState([]) // Pending pasted/dropped images: { id, name, mediaType, data, dataUrl }
+  const [preparingImages, setPreparingImages] = useState(0) // Images still being downscaled/encoded
+  const [attachmentError, setAttachmentError] = useState('')
+  const [isDragOver, setIsDragOver] = useState(false)
+  const imageCountRef = useRef(0) // Listed + preparing images, for the per-message limit
+  const nextImageIdRef = useRef(0)
   const messagesEndRef = useRef(null)
 
   // Models the signed-in BRConnector key can use
@@ -85,13 +102,22 @@ function ChatContainer({
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!input.trim() || sending || isRunning) return
+    if ((!input.trim() && images.length === 0) || sending || isRunning || preparingImages > 0) return
+
+    const sizeError = totalSizeError(images)
+    if (sizeError) {
+      setAttachmentError(sizeError)
+      return
+    }
 
     setSending(true)
     setIsRunning(true)
     try {
-      await onSendMessage(input)
+      await onSendMessage(buildUserMessage(input, images))
       setInput('')
+      setImages([])
+      imageCountRef.current = 0
+      setAttachmentError('')
     } catch (error) {
       console.error('Failed to send message:', error)
     } finally {
@@ -116,6 +142,76 @@ function ChatContainer({
       e.preventDefault()
       handleSubmit(e)
     }
+  }
+
+  // Downscale/encode new images and add them to the pending list (max 5 per message)
+  const addImageFiles = async (files, errors = []) => {
+    const { accepted, dropped } = takeImageSlots(imageCountRef.current, files)
+    if (dropped > 0) {
+      errors.push(`Up to ${MAX_IMAGES_PER_MESSAGE} images per message; ${dropped} not added`)
+    }
+    if (accepted.length === 0) {
+      setAttachmentError(errors.join('. '))
+      return
+    }
+
+    imageCountRef.current += accepted.length
+    setPreparingImages(n => n + accepted.length)
+    const results = await Promise.all(accepted.map(file => prepareImage(file, browserImageCodec)))
+    setPreparingImages(n => n - accepted.length)
+
+    const ready = []
+    for (const result of results) {
+      if (result.image) {
+        ready.push({ ...result.image, id: nextImageIdRef.current++ })
+      } else {
+        imageCountRef.current -= 1
+        errors.push(result.error)
+      }
+    }
+    if (ready.length > 0) {
+      setImages(prev => [...prev, ...ready])
+    }
+    setAttachmentError(errors.join('. '))
+  }
+
+  const removeImage = (id) => {
+    setImages(prev => prev.filter(image => image.id !== id))
+    imageCountRef.current -= 1
+    setAttachmentError('')
+  }
+
+  // Paste: images become attachments; a paste with plain text is left to the textarea
+  const handlePaste = (e) => {
+    const files = pickPastedImages(e.clipboardData)
+    if (files.length === 0) return
+    e.preventDefault()
+    addImageFiles(files)
+  }
+
+  // Drag and drop of image files onto the input area (a text drag is left to the textarea)
+  const handleDragOver = (e) => {
+    if (!hasDraggedFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = sending || isRunning ? 'none' : 'copy'
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = (e) => {
+    if (!hasDraggedFiles(e.dataTransfer)) return
+    e.preventDefault() // keep the browser from opening the file
+    setIsDragOver(false)
+    if (sending || isRunning) return
+
+    const { files, rejected } = pickDroppedImages(e.dataTransfer)
+    const errors = rejected > 0 ? ['Only PNG, JPEG, GIF and WebP images can be attached'] : []
+    addImageFiles(files, errors)
   }
 
   // Handle IME composition start (e.g., when user starts typing Chinese)
@@ -163,6 +259,8 @@ function ChatContainer({
     }
   }
 
+  const showAttachmentRow = images.length > 0 || preparingImages > 0 || attachmentError !== ''
+
   // Handle input area resize
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -174,7 +272,8 @@ function ChatContainer({
       if (!inputArea) return
 
       const inputAreaRect = inputArea.getBoundingClientRect()
-      const newHeight = inputAreaRect.bottom - e.clientY
+      // The attachment row is added on top of the stored height, so leave it out here
+      const newHeight = inputAreaRect.bottom - e.clientY - inputAreaHeight(0, showAttachmentRow)
 
       // Constrain so the textarea's minimum height always fits inside the box
       const clamped = clampInputHeight(newHeight)
@@ -200,7 +299,7 @@ function ChatContainer({
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
-  }, [isResizingInput])
+  }, [isResizingInput, showAttachmentRow])
 
   const handleResizeStart = (e) => {
     e.preventDefault()
@@ -259,7 +358,13 @@ function ChatContainer({
       </div>
 
       {/* Input Area */}
-      <div className="input-area" style={{ height: `${inputHeight}px` }}>
+      <div
+        className={`input-area${isDragOver ? ' drag-over' : ''}`}
+        style={{ height: `${inputAreaHeight(inputHeight, showAttachmentRow)}px` }}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* Resize Handle */}
         <div
           className="input-resize-handle"
@@ -350,12 +455,44 @@ function ChatContainer({
           )}
         </div>
 
+        {/* Pending image attachments */}
+        {showAttachmentRow && (
+          <div className="input-attachments">
+            {images.map(image => (
+              <div key={image.id} className="input-attachment" title={image.name}>
+                <img src={image.dataUrl} alt={image.name} />
+                <button
+                  type="button"
+                  className="input-attachment-remove"
+                  onClick={() => removeImage(image.id)}
+                  disabled={sending}
+                  title="Remove image"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            {preparingImages > 0 && (
+              <span className="input-attachment-status">
+                <Loader2 size={14} className="spinning" />
+                Preparing image...
+              </span>
+            )}
+            {attachmentError && (
+              <span className="input-attachment-error" title={attachmentError}>
+                {attachmentError}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Message input and send/stop button */}
         <div className="input-controls">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
             placeholder={isRunning ? "Agent is running..." : "Type your message here... (Press Enter to send, Shift+Enter for new line)"}
@@ -374,7 +511,7 @@ function ChatContainer({
             <button
               onClick={handleSubmit}
               className="btn-icon btn-send"
-              disabled={sending || !input.trim()}
+              disabled={sending || preparingImages > 0 || (!input.trim() && images.length === 0)}
               title={sending ? 'Sending...' : 'Send message'}
             >
               {sending ? <Loader2 size={20} className="spinning" /> : <Send size={20} />}

@@ -209,6 +209,27 @@ async def get_session_history(session_id: str, cwd: Optional[str] = None):
                                 }
                             )
                         elif isinstance(content, list):
+                            # A user message with pasted images stays one message holding its
+                            # image and text blocks, so the client shows the images with the text
+                            if role == "user" and any(
+                                isinstance(b, dict) and b.get("type") == "image" for b in content
+                            ):
+                                messages.append(
+                                    {
+                                        "role": role,
+                                        "content": [
+                                            b for b in content
+                                            if isinstance(b, dict) and b.get("type") in ("image", "text")
+                                        ],
+                                        "timestamp": entry.get("timestamp"),
+                                        "uuid": entry.get("uuid"),
+                                    }
+                                )
+                                content = [
+                                    b for b in content
+                                    if not (isinstance(b, dict) and b.get("type") in ("image", "text"))
+                                ]
+
                             # Content blocks - process each separately
                             for block in content:
                                 if isinstance(block, dict):

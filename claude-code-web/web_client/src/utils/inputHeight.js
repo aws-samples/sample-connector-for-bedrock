@@ -18,3 +18,11 @@ export function clampInputHeight(h) {
   if (typeof h !== 'number' || !Number.isFinite(h)) return null
   return Math.min(INPUT_AREA_MAX_HEIGHT, Math.max(INPUT_AREA_MIN_HEIGHT, h))
 }
+
+// Pending image thumbnails (48px) and attachment errors sit in a row between the
+// model row and the textarea; while that row is shown the box grows by it plus a gap.
+export const INPUT_ATTACHMENT_ROW_HEIGHT = 56
+
+export function inputAreaHeight(height, hasAttachmentRow) {
+  return hasAttachmentRow ? height + INPUT_ATTACHMENT_ROW_HEIGHT + INPUT_AREA_GAP : height
+}

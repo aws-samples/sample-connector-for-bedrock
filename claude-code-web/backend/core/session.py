@@ -32,6 +32,7 @@ from claude_agent_sdk import (
 )
 
 from ..models import MessageBlock, PermissionRequest, SendMessageResponse, SessionStatus
+from .message_log import summarize_message
 
 
 def load_custom_system_prompt() -> Optional[str]:
@@ -589,7 +590,8 @@ class AgentSession:
             }
 
             print(f"[Session] send_message: Sending structured message to SDK (session: {self.session_id})")
-            print(f"[Session] send_message: Wire message: {wire_message}")
+            # Block types and sizes only: the content may carry base64 images
+            print(f"[Session] send_message: Wire message: {summarize_message(message)}")
 
             # Create an async iterable that yields this single message
             async def message_stream():
@@ -683,7 +685,8 @@ class AgentSession:
         if isinstance(message, str):
             print(f"[Session] message (string): {message[:200]}...")
         else:
-            print(f"[Session] message (dict): {message}")
+            # Block types and sizes only: the content may carry base64 images
+            print(f"[Session] message (dict): {summarize_message(message)}")
         print(f"[Session] current model: {self.model}")
         print(f"[Session] current mcp_server_ids: {self.mcp_server_ids}")
 
@@ -714,7 +717,7 @@ class AgentSession:
             }
 
             print(f"[Session] send_message_stream: Sending structured message to SDK (session: {self.session_id})")
-            print(f"[Session] send_message_stream: Wire message: {wire_message}")
+            print(f"[Session] send_message_stream: Wire message: {summarize_message(message)}")
 
             # Create an async iterable that yields this single message
             async def message_stream():

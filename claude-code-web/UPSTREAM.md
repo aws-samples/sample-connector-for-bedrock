@@ -126,3 +126,26 @@ directory must be listed here.
   the window. Default and drag lower bound are now the computed `INPUT_AREA_MIN_HEIGHT` (named
   constants); max stays 400. Dragging now clamps instead of ignoring out-of-range moves. Test:
   `test/claude_code_web_input_height.test.ts`.
+- Paste / drop images into the chat (upstream sends text only):
+  - `web_client/src/utils/imageAttachments.js` (new; pure, tested from the BRConnector root suite in
+    `test/claude_code_web_image_attachments.test.ts`): PNG/JPEG/GIF/WebP allowlist, max 5 images per
+    message, long edge downscaled to 1568 px, PNG kept up to 1 MB else re-encoded as JPEG quality 0.85,
+    an image over 3.75 MB of base64 rejected, a send over 4.5 MB of base64 rejected (Lambda caps a
+    request at 6 MB). `buildUserMessage` returns the plain string when there are no images (the text
+    path is unchanged), otherwise `{role: 'user', content: [...image blocks, text block]}` without an
+    empty text block. Canvas/ImageBitmap use is injected (`browserImageCodec`).
+  - `web_client/src/components/ChatContainer.jsx`: `onPaste` on the textarea (a clipboard with plain
+    text is left to the browser) and drag-and-drop onto the input area add images; pending thumbnails
+    with a remove button sit above the textarea, errors show in the same row; Enter/send sends them and
+    clears the list. `web_client/src/utils/inputHeight.js`: `INPUT_ATTACHMENT_ROW_HEIGHT` and
+    `inputAreaHeight` grow the input box by that row so the textarea keeps its height.
+  - `web_client/src/hooks/useClaudeAgent.js`: `sendMessage` accepts that dict; user messages (live and
+    from history) keep the text in `content` and the image data URLs in `images`.
+    `web_client/src/components/Message.jsx` renders `images` as `<img src>` only for `data:` URLs of the
+    allowed types; the text still goes through the escaping formatter. `web_client/src/style.css`:
+    attachment and message image styles.
+  - `backend/api/sessions.py`: the history endpoint keeps a user message that has image blocks as one
+    message whose `content` is its image and text blocks (upstream dropped image blocks).
+  - `backend/core/message_log.py` (new): `summarize_message`. `backend/core/session.py` and
+    `backend/api/messages.py` log a dict message as block types and byte sizes instead of printing it
+    (with its base64 data). Tests: `backend/tests/test_message_log.py`.
