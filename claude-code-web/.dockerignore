@@ -1,0 +1,4 @@
+web_client
+**/__pycache__
+.venv
+backend/tests
