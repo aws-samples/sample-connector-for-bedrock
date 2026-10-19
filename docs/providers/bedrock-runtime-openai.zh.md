@@ -82,7 +82,7 @@ GLM 5.3。只对符合条件的账号开放，请联系你的 AWS 账户团队�
 
 ## 预置模型
 
-新安装会在这个 provider 上创建下面这些模型（`src/scripts/patch-0.0.5.sql`）。已有的数据库不会改动；需要的话请在管理后台自行添加。价格是 us-east-1 按需价格，单位是每 100 万 token。In-Region 的 model id 必须在 BRConnector 调用的 Region 里可用。
+BRConnector 会在这个 provider 上创建下面这些模型（`src/scripts/migrations/2026-10-20-preset-models.sql`）：新数据库安装时创建，已有数据库在升级时补上。新加入的模型会绑定到 group 1（如果该 group 存在）；同名模型已存在时保持不变。价格是 us-east-1 按需价格，单位是每 100 万 token。In-Region 的 model id 必须在 BRConnector 调用的 Region 里可用。
 
 | 模型名 | `modelId` | 输入 | 输出 |
 |---|---|---|---|

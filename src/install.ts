@@ -3,6 +3,35 @@ import fs from 'fs';
 import config from './config';
 import path from 'path';
 
+const MIGRATIONS_DIR = path.join(__dirname, "./scripts/migrations");
+
+/**
+ * Applies each `*.sql` in `dir` not yet recorded in eiai_migration, in lexical filename order. A file
+ * and its ledger row commit together; on failure the file is rolled back, logged, and later files
+ * wait for the next startup.
+ */
+export async function runMigrations(client: Pick<Client, "query">, dir = MIGRATIONS_DIR): Promise<void> {
+    console.log("[migration] Check database status...");
+    await client.query("CREATE TABLE IF NOT EXISTS eiai_migration (name varchar(128) PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
+    const res = await client.query("SELECT name FROM eiai_migration");
+    const applied = new Set(res.rows.map((r) => r.name));
+    const pending = fs.readdirSync(dir).filter((f) => f.endsWith(".sql") && !applied.has(f)).sort();
+    for (const name of pending) {
+        const sql = fs.readFileSync(path.join(dir, name), "utf8");
+        try {
+            await client.query("BEGIN");
+            await client.query(sql);
+            await client.query("INSERT INTO eiai_migration (name) VALUES ($1)", [name]);
+            await client.query("COMMIT");
+            console.log(`[migration] ${name} applied.`);
+        } catch (err: any) {
+            await client.query("ROLLBACK").catch(() => {});
+            console.error(`❌ [migration] ${name} failed and was rolled back, later migrations skipped: `, err.message);
+            return;
+        }
+    }
+}
+
 export default async function () {
     if (config.skipDbInstall) {
         console.log("[init] SKIP_DB_INSTALL is set, skip database migrations.");
@@ -75,6 +104,8 @@ export default async function () {
         await client.query(sqlCreate_0_0_12);
         console.log("[v0.0.12] Created  successfully.");
     }
+
+    await runMigrations(client);
 
     await client.end();
     const adminKey = config.admin_api_key;
