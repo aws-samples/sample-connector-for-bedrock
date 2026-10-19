@@ -24,9 +24,11 @@ Anything else that differs, down to one space in the ec2 `docker run` line, fail
 path of the first difference. Existing stacks must not see any change while the switch is
 off: a UserData change alone makes CloudFormation stop and restart the BRConnector instance.
 
-It also checks that every ClaudeCodeWeb* resource and output carries the condition, and
-that the ec2 `docker run` line stays a single line with `--name brconnector` when the
-switch is on, because the SSM auto-update replays that line from the cloud-init log.
+It also checks that every ClaudeCodeWeb* resource and output carries the condition, that
+the ec2 `docker run` line stays a single line with `--name brconnector` when the switch is
+on, because the SSM auto-update replays that line from the cloud-init log, and that
+ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
+backend image without touching the BRConnector instance or deployment package.
 """
 import subprocess
 import sys
@@ -39,11 +41,13 @@ TEMPLATE = 'cloudformation/quick-build-brconnector.yaml'
 DEFAULT_BASE_REF = '7ba1548'
 GATE = 'IsClaudeCodeWeb'
 PREFIX = 'ClaudeCodeWeb'
-NEW_PARAMETERS = {'EnableClaudeCodeWeb', 'ClaudeCodeDefaultModel', 'ClaudeCodeBackgroundModel'}
+NEW_PARAMETERS = {'EnableClaudeCodeWeb', 'ClaudeCodeDefaultModel', 'ClaudeCodeBackgroundModel', 'ClaudeCodeWebImageBuildId'}
 NEW_RULES = {'ClaudeCodeWebRequirements'}
 NEW_PARAMETER_GROUP = 'Claude Code Web (optional)'
 DESCRIPTION_MAY_DIFFER = {'SourceRepoUrl', 'SourceRef'}
 EC2_SUB_VAR = 'CcEnvArg'
+IMAGE_ONLY_PARAMETER = 'ClaudeCodeWebImageBuildId'
+IMAGE_RESOURCE = 'ClaudeCodeWebImage'
 
 # Marks a value that evaluates to AWS::NoValue, so the enclosing key or item is dropped.
 DROPPED = object()
@@ -212,6 +216,31 @@ def check_ec2_docker_run_on(template):
     return []
 
 
+def references(node, name, path=''):
+    """Yield the paths under node that reference parameter name (Ref or a ${name} in Fn::Sub)."""
+    if isinstance(node, dict):
+        if node.get('Ref') == name:
+            yield path
+        sub = node.get('Fn::Sub')
+        text = sub[0] if isinstance(sub, list) and sub else sub
+        if isinstance(text, str) and '${' + name + '}' in text:
+            yield path
+        for key, value in node.items():
+            yield from references(value, name, f'{path}.{key}' if path else str(key))
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            yield from references(value, name, f'{path}[{i}]')
+
+
+def check_image_only_parameter(template):
+    """The image build id may only reach ClaudeCodeWebImage."""
+    own = f'Resources.{IMAGE_RESOURCE}.'
+    found = list(references({k: v for k, v in template.items() if k != 'Parameters'}, IMAGE_ONLY_PARAMETER))
+    if not any(p.startswith(own) for p in found):
+        return [f'{IMAGE_ONLY_PARAMETER} is not used by {IMAGE_RESOURCE}']
+    return [f'{IMAGE_ONLY_PARAMETER} is used outside {IMAGE_RESOURCE} at {p}' for p in found if not p.startswith(own)]
+
+
 def main():
     base_ref = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_BASE_REF
     root = Path(__file__).resolve().parents[2]
@@ -221,7 +250,7 @@ def main():
     ).stdout
     base = load(base_text)
 
-    problems = check_conditions(current) + check_ec2_docker_run_on(current)
+    problems = check_conditions(current) + check_ec2_docker_run_on(current) + check_image_only_parameter(current)
     diff = first_difference(render_off(current, base), base)
     if diff:
         problems.append(f'switch-off render differs from {base_ref} at {diff}')

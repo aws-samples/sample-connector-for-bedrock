@@ -64,6 +64,7 @@ Metadata:
           - EnableClaudeCodeWeb
           - ClaudeCodeDefaultModel
           - ClaudeCodeBackgroundModel
+          - ClaudeCodeWebImageBuildId
 
       - Label: 
           default: "Debugging Settings"
@@ -309,6 +310,15 @@ Parameters:
       or groups as well.
     Type: String
     Default: claude-haiku-5-5
+
+  ClaudeCodeWebImageBuildId:
+    Description: >-
+      Claude Code Web only. Change this value to rebuild the Claude Code Web backend
+      image without touching anything else, for example to pick up new commits on
+      SourceRef. Changing SourceRepoUrl, SourceRef or BRConnectorVersion also rebuilds
+      the image, but rebuilds BRConnector itself too.
+    Type: String
+    Default: '1'
 
 Rules:
   # Claude Code Web needs a BRConnector that has /cc and normal (non-admin) keys.
@@ -2372,6 +2382,8 @@ Resources:
       SourceRepoUrl: !Ref SourceRepoUrl
       SourceRef: !Ref SourceRef
       BRConnectorVersion: !Ref BRConnectorVersion
+      # Only here, so changing it rebuilds the image and nothing else.
+      BuildId: !Ref ClaudeCodeWebImageBuildId
 
   ClaudeCodeWebRuntime:
     Condition: IsClaudeCodeWeb
