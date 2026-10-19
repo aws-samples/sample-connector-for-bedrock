@@ -44,6 +44,12 @@ directory must be listed here.
   (npm latest), `ghcr.io/astral-sh/uv:0.13.1` (GitHub latest; manifest confirmed).
   uv is copied with `COPY --from` instead of `curl | sh`; `apt` installs only
   `git git-lfs curl ca-certificates vim` (no `gh`, no `wget`).
+- Claude Code versions in the image: the global `@anthropic-ai/claude-code@2.1.303` is what `claude`
+  runs in the terminal. The chat agent does not use it: `claude-agent-sdk` (0.1.19 in `uv.lock`)
+  starts the CLI bundled in its wheel before looking on `PATH`, and that CLI is 2.1.1
+  (`claude_agent_sdk/_cli_version.py`, checked on 2026-10-19 in the locked
+  `manylinux_2_17_aarch64` wheel). Upgrading the chat agent's Claude Code means upgrading
+  `claude-agent-sdk` in `uv.lock`.
 - `Dockerfile` user: reuses the node image's `node` user (UID 1000) instead of
   creating `cc`; `HOME=/home/node`; `/app`, `/workspace` and `/opt/uv-python` are
   owned by it, and `USER node` applies to the build `uv sync --frozen --no-dev`
