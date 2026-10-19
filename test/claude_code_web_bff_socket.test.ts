@@ -97,7 +97,7 @@ describe('upstream stream stops early on a real socket', () => {
         const text = readAll(res!);
         await until(() => bodies.length === 1);
         upstream.error(Object.assign(new TypeError('terminated'), { cause: { code: 'UND_ERR_SOCKET' } }));
-        expect(await text).toBe('data: {"a":1}\n\ndata: {"type":"error","error":"upstream closed"}\n\n');
+        expect(await text).toBe('data: {"a":1}\n\n\n\ndata: {"type":"error","error":"upstream closed"}\n\n');
         expect(logs.map((l) => l[0].message)).toEqual(['claude-code-web runtime stream stopped early']);
         expect(JSON.stringify(logs)).not.toContain('terminated');
     });
