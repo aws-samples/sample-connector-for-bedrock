@@ -5,12 +5,17 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { INPUT_AREA_DEFAULT_HEIGHT, clampInputHeight, inputAreaHeight } from '../utils/inputHeight.js'
 import {
   MAX_IMAGES_PER_MESSAGE,
+  SESSION_BUDGET_ERROR,
   browserImageCodec,
   buildUserMessage,
+  fitSessionBudget,
   hasDraggedFiles,
+  imagesBase64,
   pickDroppedImages,
   pickPastedImages,
   prepareImage,
+  sessionBudgetError,
+  sessionImageBase64,
   takeImageSlots,
   totalSizeError
 } from '../utils/imageAttachments.js'
@@ -49,6 +54,7 @@ function ChatContainer({
   const [isDragOver, setIsDragOver] = useState(false)
   const imageCountRef = useRef(0) // Listed + preparing images, for the per-message limit
   const nextImageIdRef = useRef(0)
+  const latestRef = useRef({ messages, images }) // Current values for addImageFiles after its await
   const messagesEndRef = useRef(null)
 
   // Models the signed-in BRConnector key can use
@@ -90,6 +96,10 @@ function ChatContainer({
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    latestRef.current = { messages, images }
+  }, [messages, images])
+
   // Detect if assistant is currently responding (streaming message)
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
@@ -104,7 +114,7 @@ function ChatContainer({
     e.preventDefault()
     if ((!input.trim() && images.length === 0) || sending || isRunning || preparingImages > 0) return
 
-    const sizeError = totalSizeError(images)
+    const sizeError = sessionBudgetError(messages, images) || totalSizeError(images, input)
     if (sizeError) {
       setAttachmentError(sizeError)
       return
@@ -160,15 +170,25 @@ function ChatContainer({
     const results = await Promise.all(accepted.map(file => prepareImage(file, browserImageCodec)))
     setPreparingImages(n => n - accepted.length)
 
-    const ready = []
+    const prepared = []
     for (const result of results) {
       if (result.image) {
-        ready.push({ ...result.image, id: nextImageIdRef.current++ })
+        prepared.push({ ...result.image, id: nextImageIdRef.current++ })
       } else {
         imageCountRef.current -= 1
         errors.push(result.error)
       }
     }
+
+    // Images already in this session plus pending ones share the session budget
+    const { messages: sessionMessages, images: pending } = latestRef.current
+    const used = sessionImageBase64(sessionMessages) + imagesBase64(pending)
+    const { accepted: ready, refused } = fitSessionBudget(used, prepared)
+    if (refused.length > 0) {
+      imageCountRef.current -= refused.length
+      errors.push(SESSION_BUDGET_ERROR)
+    }
+
     if (ready.length > 0) {
       setImages(prev => [...prev, ...ready])
     }
@@ -479,9 +499,19 @@ function ChatContainer({
               </span>
             )}
             {attachmentError && (
-              <span className="input-attachment-error" title={attachmentError}>
-                {attachmentError}
-              </span>
+              <>
+                <span className="input-attachment-error" title={attachmentError}>
+                  {attachmentError}
+                </span>
+                <button
+                  type="button"
+                  className="input-attachment-error-dismiss"
+                  onClick={() => setAttachmentError('')}
+                  title="Dismiss"
+                >
+                  <X size={14} />
+                </button>
+              </>
             )}
           </div>
         )}

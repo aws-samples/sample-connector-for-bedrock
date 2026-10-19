@@ -698,10 +698,12 @@ class AgentSession:
 
         # Send initial event
         print(f"[Session] Yielding 'start' event")
+        # A dict message is echoed as its summary: the client reads only session_id,
+        # and echoing base64 images would double what goes back over the stream
         yield {
             "type": "start",
             "session_id": self.session_id,
-            "message": message
+            "message": message if isinstance(message, str) else summarize_message(message)
         }
 
         # Send message - SDK query() accepts Union[str, AsyncIterable[dict]]

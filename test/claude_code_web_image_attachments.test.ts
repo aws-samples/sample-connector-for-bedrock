@@ -5,8 +5,10 @@ import {
     MAX_IMAGE_BASE64,
     MAX_IMAGE_EDGE,
     MAX_IMAGES_PER_MESSAGE,
+    MAX_SESSION_BASE64,
     MAX_TOTAL_BASE64,
     PNG_MAX_BYTES,
+    SESSION_BUDGET_ERROR,
     base64ByteLength,
     buildUserMessage,
     fitWithin,
@@ -16,7 +18,11 @@ import {
     parseImageDataUrl,
     pickDroppedImages,
     pickPastedImages,
+    fitSessionBudget,
+    imagesBase64,
     prepareImage,
+    sessionBudgetError,
+    sessionImageBase64,
     splitImageContent,
     takeImageSlots,
     totalSizeError,
@@ -61,6 +67,8 @@ describe('limits', () => {
         expect(JPEG_QUALITY).toBe(0.85);
         expect(MAX_IMAGE_BASE64).toBe(3.75 * MiB);
         expect(MAX_TOTAL_BASE64).toBe(4.5 * MiB);
+        expect(MAX_SESSION_BASE64).toBe(4.5 * MiB);
+        expect(SESSION_BUDGET_ERROR).toBe('Image budget for this session is used up (4.5 MB). Start a new session to send more images.');
         // The whole send stays well under Lambda's 6 MB synchronous request cap.
         expect(MAX_TOTAL_BASE64).toBeLessThan(6 * MiB - 512 * 1024);
     });
@@ -123,9 +131,14 @@ describe('pickPastedImages', () => {
         const picked = pickPastedImages(clipboard('', [item('image/png'), item('image/svg+xml'), item('text/html', 'string')]));
         expect(picked).toEqual([file('image/png')]);
     });
-    it('leaves a paste that has plain text to the browser', () => {
-        expect(pickPastedImages(clipboard('hello', [item('image/png')]))).toEqual([]);
+    it('leaves a plain-text paste with no image file to the browser', () => {
         expect(pickPastedImages(clipboard('hello', [item('text/plain', 'string')]))).toEqual([]);
+        expect(pickPastedImages(clipboard('hello', [item('text/plain', 'string')], [file('application/pdf', 'a.pdf')]))).toEqual([]);
+    });
+    it('attaches an image file even when the clipboard also has its filename as text', () => {
+        // A file copied in Finder: clipboardData.files has the image, text/plain has its name
+        const copied = file('image/png', 'diagram.png');
+        expect(pickPastedImages(clipboard('diagram.png', [item('text/plain', 'string'), item('image/png')], [copied]))).toEqual([copied]);
     });
     it('falls back to clipboardData.files and tolerates a missing clipboard', () => {
         expect(pickPastedImages(clipboard('', [], [file('image/jpeg'), file('application/pdf')]))).toEqual([file('image/jpeg')]);
@@ -220,6 +233,50 @@ describe('totalSizeError', () => {
     it('rejects a send over 4.5 MB of base64', () => {
         const error = totalSizeError([img(3 * MiB), img(2 * MiB)]);
         expect(error).toContain('4.5 MB');
+    });
+    it('counts the UTF-8 bytes of the text against the total', () => {
+        // '€' is 3 bytes in UTF-8
+        expect(totalSizeError([img(MAX_TOTAL_BASE64 - 3)], '€')).toBeNull();
+        expect(totalSizeError([img(MAX_TOTAL_BASE64 - 3)], '€€')).toContain('4.5 MB');
+        expect(totalSizeError([img(MAX_TOTAL_BASE64 - 3)], 'abcd')).toContain('4.5 MB');
+    });
+    it('leaves a text-only message alone', () => {
+        expect(totalSizeError([], 'x'.repeat(MAX_TOTAL_BASE64 + 1))).toBeNull();
+    });
+});
+
+describe('session image budget', () => {
+    const url = (n: number) => dataUrl('image/png', 'A'.repeat(n));
+    const img = (n: number) => ({ data: 'A'.repeat(n) });
+    const messages = [
+        { type: 'text', role: 'user', content: 'a', images: [url(1000), url(500)] },
+        { type: 'text', role: 'assistant', content: 'b' },
+        { type: 'system', content: 'c' },
+        { type: 'text', role: 'user', content: 'd', images: [url(250)] },
+    ];
+
+    it('sums the base64 of every image already in the session', () => {
+        expect(sessionImageBase64([])).toBe(0);
+        expect(sessionImageBase64(messages)).toBe(1750);
+        expect(sessionImageBase64([{ images: ['https://x/y.png'] }, { images: null }])).toBe(0);
+        expect(imagesBase64([img(3), img(4)])).toBe(7);
+    });
+
+    it('accepts new images while the session stays within 4.5 MB and refuses the rest', () => {
+        const a = img(1 * MiB), b = img(2 * MiB), c = img(0.5 * MiB);
+        expect(fitSessionBudget(1 * MiB, [a, b, c])).toEqual({ accepted: [a, b, c], refused: [] });
+        expect(fitSessionBudget(2 * MiB, [a, b, c])).toEqual({ accepted: [a, c], refused: [b] });
+        expect(fitSessionBudget(MAX_SESSION_BASE64, [img(1)])).toEqual({ accepted: [], refused: [img(1)] });
+    });
+
+    it('blocks a send whose images would take the session over 4.5 MB', () => {
+        const used = [{ images: [url(3 * MiB)] }];
+        expect(sessionBudgetError(used, [img(1.5 * MiB)])).toBeNull();
+        expect(sessionBudgetError(used, [img(1.5 * MiB + 1)])).toBe(SESSION_BUDGET_ERROR);
+    });
+
+    it('never blocks a send without images', () => {
+        expect(sessionBudgetError([{ images: [url(MAX_SESSION_BASE64 + 1)] }], [])).toBeNull();
     });
 });
 

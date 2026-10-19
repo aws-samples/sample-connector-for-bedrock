@@ -38,7 +38,7 @@ def summarize_message(message: Any) -> str:
         return f"str({_size(message)} bytes)"
     if not isinstance(message, dict):
         return type(message).__name__
-    role = message.get("role", "unknown")
+    role = str(message.get("role", "unknown"))[:32]
     content = message.get("content")
     if isinstance(content, list):
         return f"role={role} content=[{', '.join(_describe_block(b) for b in content)}]"

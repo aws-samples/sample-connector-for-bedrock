@@ -751,6 +751,26 @@ body {
     color: var(--danger-color);
 }
 
+.input-attachment-error-dismiss {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.input-attachment-error-dismiss:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+
 .message-images {
     display: flex;
     flex-wrap: wrap;

@@ -17,6 +17,11 @@ export const JPEG_QUALITY = 0.85
 // Base64 limits, per image and per message. Lambda caps a synchronous request at 6 MB.
 export const MAX_IMAGE_BASE64 = 3.75 * MB
 export const MAX_TOTAL_BASE64 = 4.5 * MB
+// Every model call resends the whole conversation, earlier images included, so the
+// images of one session share this base64 budget (whatever the compute type)
+export const MAX_SESSION_BASE64 = 4.5 * MB
+export const SESSION_BUDGET_ERROR =
+  'Image budget for this session is used up (4.5 MB). Start a new session to send more images.'
 
 const DATA_URL_PREFIX = /^data:(image\/(?:png|jpeg|gif|webp));base64,/
 const BASE64_DATA = /^[A-Za-z0-9+/]*={0,2}$/
@@ -67,18 +72,18 @@ export function isImageDataUrl(src) {
 /**
  * Image files to attach from a paste event's clipboardData
  *
- * A clipboard that also has plain text (e.g. cells copied from a spreadsheet, which
- * come with a rendered picture) is left to the browser, so text paste is unchanged.
+ * Image files win over text/plain (a file copied in Finder also carries its name as
+ * text). A paste with plain text and no image file is left to the browser.
  */
 export function pickPastedImages(clipboardData) {
   if (!clipboardData) return []
+  const files = Array.from(clipboardData.files || []).filter((f) => isAllowedImageType(f.type))
+  if (files.length > 0) return files
   if (clipboardData.getData?.('text/plain')) return []
-  const fromItems = Array.from(clipboardData.items || [])
+  return Array.from(clipboardData.items || [])
     .filter((item) => item.kind === 'file' && isAllowedImageType(item.type))
     .map((item) => item.getAsFile())
     .filter(Boolean)
-  if (fromItems.length > 0) return fromItems
-  return Array.from(clipboardData.files || []).filter((f) => isAllowedImageType(f.type))
 }
 
 // Allowed image files of a drop event, and how many other files were dropped
@@ -140,11 +145,53 @@ export async function prepareImage(file, codec) {
   }
 }
 
-// Error message when the images of one message are over the base64 total, else null
-export function totalSizeError(images) {
-  const total = images.reduce((sum, image) => sum + image.data.length, 0)
+// Base64 of pending images ({ data })
+export function imagesBase64(images) {
+  return images.reduce((sum, image) => sum + image.data.length, 0)
+}
+
+/**
+ * Error message when a message with images is over the per-message total (image base64
+ * plus the UTF-8 bytes of the text), else null. A text-only message is not checked.
+ */
+export function totalSizeError(images, text = '') {
+  if (images.length === 0) return null
+  const total = imagesBase64(images) + new TextEncoder().encode(text).length
   if (total <= MAX_TOTAL_BASE64) return null
-  return `Images total ${formatMB(total)}; the limit is 4.5 MB per message. Remove an image and try again.`
+  return `Images and text total ${formatMB(total)}; the limit is 4.5 MB per message. Remove an image and try again.`
+}
+
+// Base64 of the images already sent in this session (chat messages' `images` data URLs)
+export function sessionImageBase64(messages) {
+  let total = 0
+  for (const message of messages) {
+    for (const url of message.images || []) {
+      if (isImageDataUrl(url)) total += url.length - (url.indexOf(',') + 1)
+    }
+  }
+  return total
+}
+
+// Split new images into those that fit the session budget after `used` base64 and those that do not
+export function fitSessionBudget(used, images, max = MAX_SESSION_BASE64) {
+  const accepted = []
+  const refused = []
+  let total = used
+  for (const image of images) {
+    if (total + image.data.length <= max) {
+      accepted.push(image)
+      total += image.data.length
+    } else {
+      refused.push(image)
+    }
+  }
+  return { accepted, refused }
+}
+
+// SESSION_BUDGET_ERROR when sending these images would take the session over its budget, else null
+export function sessionBudgetError(messages, images) {
+  if (images.length === 0) return null
+  return sessionImageBase64(messages) + imagesBase64(images) > MAX_SESSION_BASE64 ? SESSION_BUDGET_ERROR : null
 }
 
 /**

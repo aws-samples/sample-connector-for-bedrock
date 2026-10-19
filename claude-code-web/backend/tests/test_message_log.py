@@ -46,6 +46,12 @@ def test_summary_handles_other_shapes():
     assert summarize_message(None) == "NoneType"
 
 
+def test_summary_role_is_a_capped_string():
+    assert summarize_message({"role": 7, "content": []}) == "role=7 content=[]"
+    summary = summarize_message({"role": IMAGE_DATA, "content": "x"})
+    assert summary == f"role={IMAGE_DATA[:32]} content=text(1 bytes)"
+
+
 class StubClient:
     def __init__(self):
         self.sent = []
@@ -89,6 +95,8 @@ def test_session_stream_logs_no_image_data(capsys, monkeypatch):
     out = capsys.readouterr().out
 
     assert [e["type"] for e in events] == ["start", "done"]
+    # The start event echoes the summary, not the image data (the client reads only session_id)
+    assert events[0] == {"type": "start", "session_id": "s1", "message": summarize_message(image_message())}
     # The CLI still receives the full message
     assert session.client.sent == [
         {"type": "user", "message": image_message(), "parent_tool_use_id": None, "session_id": "default"}
@@ -96,6 +104,19 @@ def test_session_stream_logs_no_image_data(capsys, monkeypatch):
     assert IMAGE_DATA[:16] not in out
     assert SECRET_TEXT not in out
     assert f"image({len(IMAGE_DATA)} bytes)" in out
+
+
+def test_session_stream_start_echoes_a_string_message(monkeypatch):
+    monkeypatch.setenv("ENABLE_S3_SYNC", "false")
+    session = connected_session()
+
+    async def first_event():
+        stream = session.send_message_stream("hello there")
+        event = await anext(stream)
+        await stream.aclose()
+        return event
+
+    assert run(first_event()) == {"type": "start", "session_id": "s1", "message": "hello there"}
 
 
 def test_session_non_streaming_logs_no_image_data(capsys):

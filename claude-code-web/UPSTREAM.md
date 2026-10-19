@@ -130,14 +130,19 @@ directory must be listed here.
   - `web_client/src/utils/imageAttachments.js` (new; pure, tested from the BRConnector root suite in
     `test/claude_code_web_image_attachments.test.ts`): PNG/JPEG/GIF/WebP allowlist, max 5 images per
     message, long edge downscaled to 1568 px, PNG kept up to 1 MB else re-encoded as JPEG quality 0.85,
-    an image over 3.75 MB of base64 rejected, a send over 4.5 MB of base64 rejected (Lambda caps a
-    request at 6 MB). `buildUserMessage` returns the plain string when there are no images (the text
+    an image over 3.75 MB of base64 rejected, a send over 4.5 MB (image base64 plus the text's UTF-8
+    bytes) rejected (Lambda caps a request at 6 MB). Every model call resends the whole conversation, so
+    the images of one session (already in the chat plus pending) share a 4.5 MB base64 budget
+    (`sessionImageBase64`, `fitSessionBudget`, `sessionBudgetError`); adding or sending past it is refused
+    with "Image budget for this session is used up (4.5 MB). Start a new session to send more images."
+    `buildUserMessage` returns the plain string when there are no images (the text
     path is unchanged), otherwise `{role: 'user', content: [...image blocks, text block]}` without an
     empty text block. Canvas/ImageBitmap use is injected (`browserImageCodec`).
-  - `web_client/src/components/ChatContainer.jsx`: `onPaste` on the textarea (a clipboard with plain
-    text is left to the browser) and drag-and-drop onto the input area add images; pending thumbnails
-    with a remove button sit above the textarea, errors show in the same row; Enter/send sends them and
-    clears the list. `web_client/src/utils/inputHeight.js`: `INPUT_ATTACHMENT_ROW_HEIGHT` and
+  - `web_client/src/components/ChatContainer.jsx`: `onPaste` on the textarea (image files in
+    `clipboardData.files` are attached even when `text/plain` is present, e.g. a file copied in Finder;
+    plain text with no image file is left to the browser) and drag-and-drop onto the input area add
+    images; pending thumbnails with a remove button sit above the textarea, errors show in the same row
+    with a dismiss button; Enter/send sends them and clears the list. `web_client/src/utils/inputHeight.js`: `INPUT_ATTACHMENT_ROW_HEIGHT` and
     `inputAreaHeight` grow the input box by that row so the textarea keeps its height.
   - `web_client/src/hooks/useClaudeAgent.js`: `sendMessage` accepts that dict; user messages (live and
     from history) keep the text in `content` and the image data URLs in `images`.
@@ -148,4 +153,6 @@ directory must be listed here.
     message whose `content` is its image and text blocks (upstream dropped image blocks).
   - `backend/core/message_log.py` (new): `summarize_message`. `backend/core/session.py` and
     `backend/api/messages.py` log a dict message as block types and byte sizes instead of printing it
-    (with its base64 data). Tests: `backend/tests/test_message_log.py`.
+    (with its base64 data); the role is coerced to a string of at most 32 characters. The `start` stream
+    event echoes that summary instead of the dict (the client reads only its `session_id`); a string
+    message is still echoed as is. Tests: `backend/tests/test_message_log.py`.
