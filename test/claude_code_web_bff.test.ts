@@ -52,7 +52,7 @@ describe('invocations', () => {
         const ctx = makeCtx();
         await invocations(ctx);
         expect(ctx.status).toBe(404);
-        expect(ctx.body).toEqual({ error: 'claude-code-web is not enabled' });
+        expect(ctx.body).toEqual({ error: 'claude-code-web is not enabled', detail: 'claude-code-web is not enabled' });
         expect(invoke).not.toHaveBeenCalled();
     });
 
@@ -60,6 +60,7 @@ describe('invocations', () => {
         const ctx = makeCtx({ user: { id: -1, api_key: 'admin' } });
         await invocations(ctx);
         expect(ctx.status).toBe(403);
+        expect(ctx.body).toEqual({ error: 'the admin key cannot use claude-code-web', detail: 'the admin key cannot use claude-code-web' });
         expect(invoke).not.toHaveBeenCalled();
     });
 
@@ -68,7 +69,7 @@ describe('invocations', () => {
         const ctx = makeCtx();
         await invocations(ctx);
         expect(ctx.status).toBe(403);
-        expect(ctx.body).toEqual({ error: 'this key has no bedrock-runtime-anthropic model' });
+        expect(ctx.body).toEqual({ error: 'this key has no bedrock-runtime-anthropic model', detail: 'this key has no bedrock-runtime-anthropic model' });
         expect(invoke).not.toHaveBeenCalled();
     });
 
@@ -77,7 +78,7 @@ describe('invocations', () => {
         const ctx = makeCtx();
         await invocations(ctx);
         expect(ctx.status).toBe(402);
-        expect(ctx.body).toEqual({ error: 'Please recharge.' });
+        expect(ctx.body).toEqual({ error: 'Please recharge.', detail: 'Please recharge.' });
         expect(invoke).not.toHaveBeenCalled();
     });
 
@@ -156,7 +157,7 @@ describe('invocations', () => {
         const ctx = makeCtx();
         await invocations(ctx);
         expect(ctx.status).toBe(502);
-        expect(ctx.body).toEqual({ error: 'claude-code-web runtime unreachable' });
+        expect(ctx.body).toEqual({ error: 'claude-code-web runtime unreachable', detail: 'claude-code-web runtime unreachable' });
     });
 
     it('never logs the key or the credentials', async () => {
@@ -176,7 +177,16 @@ describe('stopSession', () => {
         const ctx = makeCtx();
         await stopSession(ctx);
         expect(ctx.status).toBe(404);
+        expect(ctx.body).toEqual({ error: 'claude-code-web is not enabled', detail: 'claude-code-web is not enabled' });
         expect(deps.stopRuntimeSession).not.toHaveBeenCalled();
+    });
+
+    it('answers 502 with error and detail when the runtime is unreachable', async () => {
+        deps.stopRuntimeSession = vi.fn(async () => { throw new TypeError('fetch failed'); });
+        const ctx = makeCtx();
+        await stopSession(ctx);
+        expect(ctx.status).toBe(502);
+        expect(ctx.body).toEqual({ error: 'claude-code-web runtime unreachable', detail: 'claude-code-web runtime unreachable' });
     });
 
     it('maps upstream 404 to 200 no_session', async () => {

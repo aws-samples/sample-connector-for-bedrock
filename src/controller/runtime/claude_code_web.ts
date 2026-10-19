@@ -23,30 +23,32 @@ export const deps = {
     checkFee: (ctx: any, key: any) => provider.checkFee(ctx, key),
 };
 
+// BFF error body. The fork client reads `detail` (FastAPI's field) for the message it shows.
+function fail(ctx: any, status: number, text: string) {
+    ctx.status = status;
+    ctx.body = { error: text, detail: text };
+}
+
 // Checks 1-4 of the BFF contract. Returns the config, or null after having set the error response.
 async function admit(ctx: any) {
     const config = await deps.loadCcConfig();
     if (!config) {
-        ctx.status = 404;
-        ctx.body = { error: 'claude-code-web is not enabled' };
+        fail(ctx, 404, 'claude-code-web is not enabled');
         return null;
     }
     if (ctx.user.id === -1) {
-        ctx.status = 403;
-        ctx.body = { error: 'the admin key cannot use claude-code-web' };
+        fail(ctx, 403, 'the admin key cannot use claude-code-web');
         return null;
     }
     if (!(await deps.hasRuntimeAnthropicModel(ctx.db, ctx.user))) {
-        ctx.status = 403;
-        ctx.body = { error: 'this key has no bedrock-runtime-anthropic model' };
+        fail(ctx, 403, 'this key has no bedrock-runtime-anthropic model');
         return null;
     }
     try {
         await deps.checkFee(ctx, ctx.user);
     } catch (e: any) {
         if (e?.anthropicType !== 'billing_error') throw e;
-        ctx.status = 402;
-        ctx.body = { error: e.message };
+        fail(ctx, 402, e.message);
         return null;
     }
     return config;
@@ -55,8 +57,7 @@ async function admit(ctx: any) {
 function unreachable(ctx: any, e: any) {
     // Only the error class and code: never the message, which could echo request details.
     ctx.logger?.error({ message: 'claude-code-web runtime unreachable', name: e?.name, code: e?.code });
-    ctx.status = 502;
-    ctx.body = { error: 'claude-code-web runtime unreachable' };
+    fail(ctx, 502, 'claude-code-web runtime unreachable');
 }
 
 export async function invocations(ctx: any) {

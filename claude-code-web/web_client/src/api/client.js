@@ -9,6 +9,7 @@
  */
 
 import { getAuthHeaders, isAuthError, handleAuthError } from '../utils/authUtils'
+import { responseError } from '../utils/responseError'
 
 const USE_INVOCATIONS = import.meta.env.VITE_USE_INVOCATIONS === 'true'
 
@@ -710,7 +711,7 @@ class DirectAPIClient {
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Failed to stop AgentCore session: ${response.status} ${errorText}`)
+      throw responseError(response, errorText, `Failed to stop AgentCore session: ${response.status} ${errorText}`)
     }
 
     // Try to parse JSON response, fallback to success message
@@ -1045,19 +1046,9 @@ class InvocationsAPIClient {
     handleFetchResponse(response)
 
     if (!response.ok) {
-      const error = new Error(`Invocation failed: ${path}`)
-      error.status = response.status
-      error.statusText = response.statusText
-
-      // Try to get error details from response
-      try {
-        const errorData = await response.json()
-        error.detail = errorData.detail || errorData.message
-      } catch {
-        // Ignore JSON parse errors
-      }
-
-      throw error
+      // The server's reason (`detail`) becomes the message the UI shows; status stays on the error
+      const errorText = await response.text().catch(() => '')
+      throw responseError(response, errorText, `Invocation failed: ${path}`)
     }
 
     return response.json()
@@ -1171,7 +1162,7 @@ class InvocationsAPIClient {
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Failed to stop AgentCore session: ${response.status} ${errorText}`)
+      throw responseError(response, errorText, `Failed to stop AgentCore session: ${response.status} ${errorText}`)
     }
 
     // Try to parse JSON response, fallback to success message

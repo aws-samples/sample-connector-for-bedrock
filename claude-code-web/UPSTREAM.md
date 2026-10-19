@@ -77,6 +77,11 @@ directory must be listed here.
   inline-code, bold and newline formatting (upstream inserted it unescaped via
   `dangerouslySetInnerHTML`, an XSS on the origin `/cc` shares with `/manager`). The formatter
   moved to `web_client/src/utils/formatMessage.js` (new; pure, tested from the BRConnector root suite).
+- `web_client/src/api/client.js`: a failed `_invoke` and both `stopAgentCoreSession` copies throw an
+  error whose message is the response's `detail` (BRConnector BFF `{ error, detail }` or FastAPI
+  `{ detail }`; upstream showed only `Invocation failed: <path>`), keeping `status`, `statusText` and
+  `detail` on it. Built by `web_client/src/utils/responseError.js` (new; pure, tested from the
+  BRConnector root suite).
 - `web_client/.env.production`: new; fixed build settings for the `/cc` deployment (server URL
   `/cc/api`, invocations mode, settings button hidden, workspace mode).
 - `web_client/package.json`, `web_client/package-lock.json`: removed `aws-amplify` and
