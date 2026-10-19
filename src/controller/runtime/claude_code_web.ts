@@ -69,8 +69,9 @@ export async function invocations(ctx: any) {
     // Browser closed the page before the response finished: cancel the upstream request and the keepalive timer.
     const abort = new AbortController();
     let output: Readable | undefined;
-    ctx.req.on('close', () => {
-        if (ctx.res?.writableFinished) return;
+    // Listen on res: once koa-body has read the request, req 'close' has already fired.
+    ctx.res.on('close', () => {
+        if (ctx.res.writableFinished) return;
         abort.abort();
         output?.destroy();
     });
@@ -91,7 +92,12 @@ export async function invocations(ctx: any) {
             signal: abort.signal,
         });
     } catch (e: any) {
+        if (abort.signal.aborted) return; // the client left; nobody is waiting for an answer
         unreachable(ctx, e);
+        return;
+    }
+    if (abort.signal.aborted) {
+        await res.body?.cancel().catch(() => {});
         return;
     }
 
@@ -99,7 +105,6 @@ export async function invocations(ctx: any) {
     ctx.status = res.status;
     if (contentType.includes('text/event-stream') && res.body) {
         output = withSseKeepalive(Readable.fromWeb(res.body as any));
-        if (abort.signal.aborted) output.destroy();
         ctx.type = 'text/event-stream';
         ctx.set('Cache-Control', 'no-cache');
         ctx.body = output;

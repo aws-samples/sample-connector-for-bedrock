@@ -1,0 +1,84 @@
+import http from 'http';
+import net from 'net';
+import Koa from 'koa';
+import { koaBody } from 'koa-body';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { deps, invocations } from '../src/controller/runtime/claude_code_web';
+
+const original = { ...deps };
+let server: http.Server;
+let port: number;
+let invoke: ReturnType<typeof vi.fn>;
+let bodies: any[];
+
+async function until(cond: () => boolean, ms = 3000) {
+    const end = Date.now() + ms;
+    while (!cond()) {
+        if (Date.now() > end) throw new Error('timeout');
+        await new Promise((r) => setTimeout(r, 10));
+    }
+}
+
+beforeEach(async () => {
+    bodies = [];
+    Object.assign(deps, {
+        loadCcConfig: async () => ({ runtimeArn: 'a', workspaceRoleArn: 'r', bucket: 'b', prefix: 'p' }),
+        getWorkspaceCredentials: async () => ({ accessKeyId: 'i', secretAccessKey: 's', sessionToken: 't', expiration: new Date() }),
+        hasRuntimeAnthropicModel: async () => true,
+        checkFee: async () => {},
+    });
+    const app = new Koa();
+    app.use(koaBody());
+    app.use(async (ctx: any) => {
+        ctx.user = { id: 42, group_id: 1, api_key: 'k' };
+        ctx.logger = { error() {} };
+        await invocations(ctx);
+        bodies.push(ctx.body);
+    });
+    server = http.createServer(app.callback());
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    port = (server.address() as net.AddressInfo).port;
+});
+afterEach(async () => {
+    Object.assign(deps, original);
+    server.closeAllConnections?.();
+    await new Promise((r) => server.close(r));
+});
+
+function post(): Promise<{ req: http.ClientRequest; res?: http.IncomingMessage }> {
+    return new Promise((resolve) => {
+        const req = http.request({ host: '127.0.0.1', port, method: 'POST', path: '/', headers: { 'content-type': 'application/json' } });
+        req.on('error', () => {});
+        req.on('response', (res) => resolve({ req, res }));
+        req.write('{"a":1}');
+        req.end();
+        // For tests where no response arrives, resolve right after the request was flushed.
+        req.on('finish', () => setTimeout(() => resolve({ req }), 50));
+    });
+}
+
+describe('client disconnect on a real socket', () => {
+    it('aborts the upstream request when the client leaves before upstream headers', async () => {
+        let signal!: AbortSignal;
+        invoke = vi.fn((_c: any, o: any) => { signal = o.signal; return new Promise(() => {}); });
+        deps.invokeRuntime = invoke as any;
+        const { req } = await post();
+        await until(() => invoke.mock.calls.length > 0);
+        expect(signal.aborted).toBe(false);
+        req.destroy();
+        await until(() => signal.aborted);
+    });
+
+    it('destroys the keepalive output when the client leaves mid-stream', async () => {
+        const body = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('data: x\n\n')); } });
+        invoke = vi.fn(async () => new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } }));
+        deps.invokeRuntime = invoke as any;
+        const { req, res } = await post();
+        expect(res).toBeTruthy();
+        await until(() => bodies.length === 1);
+        const signal: AbortSignal = invoke.mock.calls[0][1].signal;
+        expect(bodies[0].destroyed).toBe(false);
+        req.destroy();
+        await until(() => signal.aborted && bodies[0].destroyed);
+    });
+});

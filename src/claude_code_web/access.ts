@@ -1,12 +1,16 @@
-import service from '../service/key';
-import serviceGroup from '../service/group';
-
 export const RUNTIME_ANTHROPIC_PROVIDER = 'bedrock-runtime-anthropic';
 
 // True when the key itself, or its group, is bound to at least one bedrock-runtime-anthropic model.
+// The provider filter is in SQL (no row limit). A key without a group (group_id 0/null) has no group
+// bindings: the group query must not run, because an empty group filter would match every group.
 export async function hasRuntimeAnthropicModel(db: any, user: any): Promise<boolean> {
-    const keyModels = await service.listModels(db, { key_id: user.id, limit: 1000 });
-    if (keyModels.items.some((m: any) => m.provider === RUNTIME_ANTHROPIC_PROVIDER)) return true;
-    const groupModels = await serviceGroup.listModels(db, { group_id: user.group_id, limit: 1000 });
-    return groupModels.items.some((m: any) => m.provider === RUNTIME_ANTHROPIC_PROVIDER);
+    if (await db.exists('eiai_v_key_model', {
+        where: 'key_id=$1 and provider=$2',
+        params: [user.id, RUNTIME_ANTHROPIC_PROVIDER],
+    })) return true;
+    if (!user.group_id) return false;
+    return db.exists('eiai_v_group_model', {
+        where: 'group_id=$1 and provider=$2',
+        params: [user.group_id, RUNTIME_ANTHROPIC_PROVIDER],
+    });
 }

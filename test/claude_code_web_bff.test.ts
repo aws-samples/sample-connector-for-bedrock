@@ -22,7 +22,7 @@ function makeCtx(over: any = {}) {
         request: { body: { prompt: 'hi' } },
         headers: { 'x-amzn-bedrock-agentcore-runtime-session-id': 'brc-key-0000000000000007@workspace' },
         req: new EventEmitter(),
-        res: { writableFinished: false },
+        res: Object.assign(new EventEmitter(), { writableFinished: false }),
         logger: { error: log, info: log, warn: log, debug: log },
         logs,
         set(k: string, v: string) { (this.headers2 ??= {})[k] = v; },
@@ -126,7 +126,7 @@ describe('invocations', () => {
         const signal: AbortSignal = invoke.mock.calls[0][1].signal;
         expect(signal.aborted).toBe(false);
         expect(ctx.body.destroyed).toBe(false);
-        ctx.req.emit('close');
+        ctx.res.emit('close');
         expect(signal.aborted).toBe(true);
         expect(ctx.body.destroyed).toBe(true);
         void upstream;
@@ -136,7 +136,7 @@ describe('invocations', () => {
         const ctx = makeCtx();
         await invocations(ctx);
         ctx.res.writableFinished = true;
-        ctx.req.emit('close');
+        ctx.res.emit('close');
         expect(invoke.mock.calls[0][1].signal.aborted).toBe(false);
     });
 
