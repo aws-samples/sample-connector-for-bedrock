@@ -120,3 +120,9 @@ directory must be listed here.
 - `backend/tests/test_brc_identity.py`: the forged bearer value no longer looks like a JWT
   (`detected-jwt-token`); the test still proves `Authorization` is ignored.
 - `Dockerfile`: added `HEALTHCHECK` (curl on `/ping`).
+- `web_client/src/components/ChatContainer.jsx`, `web_client/src/utils/inputHeight.js`: the chat input
+  box defaulted to 120px and could be dragged down to 60px, but its contents (24+16 padding, model
+  selector row, 8px gap, 90px textarea minimum) need ~167px, so the textarea overflowed the bottom of
+  the window. Default and drag lower bound are now the computed `INPUT_AREA_MIN_HEIGHT` (named
+  constants); max stays 400. Dragging now clamps instead of ignoring out-of-range moves. Test:
+  `test/claude_code_web_input_height.test.ts`.

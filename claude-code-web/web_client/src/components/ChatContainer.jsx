@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, X, Loader2, AlertTriangle, RefreshCw, Square } from 'lucide-react'
 import Message from './Message'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { INPUT_AREA_DEFAULT_HEIGHT, clampInputHeight } from '../utils/inputHeight.js'
 
 function ChatContainer({
   sessionInfo,
@@ -26,7 +27,7 @@ function ChatContainer({
   const [sending, setSending] = useState(false)
   const [selectedModel, setSelectedModel] = useState(currentModel || '')
   const [isComposing, setIsComposing] = useState(false) // Track IME composition state
-  const [inputHeight, setInputHeight] = useState(120) // Default 120px (3 rows * ~40px)
+  const [inputHeight, setInputHeight] = useState(INPUT_AREA_DEFAULT_HEIGHT)
   const [isResizingInput, setIsResizingInput] = useState(false)
   const [isRunning, setIsRunning] = useState(false) // Track if assistant is currently responding
   const [availableMcpServers, setAvailableMcpServers] = useState({})
@@ -175,9 +176,10 @@ function ChatContainer({
       const inputAreaRect = inputArea.getBoundingClientRect()
       const newHeight = inputAreaRect.bottom - e.clientY
 
-      // Constrain height between 60px and 400px
-      if (newHeight >= 60 && newHeight <= 400) {
-        setInputHeight(newHeight)
+      // Constrain so the textarea's minimum height always fits inside the box
+      const clamped = clampInputHeight(newHeight)
+      if (clamped !== null) {
+        setInputHeight(clamped)
       }
     }
 
