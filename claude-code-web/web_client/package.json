@@ -1,0 +1,47 @@
+{
+  "name": "claude-agent-web-client",
+  "version": "1.0.0",
+  "description": "A modern, web-based client for interacting with the Claude Agent API Server",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "claude",
+    "agent",
+    "chat",
+    "web-client"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "vite": "^7.1.12"
+  },
+  "dependencies": {
+    "@aws-amplify/ui-react": "^6.13.1",
+    "@codemirror/autocomplete": "^6.19.1",
+    "@codemirror/commands": "^6.10.0",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.11",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/search": "^6.5.11",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.6",
+    "aws-amplify": "^6.16.3",
+    "codemirror": "^6.0.2",
+    "highlight.js": "^11.11.1",
+    "lucide-react": "^0.546.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.12.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0"
+  }
+}

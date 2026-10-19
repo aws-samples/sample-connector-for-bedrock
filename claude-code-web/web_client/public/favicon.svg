@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100" height="100" rx="20" fill="url(#bg)"/>
+
+  <!-- Robot antenna -->
+  <line x1="50" y1="20" x2="50" y2="28" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="50" cy="17" r="3" fill="#fbbf24"/>
+
+  <!-- Robot head -->
+  <rect x="30" y="28" width="40" height="35" rx="8" fill="white"/>
+
+  <!-- Robot eyes -->
+  <circle cx="40" cy="42" r="5" fill="#667eea"/>
+  <circle cx="60" cy="42" r="5" fill="#667eea"/>
+  <circle cx="41" cy="41" r="2" fill="white"/>
+  <circle cx="61" cy="41" r="2" fill="white"/>
+
+  <!-- Robot smile -->
+  <path d="M 38 53 Q 50 58 62 53" stroke="#667eea" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Robot body -->
+  <rect x="32" y="63" width="36" height="25" rx="5" fill="white"/>
+
+  <!-- Robot chest circle -->
+  <circle cx="50" cy="75" r="5" fill="#fbbf24"/>
+  <circle cx="50" cy="75" r="3" fill="#667eea"/>
+
+  <!-- Robot arms -->
+  <rect x="20" y="68" width="10" height="15" rx="3" fill="white"/>
+  <rect x="70" y="68" width="10" height="15" rx="3" fill="white"/>
+</svg>
