@@ -20,7 +20,7 @@ You need to configure routing rules in the backend, and these rules are based on
       "description": "When user talks about AWS or Amazon"
     },
     {
-      "name": "claude-3-sonnet",
+      "name": "claude-sonnet-5-5",
       "description": "uncertain"
     }
   ],

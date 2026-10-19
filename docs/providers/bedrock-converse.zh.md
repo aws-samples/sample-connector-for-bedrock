@@ -31,12 +31,14 @@ Amazon Bedrock LLM 统一调用。
 | maxRetries  |  number   | N     |  | 当访问 bedrock 出错的时候，会持续尝试，如果存在多组 aksk，则会排除当前的 key 再尝试 |
 | credentials  |  object[]   | N     |  | 多组 AKSK 的配置，具体参见下面的配置 |
 
+新安装不再在此 provider 上创建 Claude 3、3.5 和 3.7 的预置模型，因为 Bedrock 已将它们下线。如果数据库里已有这些模型，可以在管理后台删除。
+
 bedrock-converse 的配置示例如下：
 
 ```json
 {
   {
-  "modelId": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+  "modelId": "global.anthropic.claude-sonnet-5-5",
   "regions": [
     "us-east-1"
   ],

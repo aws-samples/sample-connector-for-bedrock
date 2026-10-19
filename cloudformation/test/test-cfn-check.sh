@@ -37,7 +37,7 @@ cat api-check.txt |while read k i j ; do
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer ${i}" \
       -d '{
-      "model": "claude-3-sonnet",
+      "model": "claude-sonnet-5-5",
       "messages": [
         {
           "role": "user",

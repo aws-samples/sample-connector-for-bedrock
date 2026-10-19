@@ -29,11 +29,13 @@ It is recommended to use this provider to support Bedrock's large language model
 | promptCache.fields  |  string[]   | N     |  | Where to enable prompt caching, supports three strings: "system", "messages", "tools" |
 | promptCache.messagePositions  |  int[]   | N     |  | In multi-turn conversations, you can specify the loading positions for messages caching |
 
+New installations no longer create the Claude 3, 3.5 and 3.7 preset models on this provider, because Bedrock has retired them. If your database already has them, you can delete them in the manager.
+
 The configuration example:
 
 ```json
 {
-  "modelId": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+  "modelId": "global.anthropic.claude-sonnet-5-5",
   "regions": [
     "us-east-1"
   ],

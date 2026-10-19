@@ -29,7 +29,7 @@ Configuration:
     "repost.aws",
     "stackoverflow.com"
   ],
-  "localLlmModel": "claude-3-sonnet",
+  "localLlmModel": "claude-sonnet-5-5",
   "searxng": {
     "host": "http://127.0.0.1:8081/"
   },
