@@ -56,6 +56,8 @@ A key can use Claude Code Web when the key itself, or its group, has at least on
 - `ClaudeCodeBackgroundModel` (default `claude-haiku-5-5`). Claude Code uses it for background tasks, and users cannot pick it in the page, so without it those calls fail.
 - `ClaudeCodeDefaultModel` (default `claude-sonnet-5-5`) and any other bedrock-runtime-anthropic model users should be able to choose. The model list in the page shows the key's bedrock-runtime-anthropic models and selects `claude-sonnet-5-5` when it is there, otherwise the first one. A key with none of these models cannot start a session.
 
+The BRConnector names of these models must contain `claude` (or `anthropic`), for the background model as well. The backend decides from the name: for any other name it switches to its LiteLLM proxy mode, which this deployment does not support, and the session fails.
+
 The key's monthly quota and balance apply as usual. When they run out, Claude Code Web answers 402 with the reason.
 
 ## Sign in
@@ -70,6 +72,7 @@ Logging out stops your microVM. Your files stay in S3 and come back the next tim
 
 - **Model tokens**: billed to the user's key at the prices set in BRConnector, as for any other client.
 - **Everything else** is billed to the AWS account that runs the stack, not to any key: AgentCore Runtime compute while microVMs run, CodeBuild minutes for each image build, S3 storage for the workspaces, ECR storage for the image, and CloudWatch Logs. Each key has at most one microVM, and an idle microVM is stopped after 15 minutes.
+- A `/cc` tab that is open and visible checks the backend's health every 5 seconds, and an open terminal polls for output even when the tab is in the background. Each of these calls counts as activity, so the microVM keeps running, up to AgentCore's 8-hour maximum lifetime (after which AgentCore starts a new one), for as long as the tab stays open. The 15-minute idle stop starts only after the tab is closed or hidden with no terminal open. Ask users to close the tab, or log out, when they are done.
 - The workspace bucket is kept when the stack is deleted. Empty and delete it by hand if you no longer need it.
 
 ## Known limitations
@@ -80,6 +83,8 @@ Logging out stops your microVM. Your files stay in S3 and come back the next tim
 - `ec2` and `ecs` cannot use Claude Code Web until a BRConnector release with `/cc` is published upstream and the maintainers push the public image.
 - With `lambda-web`, a single message stream lasts at most 15 minutes (the Lambda timeout is 900 seconds). With `ec2` and `ecs`, AgentCore's 15-minute limit for a synchronous request applies.
 - An idle microVM is reclaimed after 15 minutes. The workspace comes back from S3, but processes running in the terminal are lost.
+- The AWS credentials in the microVM are renewed on every request and last at most an hour. A terminal, or a process started from one, keeps the credentials it started with, which expire between 15 minutes and an hour later; after that its S3 and other AWS calls fail with expired credentials. Open a new terminal.
+- `/cc` and `/manager` share BRConnector's origin, and both keep their key in the browser's localStorage, so a page on one can read the other's key. Where you can, do not use the admin key in the same browser profile in which you use `/cc`.
 - Users can see their own key and their own temporary AWS credentials in their shell. Those credentials reach only their own workspace prefix. The shell can also use the runtime's own role, but that role can only pull the image, write this runtime's logs, traces and metrics, and request this runtime's workload access tokens; it has no Bedrock or S3 access.
 - The first visit cold-starts a microVM, which can take a few tens of seconds.
 - GitHub OAuth is not supported, and neither is the `lambda` compute type.

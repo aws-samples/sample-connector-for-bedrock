@@ -56,6 +56,8 @@ key 本身或者它所在的组，至少绑定了一个 [bedrock-runtime-anthrop
 - `ClaudeCodeBackgroundModel`（默认 `claude-haiku-5-5`）。Claude Code 的后台任务用它，用户在页面上选不到，没有绑定的话这些调用会失败。
 - `ClaudeCodeDefaultModel`（默认 `claude-sonnet-5-5`），以及希望用户能选的其他 bedrock-runtime-anthropic 模型。页面上的模型列表就是该 key 可用的 bedrock-runtime-anthropic 模型；有 `claude-sonnet-5-5` 时默认选它，没有就选第一个。一个都没有的 key 无法开始会话。
 
+这些模型在 BRConnector 里的名称必须包含 `claude`（或 `anthropic`），后台模型也一样。后端按名称判断：名称不含这两个词时，它会切换到 LiteLLM 代理模式，而本部署不支持这种模式，会话会失败。
+
 key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 402 和原因。
 
 ## 登录
@@ -70,6 +72,7 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 
 - **模型 token**：按 BRConnector 里设置的价格计入用户的 key，和其他客户端一样。
 - **其他费用**都由部署 stack 的 AWS 账号承担，不计入任何 key：microVM 运行期间的 AgentCore Runtime 计算费用、每次构建镜像的 CodeBuild 时长、工作区的 S3 存储、镜像的 ECR 存储，以及 CloudWatch Logs。每个 key 最多一个 microVM，空闲 15 分钟后停止。
+- 打开并处于前台的 `/cc` 页面每 5 秒检查一次后端健康状态；打开的终端即使页面在后台也会持续拉取输出。这些调用都算作活动，所以只要页面开着，microVM 就一直运行，最长到 AgentCore 的 8 小时生命周期上限（之后 AgentCore 会换一个新的）。空闲 15 分钟停止的计时，要等页面关闭、或者页面隐藏且没有打开终端之后才开始。请提醒用户用完后关闭页面或登出。
 - 删除 stack 时会保留工作区 bucket。不再需要时请手动清空并删除。
 
 ## 已知限制
@@ -80,6 +83,8 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 - 在上游发布带 `/cc` 的 BRConnector 版本、维护者推送公开镜像之前，`ec2` 和 `ecs` 形态用不了 Claude Code Web。
 - `lambda-web` 形态下，单次消息流最长 15 分钟（Lambda 超时 900 秒）；`ec2` 和 `ecs` 下受 AgentCore 同步请求 15 分钟的限制。
 - microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。
+- microVM 里的 AWS 凭证每次请求都会更新，有效期最长 1 小时。终端以及从终端启动的进程会一直用启动时拿到的凭证，这些凭证会在 15 分钟到 1 小时之后过期，此后访问 S3 等 AWS 服务会报凭证过期。请新开一个终端。
+- `/cc` 和 `/manager` 共用 BRConnector 的同一个 origin，两者都把 key 存在浏览器的 localStorage 里，所以一边的页面能读到另一边的 key。尽量不要在使用 `/cc` 的同一个浏览器 profile 里使用 admin key。
 - 用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标，以及获取这个 Runtime 的 workload access token，没有任何 Bedrock 或 S3 权限。
 - 第一次进入要冷启动 microVM，可能要等几十秒。
 - 不支持 GitHub OAuth，也不支持 `lambda` 计算形态。
