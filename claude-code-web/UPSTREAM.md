@@ -29,7 +29,12 @@ directory must be listed here.
   `apply_brc_request_env`, called first in `invocations()`, which copies the four
   BRConnector custom headers into `ANTHROPIC_AUTH_TOKEN`, `AWS_ACCESS_KEY_ID`,
   `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN`. Only variable names are logged.
-- `backend/tests/`: new tests (`test_brc_identity.py`); upstream has none.
+- `backend/api/invocations.py`: added `enforce_session_user` and `build_session_payload`.
+  `invocations()` calls the former right after parsing the headers, overwriting `user_id`
+  in `path_params`, `payload` and `query_params` (only where the key already exists) with the
+  session-derived id; session creation always uses that id instead of keeping a client value.
+  Covers `list_projects`, `/github/create-project`, session creation and workspace payloads.
+- `backend/tests/`: new tests (`test_brc_identity.py`, `test_brc_user_override.py`); upstream has none.
 - `Dockerfile` (upstream `deploy/Dockerfile`): rewritten. Pinned versions, checked
   on 2026-10-19: base image `public.ecr.aws/docker/library/node:24.22.0-trixie-slim`
   (current LTS line "Krypton"; tag confirmed in public ECR), `@anthropic-ai/claude-code@2.1.303`

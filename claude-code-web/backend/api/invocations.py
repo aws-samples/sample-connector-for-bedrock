@@ -132,6 +132,31 @@ def parse_session_and_user_from_headers(request: Request) -> tuple[Optional[str]
     return agentcore_session_id, user_id, project_name
 
 
+def enforce_session_user(request: dict, user_id: Optional[str]) -> dict:
+    """
+    Replace any client-supplied user_id with the session-derived one.
+
+    The browser sends a placeholder user_id; the trusted identity is the one
+    parsed from the session id header. Only dicts that already carry a
+    user_id key are touched, so no key is added where none existed.
+    """
+    if not user_id:
+        return request
+    for section in ("path_params", "payload", "query_params"):
+        values = request.get(section)
+        if isinstance(values, dict) and "user_id" in values:
+            values["user_id"] = user_id
+    return request
+
+
+def build_session_payload(payload: Optional[dict], user_id: Optional[str]) -> dict:
+    """Build the create-session payload, always using the session-derived user id."""
+    session_payload = payload.copy() if payload else {}
+    if user_id:
+        session_payload["user_id"] = user_id
+    return session_payload
+
+
 @router.post("/invocations")
 async def invocations(http_request: Request, request: dict[str, Any]):
     """
@@ -180,6 +205,9 @@ async def invocations(http_request: Request, request: dict[str, Any]):
 
     # Parse agentcore_session_id, user_id, and project_name from headers
     agentcore_session_id, user_id, project_name_from_header = parse_session_and_user_from_headers(http_request)
+
+    # Never trust a client-supplied user_id; use the session-derived one
+    enforce_session_user(request, user_id)
 
     # Get project_name from payload/query_params first (for workspace mode), fallback to header
     # This allows clients to explicitly specify project when workspace mode is enabled
@@ -317,10 +345,8 @@ async def invocations(http_request: Request, request: dict[str, Any]):
     # Route to appropriate endpoint based on path and method
     try:
         if path == "/sessions" and method == "POST":
-            # Create session - inject user_id from header if not in payload
-            session_payload = payload.copy() if payload else {}
-            if user_id and "user_id" not in session_payload:
-                session_payload["user_id"] = user_id
+            # Create session - always use the session-derived user_id
+            session_payload = build_session_payload(payload, user_id)
             req = CreateSessionRequest(**session_payload)
             return await create_session(req)
 
