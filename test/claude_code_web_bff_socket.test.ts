@@ -4,12 +4,15 @@ import Koa from 'koa';
 import { koaBody } from 'koa-body';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deps, invocations } from '../src/controller/runtime/claude_code_web';
+import { errorHandler } from '../src/middleware/handlers';
 
 const original = { ...deps };
 let server: http.Server;
 let port: number;
 let invoke: ReturnType<typeof vi.fn>;
 let bodies: any[];
+let statuses: number[];
+let logs: any[];
 
 async function until(cond: () => boolean, ms = 3000) {
     const end = Date.now() + ms;
@@ -21,6 +24,8 @@ async function until(cond: () => boolean, ms = 3000) {
 
 beforeEach(async () => {
     bodies = [];
+    statuses = [];
+    logs = [];
     Object.assign(deps, {
         loadCcConfig: async () => ({ runtimeArn: 'a', workspaceRoleArn: 'r', bucket: 'b', prefix: 'p' }),
         getWorkspaceCredentials: async () => ({ accessKeyId: 'i', secretAccessKey: 's', sessionToken: 't', expiration: new Date() }),
@@ -28,11 +33,18 @@ beforeEach(async () => {
         checkFee: async () => {},
     });
     const app = new Koa();
+    // Same order as src/index.ts: logger, errorHandler, body parser, handler.
+    app.use(async (ctx: any, next: any) => {
+        const log = (...a: any[]) => logs.push(a);
+        ctx.logger = { error: log, warn: log, info: log, debug: log };
+        await next();
+    });
+    app.use(errorHandler);
     app.use(koaBody());
     app.use(async (ctx: any) => {
         ctx.user = { id: 42, group_id: 1, api_key: 'k' };
-        ctx.logger = { error() {} };
         await invocations(ctx);
+        statuses.push(ctx.status);
         bodies.push(ctx.body);
     });
     server = http.createServer(app.callback());
@@ -80,5 +92,44 @@ describe('client disconnect on a real socket', () => {
         expect(bodies[0].destroyed).toBe(false);
         req.destroy();
         await until(() => signal.aborted && bodies[0].destroyed);
+    });
+
+    // Real fetch rejects with an AbortError when its signal fires.
+    const abortError = () => Object.assign(new Error('This operation was aborted'), { name: 'AbortError' });
+
+    it('stays quiet when invokeRuntime rejects with AbortError after the client left', async () => {
+        let signal!: AbortSignal;
+        invoke = vi.fn((_c: any, o: any) => new Promise((_res, rej) => {
+            signal = o.signal;
+            o.signal.addEventListener('abort', () => rej(abortError()));
+        }));
+        deps.invokeRuntime = invoke as any;
+        const { req } = await post();
+        await until(() => invoke.mock.calls.length > 0);
+        req.destroy();
+        await until(() => signal.aborted);
+        await new Promise((r) => setTimeout(r, 100));
+        expect(JSON.stringify(logs)).not.toMatch(/unreachable/);
+        expect(logs).toEqual([]);
+        expect(statuses).not.toContain(502);
+    });
+
+    it('stays quiet when the client leaves while a non-stream body is being read', async () => {
+        let signal!: AbortSignal;
+        invoke = vi.fn(async (_c: any, o: any) => {
+            signal = o.signal;
+            const body = new ReadableStream({
+                start(c) { o.signal.addEventListener('abort', () => c.error(abortError())); },
+            });
+            return new Response(body, { status: 200, headers: { 'content-type': 'application/json' } });
+        });
+        deps.invokeRuntime = invoke as any;
+        const { req } = await post();
+        await until(() => invoke.mock.calls.length > 0);
+        req.destroy();
+        await until(() => signal.aborted);
+        await new Promise((r) => setTimeout(r, 100));
+        expect(logs).toEqual([]);
+        expect(statuses).not.toContain(502);
     });
 });

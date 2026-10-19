@@ -135,7 +135,7 @@ describe('invocations', () => {
     it('does not abort when close follows a finished response', async () => {
         const ctx = makeCtx();
         await invocations(ctx);
-        ctx.res.writableFinished = true;
+        ctx.res.emit('finish');
         ctx.res.emit('close');
         expect(invoke.mock.calls[0][1].signal.aborted).toBe(false);
     });

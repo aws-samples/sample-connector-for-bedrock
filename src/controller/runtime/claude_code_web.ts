@@ -69,9 +69,13 @@ export async function invocations(ctx: any) {
     // Browser closed the page before the response finished: cancel the upstream request and the keepalive timer.
     const abort = new AbortController();
     let output: Readable | undefined;
-    // Listen on res: once koa-body has read the request, req 'close' has already fired.
+    // Listen on res: once koa-body has read the request, req 'close' has already fired. Track 'finish'
+    // ourselves: errorHandler ends res inside its own 'close' listener, and on Node 22 that already
+    // flips writableFinished on a destroyed socket.
+    let finished = false;
+    ctx.res.once('finish', () => { finished = true; });
     ctx.res.on('close', () => {
-        if (ctx.res.writableFinished) return;
+        if (finished) return;
         abort.abort();
         output?.destroy();
     });
@@ -109,8 +113,15 @@ export async function invocations(ctx: any) {
         ctx.set('Cache-Control', 'no-cache');
         ctx.body = output;
     } else {
+        let text: string;
+        try {
+            text = await res.text();
+        } catch (e: any) {
+            if (abort.signal.aborted) return; // the client left while the body was being read
+            throw e;
+        }
         ctx.type = contentType;
-        ctx.body = await res.text();
+        ctx.body = text;
     }
 }
 
