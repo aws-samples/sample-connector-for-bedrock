@@ -23,7 +23,7 @@ Provider：aws-executor
 
 ```json
 {
-  "localLlmModel": "claude-sonnet-5-5"
+  "localLlmModel": "claude-sonnet-5-5-chat"
 }
 ```
 

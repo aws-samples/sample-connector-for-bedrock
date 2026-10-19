@@ -170,9 +170,9 @@ const helper = {
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
-            case 'claude-opus-5-5':
+            case 'claude-opus-5-5-chat':
                 return {
-                    name: 'claude-opus-5-5',
+                    name: 'claude-opus-5-5-chat',
                     config: {
                         modelId: 'global.anthropic.claude-opus-5-5'
                     },
@@ -183,9 +183,9 @@ const helper = {
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
-            case 'claude-sonnet-5-5':
+            case 'claude-sonnet-5-5-chat':
                 return {
-                    name: 'claude-sonnet-5-5',
+                    name: 'claude-sonnet-5-5-chat',
                     config: {
                         modelId: 'global.anthropic.claude-sonnet-5-5'
                     },
@@ -196,9 +196,9 @@ const helper = {
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
-            case 'claude-haiku-5-5':
+            case 'claude-haiku-5-5-chat':
                 return {
-                    name: 'claude-haiku-5-5',
+                    name: 'claude-haiku-5-5-chat',
                     config: {
                         modelId: 'global.anthropic.claude-haiku-5-5'
                     },
@@ -289,7 +289,7 @@ const helper = {
                 };
             default:
                 return {
-                    name: 'claude-haiku-5-5',
+                    name: 'claude-haiku-5-5-chat',
                     config: {
                         modelId: 'global.anthropic.claude-haiku-5-5'
                     },

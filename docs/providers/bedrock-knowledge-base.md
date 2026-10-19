@@ -25,13 +25,13 @@ Or retrieving relevant text first, then using a model in BRConnector for summari
 ```json
 {
   "region": "<your-region>",
-  "summaryModel": "claude-sonnet-5-5",
+  "summaryModel": "claude-sonnet-5-5-chat",
   "knowledgeBaseId": "<your-kb-id>"
 }
 ```
 
 - knowledgeBaseId: the knowledge base id
-- summaryModel: supports claude-sonnet-5-5, claude-haiku-5-5 or claude-opus-5-5 models
+- summaryModel: supports claude-sonnet-5-5-chat, claude-haiku-5-5-chat or claude-opus-5-5-chat models
 - bedrockModelArn: the ARN of the foundation model in the current region, used for integrated streaming
 
 ## API Calls

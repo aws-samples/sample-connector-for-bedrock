@@ -23,7 +23,7 @@ Configuration:
 
 ```json
 {
-  "localLlmModel": "claude-sonnet-5-5"
+  "localLlmModel": "claude-sonnet-5-5-chat"
 }
 ```
 

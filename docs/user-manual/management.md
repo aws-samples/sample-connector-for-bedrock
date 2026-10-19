@@ -121,7 +121,7 @@ A Webhook consists of the following fields:
 {
   "appId": "cli_xxxxx",
   "apiKey": "br-xxxxx",
-  "modelId": "claude-haiku-5-5", 
+  "modelId": "claude-haiku-5-5-chat", 
   "appSecret": "xxxxx"
 }
 ```

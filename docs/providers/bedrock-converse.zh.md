@@ -31,7 +31,9 @@ Amazon Bedrock LLM 统一调用。
 | maxRetries  |  number   | N     |  | 当访问 bedrock 出错的时候，会持续尝试，如果存在多组 aksk，则会排除当前的 key 再尝试 |
 | credentials  |  object[]   | N     |  | 多组 AKSK 的配置，具体参见下面的配置 |
 
-新安装不再在此 provider 上创建 Claude 3、3.5 和 3.7 的预置模型，因为 Bedrock 已将它们下线。如果数据库里已有这些模型，可以在管理后台删除。
+此 provider 的预置模型：`claude-opus-5-5-chat`、`claude-sonnet-5-5-chat`、`claude-haiku-5-5-chat`（`modelId` 为 `global.anthropic.claude-<opus|sonnet|haiku>-5-5`，价格与对应的 `claude-*-5-5` 预置模型相同）。Chat Completions 客户端请用这几个。[bedrock-runtime-anthropic](bedrock-runtime-anthropic) 上的 `claude-*-5-5` 预置模型只做 `/v1/messages` 透传，供 Claude Code 使用。已有数据库也会在启动时通过迁移加上它们。
+
+新安装不再创建 Claude 3、3.5 和 3.7 的预置模型，因为 Bedrock 已将它们下线。如果数据库里已有这些模型，可以在管理后台删除。
 
 bedrock-converse 的配置示例如下：
 

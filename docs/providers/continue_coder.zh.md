@@ -8,7 +8,7 @@
 
 ```json
 {
-  "localLlmModel": "claude-haiku-5-5"
+  "localLlmModel": "claude-haiku-5-5-chat"
 }
 ```
 

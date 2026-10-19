@@ -12,7 +12,7 @@ Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
-  "model": "claude-sonnet-5-5",
+  "model": "claude-sonnet-5-5-chat",
   "messages": [
     {
       "role": "user",
@@ -33,7 +33,7 @@ Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
-  "model": "claude-sonnet-5-5",
+  "model": "claude-sonnet-5-5-chat",
   "messages": [
     {
       "role": "user",
@@ -64,7 +64,7 @@ Content-Type: application/json
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
-  "model": "claude-sonnet-5-5",
+  "model": "claude-sonnet-5-5-chat",
   "messages": [
     {
       "role": "user",
@@ -387,7 +387,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 {
   "name": "xxxx",
-  "config": "{\"appId\": \"cli_xxxxx\", \"apiKey\": \"br-xxxxx\", \"modelId\": \"claude-sonnet-5-5\", \"appSecret\": \"xxxxx\" }", 
+  "config": "{\"appId\": \"cli_xxxxx\", \"apiKey\": \"br-xxxxx\", \"modelId\": \"claude-sonnet-5-5-chat\", \"appSecret\": \"xxxxx\" }", 
   "provider": "bedrock-converse"
 }
 ```
@@ -402,7 +402,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 { 
   "appId": "cli_xxxxx", 
   "apiKey": "br-xxxxx", 
-  "modelId": "claude-sonnet-5-5", 
+  "modelId": "claude-sonnet-5-5-chat", 
   "appSecret": "xxxxx" 
 }
 ```

@@ -24,7 +24,7 @@ export default [
         "owned_by": "aws-bedrock"
     },
     {
-        "id": "claude-opus-5-5",
+        "id": "claude-opus-5-5-chat",
         "object": "model",
         "created": 1712297572,
         "multiple": true,
@@ -32,7 +32,7 @@ export default [
         "owned_by": "aws-bedrock"
     },
     {
-        "id": "claude-sonnet-5-5",
+        "id": "claude-sonnet-5-5-chat",
         "object": "model",
         "created": 1712297572,
         "multiple": true,
@@ -40,7 +40,7 @@ export default [
         "owned_by": "aws-bedrock"
     },
     {
-        "id": "claude-haiku-5-5",
+        "id": "claude-haiku-5-5-chat",
         "object": "model",
         "created": 1712297572,
         "multiple": true,

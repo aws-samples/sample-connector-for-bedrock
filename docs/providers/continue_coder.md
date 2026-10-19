@@ -8,7 +8,7 @@ This Provider is compatible with the [autocompletion](https://docs.continue.dev/
 
 ```json
 {
-  "localLlmModel": "claude-haiku-5-5"
+  "localLlmModel": "claude-haiku-5-5-chat"
 }
 ```
 

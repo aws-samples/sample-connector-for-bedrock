@@ -20,7 +20,7 @@
       "description": "When user talk about aws or amazon"
     },
     {
-      "name": "claude-sonnet-5-5",
+      "name": "claude-sonnet-5-5-chat",
       "description": "uncertain"
     }
   ],

@@ -118,7 +118,7 @@ Webhook由以下几个字段组成：
 {
   "appId": "cli_xxxxx",
   "apiKey": "br-xxxxx",
-  "modelId": "claude-haiku-5-5",
+  "modelId": "claude-haiku-5-5-chat",
   "appSecret": "xxxxx"
 }
 ```

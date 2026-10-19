@@ -29,7 +29,9 @@ It is recommended to use this provider to support Bedrock's large language model
 | promptCache.fields  |  string[]   | N     |  | Where to enable prompt caching, supports three strings: "system", "messages", "tools" |
 | promptCache.messagePositions  |  int[]   | N     |  | In multi-turn conversations, you can specify the loading positions for messages caching |
 
-New installations no longer create the Claude 3, 3.5 and 3.7 preset models on this provider, because Bedrock has retired them. If your database already has them, you can delete them in the manager.
+Preset models on this provider: `claude-opus-5-5-chat`, `claude-sonnet-5-5-chat` and `claude-haiku-5-5-chat` (`modelId` `global.anthropic.claude-<opus|sonnet|haiku>-5-5`, same prices as the matching `claude-*-5-5` presets). Use these for Chat Completions clients. The `claude-*-5-5` presets on [bedrock-runtime-anthropic](bedrock-runtime-anthropic) are `/v1/messages` passthrough only, for Claude Code. They are added to existing databases too, by a migration at startup.
+
+New installations no longer create the Claude 3, 3.5 and 3.7 preset models, because Bedrock has retired them. If your database already has them, you can delete them in the manager.
 
 The configuration example:
 
