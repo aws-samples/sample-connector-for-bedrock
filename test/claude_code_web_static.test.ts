@@ -67,6 +67,16 @@ describe('ccStaticHandler', () => {
             expect(r.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
         }));
 
+    it('sends a Content-Security-Policy with every page and asset', () =>
+        withServer(true, async (get) => {
+            const csp = "script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
+            for (const p of ['/cc/', '/cc/index.html', '/cc/projects/x', '/cc/assets/a.js']) {
+                const r = await get(p);
+                expect(r.status, p).toBe(200);
+                expect(r.headers.get('content-security-policy'), p).toBe(csp);
+            }
+        }));
+
     it('extensionless path falls back to index', () =>
         withServer(true, async (get) => {
             expect(await (await get('/cc/projects/x')).text()).toContain('INDEX');

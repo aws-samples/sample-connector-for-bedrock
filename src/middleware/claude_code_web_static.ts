@@ -5,6 +5,10 @@ import { lookup } from "mime-types";
 
 const PREFIX = "/cc";
 
+// /cc shares the BRConnector origin with /manager: only same-origin scripts, no plugins, no <base>, no framing.
+// The built bundle uses no eval/new Function and index.html has no inline script.
+const CONTENT_SECURITY_POLICY = "script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
+
 export interface CcStaticOptions {
   staticDir: string;
   isEnabled: () => Promise<boolean>;
@@ -54,6 +58,7 @@ export function ccStaticHandler(opts: CcStaticOptions): Middleware {
     }
     if (isFile(filePath)) {
       ctx.type = lookup(filePath) || "application/octet-stream";
+      ctx.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
       ctx.set(
         "Cache-Control",
         filePath === indexPath
@@ -75,6 +80,7 @@ export function ccStaticHandler(opts: CcStaticOptions): Middleware {
   function serveIndex(ctx: Parameters<Middleware>[0]) {
     ctx.type = "text/html; charset=utf-8";
     ctx.set("Cache-Control", "no-cache");
+    ctx.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
     ctx.body = fs.createReadStream(indexPath);
   }
 }

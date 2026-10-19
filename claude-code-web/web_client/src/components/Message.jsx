@@ -1,17 +1,10 @@
 import { Wrench, CheckCircle, XCircle, ShieldAlert, Zap } from 'lucide-react'
 import QuestionCard from './QuestionCard'
 import TodoList from './TodoList'
+import { formatMessageContent } from '../utils/formatMessage'
 
 function Message({ message, onPermissionRespond, onQuestionAnswer }) {
   const { type, role, content, toolName, toolInput, toolUseId, isError, permission } = message
-
-  const formatContent = (text) => {
-    if (!text) return ''
-    return text
-      .replace(/\n/g, '<br>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-  }
 
   const formatToolContent = (text) => {
     if (!text) return ''
@@ -165,7 +158,7 @@ function Message({ message, onPermissionRespond, onQuestionAnswer }) {
       </div>
       <div
         className="message-content"
-        dangerouslySetInnerHTML={{ __html: formatContent(content) }}
+        dangerouslySetInnerHTML={{ __html: formatMessageContent(content) }}
       />
     </div>
   )
