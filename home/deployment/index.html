@@ -2128,16 +2128,16 @@
 <ul>
 <li>Deploy BRConnector on EC2 with integrated database (or standalone database), put Cloudfront in front of EC2</li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-16.png" data-desc-position="bottom"><img alt="600" src="../attachments/deployment/IMG-deployment-16.png" title="600"></a></p>
+<p></p>
 <ul>
 <li>Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of public Lambda function URL</li>
 <li>Deploy BRConnector on Lambda with standalone database (or no database), put Cloudfront  in front of Lambda function URL with AWS_IAM authorization type</li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-17.png" data-desc-position="bottom"><img alt="600" src="../attachments/deployment/IMG-deployment-17.png" title="600"></a></p>
+<p></p>
 <ul>
 <li>Deploy BRConnector on ECS Cluster with standalone database (or no database), put Cloudfront  in front of ALB which expose ECS service.</li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-20.png" data-desc-position="bottom"><img alt="600" src="../attachments/deployment/IMG-deployment-20.png" title="600"></a></p>
+<p></p>
 <h2 id="deploy-guide">Deploy Guide<a class="headerlink" href="#deploy-guide" title="Permanent link">¶</a></h2>
 <ul>
 <li>(Mandatory, if you need lambda function URL with AWS_IAM auth type) deploy lambda@edge at us-east-1 region for Cloudfront Origin Request. After deploy successfully, get lambda version ARN from outputs page. <mark style="background: #FFB86CA6;">If skip this step, lambda function URL will be public.</mark></li>
@@ -2152,7 +2152,7 @@
 <li>Deploy VPC stack first, and put the stack name here.</li>
 <li>Choose 2 PUBLIC subnets for EC2/ECS and two PRIVATE subnets for Lambda and RDS (subnet group need 2 AZ at least)</li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-18.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-18.png" src="../attachments/deployment/IMG-deployment-18.png" title="attachments/deployment/IMG-deployment-18.png"></a></p>
+<p></p>
 <ul>
 <li>Compute parameters</li>
 <li>Choose ComputeType for BRConnector, Lambda or EC2</li>
@@ -2175,7 +2175,7 @@
 </ul>
 </li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-19.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-19.png" src="../attachments/deployment/IMG-deployment-19.png" title="attachments/deployment/IMG-deployment-19.png"></a></p>
+<p></p>
 <ul>
 <li>PostgreSQL parameters</li>
 <li>DatabaseMode choose:<ul>
@@ -2187,18 +2187,18 @@
 <li>Set PerformanceMode to true, chat history will not be saved.</li>
 <li>Default PostgreSQL password is <code>mysecretpassword</code></li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-13.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-13.png" src="../attachments/deployment/IMG-deployment-13.png"></a></p>
+<p></p>
 <ul>
 <li>Debugging parameters</li>
 <li>If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.</li>
 <li>Don’t delete EC2 if you choose EC2 as ComputeType</li>
 <li>If you set <code>true</code> to AutoUpdateBRConnector, one script will be add to ec2 crontab</li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-14.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-14.png" src="../attachments/deployment/IMG-deployment-14.png"></a></p>
+<p></p>
 <ul>
 <li>Until deploy successfully, go to output page and copy Cloudfront URL and first user key to your bedrock client settings page.</li>
 </ul>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-11.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-11.png" src="../attachments/deployment/IMG-deployment-11.png"></a></p>
+<p></p>
 <ul>
 <li>Also you could connect to <code>BRConnector</code> EC2 instance with SSM Session Manager (<a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console">docs</a>)</li>
 </ul>
