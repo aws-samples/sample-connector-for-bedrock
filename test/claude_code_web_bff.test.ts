@@ -160,6 +160,26 @@ describe('invocations', () => {
         expect(ctx.body).toEqual({ error: 'claude-code-web runtime unreachable', detail: 'claude-code-web runtime unreachable' });
     });
 
+    it('answers 502 without the STS reason when workspace credentials are unavailable', async () => {
+        const arn = 'arn:aws:iam::111111111111:role/brc-cc-workspace';
+        deps.getWorkspaceCredentials = async () => {
+            throw Object.assign(new Error(`User: arn:aws:sts::111111111111:assumed-role/x is not authorized to perform: sts:AssumeRole on resource: ${arn}`), {
+                name: 'AccessDenied',
+                Code: 'AccessDenied',
+                $metadata: { httpStatusCode: 403 },
+            });
+        };
+        const ctx = makeCtx();
+        await invocations(ctx);
+        expect(ctx.status).toBe(502);
+        expect(ctx.body).toEqual({ error: 'claude-code-web credentials unavailable', detail: 'claude-code-web credentials unavailable' });
+        expect(invoke).not.toHaveBeenCalled();
+        const dump = JSON.stringify(ctx.logs);
+        expect(dump).toContain('AccessDenied');
+        expect(dump).not.toContain('arn:aws');
+        expect(dump).not.toContain('not authorized');
+    });
+
     it('never logs the key or the credentials', async () => {
         invoke.mockRejectedValue(Object.assign(new TypeError(`fetch failed ${KEY}`), { code: 'ECONNRESET' }));
         const ctx = makeCtx();

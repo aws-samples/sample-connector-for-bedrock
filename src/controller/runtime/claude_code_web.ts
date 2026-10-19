@@ -65,7 +65,15 @@ export async function invocations(ctx: any) {
     if (!config) return;
 
     const sessionId = ccSessionId(ctx.user.id);
-    const creds = await deps.getWorkspaceCredentials(config, ctx.user.id);
+    let creds: Awaited<ReturnType<typeof deps.getWorkspaceCredentials>>;
+    try {
+        creds = await deps.getWorkspaceCredentials(config, ctx.user.id);
+    } catch (e: any) {
+        // STS messages quote role and session ARNs: log the class and code only, and send the browser neither.
+        ctx.logger?.error({ message: 'claude-code-web credentials unavailable', name: e?.name, code: e?.code ?? e?.Code });
+        fail(ctx, 502, 'claude-code-web credentials unavailable');
+        return;
+    }
 
     // Browser closed the page before the response finished: cancel the upstream request and the keepalive timer.
     const abort = new AbortController();
