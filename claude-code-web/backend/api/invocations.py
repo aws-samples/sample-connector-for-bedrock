@@ -157,6 +157,13 @@ def build_session_payload(payload: Optional[dict], user_id: Optional[str]) -> di
     return session_payload
 
 
+def require_session_user(user_id: Optional[str]) -> str:
+    """Reject user-scoped operations when no session-derived user id exists."""
+    if not user_id:
+        raise HTTPException(status_code=400, detail="missing BRConnector session user")
+    return user_id
+
+
 @router.post("/invocations")
 async def invocations(http_request: Request, request: dict[str, Any]):
     """
@@ -346,6 +353,7 @@ async def invocations(http_request: Request, request: dict[str, Any]):
     try:
         if path == "/sessions" and method == "POST":
             # Create session - always use the session-derived user_id
+            require_session_user(user_id)
             session_payload = build_session_payload(payload, user_id)
             req = CreateSessionRequest(**session_payload)
             return await create_session(req)
@@ -699,24 +707,21 @@ async def invocations(http_request: Request, request: dict[str, Any]):
         elif path == "/workspace/projects/backup" and method == "POST":
             # Backup project to S3
             from .workspace import backup_project, CreateProjectRequest
-            req = CreateProjectRequest(**payload)
+            require_session_user(user_id)
+            req = CreateProjectRequest(**{**(payload or {}), "user_id": user_id})
             return await backup_project(req)
 
         elif path == "/workspace/projects" and method == "POST":
             # Create project
             from .workspace import create_project, CreateProjectRequest
-            req = CreateProjectRequest(**payload)
+            require_session_user(user_id)
+            req = CreateProjectRequest(**{**(payload or {}), "user_id": user_id})
             return await create_project(req)
 
         elif path.startswith("/workspace/projects/") and method == "GET":
             # List projects for user
             from .workspace import list_projects
-            user_id = path_params.get("user_id")
-            if not user_id:
-                raise HTTPException(
-                    status_code=400, detail="Missing user_id in path_params"
-                )
-            return await list_projects(user_id)
+            return await list_projects(require_session_user(user_id))
 
         elif path == "/oauth/github/token" and method == "POST":
             # Get GitHub OAuth token
@@ -755,7 +760,7 @@ async def invocations(http_request: Request, request: dict[str, Any]):
             from .oauth import create_project_from_github
             # Extract params - try both path_params and query_params for compatibility
             params = request.get("path_params", {}) or request.get("query_params", {})
-            user_id = params.get("user_id")
+            user_id = require_session_user(user_id)
             repository_url = params.get("repository_url")
             project_name = params.get("project_name")
             branch = params.get("branch")

@@ -34,6 +34,9 @@ directory must be listed here.
   in `path_params`, `payload` and `query_params` (only where the key already exists) with the
   session-derived id; session creation always uses that id instead of keeping a client value.
   Covers `list_projects`, `/github/create-project`, session creation and workspace payloads.
+  Added `require_session_user`: session creation, `/workspace/projects` (POST, `/backup`, GET)
+  and `/github/create-project` fail closed with HTTP 400 `missing BRConnector session user`
+  when no session user exists; the two project POST branches always set `user_id` to it.
 - `backend/tests/`: new tests (`test_brc_identity.py`, `test_brc_user_override.py`); upstream has none.
 - `Dockerfile` (upstream `deploy/Dockerfile`): rewritten. Pinned versions, checked
   on 2026-10-19: base image `public.ecr.aws/docker/library/node:24.22.0-trixie-slim`
