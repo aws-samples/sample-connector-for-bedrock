@@ -93,7 +93,7 @@ async def sync_workspace_from_s3(
 
     try:
         # Execute s5cmd
-        process = await asyncio.create_subprocess_exec(
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -200,7 +200,7 @@ async def sync_workspace_to_s3(
 
     try:
         # Execute s5cmd
-        process = await asyncio.create_subprocess_exec(
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -311,7 +311,7 @@ async def clone_git_repository(
 
     try:
         # Execute gh repo clone
-        process = await asyncio.create_subprocess_exec(
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

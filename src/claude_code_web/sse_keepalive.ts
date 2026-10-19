@@ -50,8 +50,9 @@ export function withSseKeepalive(
         stopped = true;
         stop();
         source.unpipe(out);
-        // Terminate a half-written event first so the error event parses on its own.
-        out.end((tail === '\n\n' ? '' : '\n\n') + UPSTREAM_CLOSED);
+        // Always lead with a blank line: tail only tracks what the transform has seen, so under backpressure it
+        // may lag the real output. Extra blank lines are no-ops; a missing one would glue this to a half event.
+        out.end('\n\n' + UPSTREAM_CLOSED);
         opts.onSourceStopped?.(err);
     }
 

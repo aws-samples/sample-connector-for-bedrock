@@ -84,7 +84,7 @@ CfnLoader.add_multi_constructor('!', _construct_tag)
 
 
 def load(text):
-    return yaml.load(text, Loader=CfnLoader)
+    return yaml.load(text, Loader=CfnLoader)  # nosec B506 - CfnLoader subclasses yaml.CSafeLoader
 
 
 def is_gate_if(node):

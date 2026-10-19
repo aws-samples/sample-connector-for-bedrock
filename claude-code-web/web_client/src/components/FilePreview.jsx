@@ -185,7 +185,7 @@ function FilePreview({ serverUrl, filePath, onClose, disabled, currentProject })
       if (language) {
         try {
           const highlighted = hljs.highlight(fileInfo.content, { language }).value
-          codeRef.current.innerHTML = highlighted
+          codeRef.current.innerHTML = highlighted  // nosemgrep: insecure-innerhtml, insecure-document-method -- hljs.highlight escapes its input
         } catch (err) {
           // If highlighting fails, just show plain text
           console.warn('Syntax highlighting failed:', err)

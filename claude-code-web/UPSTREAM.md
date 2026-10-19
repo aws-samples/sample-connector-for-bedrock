@@ -97,3 +97,17 @@ directory must be listed here.
 - `web_client/src/components/Signup.jsx`, `web_client/src/config/cognito.js`,
   `web_client/src/components/OAuthCallback.jsx`: deleted (Cognito sign-up and config, GitHub
   OAuth callback page).
+- `backend/api/oauth.py`: `get_github_oauth_token` and `github_oauth_callback` take the user id from
+  the session id header (via `parse_session_and_user_from_headers`) instead of an unverified
+  `jwt.decode(..., verify_signature=False)`; the `jwt` use is removed. The callback passes
+  `userIdentifier={"userId": ...}` to `complete_resource_token_auth` instead of the JWT. Tests:
+  `backend/tests/test_oauth_identity.py`.
+- `backend/api/git.py`, `backend/core/s3_client.py`, `backend/core/workspace_sync.py`,
+  `backend/api/shell.py`: inline `# nosemgrep` comments naming `dangerous-asyncio-create-exec-audit`
+  (exec form with an argument list, no shell) and `dangerous-asyncio-shell-audit` (the remote shell is
+  the product feature, inside the caller's own single-user microVM). No behaviour change.
+- `web_client/src/components/FilePreview.jsx`: `// nosemgrep` for `insecure-innerhtml` and
+  `insecure-document-method` on the highlight.js output (hljs escapes its input).
+- `backend/tests/test_brc_identity.py`: the forged bearer value no longer looks like a JWT
+  (`detected-jwt-token`); the test still proves `Authorization` is ignored.
+- `Dockerfile`: added `HEALTHCHECK` (curl on `/ping`).

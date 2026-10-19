@@ -143,7 +143,7 @@ class S3Client:
         ])
 
         try:
-            process = await asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -223,7 +223,7 @@ class S3Client:
         ])
 
         try:
-            process = await asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

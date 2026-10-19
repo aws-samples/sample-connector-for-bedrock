@@ -36,4 +36,6 @@ ENV UV_PYTHON_DOWNLOADS=never
 
 EXPOSE 8080
 
+HEALTHCHECK --interval=30s --timeout=5s CMD curl -sf http://localhost:8080/ping || exit 1
+
 CMD ["/app/serve"]

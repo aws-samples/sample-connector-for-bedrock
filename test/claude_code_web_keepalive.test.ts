@@ -64,7 +64,8 @@ describe('withSseKeepalive', () => {
     });
 });
 
-const ERROR_EVENT = 'data: {"type":"error","error":"upstream closed"}\n\n';
+// The error event always leads with a blank line so it can never join a half-written event.
+const ERROR_EVENT = '\n\ndata: {"type":"error","error":"upstream closed"}\n\n';
 
 // Resolves with everything the output emitted once it ends; rejects if it errors instead.
 function drain(out: NodeJS.ReadableStream): Promise<string> {
@@ -94,7 +95,21 @@ describe('withSseKeepalive when the source stops early', () => {
         src.write('data: {"a"');
         await new Promise((r) => setImmediate(r));
         src.destroy(new Error('boom'));
-        expect(await text).toBe('data: {"a"\n\n' + ERROR_EVENT);
+        expect(await text).toBe('data: {"a"' + ERROR_EVENT);
+    });
+
+    it('keeps the error event on its own lines when a half-written event is still buffered', async () => {
+        const src = new PassThrough();
+        const out = withSseKeepalive(src);
+        out.on('error', () => {});
+        // Nobody reads yet, so the half event sits in the output buffer when the source fails.
+        src.write('data: {"a"');
+        src.destroy(new Error('boom'));
+        await new Promise((r) => setImmediate(r));
+        const text = await drain(out);
+        expect(text).toBe('data: {"a"' + ERROR_EVENT);
+        expect(text.split('\n\n').pop()).toBe('');
+        expect(text).toContain('\n\ndata: {"type":"error"');
     });
 
     it('ends the output when the source is destroyed without an error', async () => {

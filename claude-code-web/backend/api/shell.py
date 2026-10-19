@@ -88,7 +88,7 @@ async def execute_command_stream(command: str, cwd: str):
                 return
 
         # Execute regular command
-        process = await asyncio.create_subprocess_shell(
+        process = await asyncio.create_subprocess_shell(  # nosemgrep: dangerous-asyncio-shell-audit -- remote shell is the product feature; runs in the caller's own single-user microVM with only that user's scoped credentials
             command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,

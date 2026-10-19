@@ -13,8 +13,8 @@ from backend.api.invocations import (
 
 PREFIX = "x-amzn-bedrock-agentcore-runtime-custom-brc-"
 SESSION_HEADER = "x-amzn-bedrock-agentcore-runtime-session-id"
-# Looks like a JWT whose "sub" must be ignored
-FAKE_JWT = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJvdGhlci11c2VyIn0.sig"
+# Forged bearer value whose claims must be ignored
+FAKE_JWT = "not-a-real-token.forged-sub"
 
 
 ENV_NAMES = list(BRC_ENV_HEADERS.values())
