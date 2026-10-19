@@ -66,7 +66,9 @@ directory must be listed here.
   the sign-up link.
 - `web_client/src/main.jsx`: `BrowserRouter basename="/cc"`; the `/oauth/callback` route is removed.
 - `web_client/src/App.jsx`: no sign-up view; the default model comes from the key's model list
-  instead of `VITE_DEFAULT_MODEL`, and auto-connect waits for it; the header GitHub button is hidden.
+  instead of `VITE_DEFAULT_MODEL`, and auto-connect waits for it; the header GitHub button is hidden;
+  the default background model is the BRConnector model name `claude-haiku-5-5` instead of a Bedrock
+  model id.
 - `web_client/src/components/SettingsModal.jsx`, `web_client/src/components/ChatContainer.jsx`:
   model options come from the key's model list instead of `VITE_AVAILABLE_MODELS`.
 - `web_client/src/components/ProjectSwitcher.jsx`: the "From GitHub" import button is removed

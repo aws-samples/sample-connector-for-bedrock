@@ -33,7 +33,7 @@ const DEFAULT_SETTINGS = {
   cwd: import.meta.env.VITE_DEFAULT_CWD || '/workspace',
   // Set from the signed-in key's model list (see the model effect in AppContent)
   model: null,
-  backgroundModel: import.meta.env.VITE_DEFAULT_BACKGROUND_MODEL || 'global.anthropic.claude-haiku-4-5-20251001-v1:0'
+  backgroundModel: import.meta.env.VITE_DEFAULT_BACKGROUND_MODEL || 'claude-haiku-5-5'
 }
 
 function AppContent() {
