@@ -48,3 +48,27 @@ directory must be listed here.
 - `.dockerignore`: new; excludes `web_client`, `**/__pycache__`, `.venv`, `backend/tests`.
 - `web_client/vite.config.js`: added `base: '/cc/'` so built asset URLs are served under
   the BRConnector `/cc/` mount.
+- `web_client/src/utils/authUtils.js`: the bearer token is the BRConnector API key kept in
+  localStorage (`brc-cc-api-key`) instead of a Cognito access token; added `setApiKey` and
+  `clearApiKey`; `getAgentCoreSessionId` returns the placeholder `me@workspace` (BRConnector
+  replaces it); `isAuthError` checks only `status` 401/403. All upstream export names are kept.
+- `web_client/src/hooks/useAuth.jsx`: rewritten without Amplify; `login(key)` checks the key with
+  BRConnector `GET /v1/models` and also exposes the key's `models` and `defaultModel`.
+- `web_client/src/components/Login.jsx`: a single API key field replaces username/password and
+  the sign-up link.
+- `web_client/src/main.jsx`: `BrowserRouter basename="/cc"`; the `/oauth/callback` route is removed.
+- `web_client/src/App.jsx`: no sign-up view; the default model comes from the key's model list
+  instead of `VITE_DEFAULT_MODEL`, and auto-connect waits for it; the header GitHub button is hidden.
+- `web_client/src/components/SettingsModal.jsx`, `web_client/src/components/ChatContainer.jsx`:
+  model options come from the key's model list instead of `VITE_AVAILABLE_MODELS`.
+- `web_client/src/components/ProjectSwitcher.jsx`: the "From GitHub" import button is removed
+  (GitHub is not offered).
+- `web_client/src/utils/brcModels.js`: new; picks the key's `bedrock-runtime-anthropic` models
+  and the default model (pure, tested from the BRConnector root suite).
+- `web_client/.env.production`: new; fixed build settings for the `/cc` deployment (server URL
+  `/cc/api`, invocations mode, settings button hidden, workspace mode).
+- `web_client/package.json`, `web_client/package-lock.json`: removed `aws-amplify` and
+  `@aws-amplify/ui-react` (only Cognito used them).
+- `web_client/src/components/Signup.jsx`, `web_client/src/config/cognito.js`,
+  `web_client/src/components/OAuthCallback.jsx`: deleted (Cognito sign-up and config, GitHub
+  OAuth callback page).

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, X, Loader2, AlertTriangle, RefreshCw, Square } from 'lucide-react'
 import Message from './Message'
+import { useAuth } from '../hooks/useAuth.jsx'
 
 function ChatContainer({
   sessionInfo,
@@ -32,14 +33,8 @@ function ChatContainer({
   const [showMcpSelector, setShowMcpSelector] = useState(false)
   const messagesEndRef = useRef(null)
 
-  // Get available models from environment or use defaults
-  const availableModels = import.meta.env.VITE_AVAILABLE_MODELS
-    ? import.meta.env.VITE_AVAILABLE_MODELS.split(',')
-    : [
-        'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
-        'global.anthropic.claude-haiku-4-5-20251001-v1:0',
-        'qwen.qwen3-coder-480b-a35b-v1:0'
-      ]
+  // Models the signed-in BRConnector key can use
+  const { models: availableModels } = useAuth()
 
   // Update selected model when currentModel prop changes
   useEffect(() => {

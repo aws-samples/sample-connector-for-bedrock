@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FolderOpen, Plus, Folder, X, AlertTriangle, Github } from 'lucide-react'
+import { FolderOpen, Plus, Folder, X, AlertTriangle } from 'lucide-react'
 import GithubProjectSelector from './GithubProjectSelector'
 
 export default function ProjectSwitcher({
@@ -128,13 +128,7 @@ export default function ProjectSwitcher({
                         <Plus size={14} />
                         New Project
                       </button>
-                      <button
-                        onClick={() => setShowGithubSelector(true)}
-                        className="btn-secondary btn-small"
-                      >
-                        <Github size={14} />
-                        From GitHub
-                      </button>
+                      {/* GitHub import is not offered */}
                     </div>
                   </div>
 

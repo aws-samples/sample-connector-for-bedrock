@@ -1,94 +1,51 @@
 /**
- * Authentication utility functions for token management
+ * Authentication utility functions for the BRConnector API key
+ *
+ * The key is kept in localStorage and sent as the bearer token on every request.
  */
 
-import { fetchAuthSession } from 'aws-amplify/auth'
+const API_KEY_STORAGE_KEY = 'brc-cc-api-key'
 
-// Token refresh threshold: refresh if token expires in less than 5 minutes
-const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000 // 5 minutes in milliseconds
+// BRConnector replaces the session id with one derived from the key, so the client only sends a placeholder
+const PLACEHOLDER_SESSION_ID = 'me@workspace'
 
 /**
- * Get valid access token, refreshing if necessary
- * @returns {Promise<string|null>} Access token or null if not authenticated
+ * Store the BRConnector API key
+ * @param {string} key - API key
+ */
+export function setApiKey(key) {
+  localStorage.setItem(API_KEY_STORAGE_KEY, key)
+}
+
+/**
+ * Forget the stored BRConnector API key
+ */
+export function clearApiKey() {
+  localStorage.removeItem(API_KEY_STORAGE_KEY)
+}
+
+/**
+ * Get the stored API key
+ * @returns {Promise<string|null>} API key or null if not signed in
  */
 export async function getValidAccessToken() {
   try {
-    const session = await fetchAuthSession({ forceRefresh: false })
-
-    if (!session.tokens || !session.tokens.accessToken) {
-      return null
-    }
-
-    const accessToken = session.tokens.accessToken
-    const expiresAt = accessToken.payload.exp * 1000 // Convert to milliseconds
-    const now = Date.now()
-    const timeUntilExpiry = expiresAt - now
-
-    // If token expires soon, force refresh
-    if (timeUntilExpiry < TOKEN_REFRESH_THRESHOLD) {
-      console.log('🔄 Access token expiring soon, refreshing...')
-      const refreshedSession = await fetchAuthSession({ forceRefresh: true })
-      return refreshedSession.tokens?.accessToken?.toString() || null
-    }
-
-    return accessToken.toString()
+    return localStorage.getItem(API_KEY_STORAGE_KEY) || null
   } catch (error) {
-    console.error('Failed to get access token:', error)
+    console.error('Failed to read the API key from localStorage:', error)
     return null
   }
 }
 
 /**
- * Get AgentCore session ID from access token
- * Extracts user_id from JWT 'sub' claim and formats as session ID
- * @param {string|null} project - Project name (optional). If provided and workspace mode is disabled, formats as userid@workspace/project
- * @returns {Promise<string|null>} Session ID or null if not available
+ * Get AgentCore session ID
+ * BRConnector generates the real session id from the key, so this is a placeholder
+ * @param {string|null} project - Project name (ignored; kept for the upstream signature)
+ * @returns {Promise<string|null>} Placeholder session ID, or null if not signed in
  */
 export async function getAgentCoreSessionId(project = null) {
-  try {
-    const token = await getValidAccessToken()
-    if (!token) {
-      return null
-    }
-
-    // Decode JWT token (without verification - just parse)
-    const parts = token.split('.')
-    if (parts.length !== 3) {
-      return null
-    }
-
-    const payload = JSON.parse(atob(parts[1]))
-    const userId = payload.sub
-
-    if (!userId) {
-      return null
-    }
-
-    // Check workspace mode from environment variable
-    const workspaceMode = import.meta.env.VITE_WORKSPACE_MODE === 'true'
-
-    console.log(`[AuthUtils] getAgentCoreSessionId:`, {
-      workspaceMode,
-      project,
-      VITE_WORKSPACE_MODE: import.meta.env.VITE_WORKSPACE_MODE
-    })
-
-    // Format session ID based on mode
-    if (workspaceMode || !project) {
-      // Workspace mode: user_id@workspace
-      const sessionId = `${userId}@workspace`
-      console.log(`[AuthUtils] Using workspace mode, session ID: ${sessionId}`)
-      return sessionId
-    } else {
-      // Project mode: user_id@workspace/project
-      const sessionId = `${userId}@workspace/${project}`
-      console.log(`[AuthUtils] Using project mode, session ID: ${sessionId}`)
-      return sessionId
-    }
-  } catch (error) {
-    console.error('Failed to get AgentCore session ID:', error)
-    return null
-  }
+  const key = await getValidAccessToken()
+  return key ? PLACEHOLDER_SESSION_ID : null
 }
 
 /**
@@ -125,13 +82,7 @@ export async function getAuthHeaders(includeSessionId = false, project = null) {
  * @returns {boolean} True if authentication error
  */
 export function isAuthError(error) {
-  return (
-    error.status === 401 ||
-    error.statusCode === 401 ||
-    error.message?.includes('401') ||
-    error.message?.includes('Unauthorized') ||
-    error.message?.includes('Not authenticated')
-  )
+  return error?.status === 401 || error?.status === 403
 }
 
 /**

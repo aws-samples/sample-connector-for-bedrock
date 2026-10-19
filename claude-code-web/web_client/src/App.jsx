@@ -13,7 +13,6 @@ import FilePreview from './components/FilePreview'
 import SettingsModal from './components/SettingsModal'
 import TerminalPTY from './components/TerminalPTY'
 import Login from './components/Login'
-import Signup from './components/Signup'
 import ProjectSwitcher from './components/ProjectSwitcher'
 import { useClaudeAgent } from './hooks/useClaudeAgent'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
@@ -32,14 +31,14 @@ const hideSettingsButton = import.meta.env.VITE_HIDE_SETTINGS_BUTTON === 'true'
 const DEFAULT_SETTINGS = {
   serverUrl: import.meta.env.VITE_DEFAULT_SERVER_URL || 'http://127.0.0.1:8000',
   cwd: import.meta.env.VITE_DEFAULT_CWD || '/workspace',
-  model: import.meta.env.VITE_DEFAULT_MODEL || 'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
+  // Set from the signed-in key's model list (see the model effect in AppContent)
+  model: null,
   backgroundModel: import.meta.env.VITE_DEFAULT_BACKGROUND_MODEL || 'global.anthropic.claude-haiku-4-5-20251001-v1:0'
 }
 
 function AppContent() {
   const [showSettings, setShowSettings] = useState(false)
-  const [authView, setAuthView] = useState('login') // 'login' or 'signup'
-  const { user, initializing, logout } = useAuth()
+  const { user, initializing, logout, models, defaultModel } = useAuth()
 
   // Set up global authentication error handler
   useEffect(() => {
@@ -164,6 +163,13 @@ function AppContent() {
     interruptSession
   } = useClaudeAgent(settings.serverUrl, user?.userId, currentProject, serverDisconnected, handleMessagesChanged, selectedMcpServers, settings.model)
 
+  // Use the key's default model when the saved one is not in the key's model list
+  useEffect(() => {
+    if (models.length > 0 && !models.includes(settings.model)) {
+      setSettings(prev => ({ ...prev, model: defaultModel }))
+    }
+  }, [models, defaultModel, settings.model])
+
   // Save settings to localStorage whenever they change
   useEffect(() => {
     try {
@@ -195,10 +201,12 @@ function AppContent() {
   // Auto-connect when user logs in and server is connected
   useEffect(() => {
     if (!user?.userId || serverDisconnected || connected) return
+    // Wait until the model effect has picked a model from the key's list
+    if (!models.includes(settings.model)) return
 
     console.log('🔗 Auto-connecting with current settings...')
     connect(settings)
-  }, [user?.userId, serverDisconnected, connected, connect, settings])
+  }, [user?.userId, serverDisconnected, connected, connect, settings, models])
 
   // Load available projects when user logs in and server is connected
   useEffect(() => {
@@ -434,7 +442,7 @@ function AppContent() {
         // Continue with logout even if this fails
       }
 
-      // Logout from Cognito
+      // Forget the BRConnector key
       await logout()
       console.log('✅ Logged out successfully')
     } catch (error) {
@@ -664,10 +672,7 @@ function AppContent() {
 
   // Show auth screens if not logged in
   if (!user) {
-    if (authView === 'signup') {
-      return <Signup onSwitchToLogin={() => setAuthView('login')} />
-    }
-    return <Login onSwitchToSignup={() => setAuthView('signup')} />
+    return <Login />
   }
 
   // Main app content (user is authenticated)
@@ -763,7 +768,7 @@ function AppContent() {
         onTerminalToggle={() => setShowTerminal(!showTerminal)}
         currentProject={currentProject}
         onProjectSwitcherOpen={() => setShowProjectSwitcher(true)}
-        onGithubAuthClick={handleGithubAuth}
+        // GitHub sign-in is not offered: no onGithubAuthClick, so Header hides its button
         githubAuthStatus={githubAuthStatus}
         githubAuthMessage={githubAuthMessage}
         onCloseProject={handleDisconnectServer}

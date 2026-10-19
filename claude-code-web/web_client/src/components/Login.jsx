@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { User, Lock, Loader2, AlertCircle } from 'lucide-react'
+import { KeyRound, Loader2, AlertCircle } from 'lucide-react'
 
-function Login({ onSwitchToSignup }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+function Login() {
+  const { login, error: restoreError } = useAuth()
+
+  const [apiKey, setApiKey] = useState('')
+  // Show why the stored key could not be used, if it was rejected on load
+  const [error, setError] = useState(restoreError || '')
   const [loading, setLoading] = useState(false)
-
-  const { login } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -16,10 +16,10 @@ function Login({ onSwitchToSignup }) {
     setLoading(true)
 
     try {
-      const result = await login(username, password)
+      const result = await login(apiKey.trim())
 
       if (!result.success) {
-        const errorMessage = result.error || 'Login failed. Please try again.'
+        const errorMessage = result.error || 'Sign in failed. Please try again.'
         setLoading(false)
         setError(errorMessage)
         return
@@ -39,7 +39,7 @@ function Login({ onSwitchToSignup }) {
         <div className="auth-header">
           <h1>🤖 Claude Agent</h1>
           <h2>Sign In</h2>
-          <p>Enter your username or email and password</p>
+          <p>Enter your BRConnector API key</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -51,35 +51,18 @@ function Login({ onSwitchToSignup }) {
           )}
 
           <div className="form-group">
-            <label htmlFor="username">
-              <User size={16} />
-              Username
+            <label htmlFor="api-key">
+              <KeyRound size={16} />
+              API Key
             </label>
             <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="username or you@example.com"
-              required
-              autoComplete="username"
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">
-              <Lock size={16} />
-              Password
-            </label>
-            <input
-              id="password"
+              id="api-key"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="BRConnector API key"
               required
-              autoComplete="current-password"
+              autoComplete="off"
               disabled={loading}
             />
           </div>
@@ -87,7 +70,7 @@ function Login({ onSwitchToSignup }) {
           <button
             type="submit"
             className="btn btn-primary btn-block"
-            disabled={loading || !username || !password}
+            disabled={loading || !apiKey.trim()}
           >
             {loading ? (
               <>
@@ -99,20 +82,6 @@ function Login({ onSwitchToSignup }) {
             )}
           </button>
         </form>
-
-        <div className="auth-footer">
-          <p>
-            Don't have an account?{' '}
-            <button
-              type="button"
-              onClick={onSwitchToSignup}
-              className="link-button"
-              disabled={loading}
-            >
-              Sign Up
-            </button>
-          </p>
-        </div>
       </div>
     </div>
   )

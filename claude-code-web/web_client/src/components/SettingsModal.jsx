@@ -1,16 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../hooks/useAuth.jsx'
 
 function SettingsModal({ isOpen, onClose, settings, onSave }) {
   const [localSettings, setLocalSettings] = useState(settings)
 
-  // Get available models from environment or use defaults
-  const availableModels = import.meta.env.VITE_AVAILABLE_MODELS
-    ? import.meta.env.VITE_AVAILABLE_MODELS.split(',')
-    : [
-        'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
-        'global.anthropic.claude-haiku-4-5-20251001-v1:0',
-        'qwen.qwen3-coder-480b-a35b-v1:0'
-      ]
+  // Models the signed-in BRConnector key can use
+  const { models: availableModels } = useAuth()
 
   useEffect(() => {
     setLocalSettings(settings)
