@@ -21,6 +21,8 @@
     "@aws-sdk/client-bedrock-runtime": "3.980.0",
     "@aws-sdk/client-s3": "3.980.0",
     "@aws-sdk/client-sagemaker-runtime": "3.980.0",
+    "@aws-sdk/client-ssm": "3.980.0",
+    "@aws-sdk/client-sts": "3.980.0",
     "@aws-sdk/credential-provider-node": "3.972.4",
     "@aws-sdk/s3-request-presigner": "3.980.0",
     "@azure/openai": "^2.0.0",
