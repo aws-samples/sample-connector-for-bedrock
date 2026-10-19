@@ -23,6 +23,12 @@ router = APIRouter()
 _github_oauth_initialized_users: set[str] = set()
 
 
+def _session_user_id(request: Request) -> Optional[str]:
+    """User id parsed from the BRConnector session id header (lazy import avoids a cycle)."""
+    from .invocations import parse_session_and_user_from_headers
+    return parse_session_and_user_from_headers(request)[1]
+
+
 async def try_initialize_github_oauth(request: Request, user_id: str) -> None:
     """
     Try to initialize GitHub OAuth authentication for a user (first time only).
@@ -365,7 +371,7 @@ async def get_github_oauth_token(request: Request):
 
     Headers required:
     - x-amzn-bedrock-agentcore-runtime-workload-accesstoken: Workload identity token
-    - authorization: Bearer token containing user_id in 'sub' claim
+    - x-amzn-bedrock-agentcore-runtime-session-id: <user_id>@workspace[/project]
 
     API Call:
         Uses client.get_resource_oauth2_token() with:
@@ -405,22 +411,12 @@ async def get_github_oauth_token(request: Request):
             detail="Missing x-amzn-bedrock-agentcore-runtime-workload-accesstoken header"
         )
 
-    # Extract user_id from Authorization header
-    user_id = None
-    auth_header = request.headers.get("authorization", "")
-    if auth_header.lower().startswith("bearer "):
-        token = auth_header[7:].strip()
-        try:
-            import jwt
-            decoded = jwt.decode(token, options={"verify_signature": False})
-            user_id = decoded.get("sub")
-        except Exception as e:
-            logger.warning(f"Failed to decode JWT token: {e}")
-
+    # User comes from the BRConnector session id header, never from a JWT
+    user_id = _session_user_id(request)
     if not user_id:
         raise HTTPException(
             status_code=400,
-            detail="Missing or invalid Authorization header (user_id not found in JWT)"
+            detail="Missing BRConnector session user (x-amzn-bedrock-agentcore-runtime-session-id)"
         )
 
     logger.info(f"Getting GitHub OAuth token for user: {user_id}")
@@ -531,7 +527,7 @@ async def github_oauth_callback(request: Request, session_id: str):
         session_id (str): Session identifier from OAuth provider redirect
 
     Headers required:
-        - authorization: Bearer token containing user_id in 'sub' claim
+        - x-amzn-bedrock-agentcore-runtime-session-id: <user_id>@workspace[/project]
 
     Returns:
         HTMLResponse: Success page indicating OAuth flow completion
@@ -548,22 +544,12 @@ async def github_oauth_callback(request: Request, session_id: str):
             detail="Missing session_id query parameter"
         )
 
-    # Extract user_id from Authorization header
-    user_id = None
-    auth_header = request.headers.get("authorization", "")
-    if auth_header.lower().startswith("bearer "):
-        token = auth_header[7:].strip()
-        try:
-            import jwt
-            decoded = jwt.decode(token, options={"verify_signature": False})
-            user_id = decoded.get("sub")
-        except Exception as e:
-            logger.warning(f"Failed to decode JWT token: {e}")
-
+    # User comes from the BRConnector session id header, never from a JWT
+    user_id = _session_user_id(request)
     if not user_id:
         raise HTTPException(
             status_code=400,
-            detail="Missing or invalid Authorization header (user_id not found in JWT)"
+            detail="Missing BRConnector session user (x-amzn-bedrock-agentcore-runtime-session-id)"
         )
 
     logger.info(f"Processing GitHub OAuth callback for user: {user_id}, session: {session_id}")
@@ -575,7 +561,7 @@ async def github_oauth_callback(request: Request, session_id: str):
         # This associates the OAuth session with the user and retrieves access tokens
         response = client.complete_resource_token_auth(
             sessionUri=session_id,
-            userIdentifier={"userToken": token}
+            userIdentifier={"userId": user_id}
         )
 
         logger.info(f"Successfully completed OAuth flow for user {user_id}, session {session_id}")
