@@ -1,6 +1,8 @@
 """Tests for BRConnector identity parsing and per-request env injection."""
 
 import logging
+import os
+import pytest
 from types import SimpleNamespace
 
 from backend.api.invocations import (
@@ -13,6 +15,20 @@ PREFIX = "x-amzn-bedrock-agentcore-runtime-custom-brc-"
 SESSION_HEADER = "x-amzn-bedrock-agentcore-runtime-session-id"
 # Looks like a JWT whose "sub" must be ignored
 FAKE_JWT = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJvdGhlci11c2VyIn0.sig"
+
+
+ENV_NAMES = list(BRC_ENV_HEADERS.values())
+# Snapshot at import time, before any test mutates the environment
+ENV_SNAPSHOT = {name: os.environ.get(name) for name in ENV_NAMES}
+
+
+@pytest.fixture(autouse=True)
+def isolated_env(monkeypatch):
+    # setenv then delenv makes monkeypatch record the original state, so it is
+    # restored even for variables that were absent before the test
+    for name in ENV_NAMES:
+        monkeypatch.setenv(name, "placeholder")
+        monkeypatch.delenv(name)
 
 
 def make_request(headers):
@@ -43,26 +59,21 @@ def test_missing_session_header_gives_no_user():
 
 
 def test_apply_env_sets_only_present_headers(monkeypatch):
-    for name in BRC_ENV_HEADERS.values():
+    for name in ENV_NAMES:
         monkeypatch.setenv(name, "original")
     written = apply_brc_request_env({PREFIX + "api-key": "key-value"})
     assert written == ["ANTHROPIC_AUTH_TOKEN"]
-    import os
     assert os.environ["ANTHROPIC_AUTH_TOKEN"] == "key-value"
     assert os.environ["AWS_ACCESS_KEY_ID"] == "original"
 
 
 def test_apply_env_overwrites_on_next_request(monkeypatch):
-    import os
-    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
     apply_brc_request_env({PREFIX + "api-key": "first"})
     apply_brc_request_env({PREFIX + "api-key": "second"})
     assert os.environ["ANTHROPIC_AUTH_TOKEN"] == "second"
 
 
 def test_secret_values_never_logged(monkeypatch, capsys, caplog):
-    for name in BRC_ENV_HEADERS.values():
-        monkeypatch.delenv(name, raising=False)
     secrets = ["sekrit-api-key", "sekrit-access-key-id", "sekrit-secret-key", "sekrit-session-token"]
     headers = dict(zip(
         [PREFIX + "api-key", PREFIX + "aws-access-key-id",
@@ -77,3 +88,8 @@ def test_secret_values_never_logged(monkeypatch, capsys, caplog):
     output = captured.out + captured.err + caplog.text
     for secret in secrets:
         assert secret not in output
+
+
+def test_zz_env_restored_after_previous_tests():
+    # Runs last (file order): earlier tests wrote env vars, none may leak
+    assert {name: os.environ.get(name) for name in ENV_NAMES} == ENV_SNAPSHOT
