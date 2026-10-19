@@ -46,3 +46,5 @@ directory must be listed here.
   build, `UV_PYTHON_DOWNLOADS=never`, `UV_FROZEN=1` and `UV_NO_DEV=1` keep the
   `uv run` in `/app/serve` offline (no download, no re-lock, no dev group).
 - `.dockerignore`: new; excludes `web_client`, `**/__pycache__`, `.venv`, `backend/tests`.
+- `web_client/vite.config.js`: added `base: '/cc/'` so built asset URLs are served under
+  the BRConnector `/cc/` mount.

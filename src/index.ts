@@ -22,6 +22,8 @@ import path from "path";
 const fs = require("fs");
 import { version } from "../package.json";
 import { startUp } from "./util/warmup";
+import { ccStaticHandler } from "./middleware/claude_code_web_static";
+import { loadCcConfig } from "./claude_code_web/config";
 
 const app = new Koa();
 
@@ -60,6 +62,13 @@ if (!config.disableUI) {
     }
     await next();
   });
+
+  app.use(
+    ccStaticHandler({
+      staticDir: path.resolve(__dirname, "../cc"),
+      isEnabled: async () => (await loadCcConfig()) !== null,
+    }),
+  );
 
   app.use(
     serve({

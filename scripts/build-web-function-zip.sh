@@ -17,6 +17,7 @@ rm -rf "$STAGE" "$ZIP"
 mkdir -p "$STAGE"
 cp -R dist/server "$STAGE/server"
 cp -R dist/frontend "$STAGE/frontend"
+cp -R dist/cc "$STAGE/cc"
 cp dist/package.json "$STAGE/package.json"
 if [ -d brclient ]; then
   cp -R brclient "$STAGE/brclient"
@@ -43,7 +44,7 @@ BAD="$(find node_modules -name '*.node' | grep -E 'darwin|x64' || true)"
 [ -z "$BAD" ] || fail "wrong-platform native binaries found:
 $BAD"
 
-for f in index.js package.json server/index.js frontend/index.html; do
+for f in index.js package.json server/index.js frontend/index.html cc/index.html; do
   [ -f "$f" ] || fail "missing $f"
 done
 
