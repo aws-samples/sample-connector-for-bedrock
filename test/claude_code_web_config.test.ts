@@ -49,6 +49,7 @@ describe('loadCcConfig', () => {
     it('returns null when the SSM JSON lacks a field or has an empty one', async () => {
         const { bucket, ...missing } = ssmValue;
         expect(await loadCcConfig({ env: { CC_CONFIG_PARAM: PARAM }, getParameter: async () => JSON.stringify(missing) })).toBeNull();
+        resetCcConfigCache();
         expect(
             await loadCcConfig({ env: { CC_CONFIG_PARAM: PARAM }, getParameter: async () => JSON.stringify({ ...ssmValue, prefix: '' }) }),
         ).toBeNull();
@@ -58,15 +59,42 @@ describe('loadCcConfig', () => {
         expect(await loadCcConfig({ env: { CC_CONFIG_PARAM: PARAM }, getParameter: async () => 'not json' })).toBeNull();
     });
 
-    it('does not cache a failure: first getParameter throws, second succeeds', async () => {
+    it('caches a failure for 30 s only: a parameter that becomes valid is picked up afterwards', async () => {
+        let t = 1_000_000;
+        const now = () => t;
         const getParameter = vi
             .fn<(arn: string) => Promise<string>>()
             .mockRejectedValueOnce(new Error('ParameterNotFound'))
             .mockResolvedValue(JSON.stringify(ssmValue));
         const env = { CC_CONFIG_PARAM: PARAM };
-        expect(await loadCcConfig({ env, getParameter })).toBeNull();
-        expect(await loadCcConfig({ env, getParameter })).toEqual(ssmValue);
+        expect(await loadCcConfig({ env, getParameter, now })).toBeNull();
+        t += 29_999;
+        expect(await loadCcConfig({ env, getParameter, now })).toBeNull();
+        expect(getParameter).toHaveBeenCalledTimes(1);
+        t += 1;
+        expect(await loadCcConfig({ env, getParameter, now })).toEqual(ssmValue);
         expect(getParameter).toHaveBeenCalledTimes(2);
+    });
+
+    it('warns once per 30 s while misconfigured, not per request', async () => {
+        const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
+        let t = 0;
+        const now = () => t;
+        const getParameter = vi.fn(async (_arn: string) => 'not json');
+        const env = { CC_CONFIG_PARAM: PARAM };
+        for (let i = 0; i < 5; i++) expect(await loadCcConfig({ env, getParameter, now })).toBeNull();
+        expect(getParameter).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledTimes(1);
+        t = 30_000;
+        expect(await loadCcConfig({ env, getParameter, now })).toBeNull();
+        expect(getParameter).toHaveBeenCalledTimes(2);
+        expect(spy).toHaveBeenCalledTimes(2);
+        spy.mockRestore();
+    });
+
+    it('does not cache "not configured"', async () => {
+        expect(await loadCcConfig({ env: {} })).toBeNull();
+        expect(await loadCcConfig({ env: full })).not.toBeNull();
     });
 
     it('caches a success', async () => {
@@ -79,6 +107,43 @@ describe('loadCcConfig', () => {
 
     it('returns null when nothing is configured', async () => {
         expect(await loadCcConfig({ env: {} })).toBeNull();
+    });
+});
+
+describe('loadCcConfig workspace prefix validation', () => {
+    beforeEach(() => resetCcConfigCache());
+    const env = { CC_CONFIG_PARAM: PARAM };
+    const BAD = ['user_*', 'user?', 'u$x', 'u{x}', 'a{', 'b}', '/user_data', 'user_data/', '/', ''];
+
+    it('rejects an SSM prefix with IAM wildcard or policy-variable characters, edge slashes, or nothing', async () => {
+        const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
+        for (const prefix of BAD) {
+            resetCcConfigCache();
+            const getParameter = async () => JSON.stringify({ ...ssmValue, prefix });
+            expect(await loadCcConfig({ env, getParameter }), prefix).toBeNull();
+            expect(String(spy.mock.calls.at(-1)?.[0]), prefix).toMatch(/fields: prefix$/);
+        }
+        spy.mockRestore();
+    });
+
+    it('rejects such a CC_WORKSPACE_PREFIX and names the variable', async () => {
+        const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
+        for (const prefix of BAD.filter((p) => p !== '')) {
+            resetCcConfigCache();
+            expect(await loadCcConfig({ env: { ...full, CC_WORKSPACE_PREFIX: prefix } }), prefix).toBeNull();
+            const msg = String(spy.mock.calls.at(-1)?.[0]);
+            expect(msg, prefix).toContain('CC_WORKSPACE_PREFIX');
+            if (/[a-z]/.test(prefix)) expect(msg, prefix).not.toContain(prefix); // names the variable, not its value
+        }
+        spy.mockRestore();
+    });
+
+    it('accepts nested prefixes', async () => {
+        expect((await loadCcConfig({ env, getParameter: async () => JSON.stringify({ ...ssmValue, prefix: 'cc/user_data' }) }))?.prefix).toBe(
+            'cc/user_data',
+        );
+        resetCcConfigCache();
+        expect((await loadCcConfig({ env: { ...full, CC_WORKSPACE_PREFIX: 'a/b-c_d.e' } }))?.prefix).toBe('a/b-c_d.e');
     });
 });
 
