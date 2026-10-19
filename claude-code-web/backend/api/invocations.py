@@ -6,7 +6,7 @@ based on the path and payload parameters.
 """
 
 import os
-import jwt
+from collections.abc import Mapping
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -72,6 +72,34 @@ from .git import (
 router = APIRouter()
 
 
+# Custom headers set by BRConnector -> process env var consumed by Claude Code / AWS SDKs.
+# Each AgentCore Runtime microVM serves exactly one BRConnector user, so writing the
+# process environment per request is safe here.
+_BRC_HEADER_PREFIX = "x-amzn-bedrock-agentcore-runtime-custom-brc-"
+BRC_ENV_HEADERS: dict[str, str] = {
+    _BRC_HEADER_PREFIX + "api-key": "ANTHROPIC_AUTH_TOKEN",
+    _BRC_HEADER_PREFIX + "aws-access-key-id": "AWS_ACCESS_KEY_ID",
+    _BRC_HEADER_PREFIX + "aws-secret-access-key": "AWS_SECRET_ACCESS_KEY",
+    _BRC_HEADER_PREFIX + "aws-session-token": "AWS_SESSION_TOKEN",
+}
+
+
+def apply_brc_request_env(headers: Mapping[str, str]) -> list[str]:
+    """
+    Copy BRConnector credential headers into the process environment.
+
+    Only non-empty headers are written. Returns the names (never the values)
+    of the environment variables that were set.
+    """
+    written = []
+    for header_name, env_name in BRC_ENV_HEADERS.items():
+        value = headers.get(header_name)
+        if value:
+            os.environ[env_name] = value
+            written.append(env_name)
+    return written
+
+
 def parse_session_and_user_from_headers(request: Request) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Parse agentcore_session_id, user_id, and project_name from request headers.
@@ -80,45 +108,26 @@ def parse_session_and_user_from_headers(request: Request) -> tuple[Optional[str]
     - user_id@workspace: default workspace, no specific project
     - user_id@workspace/my-project: specific project within workspace
 
+    BRConnector is the only caller and puts its user id (brc-key-<id>) in the
+    session id, so user_id is taken from there instead of a JWT.
+
     Args:
         request: FastAPI Request object
 
     Returns:
         Tuple of (agentcore_session_id, user_id, project_name)
     """
-    agentcore_session_id = None
     user_id = None
     project_name = None
 
-    # Extract agentcore_session_id from X-Amzn-Bedrock-AgentCore-Runtime-Session-Id header
-    # FastAPI headers are case-insensitive, but we try common variations
     agentcore_session_id = request.headers.get("x-amzn-bedrock-agentcore-runtime-session-id")
 
-    # Parse project_name from agentcore_session_id if present
-    # Format: user_id@workspace/project_name
-    if agentcore_session_id:
-        if "@workspace/" in agentcore_session_id:
-            # Has project: user_id@workspace/project_name
-            parts = agentcore_session_id.split("@workspace/", 1)
-            if len(parts) == 2:
-                project_name = parts[1]
-        # user_id will be extracted from JWT below
-
-    # Extract and decode JWT token from Authorization header (case-insensitive)
-    auth_header = request.headers.get("authorization", "")
-    if auth_header.lower().startswith("bearer "):
-        token = auth_header[7:].strip()  # Remove "Bearer " prefix and whitespace
-        try:
-            # Decode JWT without verification (for extracting sub claim)
-            # In production, you should verify the token signature
-            decoded = jwt.decode(token, options={"verify_signature": False})
-            user_id = decoded.get("sub")
-        except jwt.DecodeError:
-            # Token decode failed, user_id remains None
-            pass
-        except Exception:
-            # Any other error, user_id remains None
-            pass
+    # Format: user_id@workspace[/project_name]
+    if agentcore_session_id and "@workspace" in agentcore_session_id:
+        user_part, _, rest = agentcore_session_id.partition("@workspace")
+        user_id = user_part or None
+        if rest.startswith("/") and len(rest) > 1:
+            project_name = rest[1:]
 
     return agentcore_session_id, user_id, project_name
 
@@ -164,6 +173,11 @@ async def invocations(http_request: Request, request: dict[str, Any]):
             "path_params": {"session_id": "abc123"}
         }
     """
+    # Inject per-request credentials from BRConnector headers (log names only)
+    applied_env = apply_brc_request_env(http_request.headers)
+    if applied_env:
+        print(f"🔑 Applied BRConnector env: {', '.join(applied_env)}")
+
     # Parse agentcore_session_id, user_id, and project_name from headers
     agentcore_session_id, user_id, project_name_from_header = parse_session_and_user_from_headers(http_request)
 
