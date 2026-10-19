@@ -69,6 +69,19 @@ function post(): Promise<{ req: http.ClientRequest; res?: http.IncomingMessage }
     });
 }
 
+describe('non-stream bodies on a real socket', () => {
+    it('passes binary bytes through unchanged with their content type', async () => {
+        const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0xfe]);
+        deps.invokeRuntime = vi.fn(async () => new Response(png, { status: 200, headers: { 'content-type': 'image/png' } })) as any;
+        const { res } = await post();
+        const chunks: Buffer[] = [];
+        for await (const c of res!) chunks.push(c as Buffer);
+        expect(res!.statusCode).toBe(200);
+        expect(res!.headers['content-type']).toBe('image/png');
+        expect(Buffer.compare(Buffer.concat(chunks), png)).toBe(0);
+    });
+});
+
 describe('client disconnect on a real socket', () => {
     it('aborts the upstream request when the client leaves before upstream headers', async () => {
         let signal!: AbortSignal;

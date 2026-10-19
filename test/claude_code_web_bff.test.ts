@@ -103,7 +103,18 @@ describe('invocations', () => {
         await invocations(ctx);
         expect(ctx.status).toBe(201);
         expect(ctx.type).toBe('application/json');
-        expect(ctx.body).toBe('{"ok":true}');
+        expect(Buffer.from(ctx.body).toString()).toBe('{"ok":true}');
+    });
+
+    it('passes non-UTF-8 bodies through byte-identical with their content type', async () => {
+        const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0xfe]);
+        invoke.mockResolvedValue(new Response(png, { status: 200, headers: { 'content-type': 'image/png' } }));
+        const ctx = makeCtx();
+        await invocations(ctx);
+        expect(ctx.status).toBe(200);
+        expect(ctx.type).toBe('image/png');
+        expect(Buffer.isBuffer(ctx.body)).toBe(true);
+        expect(Buffer.compare(ctx.body, png)).toBe(0);
     });
 
     it('streams text/event-stream through the keepalive wrapper', async () => {

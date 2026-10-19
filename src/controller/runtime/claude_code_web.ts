@@ -113,15 +113,16 @@ export async function invocations(ctx: any) {
         ctx.set('Cache-Control', 'no-cache');
         ctx.body = output;
     } else {
-        let text: string;
+        // Raw bytes: the backend also returns files (images, archives) that a text decode would corrupt.
+        let bytes: Buffer;
         try {
-            text = await res.text();
+            bytes = Buffer.from(await res.arrayBuffer());
         } catch (e: any) {
             if (abort.signal.aborted) return; // the client left while the body was being read
             throw e;
         }
         ctx.type = contentType;
-        ctx.body = text;
+        ctx.body = bytes;
     }
 }
 
