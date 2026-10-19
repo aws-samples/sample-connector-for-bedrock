@@ -82,6 +82,27 @@ describe('non-stream bodies on a real socket', () => {
     });
 });
 
+describe('upstream stream stops early on a real socket', () => {
+    async function readAll(res: http.IncomingMessage): Promise<string> {
+        let text = '';
+        for await (const c of res) text += c.toString();
+        return text;
+    }
+
+    it('ends the browser response with an error event when the upstream body fails mid-stream', async () => {
+        let upstream!: ReadableStreamDefaultController;
+        const body = new ReadableStream({ start(c) { upstream = c; c.enqueue(new TextEncoder().encode('data: {"a":1}\n\n')); } });
+        deps.invokeRuntime = vi.fn(async () => new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } })) as any;
+        const { res } = await post();
+        const text = readAll(res!);
+        await until(() => bodies.length === 1);
+        upstream.error(Object.assign(new TypeError('terminated'), { cause: { code: 'UND_ERR_SOCKET' } }));
+        expect(await text).toBe('data: {"a":1}\n\ndata: {"type":"error","error":"upstream closed"}\n\n');
+        expect(logs.map((l) => l[0].message)).toEqual(['claude-code-web runtime stream stopped early']);
+        expect(JSON.stringify(logs)).not.toContain('terminated');
+    });
+});
+
 describe('client disconnect on a real socket', () => {
     it('aborts the upstream request when the client leaves before upstream headers', async () => {
         let signal!: AbortSignal;

@@ -108,7 +108,12 @@ export async function invocations(ctx: any) {
     const contentType = res.headers.get('content-type') || 'application/json';
     ctx.status = res.status;
     if (contentType.includes('text/event-stream') && res.body) {
-        output = withSseKeepalive(Readable.fromWeb(res.body as any));
+        // A stream that stops before its end gets an error event and ends: Koa only pipes, and would leave the
+        // browser waiting. Log codes only, as in unreachable().
+        output = withSseKeepalive(Readable.fromWeb(res.body as any), {
+            onSourceStopped: (e: any) =>
+                ctx.logger?.warn({ message: 'claude-code-web runtime stream stopped early', name: e?.name, code: e?.code, cause: e?.cause?.code }),
+        });
         ctx.type = 'text/event-stream';
         ctx.set('Cache-Control', 'no-cache');
         ctx.body = output;

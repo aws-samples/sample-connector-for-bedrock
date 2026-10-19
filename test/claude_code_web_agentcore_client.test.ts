@@ -70,3 +70,38 @@ describe('default credential chain', () => {
         vi.doUnmock('@aws-sdk/credential-provider-node');
     });
 });
+
+describe('default fetch', () => {
+    it('goes through one undici Agent with no body timeout and a headers timeout above the 15 min sync limit', async () => {
+        vi.resetModules();
+        const agents: any[] = [];
+        class Agent {
+            opts: any;
+            constructor(opts: any) {
+                this.opts = opts;
+                agents.push(this);
+            }
+        }
+        const undiciFetch = vi.fn(async () => new Response('ok', { status: 200 }));
+        vi.doMock('undici', () => ({ Agent, fetch: undiciFetch }));
+        try {
+            const mod = await import('../src/claude_code_web/agentcore_client');
+            const ac = new AbortController();
+            await mod.invokeRuntime(config, { sessionId: 's', body: '{}', contentType: 'application/json', headers: {}, signal: ac.signal }, { credentials });
+            const stopped = await mod.stopRuntimeSession(config, 's', { credentials });
+            expect(stopped).toEqual({ status: 200, body: 'ok' });
+
+            expect(agents).toHaveLength(1);
+            expect(agents[0].opts.bodyTimeout).toBe(0);
+            expect(agents[0].opts.headersTimeout).toBeGreaterThanOrEqual(16 * 60 * 1000);
+            expect(undiciFetch).toHaveBeenCalledTimes(2);
+            for (const [url, init] of undiciFetch.mock.calls as any[]) {
+                expect(String(url)).toMatch(/^https:\/\/bedrock-agentcore\.us-west-2\.amazonaws\.com\/runtimes\//);
+                expect(init.dispatcher).toBe(agents[0]);
+            }
+            expect((undiciFetch.mock.calls[0] as any)[1].signal).toBe(ac.signal);
+        } finally {
+            vi.doUnmock('undici');
+        }
+    });
+});
