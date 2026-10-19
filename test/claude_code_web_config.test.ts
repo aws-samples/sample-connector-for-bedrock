@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import logger from '../src/util/logger';
 import { loadCcConfig, resetCcConfigCache } from '../src/claude_code_web/config';
 import { ccUserId, ccSessionId } from '../src/claude_code_web/identity';
 
@@ -88,5 +89,58 @@ describe('cc identity', () => {
     it('session id is user id plus @workspace and long enough for AgentCore', () => {
         expect(ccSessionId(42)).toBe('brc-key-0000000000000042@workspace');
         expect(ccSessionId(42).length).toBeGreaterThanOrEqual(33);
+    });
+});
+
+describe('loadCcConfig failure diagnostics', () => {
+    beforeEach(() => resetCcConfigCache());
+    const env = { CC_CONFIG_PARAM: PARAM };
+    const warnings = () => (logger.warn as any).mock.calls.map((c: any[]) => String(c[0]));
+
+    function spyWarn() {
+        return vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
+    }
+
+    it('logs the error name and http status for SDK errors, not the message', async () => {
+        const spy = spyWarn();
+        const err = Object.assign(new Error('secret-looking detail'), { name: 'AccessDeniedException', $metadata: { httpStatusCode: 400 } });
+        expect(await loadCcConfig({ env, getParameter: async () => { throw err; } })).toBeNull();
+        const out = warnings().join('\n');
+        expect(out).toContain('AccessDeniedException');
+        expect(out).toContain('400');
+        expect(out).not.toContain('secret-looking detail');
+        spy.mockRestore();
+    });
+
+    it('logs malformed JSON without echoing the value', async () => {
+        const spy = spyWarn();
+        const raw = '{"bucket": "leaky-bucket-value" oops';
+        expect(await loadCcConfig({ env, getParameter: async () => raw })).toBeNull();
+        const out = warnings().join('\n');
+        expect(out).toContain('not valid JSON');
+        expect(out).not.toContain('leaky-bucket-value');
+        spy.mockRestore();
+    });
+
+    it('names the missing SSM fields but not their siblings values', async () => {
+        const spy = spyWarn();
+        const raw = JSON.stringify({ runtimeArn: RUNTIME, workspaceRoleArn: ROLE, bucket: '', prefix: 'p' });
+        expect(await loadCcConfig({ env, getParameter: async () => raw })).toBeNull();
+        const out = warnings().join('\n');
+        expect(out).toContain('bucket');
+        expect(out).not.toContain(raw);
+        expect(out).not.toContain(RUNTIME);
+        expect(out).not.toContain(ROLE);
+        spy.mockRestore();
+    });
+
+    it('names the missing direct env vars without logging env values', async () => {
+        const spy = spyWarn();
+        expect(await loadCcConfig({ env: { CC_RUNTIME_ARN: RUNTIME } })).toBeNull();
+        const out = warnings().join('\n');
+        expect(out).toContain('CC_WORKSPACE_ROLE_ARN');
+        expect(out).toContain('CC_WORKSPACE_BUCKET');
+        expect(out).not.toContain(RUNTIME);
+        spy.mockRestore();
     });
 });

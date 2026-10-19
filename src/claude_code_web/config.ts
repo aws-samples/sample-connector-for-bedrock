@@ -1,3 +1,4 @@
+import logger from '../util/logger';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
 export type CcConfig = { runtimeArn: string; workspaceRoleArn: string; bucket: string; prefix: string };
@@ -30,7 +31,16 @@ export async function loadCcConfig(deps: Deps = {}): Promise<CcConfig | null> {
 
     if (env.CC_RUNTIME_ARN) {
         const { CC_RUNTIME_ARN: runtimeArn, CC_WORKSPACE_ROLE_ARN: workspaceRoleArn, CC_WORKSPACE_BUCKET: bucket } = env;
-        if (!nonEmpty(workspaceRoleArn) || !nonEmpty(bucket)) return null;
+        const missing = [
+            ['CC_WORKSPACE_ROLE_ARN', workspaceRoleArn],
+            ['CC_WORKSPACE_BUCKET', bucket],
+        ]
+            .filter(([, v]) => !nonEmpty(v))
+            .map(([k]) => k);
+        if (missing.length > 0 || !nonEmpty(workspaceRoleArn) || !nonEmpty(bucket)) {
+            logger.warn(`claude-code-web disabled: direct env config is incomplete, missing ${missing.join(', ')}`);
+            return null;
+        }
         cached = { runtimeArn, workspaceRoleArn, bucket, prefix: env.CC_WORKSPACE_PREFIX || 'user_data' };
         return cached;
     }
@@ -39,11 +49,26 @@ export async function loadCcConfig(deps: Deps = {}): Promise<CcConfig | null> {
     if (!paramArn) return null;
     try {
         const raw = await (deps.getParameter ?? defaultGetParameter)(paramArn);
-        const v = JSON.parse(raw);
-        if (![v?.runtimeArn, v?.workspaceRoleArn, v?.bucket, v?.prefix].every(nonEmpty)) return null;
+        let v: any;
+        try {
+            v = JSON.parse(raw);
+        } catch {
+            // Do not log the parse error: its message can quote part of the input.
+            logger.warn('claude-code-web disabled: CC_CONFIG_PARAM value is not valid JSON');
+            return null;
+        }
+        const bad = ['runtimeArn', 'workspaceRoleArn', 'bucket', 'prefix'].filter((k) => !nonEmpty(v?.[k]));
+        if (bad.length > 0) {
+            logger.warn(`claude-code-web disabled: SSM config has missing or invalid fields: ${bad.join(', ')}`);
+            return null;
+        }
         cached = { runtimeArn: v.runtimeArn, workspaceRoleArn: v.workspaceRoleArn, bucket: v.bucket, prefix: v.prefix };
         return cached;
-    } catch {
+    } catch (err: any) {
+        // Name and HTTP status only; the message may carry request details.
+        logger.warn(
+            `claude-code-web disabled: reading CC_CONFIG_PARAM failed: ${err?.name ?? 'Error'} (http ${err?.$metadata?.httpStatusCode ?? 'n/a'})`,
+        );
         return null;
     }
 }
