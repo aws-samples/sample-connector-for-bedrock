@@ -58,6 +58,13 @@ Metadata:
           - BRConnectorVersion
           - AutoUpdateBRConnector
 
+      - Label:
+          default: "Claude Code Web (optional)"
+        Parameters:
+          - EnableClaudeCodeWeb
+          - ClaudeCodeDefaultModel
+          - ClaudeCodeBackgroundModel
+
       - Label: 
           default: "Debugging Settings"
         Parameters:
@@ -126,17 +133,20 @@ Parameters:
 
   SourceRepoUrl:
     Description: >-
-      Only used by ComputeType lambda-web. The git repository the helper EC2 clones to
-      build the deployment package. Change it to build from a fork, for example while a
-      change is still under review upstream.
+      Used by ComputeType lambda-web and by Claude Code Web (EnableClaudeCodeWeb). The
+      git repository the helper EC2 clones to build the lambda-web deployment package,
+      and that CodeBuild clones to build the Claude Code Web backend image. Change it to
+      build from a fork, for example while a change is still under review upstream.
     Type: String
     Default: https://github.com/aws-samples/sample-connector-for-bedrock.git
 
   SourceRef:
     Description: >-
-      Only used by ComputeType lambda-web. The git ref of SourceRepoUrl that the helper
-      EC2 builds the deployment package from. The upstream repository publishes no tags,
-      so this is a branch or a commit.
+      Used by ComputeType lambda-web and by Claude Code Web (EnableClaudeCodeWeb). The git
+      ref of SourceRepoUrl that the lambda-web deployment package and the Claude Code Web
+      backend image are built from. The upstream repository publishes no tags, so this is
+      a branch or a commit. The lambda-web build clones with --branch, so it needs a
+      branch.
     Type: String
     Default: main
 
@@ -270,6 +280,64 @@ Parameters:
     ConstraintDescription: The Lambda@Edge version ARN must include 'us-east-1'
     Default: ''
 
+  EnableClaudeCodeWeb:
+    Description: >-
+      Deploy Claude Code Web: Claude Code in the browser at <BRConnector URL>/cc/, signed
+      in with a BRConnector API key, with its backend on Amazon Bedrock AgentCore Runtime
+      (one microVM per key, billed to this account). Only takes effect when the stack is
+      created. Needs ComputeType ec2, ecs or lambda-web, a database, and BRConnectorVersion
+      latest unless ComputeType is lambda-web. The backend image is built by CodeBuild
+      from SourceRepoUrl at SourceRef.
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+
+  ClaudeCodeDefaultModel:
+    Description: >-
+      Claude Code Web only. BRConnector model name Claude Code uses when the user has not
+      picked one (ANTHROPIC_MODEL). Bind it, as a bedrock-runtime-anthropic model, to the
+      keys or groups that should use Claude Code Web.
+    Type: String
+    Default: claude-sonnet-5-5
+
+  ClaudeCodeBackgroundModel:
+    Description: >-
+      Claude Code Web only. BRConnector model name Claude Code uses for background tasks
+      (ANTHROPIC_DEFAULT_HAIKU_MODEL). Users cannot change it, so bind it to the same keys
+      or groups as well.
+    Type: String
+    Default: claude-haiku-5-5
+
+Rules:
+  # Claude Code Web needs a BRConnector that has /cc and normal (non-admin) keys.
+  ClaudeCodeWebRequirements:
+    RuleCondition: !Equals [!Ref EnableClaudeCodeWeb, 'true']
+    Assertions:
+      - Assert: !Not [!Equals [!Ref ComputeType, 'lambda']]
+        AssertDescription: >-
+          Claude Code Web does not support ComputeType lambda: its 60-second timeout cuts
+          off long streams. Use ec2, ecs or lambda-web.
+      # Same test as the IsNoDB condition: without a database only the admin key exists,
+      # and Claude Code Web refuses the admin key.
+      - Assert: !And
+          - !Not [!Equals [!Ref DatabaseMode, 'NoDB']]
+          - !Not
+            - !And
+              - !Contains [['ecs', 'lambda-web'], !Ref ComputeType]
+              - !Equals [!Ref DatabaseMode, 'EC2Integrated']
+        AssertDescription: >-
+          Claude Code Web needs a database, because it refuses the admin key. Set
+          DatabaseMode to Standalone, or to EC2Integrated with ComputeType ec2.
+      # ec2 and ecs run the published BRConnector image; pinned older versions have no /cc.
+      - Assert: !Or
+          - !Equals [!Ref ComputeType, 'lambda-web']
+          - !Equals [!Ref BRConnectorVersion, 'latest']
+        AssertDescription: >-
+          Claude Code Web needs BRConnectorVersion latest with ComputeType ec2 or ecs;
+          the pinned versions predate /cc.
+
 Conditions:
   UseExistingVpcStack: !Not [!Equals [!Ref VpcStackName, '']]
   IsEc2: !Equals [!Ref ComputeType, 'ec2']
@@ -318,6 +386,7 @@ Conditions:
   IsPrivateLambdaPermission: !And
     - !Equals [!Ref ComputeType, 'lambda']
     - !Not [!Equals [!Ref LambdaEdgeVersionArn, '']]
+  IsClaudeCodeWeb: !Equals [!Ref EnableClaudeCodeWeb, 'true']
 
 Mappings:
   ArchitectureMapping:
@@ -558,7 +627,12 @@ Resources:
         - Key: Name
           Value: !Join ["", ["BRConnectorInstance-", !Ref AWS::StackName]]
       UserData:
-        Fn::Base64: !Sub |-
+        # CcEnvArg is empty unless EnableClaudeCodeWeb is true. It is glued to the docker
+        # run line without a space, so with the switch off that line is byte-identical and
+        # existing stacks see no UserData change. The line must stay a single line holding
+        # --name brconnector: the SSM auto-update replays it from the cloud-init log.
+        Fn::Base64: !Sub
+        - |-
           #!/bin/bash -xe
           # install packages & buildx
           yum install -y aws-cfn-bootstrap docker jq git cronie
@@ -657,7 +731,7 @@ Resources:
           # fi
           # start brconnector container in ECR
           IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY -d public.ecr.aws/$IMG_EC2:${BRConnectorVersion}
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY${CcEnvArg} -d public.ecr.aws/$IMG_EC2:${BRConnectorVersion}
 
           # create first user
           sleep 60
@@ -699,6 +773,10 @@ Resources:
           if [[ ${KeepEc2} != "true" && ( ${ComputeType} == "lambda" || ${ComputeType} == "lambda-web" ) ]]; then
             aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
           fi
+        - CcEnvArg: !If
+            - IsClaudeCodeWeb
+            - !Sub " -e CC_CONFIG_PARAM=arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web"
+            - ''
 
   PrivateWaitHandle:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -795,6 +873,9 @@ Resources:
             CustomOriginConfig:
               HTTPPort: '8866'
               OriginProtocolPolicy: http-only
+              # Claude Code Web: the first /cc call waits for an AgentCore microVM to start
+              # before any byte comes back, which can exceed the 30-second default.
+              OriginReadTimeout: !If [IsClaudeCodeWeb, 60, !Ref AWS::NoValue]
         Enabled: 'true'
         Comment: CloudFront distribution in front of EC2
         # ViewerProtocolPolicy: https-only
@@ -1234,6 +1315,13 @@ Resources:
               Value: !Ref PGPassword
             - Name: ADMIN_API_KEY
               Value: !GetAtt MySSMParameterAdminKey.Value
+            # Built from the parameter's fixed name, as on ec2 and lambda-web, where a Ref
+            # would be circular.
+            - !If
+              - IsClaudeCodeWeb
+              - Name: CC_CONFIG_PARAM
+                Value: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
+              - !Ref AWS::NoValue
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1350,6 +1438,9 @@ Resources:
             CustomOriginConfig:
               HTTPPort: 80
               OriginProtocolPolicy: http-only
+              # Claude Code Web: the first /cc call waits for an AgentCore microVM to start
+              # before any byte comes back, which can exceed the 30-second default.
+              OriginReadTimeout: !If [IsClaudeCodeWeb, 60, !Ref AWS::NoValue]
         Enabled: true
         Comment: CloudFront distribution in front of ECS
         DefaultCacheBehavior:
@@ -1773,6 +1864,12 @@ Resources:
         PGSQL_DATABASE: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGDatabase]
         PGSQL_USER: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGUser]
         PGSQL_PASSWORD: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGPassword]
+        # Built from the parameter's fixed name rather than a Ref: the parameter holds the
+        # runtime ARN, and the runtime needs WebFnDistribution, which depends on this function.
+        CC_CONFIG_PARAM: !If
+          - IsClaudeCodeWeb
+          - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
+          - !Ref AWS::NoValue
 
 
   # CloudFront is how a browser reaches an IamAuth endpoint: no browser can SigV4-sign,
@@ -1814,6 +1911,9 @@ Resources:
               OriginProtocolPolicy: https-only
               OriginSSLProtocols:
                 - TLSv1.2
+              # Claude Code Web: the first /cc call waits for an AgentCore microVM to start
+              # before any byte comes back, which can exceed the 30-second default.
+              OriginReadTimeout: !If [IsClaudeCodeWeb, 60, !Ref AWS::NoValue]
         DefaultCacheBehavior:
           TargetOriginId: WebFnOrigin
           ViewerProtocolPolicy: redirect-to-https
@@ -1851,6 +1951,503 @@ Resources:
             Condition:
               StringEquals:
                 aws:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${WebFnDistribution}
+
+  # ---------------------------------------------------------------------------
+  # Claude Code Web  (EnableClaudeCodeWeb=true)
+  #
+  # BRConnector serves the web client at /cc and forwards its API calls, SigV4-signed
+  # with the compute role, to an AgentCore Runtime running the claude-code-web backend,
+  # one microVM per API key. Claude Code in the microVM calls back into BRConnector's
+  # /v1/messages with the user's own key, so usage is metered per key and the microVM
+  # holds no Bedrock permission. BRConnector finds the runtime through an SSM parameter
+  # with a fixed name: the runtime needs BRConnector's CloudFront domain, so referencing
+  # the runtime from the compute resources would be circular.
+  # ---------------------------------------------------------------------------
+
+  ClaudeCodeWebRepository:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub brc-claude-code-web-${RandomString}
+      EmptyOnDelete: true
+
+  # Users' workspaces, under user_data/<user id>/. Retained for the same reason as
+  # WebFnCodeBucket, and because it holds user files; delete it by hand if unwanted.
+  ClaudeCodeWebWorkspaceBucket:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub brc-cc-workspace-${AWS::AccountId}-${AWS::Region}-${RandomString}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+  # What the microVM runs as, and a user's shell can use these credentials. So it gets
+  # only what AgentCore Runtime needs to pull the image and ship logs, traces and metrics,
+  # from "IAM Permissions for AgentCore Runtime" minus every bedrock:* statement: model
+  # calls must go through BRConnector. No S3 either; workspace access arrives with each
+  # request as credentials scoped to that user's prefix.
+  ClaudeCodeWebRuntimeRole:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:*
+      Policies:
+        - PolicyName: agentcore-runtime-execution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ECRImageAccess
+                Effect: Allow
+                Action:
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                Resource: !GetAtt ClaudeCodeWebRepository.Arn
+              - Sid: ECRTokenAccess
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:DescribeLogStreams
+                  - logs:CreateLogGroup
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*
+              # The runtime id, and so its log groups, start with AgentRuntimeName.
+              - Effect: Allow
+                Action: logs:PutResourcePolicy
+                Resource: !Sub
+                  - arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/brc_cc_${StackUuidHead}-*
+                  - StackUuidHead: !Select [0, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+              - Effect: Allow
+                Action: logs:DescribeLogGroups
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                Resource: '*'
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: bedrock-agentcore
+              - Sid: GetAgentAccessToken
+                Effect: Allow
+                Action:
+                  - bedrock-agentcore:GetWorkloadAccessToken
+                  - bedrock-agentcore:GetWorkloadAccessTokenForJWT
+                  - bedrock-agentcore:GetWorkloadAccessTokenForUserId
+                Resource:
+                  - !Sub arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:workload-identity-directory/default
+                  - !Sub
+                    - arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:workload-identity-directory/default/workload-identity/brc_cc_${StackUuidHead}-*
+                    - StackUuidHead: !Select [0, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+
+  # BRConnector assumes this for each user, always with a session policy that narrows it
+  # to user_data/<user id>/, and hands the result to that user's microVM. Only the
+  # current compute type's role may assume it.
+  ClaudeCodeWebWorkspaceAccessRole:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !If
+                - IsEcs
+                - !GetAtt ECSTaskRole.Arn
+                - !If [IsLambdaWeb, !GetAtt BRConnectorWebFnExecRole.Arn, !GetAtt EC2Role.Arn]
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: claude-code-web-workspace
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:AbortMultipartUpload
+                Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/*
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}
+
+  ClaudeCodeWebBuildRole:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: claude-code-web-image-build
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-claude-code-web-image
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-claude-code-web-image:*
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: !GetAtt ClaudeCodeWebRepository.Arn
+
+  # Builds claude-code-web/Dockerfile from SourceRepoUrl@SourceRef on native arm64, which
+  # AgentCore Runtime requires, smoke-tests it, pushes it and answers ClaudeCodeWebImage
+  # itself: the build outlives a Lambda, so the trigger only starts it. Every exit path
+  # answers, success with the digest URI, failure with the step that failed; a build that
+  # never answers would leave the stack waiting for the full ServiceTimeout.
+  ClaudeCodeWebImageBuild:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-claude-code-web-image
+      Description: Builds the Claude Code Web backend image for AgentCore Runtime
+      ServiceRole: !GetAtt ClaudeCodeWebBuildRole.Arn
+      TimeoutInMinutes: 60
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: ARM_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux-aarch64-standard:3.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: REPO_URI
+            Value: !GetAtt ClaudeCodeWebRepository.RepositoryUri
+      Source:
+        Type: NO_SOURCE
+        # Started by ClaudeCodeWebBuildTrigger, which adds CFN_RESPONSE_URL, CFN_STACK_ID,
+        # CFN_REQUEST_ID, CFN_LOGICAL_RESOURCE_ID, CFN_PHYSICAL_RESOURCE_ID,
+        # SOURCE_REPO_URL, SOURCE_REF and IMAGE_TAG.
+        BuildSpec: |
+          version: 0.2
+          env:
+            shell: bash
+          phases:
+            build:
+              commands:
+                - |
+                  # One subshell for the whole build, so its EXIT trap fires on every path.
+                  (
+                  set -euo pipefail
+                  STEP=start
+                  ANSWERED=0
+                  CID=
+                  # Answer the custom resource. Every value is generated by AWS or by this
+                  # script and holds no quote or backslash, so printf builds valid JSON.
+                  answer() {
+                    local data='{}'
+                    if [ -n "${3:-}" ]; then data="{\"ImageUri\":\"$3\"}"; fi
+                    printf '{"Status":"%s","Reason":"%s","PhysicalResourceId":"%s","StackId":"%s","RequestId":"%s","LogicalResourceId":"%s","Data":%s}' \
+                      "$1" "$2" "$CFN_PHYSICAL_RESOURCE_ID" "$CFN_STACK_ID" "$CFN_REQUEST_ID" "$CFN_LOGICAL_RESOURCE_ID" "$data" > resp.json
+                    curl -sS -f --retry 3 -X PUT -H 'Content-Type:' --data-binary @resp.json "$CFN_RESPONSE_URL"
+                  }
+                  on_exit() {
+                    local rc=$?
+                    if [ -n "$CID" ]; then
+                      docker logs --tail 50 "$CID" || true
+                      docker rm -f "$CID" > /dev/null 2>&1 || true
+                    fi
+                    if [ "$ANSWERED" != 1 ]; then
+                      answer FAILED "Claude Code Web image build failed at step $STEP (exit $rc), see CodeBuild build $CODEBUILD_BUILD_ID" || true
+                    fi
+                  }
+                  trap on_exit EXIT
+                  trap 'exit 143' TERM INT
+
+                  STEP=git-clone
+                  git clone --quiet --filter=blob:none "$SOURCE_REPO_URL" src
+                  git -C src checkout --quiet "$SOURCE_REF"
+                  git -C src log -1 --format='building commit %H'
+
+                  STEP=ecr-login
+                  aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${REPO_URI%%/*}"
+
+                  STEP=docker-build
+                  IMAGE="$REPO_URI:$IMAGE_TAG"
+                  docker build --platform linux/arm64 -t "$IMAGE" src/claude-code-web
+
+                  # Before the push, so a broken image never reaches the repository.
+                  STEP=smoke-test
+                  CID=$(docker run -d -e ENABLE_S3_SYNC=false -p 8080:8080 "$IMAGE")
+                  for _ in $(seq 1 60); do
+                    if curl -sf -o /dev/null http://localhost:8080/ping; then break; fi
+                    sleep 2
+                  done
+                  curl -sf http://localhost:8080/ping
+                  echo
+                  RUN_UID=$(docker exec "$CID" id -u)
+                  echo "container runs as uid $RUN_UID"
+                  if [[ ! "$RUN_UID" =~ ^[0-9]+$ || "$RUN_UID" == 0 ]]; then echo "the image must not run as root"; exit 1; fi
+                  docker rm -f "$CID" > /dev/null
+                  CID=
+
+                  STEP=docker-push
+                  docker push "$IMAGE"
+
+                  STEP=read-digest
+                  IMAGE_URI=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE")
+                  if [[ "$IMAGE_URI" != "$REPO_URI@sha256:"* ]]; then echo "unexpected image reference $IMAGE_URI"; exit 1; fi
+
+                  STEP=answer-success
+                  answer SUCCESS "Built $IMAGE_URI" "$IMAGE_URI"
+                  ANSWERED=1
+                  echo "answered SUCCESS with $IMAGE_URI"
+                  )
+
+  ClaudeCodeWebBuildTriggerRole:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: start-claude-code-web-image-build
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: codebuild:StartBuild
+                Resource: !GetAtt ClaudeCodeWebImageBuild.Arn
+
+  ClaudeCodeWebBuildTrigger:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      MemorySize: 128
+      Timeout: 60
+      Role: !GetAtt ClaudeCodeWebBuildTriggerRole.Arn
+      Environment:
+        Variables:
+          PROJECT_NAME: !Ref ClaudeCodeWebImageBuild
+          # Fixed, so an update never makes CloudFormation delete the "old" image.
+          PHYSICAL_RESOURCE_ID: !Sub ${AWS::StackName}-claude-code-web-image
+      Code:
+        ZipFile: |
+          #
+          # MIT-0 License
+          #
+          # Custom::ClaudeCodeWebImage. Create and Update only start the CodeBuild build,
+          # which answers CloudFormation itself when it finishes; this function answers
+          # only Delete and a build that could not be started.
+          import json
+          import os
+          import urllib.request
+
+          import boto3
+
+
+          def respond(event, status, reason):
+              body = json.dumps({
+                  'Status': status,
+                  'Reason': reason[:1000],
+                  'PhysicalResourceId': os.environ['PHYSICAL_RESOURCE_ID'],
+                  'StackId': event['StackId'],
+                  'RequestId': event['RequestId'],
+                  'LogicalResourceId': event['LogicalResourceId'],
+                  'Data': {},
+              }).encode()
+              req = urllib.request.Request(event['ResponseURL'], data=body, method='PUT', headers={'Content-Type': ''})
+              with urllib.request.urlopen(req, timeout=30):
+                  pass
+
+
+          def handler(event, context):
+              print('request', event['RequestType'], event['LogicalResourceId'])
+              if event['RequestType'] == 'Delete':
+                  # The image is removed with the repository (EmptyOnDelete).
+                  respond(event, 'SUCCESS', 'Nothing to delete')
+                  return
+              try:
+                  props = event['ResourceProperties']
+                  env = {
+                      'CFN_RESPONSE_URL': event['ResponseURL'],
+                      'CFN_STACK_ID': event['StackId'],
+                      'CFN_REQUEST_ID': event['RequestId'],
+                      'CFN_LOGICAL_RESOURCE_ID': event['LogicalResourceId'],
+                      'CFN_PHYSICAL_RESOURCE_ID': os.environ['PHYSICAL_RESOURCE_ID'],
+                      'SOURCE_REPO_URL': props['SourceRepoUrl'],
+                      'SOURCE_REF': props['SourceRef'],
+                      'IMAGE_TAG': props['BRConnectorVersion'],
+                  }
+                  build = boto3.client('codebuild').start_build(
+                      projectName=os.environ['PROJECT_NAME'],
+                      environmentVariablesOverride=[
+                          {'name': k, 'value': v, 'type': 'PLAINTEXT'} for k, v in env.items()
+                      ],
+                  )
+                  print('started build', build['build']['id'])
+              except Exception as e:
+                  respond(event, 'FAILED', f'Could not start the image build: {type(e).__name__}: {e}')
+
+  # Rebuilt only when one of its properties changes; ImageUri is <repository>@sha256:...
+  ClaudeCodeWebImage:
+    Condition: IsClaudeCodeWeb
+    Type: Custom::ClaudeCodeWebImage
+    Properties:
+      ServiceToken: !GetAtt ClaudeCodeWebBuildTrigger.Arn
+      # Seconds. The build answers on every exit path, so this is only a backstop.
+      ServiceTimeout: 3600
+      SourceRepoUrl: !Ref SourceRepoUrl
+      SourceRef: !Ref SourceRef
+      BRConnectorVersion: !Ref BRConnectorVersion
+
+  ClaudeCodeWebRuntime:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::BedrockAgentCore::Runtime
+    Properties:
+      # Names allow only [a-zA-Z][a-zA-Z0-9_]{0,47}, and a stack name may hold hyphens, so
+      # the first group of the stack id's UUID makes it unique instead.
+      AgentRuntimeName: !Sub
+        - brc_cc_${StackUuidHead}
+        - StackUuidHead: !Select [0, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+      Description: !Sub Claude Code Web backend for BRConnector stack ${AWS::StackName}
+      RoleArn: !GetAtt ClaudeCodeWebRuntimeRole.Arn
+      AgentRuntimeArtifact:
+        ContainerConfiguration:
+          # The digest, not the tag: with :latest unchanged a rebuilt image would never
+          # reach the runtime.
+          ContainerUri: !GetAtt ClaudeCodeWebImage.ImageUri
+      # No AuthorizerConfiguration, so the runtime accepts only SigV4 (IAM), which only
+      # BRConnector's role is granted.
+      NetworkConfiguration:
+        NetworkMode: PUBLIC
+      # AgentCore forwards only allowlisted X-Amzn-Bedrock-AgentCore-Runtime-Custom-*
+      # headers. These carry the user's key and workspace credentials per request.
+      RequestHeaderConfiguration:
+        RequestHeaderAllowlist:
+          - X-Amzn-Bedrock-AgentCore-Runtime-Custom-Brc-Api-Key
+          - X-Amzn-Bedrock-AgentCore-Runtime-Custom-Brc-Aws-Access-Key-Id
+          - X-Amzn-Bedrock-AgentCore-Runtime-Custom-Brc-Aws-Secret-Access-Key
+          - X-Amzn-Bedrock-AgentCore-Runtime-Custom-Brc-Aws-Session-Token
+      EnvironmentVariables:
+        CLAUDE_CODE_USE_BEDROCK: '0'
+        # Claude Code appends /v1/messages. The Rules exclude lambda, so this is the
+        # distribution of ecs, lambda-web or ec2.
+        ANTHROPIC_BASE_URL: !If
+          - IsEcs
+          - !Sub https://${ECSCloudFrontDistribution.DomainName}
+          - !If
+            - IsLambdaWeb
+            - !Sub https://${WebFnDistribution.DomainName}
+            - !Sub https://${Ec2CloudFrontDistribution.DomainName}
+        ANTHROPIC_MODEL: !Ref ClaudeCodeDefaultModel
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: !Ref ClaudeCodeBackgroundModel
+        S3_WORKSPACE_BUCKET: !Ref ClaudeCodeWebWorkspaceBucket
+        S3_WORKSPACE_PREFIX: user_data
+        AWS_DEFAULT_REGION: !Ref AWS::Region
+
+  # Read by BRConnector through CC_CONFIG_PARAM, the ARN of this fixed name.
+  ClaudeCodeWebConfigParameter:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /brconnector/${AWS::StackName}/claude-code-web
+      Type: String
+      Value: !Sub '{"runtimeArn":"${ClaudeCodeWebRuntime.AgentRuntimeArn}","workspaceRoleArn":"${ClaudeCodeWebWorkspaceAccessRole.Arn}","bucket":"${ClaudeCodeWebWorkspaceBucket}","prefix":"user_data"}'
+      Description: Claude Code Web settings for BRConnector, created by CloudFormation
+      Tier: Standard
+      DataType: text
+
+  # Attached to the current compute type's role rather than editing it, so the other
+  # paths are untouched.
+  ClaudeCodeWebComputePolicy:
+    Condition: IsClaudeCodeWeb
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-claude-code-web-${AWS::StackName}
+      Roles:
+        - !If
+          - IsEcs
+          - !Ref ECSTaskRole
+          - !If [IsLambdaWeb, !Ref BRConnectorWebFnExecRole, !Ref EC2Role]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InvokeClaudeCodeWebRuntime
+            Effect: Allow
+            Action:
+              - bedrock-agentcore:InvokeAgentRuntime
+              - bedrock-agentcore:StopRuntimeSession
+            Resource:
+              - !GetAtt ClaudeCodeWebRuntime.AgentRuntimeArn
+              - !Sub ${ClaudeCodeWebRuntime.AgentRuntimeArn}/runtime-endpoint/*
+          - Sid: AssumeClaudeCodeWebWorkspaceRole
+            Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !GetAtt ClaudeCodeWebWorkspaceAccessRole.Arn
+          - Sid: ReadClaudeCodeWebConfig
+            Effect: Allow
+            Action: ssm:GetParameter
+            Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
 
 Outputs:
   WebFnCloudFrontURL:
@@ -2011,3 +2608,16 @@ Outputs:
     Condition: IsLambda
     Description: Lambda URL (debug)
     Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
+
+  ClaudeCodeWebUrl:
+    Condition: IsClaudeCodeWeb
+    Description: >-
+      Claude Code Web. Sign in with a BRConnector API key (not the admin key) bound to
+      the Claude Code models as bedrock-runtime-anthropic models.
+    Value: !If
+      - IsEcs
+      - !Sub https://${ECSCloudFrontDistribution.DomainName}/cc/
+      - !If
+        - IsLambdaWeb
+        - !Sub https://${WebFnDistribution.DomainName}/cc/
+        - !Sub https://${Ec2CloudFrontDistribution.DomainName}/cc/

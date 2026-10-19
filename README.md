@@ -12,6 +12,8 @@ It is compatible with any OPENAI client or Anthropic client that can define Host
 
 [Providers](https://aws-samples.github.io/sample-connector-for-bedrock/providers/introduction/)
 
+[Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/) (optional, Claude Code in the browser at `/cc`)
+
 Docker Image: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock)
 
 Docker Image for Lambda: [DockerHub](https://hub.docker.com/r/cloudbeer/sample-connector-for-bedrock-lambda/tags), [Public ECR](https://gallery.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda)
