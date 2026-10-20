@@ -5,30 +5,52 @@ import path from 'path';
 
 const MIGRATIONS_DIR = path.join(__dirname, "./scripts/migrations");
 
+// Arbitrary fixed key: serializes runMigrations across instances that start at the same time.
+const MIGRATION_LOCK_ID = 727463001;
+
 /**
  * Applies each `*.sql` in `dir` not yet recorded in eiai_migration, in lexical filename order. A file
  * and its ledger row commit together; on failure the file is rolled back, logged, and later files
- * wait for the next startup.
+ * wait for the next startup. Never throws. Each file runs inside the runner's BEGIN/COMMIT, so it
+ * must not contain transaction control or CONCURRENTLY; names start with a date (YYYY-MM-DD) so
+ * lexical order is chronological.
  */
 export async function runMigrations(client: Pick<Client, "query">, dir = MIGRATIONS_DIR): Promise<void> {
     console.log("[migration] Check database status...");
-    await client.query("CREATE TABLE IF NOT EXISTS eiai_migration (name varchar(128) PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
-    const res = await client.query("SELECT name FROM eiai_migration");
-    const applied = new Set(res.rows.map((r) => r.name));
-    const pending = fs.readdirSync(dir).filter((f) => f.endsWith(".sql") && !applied.has(f)).sort();
-    for (const name of pending) {
-        const sql = fs.readFileSync(path.join(dir, name), "utf8");
-        try {
-            await client.query("BEGIN");
-            await client.query(sql);
-            await client.query("INSERT INTO eiai_migration (name) VALUES ($1)", [name]);
-            await client.query("COMMIT");
-            console.log(`[migration] ${name} applied.`);
-        } catch (err: any) {
-            await client.query("ROLLBACK").catch(() => {});
-            console.error(`❌ [migration] ${name} failed and was rolled back, later migrations skipped: `, err.message);
-            return;
+    try {
+        // Session-level lock: a second instance waits here, then sees the first one's ledger rows.
+        await client.query(`select pg_advisory_lock(${MIGRATION_LOCK_ID})`);
+    } catch (err: any) {
+        console.error("❌ [migration] could not take the migration lock, skipped: ", err.message);
+        return;
+    }
+    try {
+        // CREATE TABLE IF NOT EXISTS needs CREATE on the schema even when the table exists.
+        const exists = await client.query("SELECT to_regclass('public.eiai_migration')");
+        if (!exists.rows[0]["to_regclass"]) {
+            await client.query("CREATE TABLE IF NOT EXISTS eiai_migration (name varchar(128) PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
         }
+        const res = await client.query("SELECT name FROM eiai_migration");
+        const applied = new Set(res.rows.map((r) => r.name));
+        const pending = fs.readdirSync(dir).filter((f) => f.endsWith(".sql") && !applied.has(f)).sort();
+        for (const name of pending) {
+            const sql = fs.readFileSync(path.join(dir, name), "utf8");
+            try {
+                await client.query("BEGIN");
+                await client.query(sql);
+                await client.query("INSERT INTO eiai_migration (name) VALUES ($1)", [name]);
+                await client.query("COMMIT");
+                console.log(`[migration] ${name} applied.`);
+            } catch (err: any) {
+                await client.query("ROLLBACK").catch(() => {});
+                console.error(`❌ [migration] ${name} failed and was rolled back, later migrations skipped: `, err.message);
+                return;
+            }
+        }
+    } catch (err: any) {
+        console.error("❌ [migration] could not check or prepare migrations, skipped: ", err.message);
+    } finally {
+        await client.query(`select pg_advisory_unlock(${MIGRATION_LOCK_ID})`).catch(() => {});
     }
 }
 

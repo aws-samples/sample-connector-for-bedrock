@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import fs, { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import fs, { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { fakePg } from './helpers/fakes';
@@ -7,7 +7,7 @@ import { fakePg } from './helpers/fakes';
 const scripts = join(__dirname, '../src/scripts');
 const read = (file: string) => readFileSync(join(scripts, file), 'utf8');
 const migrationDir = join(scripts, 'migrations');
-const migrations = existsSync(migrationDir) ? readdirSync(migrationDir).filter((f) => f.endsWith('.sql')).sort() : [];
+const migrations = readdirSync(migrationDir).filter((f) => f.endsWith('.sql')).sort();
 const migrationSql = migrations.map((f) => read(join('migrations', f)));
 const patchSql = ['create.sql', 'patch-0.0.5.sql', 'patch-0.0.12.sql'].map(read);
 // The tables install checks for; with all of them present, create.sql and both patches are skipped.
@@ -83,7 +83,8 @@ describe('runMigrations', () => {
         const names = ['2.sql', 'notes.txt', '10.sql', '1.sql', '0.sql'];
         for (const n of names) writeFileSync(join(dir, n), `CREATE TABLE t${n.split('.')[0]} (id int);`);
         // The filesystem decides the listing order, so hand it over unsorted.
-        vi.spyOn(fs, 'readdirSync').mockReturnValueOnce(names as any);
+        const real = fs.readdirSync;
+        vi.spyOn(fs, 'readdirSync').mockImplementation(((p: any, ...a: any[]) => (p === dir ? names : (real as any)(p, ...a))) as any);
         const fake = fakePg({ tables: ['eiai_migration'] });
         fake.db.ledger.push('0.sql');
         const { runMigrations } = await loadInstall(fake);
@@ -101,7 +102,7 @@ describe('runMigrations', () => {
         await expect(runMigrations(new fake.Client() as any, dir)).resolves.toBeUndefined();
         expect(fake.db.ledger).toEqual(['1.sql']);
         expect([...fake.db.tables].sort()).toEqual(['eiai_migration', 't1']);
-        expect(fake.queries.slice(-2)).toEqual(['CREATE TABLE t2 (id int); SELECT boom;', 'ROLLBACK']);
+        expect(fake.queries.slice(-3, -1)).toEqual(['CREATE TABLE t2 (id int); SELECT boom;', 'ROLLBACK']);
         expect(fake.queries).not.toContain('CREATE TABLE t3 (id int);');
         expect(error.mock.calls.join('\n')).toMatch(/2\.sql.*simulated failure/s);
     });
@@ -113,5 +114,49 @@ describe('runMigrations', () => {
         expect(fake.db.ledger).toEqual([]);
         expect(end).toHaveBeenCalled();
         expect(error.mock.calls.join('\n')).toMatch(/2026-10-20-preset-models\.sql/);
+    });
+
+    it('takes the advisory lock before the first ledger statement and releases it after the last', async () => {
+        writeFileSync(join(dir, '1.sql'), 'CREATE TABLE t1 (id int);');
+        const fake = fakePg();
+        const { runMigrations } = await loadInstall(fake);
+        await runMigrations(new fake.Client() as any, dir);
+        const q = fake.queries;
+        expect(q[0]).toMatch(/^select pg_advisory_lock\(\d+\)$/);
+        expect(q[q.length - 1]).toMatch(/^select pg_advisory_unlock\(\d+\)$/);
+        expect(q[q.length - 1].match(/\d+/)![0]).toBe(q[0].match(/\d+/)![0]);
+        expect(q.indexOf("SELECT to_regclass('public.eiai_migration')")).toBe(1);
+        expect(q.filter((x) => /pg_advisory/.test(x))).toHaveLength(2);
+    });
+
+    it('releases the lock when a migration fails', async () => {
+        writeFileSync(join(dir, '1.sql'), 'SELECT boom;');
+        const fake = fakePg({ failOn: /boom/ });
+        const { runMigrations } = await loadInstall(fake);
+        await runMigrations(new fake.Client() as any, dir);
+        expect(fake.queries[fake.queries.length - 1]).toMatch(/^select pg_advisory_unlock\(/);
+    });
+
+    it('an existing ledger table skips the CREATE', async () => {
+        const fake = fakePg({ tables: ['eiai_migration'] });
+        const { runMigrations } = await loadInstall(fake);
+        await runMigrations(new fake.Client() as any, dir);
+        expect(fake.queries.filter((q) => /CREATE TABLE/i.test(q))).toEqual([]);
+    });
+
+    it('a CREATE failure is logged, does not throw, and install still ends the client', async () => {
+        const fake = fakePg({ tables: PATCHED_TABLES, failOn: /CREATE TABLE IF NOT EXISTS eiai_migration/ });
+        const end = vi.spyOn(fake.Client.prototype, 'end');
+        await expect((await loadInstall(fake)).default()).resolves.toBeUndefined();
+        expect(end).toHaveBeenCalled();
+        expect(error.mock.calls.join('\n')).toMatch(/❌ \[migration\].*simulated failure/s);
+        expect(fake.queries[fake.queries.length - 1]).toMatch(/pg_advisory_unlock/);
+    });
+
+    it('an unreadable migrations directory is logged, not thrown', async () => {
+        const fake = fakePg({ tables: ['eiai_migration'] });
+        const { runMigrations } = await loadInstall(fake);
+        await expect(runMigrations(new fake.Client() as any, join(dir, 'missing'))).resolves.toBeUndefined();
+        expect(error.mock.calls.join('\n')).toMatch(/❌ \[migration\]/);
     });
 });

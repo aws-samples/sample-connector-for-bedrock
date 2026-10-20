@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
 import providers from '../src/providers/provider';
 
@@ -8,7 +8,7 @@ import providers from '../src/providers/provider';
 const scripts = join(__dirname, '../src/scripts');
 const patchSql = readFileSync(join(scripts, 'patch-0.0.5.sql'), 'utf8');
 const migrationPath = join(scripts, 'migrations/2026-10-20-preset-models.sql');
-const migrationSql = existsSync(migrationPath) ? readFileSync(migrationPath, 'utf8') : '';
+const migrationSql = readFileSync(migrationPath, 'utf8');
 const parse = (sql: string) => [...sql.matchAll(/\('([^']+)',\s*(\d),\s*'([^']+)',\s*'([^']+)',\s*([0-9.e-]+),\s*([0-9.e-]+)\s*\)/g)]
     .map(([, name, multiple, provider, config, priceIn, priceOut]) => ({ name, multiple: Number(multiple), provider, config: JSON.parse(config), priceIn: Number(priceIn), priceOut: Number(priceOut) }));
 const patchRows = parse(patchSql);
