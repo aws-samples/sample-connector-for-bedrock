@@ -239,6 +239,13 @@
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/management/"/>
     </url>
     <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/</loc>
+        <lastmod>2026-10-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/scenarios/claude-code-web/"/>
+    </url>
+    <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/cursor/</loc>
         <lastmod>2026-10-20</lastmod>
         <changefreq>daily</changefreq>
@@ -510,6 +517,13 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/management/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/management/"/>
+    </url>
+    <url>
+        <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/scenarios/claude-code-web/</loc>
+        <lastmod>2026-10-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/scenarios/claude-code-web/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/"/>
     </url>
     <url>
         <loc>https://aws-samples.github.io/sample-connector-for-bedrock/zh/user-manual/scenarios/cursor/</loc>
