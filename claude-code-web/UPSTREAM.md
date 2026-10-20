@@ -145,7 +145,7 @@ directory must be listed here.
     `test/claude_code_web_image_attachments.test.ts`): PNG/JPEG/GIF/WebP allowlist, max 5 images per
     message, long edge downscaled to 1568 px, PNG kept up to 1 MB else re-encoded as JPEG quality 0.85,
     an image over 3.75 MB of base64 rejected, a send over 4.5 MB (image base64 plus the text's UTF-8
-    bytes) rejected (Lambda caps a request at 6 MB). Every model call resends the whole conversation, so
+    bytes) rejected (the BFF caps /cc/api request bodies at 8 MiB). Every model call resends the whole conversation, so
     the images of one session (already in the chat plus pending) share a 4.5 MB base64 budget
     (`sessionImageBase64`, `fitSessionBudget`, `sessionBudgetError`); adding or sending past it is refused
     with "Image budget for this session is used up (4.5 MB). Start a new session to send more images."

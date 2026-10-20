@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CC_API_BODY_LIMIT } from '../src/middleware/claude_code_web_body';
 import {
     ALLOWED_IMAGE_TYPES,
     JPEG_QUALITY,
@@ -70,8 +71,8 @@ describe('limits', () => {
         expect(MAX_TOTAL_BASE64).toBe(4.5 * MiB);
         expect(MAX_SESSION_BASE64).toBe(4.5 * MiB);
         expect(SESSION_BUDGET_ERROR).toBe('Image budget for this session is used up (4.5 MB). Start a new session to send more images.');
-        // The whole send stays well under Lambda's 6 MB synchronous request cap.
-        expect(MAX_TOTAL_BASE64).toBeLessThan(6 * MiB - 512 * 1024);
+        // The whole send stays well under the BFF's /cc/api body cap.
+        expect(MAX_TOTAL_BASE64).toBeLessThan(CC_API_BODY_LIMIT - 512 * 1024);
     });
 });
 

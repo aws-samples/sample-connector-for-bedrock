@@ -14,7 +14,7 @@ export const MAX_IMAGE_EDGE = 1568
 // A PNG up to this many file bytes is kept; a bigger one is re-encoded as JPEG
 export const PNG_MAX_BYTES = 1 * MB
 export const JPEG_QUALITY = 0.85
-// Base64 limits, per image and per message. Lambda caps a synchronous request at 6 MB.
+// Base64 limits, per image and per message. A send stays well under the 8 MiB body cap on /cc/api.
 export const MAX_IMAGE_BASE64 = 3.75 * MB
 export const MAX_TOTAL_BASE64 = 4.5 * MB
 // Every model call resends the whole conversation, earlier images included, so the
