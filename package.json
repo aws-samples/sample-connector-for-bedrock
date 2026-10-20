@@ -8,10 +8,11 @@
     "start": "npx ts-node -T src/index.ts",
     "dev": "nodemon src/index.ts",
     "dev-ui": "vite",
-    "build": "npm run build-server && npm run build-ui",
+    "build": "npm run build-server && npm run build-ui && npm run build-cc",
     "build-server": "rimraf ./dist/server && tsc --project ./tsconfig.json && npm run cp-config",
     "cp-config": "node scripts/prepare-dist-package.mjs && cpy 'src/scripts/**' dist/server/scripts/",
     "build-ui": "vite build",
+    "build-cc": "npm --prefix claude-code-web/web_client ci && npm --prefix claude-code-web/web_client exec -- vite build claude-code-web/web_client --outDir ../../dist/cc --emptyOutDir",
     "preview-ui": "vite preview",
     "run": "node dist/server/index.js"
   },
@@ -21,6 +22,8 @@
     "@aws-sdk/client-bedrock-runtime": "3.980.0",
     "@aws-sdk/client-s3": "3.980.0",
     "@aws-sdk/client-sagemaker-runtime": "3.980.0",
+    "@aws-sdk/client-ssm": "3.980.0",
+    "@aws-sdk/client-sts": "3.980.0",
     "@aws-sdk/credential-provider-node": "3.972.4",
     "@aws-sdk/s3-request-presigner": "3.980.0",
     "@azure/openai": "^2.0.0",
@@ -44,6 +47,7 @@
     "openai": "^4.104.0",
     "pg": "^8.18.0",
     "sharp": "0.35.5",
+    "undici": "6.29.1",
     "winston": "^3.19.0"
   },
   "compilerOptions": {

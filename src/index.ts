@@ -22,6 +22,9 @@ import path from "path";
 const fs = require("fs");
 import { version } from "../package.json";
 import { startUp } from "./util/warmup";
+import { ccStaticHandler } from "./middleware/claude_code_web_static";
+import { ccBodyLimit } from "./middleware/claude_code_web_body";
+import { loadCcConfig } from "./claude_code_web/config";
 
 const app = new Koa();
 
@@ -62,6 +65,13 @@ if (!config.disableUI) {
   });
 
   app.use(
+    ccStaticHandler({
+      staticDir: path.resolve(__dirname, "../cc"),
+      isEnabled: async () => (await loadCcConfig()) !== null,
+    }),
+  );
+
+  app.use(
     serve({
       rootDir: "./brclient",
       rootPath: "/brclient",
@@ -75,13 +85,16 @@ app.use(loggerHandler);
 
 app.use(errorHandler);
 
+// /cc/api/* gets its own 8 MiB cap (ccBodyLimit); every other route keeps these limits.
 app.use(
-  bodyParser({
-    multipart: true,
-    encoding: "utf-8",
-    formLimit: "100mb",
-    jsonLimit: "100mb",
-  }),
+  ccBodyLimit(
+    bodyParser({
+      multipart: true,
+      encoding: "utf-8",
+      formLimit: "100mb",
+      jsonLimit: "100mb",
+    }),
+  ),
 );
 
 app.use(cors());

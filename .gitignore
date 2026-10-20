@@ -141,6 +141,12 @@ dist/
 *.sw?
 yarn.lock
 package-lock.json
+# claude-code-web/web_client is npm-managed and its lockfile must be tracked
+!claude-code-web/web_client/package-lock.json
+
+# Python caches and virtualenvs (claude-code-web/, cloudformation/test/)
+__pycache__/
+.venv/
 
 # Dockerfile
 # lambda.Dockerfile

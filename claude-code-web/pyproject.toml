@@ -1,0 +1,19 @@
+[project]
+name = "claude-agent-api-server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "awscli>=1.44.14",
+    "boto3>=1.42.24",
+    "claude-agent-sdk>=0.1.19",
+    "fastapi>=0.120.0",
+    "httpx>=0.28.1",
+    "langfuse>=2,<3",
+    "litellm>=1.78.7",
+    "pexpect>=4.9.0",
+    "pip>=25.3",
+    "s5cmd>=0.3.3",
+    "uvicorn>=0.38.0",
+]

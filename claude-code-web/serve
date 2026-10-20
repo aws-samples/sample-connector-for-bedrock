@@ -1,0 +1,14 @@
+#!/bin/bash
+
+cd /app/
+
+# Create logs directory if it doesn't exist
+mkdir -p logs
+
+# Generate log filename with timestamp
+LOG_FILE="logs/server_$(date +%Y%m%d_%H%M%S).log"
+
+# Run server with output to both stdout and log file
+# Using 'tee' to duplicate output stream
+echo "Starting server... Logs will be saved to: $LOG_FILE"
+uv run uvicorn backend.server:app --host 0.0.0.0 --port 8080 2>&1 | tee "$LOG_FILE"

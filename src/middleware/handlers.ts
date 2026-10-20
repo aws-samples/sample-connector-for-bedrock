@@ -52,6 +52,7 @@ const authHandler = async (ctx: any, next: any) => {
     if (pathName.indexOf("/admin") === 0
         || pathName.indexOf("/user") === 0
         || pathName.indexOf("/v1") === 0
+        || pathName.indexOf("/cc/api") === 0
     ) {
         const authorization = ctx.header.authorization || "";
         // Support both OpenAI-style (Authorization: Bearer xxx) and Anthropic-style (x-api-key: xxx)

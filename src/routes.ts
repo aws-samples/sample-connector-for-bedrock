@@ -3,6 +3,7 @@ import Router from "koa-router";
 import v1 from './controller/runtime/v1';
 import anthropic from './controller/runtime/anthropic';
 import models from './controller/runtime/models';
+import claude_code_web from './controller/runtime/claude_code_web';
 import config from './config';
 import admin_statistics_controller from './controller/admin/StatisticsController';
 import admin_key_controller from './controller/admin/KeyController';
@@ -36,6 +37,10 @@ router.get("/v1/models", models.list);
 
 // Anthropic Messages API
 router.post("/v1/messages", anthropic.messages);
+
+// claude-code-web BFF (answers 404 unless the feature is configured)
+router.post("/cc/api/invocations", claude_code_web.invocations);
+router.post("/cc/api/stopruntimesession", claude_code_web.stopSession);
 
 // Admin APIs
 admin_statistics_controller(router);
