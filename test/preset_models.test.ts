@@ -3,10 +3,23 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import providers from '../src/providers/provider';
 
-// Preset models are seeded by patch-0.0.5.sql on a fresh database (src/install.ts).
-const sql = readFileSync(join(__dirname, '../src/scripts/patch-0.0.5.sql'), 'utf8');
-const rows = [...sql.matchAll(/INSERT INTO eiai_model \(name, multiple, provider, config, price_in, price_out\)\s*VALUES \('([^']+)',\s*(\d),\s*'([^']+)',\s*'([^']+)',\s*([0-9.e-]+),\s*([0-9.e-]+)\s*\)/g)]
+// patch-0.0.5.sql seeds the original presets on a fresh database; the bedrock-runtime presets come
+// from a migration, which also reaches existing databases (src/install.ts).
+const scripts = join(__dirname, '../src/scripts');
+const patchSql = readFileSync(join(scripts, 'patch-0.0.5.sql'), 'utf8');
+const migrationPath = join(scripts, 'migrations/2026-10-20-preset-models.sql');
+const migrationSql = readFileSync(migrationPath, 'utf8');
+const parse = (sql: string) => [...sql.matchAll(/\('([^']+)',\s*(\d),\s*'([^']+)',\s*'([^']+)',\s*([0-9.e-]+),\s*([0-9.e-]+)\s*\)/g)]
     .map(([, name, multiple, provider, config, priceIn, priceOut]) => ({ name, multiple: Number(multiple), provider, config: JSON.parse(config), priceIn: Number(priceIn), priceOut: Number(priceOut) }));
+const patchRows = parse(patchSql);
+const rows = parse(migrationSql);
+
+// The presets moved out of patch-0.0.5.sql, in their original order.
+const MOVED = [
+    'kimi-k3', 'kimi-k2-5', 'glm-5', 'deepseek-v3-2', 'gpt-oss-120b', 'qwen3-coder-next', 'minimax-m2-5',
+    'gpt-6-1-sol', 'gpt-6-sol', 'gpt-6-astra', 'gpt-6-luna', 'gpt-5-6-sol', 'gpt-5-6-terra', 'gpt-5-6-luna',
+    'claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5',
+];
 
 describe('preset models', () => {
     it('seed the OpenAI-format models on bedrock-runtime with their model ids and us-east-1 prices', () => {
@@ -60,10 +73,25 @@ describe('preset models', () => {
         ]);
     });
     it('only use registered providers and unique names', () => {
-        // Every INSERT is parsed, so a row the pattern misses cannot slip past these checks.
-        expect(rows).toHaveLength(sql.match(/INSERT INTO eiai_model/g)!.length);
+        // Every row is parsed, so a row the pattern misses cannot slip past these checks.
+        expect(patchRows).toHaveLength(patchSql.match(/INSERT INTO eiai_model/g)!.length);
+        expect(rows).toHaveLength(migrationSql.match(/^\('/gm)?.length ?? 0);
+        const all = [...patchRows, ...rows];
         const registered = Object.keys(providers);
-        expect(rows.filter((r) => !registered.includes(r.provider)).map((r) => r.name)).toEqual([]);
-        expect(new Set(rows.map((r) => r.name)).size).toBe(rows.length);
+        expect(all.filter((r) => !registered.includes(r.provider)).map((r) => r.name)).toEqual([]);
+        expect(new Set(all.map((r) => r.name)).size).toBe(all.length);
+    });
+});
+
+describe('preset-model migration', () => {
+    it('hold exactly the presets moved out of patch-0.0.5.sql', () => {
+        expect(rows.map((r) => r.name)).toEqual(MOVED);
+        expect(patchRows.filter((r) => MOVED.includes(r.name))).toEqual([]);
+        expect(patchSql).not.toMatch(/bedrock-runtime-/);
+    });
+    it('insert the presets in one statement and bind only the ones it inserted to an existing group 1', () => {
+        expect(migrationSql.match(/INSERT INTO eiai_model/g)).toHaveLength(1);
+        expect(migrationSql).toMatch(/ON CONFLICT \(name\) DO NOTHING\s+RETURNING id/);
+        expect(migrationSql).toMatch(/INSERT INTO eiai_group_model \(model_id, group_id\)\s+SELECT id, 1 FROM inserted\s+WHERE EXISTS \(SELECT 1 FROM eiai_group WHERE id = 1\)\s+ON CONFLICT \(model_id, group_id\) DO NOTHING;/);
     });
 });

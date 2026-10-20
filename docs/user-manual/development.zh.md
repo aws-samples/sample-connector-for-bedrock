@@ -66,6 +66,8 @@ yarn
 
  If you have configured postgres, the tables will be created automatically.
 
+ 每次启动还会执行 `src/scripts/migrations/` 中尚未记录在 `eiai_migration` 表里的文件。因此升级已有数据库时会补上新版本的预置模型，并绑定到 group 1（如果该 group 存在）。同名模型已存在时保持不变。每个文件只执行一次，所以升级之后删除的预置模型不会被重新加入。
+
 ### 启动管理界面
 
  ```shell

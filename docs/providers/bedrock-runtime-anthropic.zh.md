@@ -90,7 +90,7 @@ Claude Code 根据模型名决定请求的写法。例如 Haiku 4.5 使用 `thin
 
 ## 预置模型
 
-新安装会在这个 provider 上创建下面这些模型（`src/scripts/patch-0.0.5.sql`）。已有的数据库不会改动；需要的话请在管理后台自行添加。价格是 us-east-1 global 按需价格，单位是每 100 万 token。
+BRConnector 会在这个 provider 上创建下面这些模型（`src/scripts/migrations/2026-10-20-preset-models.sql`）：新数据库安装时创建，已有数据库在升级时补上。新加入的模型会绑定到 group 1（如果该 group 存在）；同名模型已存在时保持不变。价格是 us-east-1 global 按需价格，单位是每 100 万 token。
 
 | 模型名 | `modelId` | 输入 | 输出 | 缓存读 | 缓存写（5 分钟） | 缓存写（1 小时） |
 |---|---|---|---|---|---|---|

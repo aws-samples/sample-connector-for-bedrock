@@ -68,6 +68,8 @@ The connector supports the following environment variables:
 
  If you have configured postgres, the tables will be created automatically.
 
+ On every startup the connector also applies the files in `src/scripts/migrations/` that the `eiai_migration` table has not recorded yet. Upgrading an existing database therefore adds the preset models of the new release and binds them to group 1 if that group exists. A preset whose name already exists is left unchanged. Each file runs once, so a preset you delete after the upgrade is not added back.
+
 ### Run fontend
 
  ```shell

@@ -82,7 +82,7 @@ GLM 5.3. It is available only to eligible accounts; ask your AWS account team.
 
 ## Preset models
 
-A new installation creates these models on this provider (`src/scripts/patch-0.0.5.sql`). Existing databases are not changed; add the models in the admin console if you want them. Prices are us-east-1 on-demand prices per 1 million tokens. The in-Region model ids must be available in the Region BRConnector calls.
+BRConnector creates these models on this provider (`src/scripts/migrations/2026-10-20-preset-models.sql`) on a new database, and adds them to an existing database on upgrade. Each model it adds is bound to group 1 if that group exists; a model whose name already exists is left unchanged. Prices are us-east-1 on-demand prices per 1 million tokens. The in-Region model ids must be available in the Region BRConnector calls.
 
 | Model name | `modelId` | Input | Output |
 |---|---|---|---|
