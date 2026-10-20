@@ -36,6 +36,7 @@ describe('install migrations', () => {
     it('Claude 5.5 chat presets are bedrock-converse models priced like the runtime-anthropic ones', () => {
         const chat = read('migrations/2026-10-20b-claude-chat-presets.sql');
         const base = read('migrations/2026-10-20-preset-models.sql');
+        const expected: Record<string, string[]> = { opus: ['4e-6', '20e-6'], sonnet: ['2e-6', '10e-6'], haiku: ['0.1e-6', '0.5e-6'] };
         for (const m of ['opus', 'sonnet', 'haiku']) {
             const id = `global.anthropic.claude-${m}-5-5`;
             const row = chat.split('\n').find((l) => l.startsWith(`('claude-${m}-5-5-chat'`));
@@ -43,6 +44,7 @@ describe('install migrations', () => {
             const prices = (l: string) => l.match(/\}', ([^,]+), ([^)]+)\)/)?.slice(1, 3);
             const src = base.split('\n').find((l) => l.startsWith(`('claude-${m}-5-5'`));
             expect(prices(row!)).toEqual(prices(src!));
+            expect(prices(row!)).toEqual(expected[m]);
         }
         expect(chat).toContain('WHERE EXISTS (SELECT 1 FROM eiai_group WHERE id = 1)');
     });

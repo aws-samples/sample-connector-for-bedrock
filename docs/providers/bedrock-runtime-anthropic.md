@@ -90,7 +90,7 @@ With this model, set `Price-In` to `2` and `Price-Out` to `10` in the admin page
 
 ## Preset models
 
-These `claude-*-5-5` models are for `/v1/messages` passthrough (Claude Code). For Chat Completions clients use the `claude-*-5-5-chat` presets on [bedrock-converse](bedrock-converse).
+These `claude-*-5-5` models are for `/v1/messages` passthrough (Claude Code). For Chat Completions clients use the `claude-*-5-5-chat` presets on [bedrock-converse](bedrock-converse.md).
 
 BRConnector creates these models on this provider (`src/scripts/migrations/2026-10-20-preset-models.sql`) on a new database, and adds them to an existing database on upgrade. Each model it adds is bound to group 1 if that group exists; a model whose name already exists is left unchanged. Prices are us-east-1 global on-demand prices per 1 million tokens.
 

@@ -16,7 +16,7 @@ Using Bedrock knowledge base integrated streaming, which requires configuring be
 {
   "region": "<your-region>",
   "knowledgeBaseId": "<your-kb-id>",
-  "bedrockModelArn": "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-5-5"
+  "bedrockModelArn": "arn:aws:bedrock:us-west-2:<account-id>:inference-profile/global.anthropic.claude-sonnet-5-5"
 }
 ```
 

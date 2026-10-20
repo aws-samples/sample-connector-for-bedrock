@@ -2,7 +2,7 @@
 
 ## How to support documents in chat
 
-Please note: Document uploads are currently only supported in Claude 3.
+Please note: Document uploads are currently only supported by models on the bedrock-converse provider.
 
 The API declaration for uploading documents is as follows:
 
