@@ -1946,10 +1946,12 @@
 </tr>
 </tbody>
 </table>
+<p>此 provider 的 Claude 预置模型：<code>claude-opus-5-5-chat</code>、<code>claude-sonnet-5-5-chat</code>、<code>claude-haiku-5-5-chat</code>（<code>modelId</code> 为 <code>global.anthropic.claude-&lt;opus|sonnet|haiku&gt;-5-5</code>，价格与对应的 <code>claude-*-5-5</code> 预置模型相同）。Chat Completions 客户端请用这几个。<a href="../bedrock-runtime-anthropic/">bedrock-runtime-anthropic</a> 上的 <code>claude-*-5-5</code> 预置模型只做 <code>/v1/messages</code> 透传，供 Claude Code 使用。已有数据库也会在启动时通过迁移加上它们。</p>
+<p>新安装不再创建 Claude 3、3.5 和 3.7 的预置模型，因为 Bedrock 已将它们下线。如果数据库里已有这些模型，可以在管理后台删除。</p>
 <p>bedrock-converse 的配置示例如下：</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="p">{</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"modelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us.anthropic.claude-3-7-sonnet-20250219-v1:0"</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"modelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"global.anthropic.claude-sonnet-5-5"</span><span class="p">,</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"regions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="s2">"us-east-1"</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="p">],</span>
@@ -2020,7 +2022,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年4月25日 15:51:11 CST"><span class="timeago" datetime="2025-04-25T15:51:11+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年4月25日 15:51:11 CST">2025-04-25</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月20日 08:06:29 CST"><span class="timeago" datetime="2026-10-20T08:06:29+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月20日 08:06:29 CST">2026-10-20</span>
   </span>
 
     
