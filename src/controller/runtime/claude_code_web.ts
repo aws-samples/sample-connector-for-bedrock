@@ -24,7 +24,7 @@ export const deps = {
 };
 
 // BFF error body. The fork client reads `detail` (FastAPI's field) for the message it shows.
-function fail(ctx: any, status: number, text: string) {
+export function fail(ctx: any, status: number, text: string) {
     ctx.status = status;
     ctx.body = { error: text, detail: text };
 }
