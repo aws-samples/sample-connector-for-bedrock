@@ -32,7 +32,7 @@ Amazon Bedrock 知识库。
 
 - knowledgeBaseId：知识库 ID
 - summaryModel：支持 claude-sonnet-5-5-chat、claude-haiku-5-5-chat 或 claude-opus-5-5-chat 模型
-- bedrockModelArn：需要知识库当前 region 的基础模型的 ARN，用于一体化流式处理
+- bedrockModelArn：需要知识库当前 region 的基础模型或推理配置文件（inference profile）的 ARN，用于一体化流式处理
 
 ## API 调用
 

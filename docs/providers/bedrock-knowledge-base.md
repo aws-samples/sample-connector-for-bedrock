@@ -32,7 +32,7 @@ Or retrieving relevant text first, then using a model in BRConnector for summari
 
 - knowledgeBaseId: the knowledge base id
 - summaryModel: supports claude-sonnet-5-5-chat, claude-haiku-5-5-chat or claude-opus-5-5-chat models
-- bedrockModelArn: the ARN of the foundation model in the current region, used for integrated streaming
+- bedrockModelArn: the ARN of the foundation model or inference profile in the current region, used for integrated streaming
 
 ## API Calls
 
