@@ -10,11 +10,12 @@ from backend.api.invocations import (
     apply_brc_request_env,
     parse_session_and_user_from_headers,
 )
+from backend.tests.forged_jwt import forged_jwt
 
 PREFIX = "x-amzn-bedrock-agentcore-runtime-custom-brc-"
 SESSION_HEADER = "x-amzn-bedrock-agentcore-runtime-session-id"
-# Forged bearer value whose claims must be ignored
-FAKE_JWT = "not-a-real-token.forged-sub"
+# Forged unsigned JWT whose "sub" (another user) must be ignored
+FAKE_JWT = forged_jwt()
 
 
 ENV_NAMES = list(BRC_ENV_HEADERS.values())

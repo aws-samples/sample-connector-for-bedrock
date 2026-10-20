@@ -1,25 +1,20 @@
 """OAuth endpoints take the user from the BRConnector session id, never from a JWT."""
 
 import asyncio
-import base64
-import json
 from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 
 from backend.api import oauth
+from backend.tests.forged_jwt import FORGED_SUB, forged_jwt
 
 SESSION_HEADER = "x-amzn-bedrock-agentcore-runtime-session-id"
 WORKLOAD_HEADER = "x-amzn-bedrock-agentcore-runtime-workload-accesstoken"
 
 
-def _b64(obj):
-    return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b"=").decode()
-
-
-# Forged unsigned token whose "sub" must not be used; built at runtime so no JWT literal sits in the repo
-FORGED_AUTH = "Bearer " + ".".join([_b64({"alg": "none"}), _b64({"sub": "other-user"}), "sig"])
+# Forged unsigned token whose "sub" must not be used
+FORGED_AUTH = "Bearer " + forged_jwt()
 
 
 def make_request(headers):
@@ -65,7 +60,7 @@ def test_token_endpoint_uses_session_user_not_forged_jwt(captured):
     asyncio.run(oauth.get_github_oauth_token(req))
     logs = " ".join(captured["logs"])
     assert "brc-key-0000000000000042" in logs
-    assert "other-user" not in logs
+    assert FORGED_SUB not in logs
 
 
 def test_token_endpoint_rejects_forged_jwt_without_session_user(captured):

@@ -88,7 +88,7 @@ async def execute_command_stream(command: str, cwd: str):
                 return
 
         # Execute regular command
-        process = await asyncio.create_subprocess_shell(  # nosemgrep: dangerous-asyncio-shell-audit -- remote shell is the product feature; runs in the caller's own single-user microVM with only that user's scoped credentials
+        process = await asyncio.create_subprocess_shell(  # nosemgrep: dangerous-asyncio-shell-audit -- remote shell is the product feature; runs in that user's own single-user AgentCore microVM, which holds the user's API key and workspace credentials and also the runtime role (see docs/user-manual/scenarios/claude-code-web.md)
             command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,

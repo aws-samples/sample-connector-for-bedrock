@@ -21,6 +21,7 @@ import {
     fitSessionBudget,
     imagesBase64,
     prepareImage,
+    preventFileDropNavigation,
     sessionBudgetError,
     sessionImageBase64,
     splitImageContent,
@@ -156,6 +157,55 @@ describe('pickDroppedImages / hasDraggedFiles', () => {
         expect(hasDraggedFiles({ types: ['Files'] })).toBe(true);
         expect(hasDraggedFiles({ types: ['text/plain'] })).toBe(false);
         expect(hasDraggedFiles(null)).toBe(false);
+    });
+});
+
+describe('preventFileDropNavigation', () => {
+    function drag(type: string, types: string[]) {
+        const e = new Event(type, { cancelable: true });
+        Object.assign(e, { dataTransfer: { types, dropEffect: 'none' } });
+        return e as Event & { dataTransfer: { types: string[]; dropEffect: string } };
+    }
+
+    it('cancels dragover and drop of files anywhere on the page, so the browser does not open the file', () => {
+        const page = new EventTarget();
+        preventFileDropNavigation(page);
+        for (const type of ['dragover', 'drop']) {
+            const e = drag(type, ['Files']);
+            page.dispatchEvent(e);
+            expect(e.defaultPrevented).toBe(true);
+        }
+    });
+
+    it('leaves text drags to the browser', () => {
+        const page = new EventTarget();
+        preventFileDropNavigation(page);
+        for (const type of ['dragover', 'drop']) {
+            const e = drag(type, ['text/plain']);
+            page.dispatchEvent(e);
+            expect(e.defaultPrevented).toBe(false);
+        }
+    });
+
+    it('keeps other handlers and their drop effect working', () => {
+        const page = new EventTarget();
+        const seen: string[] = [];
+        preventFileDropNavigation(page);
+        page.addEventListener('drop', () => seen.push('other'));
+        const e = drag('drop', ['Files']);
+        page.dispatchEvent(e);
+        expect(seen).toEqual(['other']);
+        expect(e.dataTransfer.dropEffect).toBe('none');
+    });
+
+    it('returns a cleanup that removes both listeners', () => {
+        const page = new EventTarget();
+        preventFileDropNavigation(page)();
+        for (const type of ['dragover', 'drop']) {
+            const e = drag(type, ['Files']);
+            page.dispatchEvent(e);
+            expect(e.defaultPrevented).toBe(false);
+        }
     });
 });
 

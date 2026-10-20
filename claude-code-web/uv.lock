@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -344,7 +344,6 @@ dependencies = [
     { name = "litellm" },
     { name = "pexpect" },
     { name = "pip" },
-    { name = "pyjwt" },
     { name = "s5cmd" },
     { name = "uvicorn" },
 ]
@@ -360,7 +359,6 @@ requires-dist = [
     { name = "litellm", specifier = ">=1.78.7" },
     { name = "pexpect", specifier = ">=4.9.0" },
     { name = "pip", specifier = ">=25.3" },
-    { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "s5cmd", specifier = ">=0.3.3" },
     { name = "uvicorn", specifier = ">=0.38.0" },
 ]

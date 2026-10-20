@@ -379,7 +379,8 @@ async def get_github_oauth_token(request: Request):
         - resourceCredentialProviderName: From GITHUB_OAUTH_PROVIDER_NAME env var (default: "github-provider-prod")
         - scopes: ["repo", "read:user", "read:org"]
         - oauth2Flow: "USER_FEDERATION"
-        - sessionUri: user_id from JWT
+        - no sessionUri: the user id comes from the session id header above (the part before
+          @workspace); it is required and logged, not sent
         - forceAuthentication: True
 
     Returns:

@@ -24,7 +24,11 @@ directory must be listed here.
 
 - `backend/api/invocations.py`: `parse_session_and_user_from_headers` takes the
   user id from the session id (the part before `@workspace`) instead of decoding
-  a JWT `sub`; the `jwt` import is removed (`pyjwt` stays in `pyproject.toml`).
+  a JWT `sub`; the `jwt` import is removed.
+- `pyproject.toml`, `uv.lock`: `pyjwt` removed from the direct dependencies (nothing imports `jwt`
+  any more); it stays in the lock as a dependency of `mcp`. The lock was regenerated with
+  `uv lock` (uv 0.13.1): only the two root `pyjwt` lines go, and the lock format `revision` goes from 3
+  to 5; no package version changes.
 - `backend/api/invocations.py`: added `BRC_ENV_HEADERS` and
   `apply_brc_request_env`, called first in `invocations()`, which copies the four
   BRConnector custom headers into `ANTHROPIC_AUTH_TOKEN`, `AWS_ACCESS_KEY_ID`,
@@ -110,15 +114,25 @@ directory must be listed here.
   the session id header (via `parse_session_and_user_from_headers`) instead of an unverified
   `jwt.decode(..., verify_signature=False)`; the `jwt` use is removed. The callback passes
   `userIdentifier={"userId": ...}` to `complete_resource_token_auth` instead of the JWT. Tests:
-  `backend/tests/test_oauth_identity.py`.
+  `backend/tests/test_oauth_identity.py`. The `get_github_oauth_token` docstring no longer says the
+  JWT user is sent as `sessionUri` (no `sessionUri` was ever sent): the user comes from the session id
+  header and is only required and logged.
 - `backend/api/git.py`, `backend/core/s3_client.py`, `backend/core/workspace_sync.py`,
   `backend/api/shell.py`: inline `# nosemgrep` comments naming `dangerous-asyncio-create-exec-audit`
-  (exec form with an argument list, no shell) and `dangerous-asyncio-shell-audit` (the remote shell is
-  the product feature, inside the caller's own single-user microVM). No behaviour change.
+  and `dangerous-asyncio-shell-audit`, each with its reason. `s3_client.py`, `workspace_sync.py`: exec
+  form with an argument list, no shell. `git.py`: no shell, but cwd, remote, branch and file paths come
+  from the caller and git may read them as options (e.g. `--receive-pack=<cmd>`); accepted because it
+  runs in that user's own single-user microVM, where the shell feature already runs any command.
+  `shell.py`: the remote shell is the product feature; it runs in that user's own single-user AgentCore
+  microVM, which holds the user's API key and workspace credentials and also the runtime role (see
+  `docs/user-manual/scenarios/claude-code-web.md`). No behaviour change.
 - `web_client/src/components/FilePreview.jsx`: `// nosemgrep` for `insecure-innerhtml` and
   `insecure-document-method` on the highlight.js output (hljs escapes its input).
-- `backend/tests/test_brc_identity.py`: the forged bearer value no longer looks like a JWT
-  (`detected-jwt-token`); the test still proves `Authorization` is ignored.
+- `backend/tests/test_brc_identity.py`, `backend/tests/test_oauth_identity.py`,
+  `backend/tests/forged_jwt.py` (new): the forged bearer value is an unsigned JWT for another user,
+  built at run time by `forged_jwt()` so no JWT literal sits in the repo (`detected-jwt-token`). It
+  decodes as a JWT, so a regression that reads its `sub` again fails the tests that prove
+  `Authorization` is ignored.
 - `Dockerfile`: added `HEALTHCHECK` (curl on `/ping`).
 - `web_client/src/components/ChatContainer.jsx`, `web_client/src/utils/inputHeight.js`: the chat input
   box defaulted to 120px and could be dragged down to 60px, but its contents (24+16 padding, model
@@ -149,6 +163,10 @@ directory must be listed here.
     `web_client/src/components/Message.jsx` renders `images` as `<img src>` only for `data:` URLs of the
     allowed types; the text still goes through the escaping formatter. `web_client/src/style.css`:
     attachment and message image styles.
+  - `web_client/src/main.jsx`: calls `preventFileDropNavigation(document)` (`imageAttachments.js`), which
+    cancels the browser's default for file dragover/drop anywhere on the page, so a file dropped outside
+    the input area no longer opens in the tab and loses the chat. Text drags and the input area's own
+    handler are untouched.
   - `backend/api/sessions.py`: the history endpoint keeps a user message that has image blocks as one
     message whose `content` is its image and text blocks (upstream dropped image blocks).
   - `backend/core/message_log.py` (new): `summarize_message`. `backend/core/session.py` and

@@ -98,6 +98,21 @@ export function hasDraggedFiles(dataTransfer) {
   return Array.from(dataTransfer?.types || []).includes('Files')
 }
 
+// A file dropped outside the input area would make the browser open it and leave the chat. Cancels file
+// dragover/drop on `target` (the document); text drags and the input area's own handler are untouched.
+// Returns a function that removes the listeners.
+export function preventFileDropNavigation(target) {
+  const onFileDrag = (e) => {
+    if (hasDraggedFiles(e.dataTransfer)) e.preventDefault()
+  }
+  target.addEventListener('dragover', onFileDrag)
+  target.addEventListener('drop', onFileDrag)
+  return () => {
+    target.removeEventListener('dragover', onFileDrag)
+    target.removeEventListener('drop', onFileDrag)
+  }
+}
+
 // Split new files into the ones that fit the per-message limit and the count that does not
 export function takeImageSlots(count, files, max = MAX_IMAGES_PER_MESSAGE) {
   const free = Math.max(0, max - count)

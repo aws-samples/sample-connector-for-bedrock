@@ -65,7 +65,7 @@ async def get_git_log(request: GitLogRequest):
             "--pretty=format:%H|%an|%ar|%s",
         ]
 
-        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
             *log_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
@@ -99,7 +99,7 @@ async def get_git_log(request: GitLogRequest):
                 commit_hash,
             ]
 
-            files_process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+            files_process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
                 *files_cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -149,7 +149,7 @@ async def get_git_status(request: GitStatusRequest):
     try:
         # Get current branch
         branch_cmd = ["git", "-C", request.cwd, "rev-parse", "--abbrev-ref", "HEAD"]
-        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
             *branch_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, _ = await process.communicate()
@@ -157,7 +157,7 @@ async def get_git_status(request: GitStatusRequest):
 
         # Get status with porcelain format
         status_cmd = ["git", "-C", request.cwd, "status", "--porcelain"]
-        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
             *status_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
@@ -223,7 +223,7 @@ async def create_git_commit(request: GitCommitRequest):
             # Stage specific files
             for filepath in request.files:
                 add_cmd = ["git", "-C", request.cwd, "add", filepath]
-                process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+                process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
                     *add_cmd,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
@@ -236,7 +236,7 @@ async def create_git_commit(request: GitCommitRequest):
         else:
             # Stage all changes
             add_cmd = ["git", "-C", request.cwd, "add", "-A"]
-            process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+            process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
                 *add_cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -247,7 +247,7 @@ async def create_git_commit(request: GitCommitRequest):
 
         # Create commit
         commit_cmd = ["git", "-C", request.cwd, "commit", "-m", request.message]
-        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
             *commit_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
@@ -258,7 +258,7 @@ async def create_git_commit(request: GitCommitRequest):
 
         # Get commit hash
         hash_cmd = ["git", "-C", request.cwd, "rev-parse", "HEAD"]
-        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
             *hash_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, _ = await process.communicate()
@@ -298,7 +298,7 @@ async def push_commits(request: GitPushRequest):
             # Push current branch
             push_cmd = ["git", "-C", request.cwd, "push"]
 
-        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- exec form with an argument list, no shell
+        process = await asyncio.create_subprocess_exec(  # nosemgrep: dangerous-asyncio-create-exec-audit -- no shell, but cwd/remote/branch/paths come from the caller and git may read them as options; accepted: it runs in that user's own single-user microVM, where the shell feature already runs any command
             *push_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
