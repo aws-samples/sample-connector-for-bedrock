@@ -98,18 +98,23 @@ describe('withSseKeepalive when the source stops early', () => {
         expect(await text).toBe('data: {"a"' + ERROR_EVENT);
     });
 
-    it('keeps the error event on its own lines when a half-written event is still buffered', async () => {
+    it('keeps the error event on its own lines when backpressure holds a half-written event', async () => {
         const src = new PassThrough();
         const out = withSseKeepalive(src);
         out.on('error', () => {});
-        // Nobody reads yet, so the half event sits in the output buffer when the source fails.
-        src.write('data: {"a"');
-        src.destroy(new Error('boom'));
-        await new Promise((r) => setImmediate(r));
+        // Nobody reads: once the output's readable buffer is full (64 KiB), later chunks wait in its write
+        // buffer without passing the transform, so the half event below is written but not yet seen by it.
+        const event = 'data: ' + 'x'.repeat(4 * 1024 - 8) + '\n\n';
+        for (let i = 0; i < 20; i++) {
+            src.write(event);
+            await new Promise((r) => setImmediate(r));
+        }
+        src.write('data: {"half"');
+        src.emit('error', new Error('boom'));
         const text = await drain(out);
-        expect(text).toBe('data: {"a"' + ERROR_EVENT);
-        expect(text.split('\n\n').pop()).toBe('');
-        expect(text).toContain('\n\ndata: {"type":"error"');
+        expect(text).not.toContain('{"half"data:');
+        expect(text).toContain('{"half"\n\ndata:');
+        expect(text.endsWith(ERROR_EVENT)).toBe(true);
     });
 
     it('ends the output when the source is destroyed without an error', async () => {

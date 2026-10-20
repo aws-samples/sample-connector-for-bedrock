@@ -57,15 +57,28 @@ afterEach(async () => {
     await new Promise((r) => server.close(r));
 });
 
-function post(): Promise<{ req: http.ClientRequest; res?: http.IncomingMessage }> {
+function send(): http.ClientRequest {
+    const req = http.request({ host: '127.0.0.1', port, method: 'POST', path: '/', headers: { 'content-type': 'application/json' } });
+    req.on('error', () => {});
+    req.write('{"a":1}');
+    req.end();
+    return req;
+}
+
+// Waits for the response headers however long body parsing and the handler take; until() fails if they never come.
+async function post(): Promise<{ req: http.ClientRequest; res: http.IncomingMessage }> {
+    let res: http.IncomingMessage | undefined;
+    const req = send();
+    req.on('response', (r) => (res = r));
+    await until(() => res !== undefined);
+    return { req, res: res! };
+}
+
+// For tests where the client leaves before any response headers: resolves right after the request was flushed.
+function postWithoutResponse(): Promise<http.ClientRequest> {
     return new Promise((resolve) => {
-        const req = http.request({ host: '127.0.0.1', port, method: 'POST', path: '/', headers: { 'content-type': 'application/json' } });
-        req.on('error', () => {});
-        req.on('response', (res) => resolve({ req, res }));
-        req.write('{"a":1}');
-        req.end();
-        // For tests where no response arrives, resolve right after the request was flushed.
-        req.on('finish', () => setTimeout(() => resolve({ req }), 50));
+        const req = send();
+        req.on('finish', () => setTimeout(() => resolve(req), 50));
     });
 }
 
@@ -75,9 +88,9 @@ describe('non-stream bodies on a real socket', () => {
         deps.invokeRuntime = vi.fn(async () => new Response(png, { status: 200, headers: { 'content-type': 'image/png' } })) as any;
         const { res } = await post();
         const chunks: Buffer[] = [];
-        for await (const c of res!) chunks.push(c as Buffer);
-        expect(res!.statusCode).toBe(200);
-        expect(res!.headers['content-type']).toBe('image/png');
+        for await (const c of res) chunks.push(c as Buffer);
+        expect(res.statusCode).toBe(200);
+        expect(res.headers['content-type']).toBe('image/png');
         expect(Buffer.compare(Buffer.concat(chunks), png)).toBe(0);
     });
 });
@@ -94,7 +107,7 @@ describe('upstream stream stops early on a real socket', () => {
         const body = new ReadableStream({ start(c) { upstream = c; c.enqueue(new TextEncoder().encode('data: {"a":1}\n\n')); } });
         deps.invokeRuntime = vi.fn(async () => new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } })) as any;
         const { res } = await post();
-        const text = readAll(res!);
+        const text = readAll(res);
         await until(() => bodies.length === 1);
         upstream.error(Object.assign(new TypeError('terminated'), { cause: { code: 'UND_ERR_SOCKET' } }));
         expect(await text).toBe('data: {"a":1}\n\n\n\ndata: {"type":"error","error":"upstream closed"}\n\n');
@@ -108,7 +121,7 @@ describe('client disconnect on a real socket', () => {
         let signal!: AbortSignal;
         invoke = vi.fn((_c: any, o: any) => { signal = o.signal; return new Promise(() => {}); });
         deps.invokeRuntime = invoke as any;
-        const { req } = await post();
+        const req = await postWithoutResponse();
         await until(() => invoke.mock.calls.length > 0);
         expect(signal.aborted).toBe(false);
         req.destroy();
@@ -138,7 +151,7 @@ describe('client disconnect on a real socket', () => {
             o.signal.addEventListener('abort', () => rej(abortError()));
         }));
         deps.invokeRuntime = invoke as any;
-        const { req } = await post();
+        const req = await postWithoutResponse();
         await until(() => invoke.mock.calls.length > 0);
         req.destroy();
         await until(() => signal.aborted);
@@ -158,7 +171,7 @@ describe('client disconnect on a real socket', () => {
             return new Response(body, { status: 200, headers: { 'content-type': 'application/json' } });
         });
         deps.invokeRuntime = invoke as any;
-        const { req } = await post();
+        const req = await postWithoutResponse();
         await until(() => invoke.mock.calls.length > 0);
         req.destroy();
         await until(() => signal.aborted);
