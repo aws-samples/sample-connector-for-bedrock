@@ -14,7 +14,7 @@
   "s3Prefix": "<your-prefix>",
   "s3Region": "us-east-1",
   "paintModelId": "amazon.nova-canvas-v1:0",
-  "localLlmModel": "claude35"
+  "localLlmModel": "claude-haiku-5-5-chat"
 }
 ```
 

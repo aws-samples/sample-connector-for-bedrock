@@ -99,8 +99,8 @@ class ModelController extends AbstractController {
         // }
 
 
-        if (["claude-3-sonnet", "claude-3-haiku", "claude-3-opus",].indexOf(summaryModel) === -1) {
-            throw new Error("summaryModel must be one of the followings: claude-3-sonnet, claude-3-haiku or claude-3-opus");
+        if (["claude-sonnet-5-5-chat", "claude-haiku-5-5-chat", "claude-opus-5-5-chat",].indexOf(summaryModel) === -1) {
+            throw new Error("summaryModel must be one of the followings: claude-sonnet-5-5-chat, claude-haiku-5-5-chat or claude-opus-5-5-chat");
         }
 
         const config = JSON.stringify({

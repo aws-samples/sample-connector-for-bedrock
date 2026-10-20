@@ -15,6 +15,16 @@ import AnthropicResponse from '../util/anthropic_response';
 // was already treated this way, and later generations are assumed to follow 5.5.
 const SAMPLING_DEPRECATED = /claude-(?:opus-4|[a-z]+-(?:[5-9]|\d{2,}))/;
 
+// Removes temperature and topP from an inferenceConfig when the model rejects them. Returns whether it does.
+export function stripDeprecatedSampling(modelId: string, inferenceConfig: any): boolean {
+    const deprecated = SAMPLING_DEPRECATED.test(modelId);
+    if (deprecated) {
+        delete inferenceConfig.temperature;
+        delete inferenceConfig.topP;
+    }
+    return deprecated;
+}
+
 // How many regions a retry can move between. selectRandomRegion accepts a comma-separated string or an array.
 function regionCount(regions: any): number {
     if (typeof regions === 'string') {
@@ -920,11 +930,7 @@ class MessageConverter {
         // These models reject the parameters even when the client sent them. An application inference profile's
         // ARN does not name its model, so the check reads baseModelId first; without one, such a profile is not
         // recognised.
-        const samplingDeprecated = SAMPLING_DEPRECATED.test(config.baseModelId || config.modelId);
-        if (samplingDeprecated) {
-            delete inferenceConfig.temperature;
-            delete inferenceConfig.topP;
-        }
+        const samplingDeprecated = stripDeprecatedSampling(config.baseModelId || config.modelId, inferenceConfig);
 
         if (config.modelId.includes("anthropic")) {
             if (!samplingDeprecated) {

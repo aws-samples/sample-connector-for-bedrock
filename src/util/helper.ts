@@ -170,82 +170,42 @@ const helper = {
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
-            case 'claude-3.5-sonnet-v2':
+            case 'claude-opus-5-5-chat':
                 return {
-                    name: 'claude-3.5-sonnet-v2',
+                    name: 'claude-opus-5-5-chat',
                     config: {
-                        modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+                        modelId: 'global.anthropic.claude-opus-5-5'
                     },
                     multiple: 1,
                     model_type: 1,
-                    price_in: 3e-6,
-                    price_out: 15e-6,
+                    price_in: 4e-6,
+                    price_out: 20e-6,
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
-
-            case 'claude-3.5-haiku':
+            case 'claude-sonnet-5-5-chat':
                 return {
-                    name: 'claude-3.5-haiku',
+                    name: 'claude-sonnet-5-5-chat',
                     config: {
-                        modelId: 'anthropic.claude-3-5-haiku-20241022-v1:0'
+                        modelId: 'global.anthropic.claude-sonnet-5-5'
                     },
                     multiple: 1,
                     model_type: 1,
-                    price_in: 1e-6,
-                    price_out: 5e-6,
+                    price_in: 2e-6,
+                    price_out: 10e-6,
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
-            case 'claude-3.5-sonnet':
+            case 'claude-haiku-5-5-chat':
                 return {
-                    name: 'claude-3.5-sonnet',
+                    name: 'claude-haiku-5-5-chat',
                     config: {
-                        modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+                        modelId: 'global.anthropic.claude-haiku-5-5'
                     },
                     multiple: 1,
                     model_type: 1,
-                    price_in: 3e-6,
-                    price_out: 15e-6,
-                    currency: "USD",
-                    provider: 'bedrock-converse'
-                };
-            case 'claude-3-sonnet':
-                return {
-                    name: 'claude-3-sonnet',
-                    config: {
-                        modelId: 'anthropic.claude-3-sonnet-20240229-v1:0'
-                    },
-                    multiple: 1,
-                    model_type: 1,
-                    price_in: 3e-6,
-                    price_out: 15e-6,
-                    currency: "USD",
-                    provider: 'bedrock-converse'
-                };
-            case 'claude-3-haiku':
-                return {
-                    name: 'claude-3-haiku',
-                    config: {
-                        modelId: "anthropic.claude-3-haiku-20240307-v1:0"
-                    },
-                    multiple: 1,
-                    model_type: 1,
-                    price_in: 0.25e-6,
-                    price_out: 1.25e-6,
-                    currency: "USD",
-                    provider: 'bedrock-converse'
-                };
-            case 'claude-3-opus':
-                return {
-                    name: 'claude-3-opus',
-                    config: {
-                        modelId: "anthropic.claude-3-opus-20240229-v1:0"
-                    },
-                    multiple: 1,
-                    model_type: 1,
-                    price_in: 15e-6,
-                    price_out: 75e-6,
+                    price_in: 0.1e-6,
+                    price_out: 0.5e-6,
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };
@@ -329,15 +289,14 @@ const helper = {
                 };
             default:
                 return {
-                    name: 'claude-3-haiku',
+                    name: 'claude-haiku-5-5-chat',
                     config: {
-                        modelId: "anthropic.claude-3-haiku-20240307-v1:0",
-                        anthropic_version: "bedrock-2023-05-31"
+                        modelId: 'global.anthropic.claude-haiku-5-5'
                     },
                     multiple: 1,
                     model_type: 1,
-                    price_in: 0.25e-6,
-                    price_out: 1.25e-6,
+                    price_in: 0.1e-6,
+                    price_out: 0.5e-6,
                     currency: "USD",
                     provider: 'bedrock-converse'
                 };

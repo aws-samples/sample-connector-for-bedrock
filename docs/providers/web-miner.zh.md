@@ -29,7 +29,7 @@ Configuration:
     "repost.aws",
     "stackoverflow.com"
   ],
-  "localLlmModel": "claude-3-sonnet",
+  "localLlmModel": "claude-sonnet-5-5-chat",
   "searxng": {
     "host": "http://127.0.0.1:8081/"
   },
@@ -52,7 +52,7 @@ Configuration:
   3. google
 
 !!! note
-    您需要将 localLlmModel 的模型配置成 bedrock-converse 提供程序提供的 claude3+ 模型，其他模型尚不具备函数调用功能。早期系统中默认的 claude3 模型不是由 converse 驱动的。如果您使用这些模型，则需要将原始配置的 Provider 更新为 bedrock-converse。请注意将键 'model_id' 修改为 'modelId'。
+    您需要配置 bedrock-converse 提供程序上的 Claude 模型（例如预置的 `claude-sonnet-5-5-chat`），其他模型尚不具备函数调用功能；如果该模型是早先在其他 Provider 下创建的，请把 Provider 改为 bedrock-converse，并将键 'model_id' 修改为 'modelId'。
 
 ## 搜索配置
 

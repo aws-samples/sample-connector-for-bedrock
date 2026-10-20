@@ -31,7 +31,7 @@ Request failed with status code 400: {"success":false,"data":"You do not have pe
 4. Then in BRConnector, use the bedrock-converse provider and create a model named `claude-3-5-sonnet-20241022`. For configuration reference, see [[../../providers/bedrock-converse|bedrock-converse]]
 ```
 {
-  "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"
+  "modelId": "global.anthropic.claude-sonnet-5-5"
 }
 ```
 

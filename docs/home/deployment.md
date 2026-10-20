@@ -11,7 +11,7 @@ Cloudformation template are verified in following regions:
 
 ## Prerequisites
 
-1. Enable Claude 3 Sonnet or Haiku - If you are new to using Anthropic models, go to the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/) and choose **Model access** on the bottom left pane. Request access separately for Claude 3 Sonnet or Haiku.
+1. Enable Claude Sonnet 5.5 or Haiku 5.5 - If you are new to using Anthropic models, go to the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/) and choose **Model access** on the bottom left pane. Request access separately for Claude Sonnet 5.5 or Haiku 5.5.
 2. Deploy VPC stack for BRConnector, or pick up an existing VPC for BRConnector, note down VPC ID, 2 public subnet IDs and 2 private subnet IDs
     - here is a cloudformation tempalte for you to quick create VPC and export VPC parameters for you to deploy BRConnector ([brconnector-vpc-cfn.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/brconnector-vpc-cfn.yaml))
 

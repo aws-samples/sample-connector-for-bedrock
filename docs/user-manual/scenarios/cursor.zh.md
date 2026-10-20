@@ -27,7 +27,7 @@ Request failed with status code 400: {"success":false,"data":"You do not have pe
 4. 再在 BRConnector 中使用 bedrock-converse provider，并创建模型名为`claude-3-5-sonnet-20241022`。配置参考 [[../../providers/bedrock-converse|bedrock-converse]]
 ```
 {
-  "modelId": "anthropic.claude-3-5-sonnet-20240620-v1:0"
+  "modelId": "global.anthropic.claude-sonnet-5-5"
 }
 ```
 

@@ -19,7 +19,7 @@
   "s3Prefix": "<your-prefix>",
   "s3Region": "us-east-1",
   "paintModelId": "amazon.titan-image-generator-v2:0",
-  "localLlmModel": "claude35"
+  "localLlmModel": "claude-haiku-5-5-chat"
 }
 ```
 

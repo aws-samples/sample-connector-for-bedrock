@@ -2,6 +2,7 @@ import { ChatRequest, ModelData, ResponseData } from "../entity/chat_request"
 import AbstractProvider from "./abstract_provider";
 import helper from '../util/helper';
 import ChatMessageConverter from './chat_message';
+import { stripDeprecatedSampling } from './bedrock_converse';
 import WebResponse from "../util/response";
 import {
   BedrockAgentRuntimeClient,
@@ -171,6 +172,7 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
 
     const payload = await this.chatMessageConverter.toClaude3Payload(chatRequest);
     payload["modelId"] = modelId;
+    stripDeprecatedSampling(modelId, payload.inferenceConfig);
 
     const input = {
       body: JSON.stringify(payload),

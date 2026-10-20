@@ -16,7 +16,7 @@ Using Bedrock knowledge base integrated streaming, which requires configuring be
 {
   "region": "<your-region>",
   "knowledgeBaseId": "<your-kb-id>",
-  "bedrockModelArn": "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0"
+  "bedrockModelArn": "arn:aws:bedrock:us-west-2:<account-id>:inference-profile/global.anthropic.claude-sonnet-5-5"
 }
 ```
 
@@ -25,14 +25,14 @@ Or retrieving relevant text first, then using a model in BRConnector for summari
 ```json
 {
   "region": "<your-region>",
-  "summaryModel": "claude-3-sonnet",
+  "summaryModel": "claude-sonnet-5-5-chat",
   "knowledgeBaseId": "<your-kb-id>"
 }
 ```
 
 - knowledgeBaseId: the knowledge base id
-- summaryModel: supports claude-3-sonnet, claude-3-haiku or claude-3-opus models
-- bedrockModelArn: the ARN of the foundation model in the current region, used for integrated streaming
+- summaryModel: supports claude-sonnet-5-5-chat, claude-haiku-5-5-chat or claude-opus-5-5-chat models
+- bedrockModelArn: the ARN of the foundation model or inference profile in the current region, used for integrated streaming
 
 ## API Calls
 

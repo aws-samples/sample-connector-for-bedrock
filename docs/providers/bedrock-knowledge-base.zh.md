@@ -16,7 +16,7 @@ Amazon Bedrock 知识库。
 {
   "region": "<your-region>",
   "knowledgeBaseId": "<your-kb-id>",
-  "bedrockModelArn": "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0"
+  "bedrockModelArn": "arn:aws:bedrock:us-west-2:<account-id>:inference-profile/global.anthropic.claude-sonnet-5-5"
 }
 ```
 
@@ -25,14 +25,14 @@ Amazon Bedrock 知识库。
 ```json
 {
   "region": "<your-region>",
-  "summaryModel": "claude-3-sonnet",
+  "summaryModel": "claude-sonnet-5-5-chat",
   "knowledgeBaseId": "<your-kb-id>"
 }
 ```
 
 - knowledgeBaseId：知识库 ID
-- summaryModel：支持 claude-3-sonnet、claude-3-haiku 或 claude-3-opus 模型
-- bedrockModelArn：需要知识库当前 region 的基础模型的 ARN，用于一体化流式处理
+- summaryModel：支持 claude-sonnet-5-5-chat、claude-haiku-5-5-chat 或 claude-opus-5-5-chat 模型
+- bedrockModelArn：需要知识库当前 region 的基础模型或推理配置文件（inference profile）的 ARN，用于一体化流式处理
 
 ## API 调用
 
