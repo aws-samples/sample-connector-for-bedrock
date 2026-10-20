@@ -2221,6 +2221,7 @@
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>yarn<span class="w"> </span>dev
 </code></pre></div>
 <p>If you have configured postgres, the tables will be created automatically.</p>
+<p>On every startup the connector also applies the files in <code>src/scripts/migrations/</code> that the <code>eiai_migration</code> table has not recorded yet. Upgrading an existing database therefore adds the preset models of the new release and binds them to group 1 if that group exists. A preset whose name already exists is left unchanged. Each file runs once, so a preset you delete after the upgrade is not added back.</p>
 <h3 id="run-fontend">Run fontend<a class="headerlink" href="#run-fontend" title="Permanent link">¶</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>npm<span class="w"> </span>run<span class="w"> </span>dev-ui
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># or</span>
@@ -2295,7 +2296,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 16, 2026 17:11:11 CST"><span class="timeago" datetime="2026-10-16T17:11:11+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 16, 2026 17:11:11 CST">2026-10-16</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 20, 2026 07:49:37 CST"><span class="timeago" datetime="2026-10-20T07:49:37+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 07:49:37 CST">2026-10-20</span>
   </span>
 
     
