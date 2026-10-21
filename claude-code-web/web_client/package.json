@@ -18,7 +18,7 @@
   "license": "MIT",
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.4",
-    "vite": "^7.1.12"
+    "vite": "^7.3.7"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.19.1",
