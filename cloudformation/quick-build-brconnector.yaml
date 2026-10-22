@@ -2516,7 +2516,7 @@ Resources:
   #
   # An AgentCore Gateway with the Web Search connector: an MCP server at
   # https://<gateway id>.gateway.bedrock-agentcore.<region>.amazonaws.com/mcp that accepts
-  # SigV4 (IAM) calls only. The runtime role and the workspace access role may call it.
+  # SigV4 (IAM) calls only. Only the runtime role may call it.
   # Searches are billed per query to this account, not to any key.
   # ---------------------------------------------------------------------------
 

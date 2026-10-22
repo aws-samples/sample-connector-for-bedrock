@@ -11,7 +11,7 @@ Claude Code in the browser, served by BRConnector at `https://<BRConnector URL>/
 - The browser talks only to BRConnector. BRConnector checks the key, then calls the backend with its own IAM role.
 - The backend (the fork in [`claude-code-web/`](https://github.com/aws-samples/sample-connector-for-bedrock/tree/main/claude-code-web)) runs on Amazon Bedrock AgentCore Runtime. Each API key gets its own microVM, and the runtime accepts IAM-signed calls only, so nothing but BRConnector can reach it.
 - Claude Code in the microVM sends every model call back to BRConnector's `/v1/messages` with the user's key, so quotas and billing work as for any other client. The microVM has no Bedrock permission and cannot go around BRConnector.
-- Each key has its own workspace in S3, under `user_data/brc-key-<key id, 16 digits>/`. The credentials handed to a microVM can reach only that prefix, plus the web search gateway when [web search](#web-search) is on.
+- Each key has its own workspace in S3, under `user_data/brc-key-<key id, 16 digits>/`. The credentials handed to a microVM can reach only that prefix.
 - When a key is deleted or its quota runs out, it can no longer use Claude Code Web.
 
 ## Turn it on
@@ -48,8 +48,6 @@ The template supports us-east-1, us-east-2, us-west-1 and us-west-2, and AgentCo
 ### Without CloudFormation
 
 If you run BRConnector yourself, give it either `CC_CONFIG_PARAM` (the ARN of an SSM parameter whose value is `{"runtimeArn","workspaceRoleArn","bucket","prefix"}` as JSON), or these variables directly: `CC_RUNTIME_ARN`, `CC_WORKSPACE_ROLE_ARN`, `CC_WORKSPACE_BUCKET` and, optionally, `CC_WORKSPACE_PREFIX` (default `user_data`). The direct variables win when both are set. Without either, `/cc` answers 404.
-
-An SSM value from an older stack that still holds a `webSearchGatewayArn` field is accepted; BRConnector ignores that field.
 
 ## Web search
 
@@ -103,6 +101,6 @@ Logging out stops your microVM. Your files stay in S3 and come back the next tim
 - An idle microVM is reclaimed after 15 minutes. The workspace comes back from S3, but processes running in the terminal are lost.
 - The AWS credentials in the microVM are renewed on every request and last at most an hour. A terminal, or a process started from one, keeps the credentials it started with, which expire between 15 minutes and an hour later; after that its S3 and other AWS calls fail with expired credentials. Open a new terminal.
 - `/cc` and `/manager` share BRConnector's origin, and both keep their key in the browser's localStorage, so a page on one can read the other's key. Where you can, do not use the admin key in the same browser profile in which you use `/cc`.
-- Users can see their own key and their own temporary AWS credentials in their shell. Those credentials reach only their own workspace prefix and, with web search on, the web search gateway. The shell can also use the runtime's own role, but that role can only pull the image, write this runtime's logs, traces and metrics, request this runtime's workload access tokens and, with web search on, call the web search gateway; it has no Bedrock or S3 access. So a user can run web searches from the shell, and they are billed to the account.
+- Users can see their own key and their own temporary AWS credentials in their shell. Those credentials reach only their own workspace prefix. The shell can also use the runtime's own role, but that role can only pull the image, write this runtime's logs, traces and metrics, request this runtime's workload access tokens and, with web search on, call the web search gateway; it has no Bedrock or S3 access. So a user can run web searches from the shell, and they are billed to the account.
 - The first visit cold-starts a microVM, which can take a few tens of seconds.
 - GitHub OAuth is not supported, and neither is the `lambda` compute type.

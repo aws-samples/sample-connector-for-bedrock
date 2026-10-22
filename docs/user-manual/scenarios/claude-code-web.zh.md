@@ -11,7 +11,7 @@ title: Claude Code Web
 - 浏览器只和 BRConnector 通信。BRConnector 校验 key 之后，用自己的 IAM 角色调用后端。
 - 后端（本仓库 [`claude-code-web/`](https://github.com/aws-samples/sample-connector-for-bedrock/tree/main/claude-code-web) 目录里的 fork）跑在 Amazon Bedrock AgentCore Runtime 上。每个 API key 有自己的 microVM。Runtime 只接受 IAM 签名的调用，所以只有 BRConnector 能访问它。
 - microVM 里的 Claude Code 每次调用模型，都用该用户的 key 打回 BRConnector 的 `/v1/messages`，额度和计费与其他客户端一样生效。microVM 没有任何 Bedrock 权限，没法绕过 BRConnector。
-- 每个 key 在 S3 里有自己的工作区，前缀为 `user_data/brc-key-<补零到 16 位的 key id>/`。交给 microVM 的凭证只能访问这个前缀；打开联网搜索时，还能调用联网搜索 gateway。
+- 每个 key 在 S3 里有自己的工作区，前缀为 `user_data/brc-key-<补零到 16 位的 key id>/`。交给 microVM 的凭证只能访问这个前缀。
 - key 被删除或者额度用完，就不能再使用 Claude Code Web。
 
 ## 打开开关
@@ -48,8 +48,6 @@ stack 输出 `ClaudeCodeWebUrl` 就是访问地址。
 ### 不用 CloudFormation
 
 如果自己运行 BRConnector，可以给它设置 `CC_CONFIG_PARAM`（一个 SSM 参数的 ARN，参数值是 JSON `{"runtimeArn","workspaceRoleArn","bucket","prefix"}`），或者直接设置环境变量 `CC_RUNTIME_ARN`、`CC_WORKSPACE_ROLE_ARN`、`CC_WORKSPACE_BUCKET`，以及可选的 `CC_WORKSPACE_PREFIX`（默认 `user_data`）。两种都设置时，直接设置的环境变量优先。两种都没有时，`/cc` 返回 404。
-
-旧版 stack 留下的 SSM 值如果还带有 `webSearchGatewayArn` 字段，BRConnector 照常接受并忽略这个字段。
 
 ## 联网搜索
 
@@ -103,6 +101,6 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 - microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。
 - microVM 里的 AWS 凭证每次请求都会更新，有效期最长 1 小时。终端以及从终端启动的进程会一直用启动时拿到的凭证，这些凭证会在 15 分钟到 1 小时之后过期，此后访问 S3 等 AWS 服务会报凭证过期。请新开一个终端。
 - `/cc` 和 `/manager` 共用 BRConnector 的同一个 origin，两者都把 key 存在浏览器的 localStorage 里，所以一边的页面能读到另一边的 key。尽量不要在使用 `/cc` 的同一个浏览器 profile 里使用 admin key。
-- 用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀，打开联网搜索时还能调用联网搜索 gateway。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标、获取这个 Runtime 的 workload access token，以及在打开联网搜索时调用联网搜索 gateway，没有任何 Bedrock 或 S3 权限。因此用户可以在 shell 里直接发起联网搜索，费用由账号承担。
+- 用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标、获取这个 Runtime 的 workload access token，以及在打开联网搜索时调用联网搜索 gateway，没有任何 Bedrock 或 S3 权限。因此用户可以在 shell 里直接发起联网搜索，费用由账号承担。
 - 第一次进入要冷启动 microVM，可能要等几十秒。
 - 不支持 GitHub OAuth，也不支持 `lambda` 计算形态。
