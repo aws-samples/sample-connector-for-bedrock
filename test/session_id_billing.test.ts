@@ -79,8 +79,12 @@ async function* converseStream() {
 
 // Each Bedrock or image upstream call, by command name.
 const upstream: string[] = [];
-// handled counts the requests the app has finished with, closed the responses that have closed.
-let state: { db: any; statements: Statement[]; logger: any; handled: number; closed: number };
+// handled counts the requests the app has finished with, closed the responses that have closed. onWrite and onEnd,
+// when a test sets them, see each chunk the app writes and the moment it ends the response.
+let state: {
+    db: any; statements: Statement[]; logger: any; handled: number; closed: number;
+    onWrite?: (chunk: any) => void; onEnd?: () => void;
+};
 
 let server: Server;
 let base: string;
@@ -90,6 +94,15 @@ beforeAll(() => {
     app.use(async (ctx: any, next) => {
         ctx.logger = state.logger;
         ctx.res.once('close', () => state.closed++);
+        const { write, end } = ctx.res;
+        ctx.res.write = function (...args: any[]) {
+            state.onWrite?.(args[0]);
+            return write.apply(this, args);
+        };
+        ctx.res.end = function (...args: any[]) {
+            state.onEnd?.();
+            return end.apply(this, args);
+        };
         try {
             await next();
         } finally {
@@ -346,5 +359,34 @@ describe('bedrock-converse retries only what Bedrock fails', () => {
         expect(res.text.match(/data: \[DONE\]/g)).toHaveLength(1);
         expect(charges()).toHaveLength(1);
         expect(state.statements.filter((s) => /^INSERT into eiai_thread/.test(s.sql))).toHaveLength(1);
+    });
+});
+
+describe('the converted /v1/messages stream', () => {
+    const messagesStream = { model: 'converse-model', max_tokens: 100, stream: true, messages };
+
+    it('is charged before message_stop is written and the response ends', async () => {
+        const chargedAt: { stop?: number; end?: number } = {};
+        state.onWrite = (chunk) => {
+            if (chargedAt.stop === undefined && String(chunk).includes('message_stop')) chargedAt.stop = charges().length;
+        };
+        state.onEnd = () => {
+            if (chargedAt.end === undefined) chargedAt.end = charges().length;
+        };
+        const res = await post('/v1/messages', messagesStream, 's1');
+        expect(res.status).toBe(200);
+        expect(res.text).toContain('message_stop');
+        expect(chargedAt).toEqual({ stop: 1, end: 1 });
+        expect(charges().filter(chargedFee)).toHaveLength(1);
+    });
+
+    it('still ends with message_stop when the recording throws, and logs it', async () => {
+        vi.spyOn(BedrockConverse.prototype, 'saveThread').mockRejectedValue(new Error('recording failed'));
+        const res = await post('/v1/messages', messagesStream, 's1');
+        expect(res.status).toBe(200);
+        expect(upstream).toEqual(['ConverseStreamCommand']);
+        expect(hellos(res.text)).toBe(1);
+        expect(res.text).toContain('message_stop');
+        expect(state.logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'bedrock-converse could not record the call', error: 'recording failed' }));
     });
 });

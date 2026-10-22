@@ -690,17 +690,23 @@ export default class BedrockConverse extends AbstractProvider {
             }
         }
 
+        // Recorded before the stream ends, as chat() does, so the call is charged by the time the client sees
+        // message_stop. A failure to record is logged and does not keep the end of the stream from the client.
+        try {
+            await this.saveThread(ctx, session_id, chatRequest, {
+                text: responseText,
+                input_tokens: inputTokens,
+                output_tokens: outputTokens,
+                invocation_latency: 0,
+                first_byte_latency: 0
+            });
+        } catch (error) {
+            ctx.logger.error({ message: 'bedrock-converse could not record the call', error: error instanceof Error ? error.message : String(error), modelId: this.modelId });
+        }
+
         ctx.res.write(AnthropicResponse.messageDelta(stopReason, outputTokens));
         ctx.res.write(AnthropicResponse.messageStop());
         ctx.res.end();
-
-        await this.saveThread(ctx, session_id, chatRequest, {
-            text: responseText,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            invocation_latency: 0,
-            first_byte_latency: 0
-        });
     }
 
     async chatAnthropicSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
