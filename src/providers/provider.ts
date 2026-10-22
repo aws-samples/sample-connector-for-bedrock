@@ -92,12 +92,6 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const embeddingRequest: EmbeddingRequest = ctx.request.body;
-        const modelRes = helper.parseModelString(embeddingRequest.model);
-        if (modelRes) {
-            embeddingRequest.model = modelRes.model;
-            embeddingRequest.model_id = modelRes.model_id;
-        }
-
 
         const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: embeddingRequest.model }, ctx);
@@ -131,12 +125,6 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const request: ImageRequest = ctx.request.body;
-        const modelRes = helper.parseModelString(request.model);
-        if (modelRes) {
-            request.model = modelRes.model;
-            request.model_id = modelRes.model_id;
-        }
-
 
         const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: request.model }, ctx);
@@ -169,12 +157,6 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const chatRequest: ChatRequest = ctx.request.body;
-
-        const modelRes = helper.parseModelString(chatRequest.model);
-        if (modelRes) {
-            chatRequest.model = modelRes.model;
-            chatRequest.model_id = modelRes.model_id;
-        }
 
 
         const session_id = this.sessionIdOf(ctx);
@@ -224,12 +206,8 @@ class Provider {
         const body = ctx.request.body;
 
         // Resolve the model from the raw body first, because the native provider needs the
-        // provider name before anything is converted. A missing or non-string model is left to
-        // refineModelParameters to report, rather than raising a TypeError in parseModelString.
-        const rawModel = body?.model;
-        const modelRes = typeof rawModel === 'string' ? helper.parseModelString(rawModel) : null;
-        const baseModel = modelRes ? modelRes.model : rawModel;
-        const modelData = await helper.refineModelParameters({ model: baseModel } as ChatRequest, ctx);
+        // provider name before anything is converted.
+        const modelData = await helper.refineModelParameters({ model: body?.model } as ChatRequest, ctx);
 
         if (ctx.db) {
             const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
@@ -239,8 +217,7 @@ class Provider {
         }
 
         if (modelData.provider === 'bedrock-runtime-anthropic') {
-            // Native path: the body goes through untouched (including a "name/override" model
-            // string, which the provider rejects) and the provider reads ctx.state.modelData.
+            // Native path: the body goes through untouched and the provider reads ctx.state.modelData.
             const provider = this.bindProvider(ctx, modelData);
             const session_id = ctx.headers["session-id"] || ctx.headers["x-claude-code-session-id"];
             return { provider, chatRequest: { model: modelData.name } as ChatRequest, session_id, native: true, body };
@@ -248,10 +225,6 @@ class Provider {
 
         // Convert Anthropic Messages API request → internal ChatRequest
         const chatRequest: ChatRequest = this.convertAnthropicRequest(body);
-        if (modelRes) {
-            chatRequest.model = modelRes.model;
-            chatRequest.model_id = modelRes.model_id;
-        }
 
         const session_id = this.sessionIdOf(ctx);
 

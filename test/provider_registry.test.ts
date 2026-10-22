@@ -75,11 +75,12 @@ describe('provider registry', () => {
             ctx.headers['x-claude-code-session-id'] = 'cc-sess';
             expect((await providers.initForAnthropic(ctx)).session_id).toBe('explicit');
         });
-        it('leaves a name/override model string untouched for the provider to reject', async () => {
+        it('rejects a name/override model string before the provider is bound', async () => {
             const body = { ...raw(), model: 'claude-sonnet-5-5/override' };
-            const res: any = await providers.initForAnthropic(ctxFor(body, { models: [claude] }));
-            expect(res.native).toBe(true);
-            expect(res.body.model).toBe('claude-sonnet-5-5/override');
+            await expect(providers.initForAnthropic(ctxFor(body, { models: [claude] }))).rejects.toMatchObject({
+                anthropicType: 'invalid_request_error',
+                message: 'Model id override (name/<id>) is not supported; ask an administrator to add the model.',
+            });
         });
         it('keeps the converse path: converts, and ignores x-claude-code-session-id', async () => {
             const spy = vi.spyOn(providers, 'convertAnthropicRequest');
