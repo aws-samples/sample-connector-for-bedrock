@@ -2,7 +2,7 @@ import service from "../../service/payment"
 import AbstractController from "../AbstractController";
 
 class PaymentController extends AbstractController {
-    public routers(router: import("koa-router") <any, {}>): void {
+    public routers(router: any): void {
         router.get("/admin/payment/list", this.list);
     }
 
