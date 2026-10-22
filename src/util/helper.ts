@@ -111,11 +111,11 @@ const helper = {
 
             return rtn;
         }
-        const builtIn = helper.getModelDataWithoutDB(model);
-        if (!builtIn && looksLikeOverride) {
+        // No built-in name contains "/", and an unknown name falls back to the default model, so check first.
+        if (looksLikeOverride) {
             throw unknownModel();
         }
-        return builtIn;
+        return helper.getModelDataWithoutDB(model);
     },
     convertImageExt: (mime?: string) => {
         if (mime.indexOf('image/jpeg') >= 0 || mime.indexOf('image/jpg') >= 0) {

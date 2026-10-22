@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import Koa from 'koa';
 import { koaBody } from 'koa-body';
 import Router from 'koa-router';
+import http from 'http';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import { BedrockRuntimeClient, ConverseCommand, ConverseStreamCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
@@ -178,5 +179,63 @@ describe('native /v1/messages (bedrock-runtime-anthropic)', () => {
         expect(res.status).toBe(400);
         expect(res.json).toEqual({ type: 'error', error: { type: 'invalid_request_error', message: MESSAGE } });
         expect(sent).toEqual([]);
+    });
+});
+
+describe('without a database', () => {
+    let noDbServer: Server;
+    let noDbBase: string;
+
+    beforeAll(async () => {
+        const app = new Koa();
+        app.use(async (ctx: any, next) => {
+            ctx.logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() };
+            await next();
+        });
+        app.use(errorHandler);
+        app.use(koaBody({ jsonLimit: '1mb' }));
+        // No ctx.db and no ctx.cache: the built-in model list is used, as with no PGSQL_* settings.
+        app.use(async (ctx: any, next) => {
+            ctx.user = { id: -1, api_key: 'admin-key', role: 'admin', month_fee: '0', month_quota: '1', updated_at: new Date() };
+            await next();
+        });
+        const router = new Router();
+        for (const [route, handler] of routes) router.post(route, handler);
+        app.use(router.routes());
+        noDbServer = http.createServer(app.callback());
+        await new Promise<void>((resolve) => noDbServer.listen(0, '127.0.0.1', resolve));
+        noDbBase = `http://127.0.0.1:${(noDbServer.address() as AddressInfo).port}`;
+    });
+    afterAll(async () => {
+        noDbServer.closeAllConnections();
+        await new Promise((resolve) => noDbServer.close(resolve));
+    });
+
+    const postNoDb = async (path: string, model: string) => {
+        const body = path === '/v1/messages'
+            ? { model, max_tokens: 100, messages: [{ role: 'user', content: 'hi' }] }
+            : { model, stream: false, messages: [{ role: 'user', content: 'hi' }] };
+        const res = await fetch(noDbBase + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+        return { status: res.status, json: JSON.parse(await res.text()) };
+    };
+
+    it.each(['/v1/chat/completions', '/v1/completions'])('%s: x/y gets the same 400 as with a database and Bedrock is not called', async (route) => {
+        const res = await postNoDb(route, 'x/y');
+        expect(res.status).toBe(400);
+        expect(res.json).toMatchObject({ success: false, data: MESSAGE });
+        expect(modelIds).toEqual([]);
+    });
+
+    it('/v1/messages: x/y gets the Anthropic 400 and Bedrock is not called', async () => {
+        const res = await postNoDb('/v1/messages', 'x/y');
+        expect(res.status).toBe(400);
+        expect(res.json).toEqual({ type: 'error', error: { type: 'invalid_request_error', message: MESSAGE } });
+        expect(modelIds).toEqual([]);
+    });
+
+    it('a built-in model name still works', async () => {
+        const res = await postNoDb('/v1/chat/completions', 'amazon-nova-lite');
+        expect(res.status).toBe(200);
+        expect(modelIds).toEqual(['amazon.nova-lite-v1:0']);
     });
 });
