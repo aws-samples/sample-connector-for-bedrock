@@ -2,6 +2,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import Koa from 'koa';
 import { koaBody } from 'koa-body';
 import Router from 'koa-router';
+import fs from 'fs';
+import path from 'path';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import { BedrockRuntimeClient, ConverseCommand, ConverseStreamCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
@@ -11,12 +13,22 @@ import v1 from '../src/controller/runtime/v1';
 import anthropic from '../src/controller/runtime/anthropic';
 import BedrockConverse from '../src/providers/bedrock_converse';
 import AzureOpenAIImage from '../src/providers/azure_openai_image';
+import { MAX_SESSION_ID_LENGTH } from '../src/providers/bedrock_openai/retry';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
 
 // The repo's own controllers, providers and SQL builder serve each call, on the paths src/routes.ts gives them. That
-// file is not imported: it pulls in every controller, and one of them does not parse outside tsc. Bedrock is a stub,
-// and the database records every statement. Like Postgres, it refuses a session key longer than the 128 characters of
-// eiai_session.key and eiai_thread.session_key, and it also fails any statement a test names.
+// file is not imported: it pulls in every controller, and one of them does not parse outside tsc. A test checks that
+// it still has these routes. Bedrock is a stub, and the database records every statement. Like Postgres, it refuses a
+// session key longer than eiai_session.key and eiai_thread.session_key hold, and it also fails any statement a test
+// names.
+
+const routes: [string, string, any][] = [
+    ['/v1/chat/completions', 'v1.chat_completions', v1.chat_completions],
+    ['/v1/completions', 'v1.completions', v1.completions],
+    ['/v1/embeddings', 'v1.embeddings', v1.embeddings],
+    ['/v1/images/generations', 'v1.images', v1.images],
+    ['/v1/messages', 'anthropic.messages', anthropic.messages],
+];
 
 const FEE = 1000 * 1e-7 + 1000 * 2e-7;
 const models = [
@@ -35,7 +47,7 @@ function sessionKeyTooLong(sql: string, params: any[]): boolean {
     }
     const columns = insert[2].split(',').map((c) => c.trim());
     const value = params[columns.indexOf(insert[1] === 'eiai_session' ? 'key' : 'session_key')];
-    return typeof value === 'string' && Array.from(value).length > 128;
+    return typeof value === 'string' && Array.from(value).length > MAX_SESSION_ID_LENGTH;
 }
 
 function recordingDb(failOn?: RegExp) {
@@ -67,7 +79,8 @@ async function* converseStream() {
 
 // Each Bedrock or image upstream call, by command name.
 const upstream: string[] = [];
-let state: { db: any; statements: Statement[]; logger: any };
+// handled counts the requests the app has finished with, closed the responses that have closed.
+let state: { db: any; statements: Statement[]; logger: any; handled: number; closed: number };
 
 let server: Server;
 let base: string;
@@ -76,7 +89,12 @@ beforeAll(() => {
     const app = new Koa();
     app.use(async (ctx: any, next) => {
         ctx.logger = state.logger;
-        await next();
+        ctx.res.once('close', () => state.closed++);
+        try {
+            await next();
+        } finally {
+            state.handled++;
+        }
     });
     app.use(errorHandler);
     app.use(koaBody({ jsonLimit: '1mb' }));
@@ -88,11 +106,9 @@ beforeAll(() => {
     });
     app.use(authHandler);
     const router = new Router();
-    router.post('/v1/chat/completions', v1.chat_completions);
-    router.post('/v1/completions', v1.completions);
-    router.post('/v1/embeddings', v1.embeddings);
-    router.post('/v1/images/generations', v1.images);
-    router.post('/v1/messages', anthropic.messages);
+    for (const [route, , handler] of routes) {
+        router.post(route, handler);
+    }
     app.use(router.routes());
     server = app.listen(0);
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -104,7 +120,7 @@ afterAll(() => {
 beforeEach(() => {
     for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value);
     upstream.length = 0;
-    state = { ...recordingDb(), logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() } };
+    state = { ...recordingDb(), logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }, handled: 0, closed: 0 };
     vi.spyOn(BedrockRuntimeClient.prototype as any, 'send').mockImplementation(async (command: any) => {
         upstream.push(command.constructor.name);
         if (command instanceof ConverseStreamCommand) {
@@ -153,8 +169,23 @@ const hellos = (text: string) => (text.match(/HELLO/g) || []).length;
 const charges = () => state.statements.filter((s) => /^update eiai_key\b/i.test(s.sql));
 const chargedFee = (s: Statement) => s.params.some((p) => typeof p === 'number' && Math.abs(p - FEE) < 1e-12);
 
+// Answers every Bedrock call in this test with a new response from answer().
+function bedrockAnswers(answer: () => any) {
+    (BedrockRuntimeClient.prototype.send as any).mockImplementation(async (command: any) => {
+        upstream.push(command.constructor.name);
+        return answer();
+    });
+}
+
+it('src/routes.ts still serves the routes this file mirrors', () => {
+    const source = fs.readFileSync(path.join(__dirname, '../src/routes.ts'), 'utf8');
+    for (const [route, handler] of routes) {
+        expect(source).toContain(`router.post("${route}", ${handler});`);
+    }
+});
+
 describe('Session-Id length', () => {
-    const tooLong = 'x'.repeat(129);
+    const tooLong = 'x'.repeat(MAX_SESSION_ID_LENGTH + 1);
 
     it.each([
         ['/v1/chat/completions (stream)', '/v1/chat/completions', chatStream],
@@ -178,7 +209,7 @@ describe('Session-Id length', () => {
     });
 
     it('accepts a 128-character Session-Id and saves it with the call', async () => {
-        const id = 'x'.repeat(128);
+        const id = 'x'.repeat(MAX_SESSION_ID_LENGTH);
         const res = await post('/v1/chat/completions', chatStream, id);
         expect(res.status).toBe(200);
         expect(upstream).toEqual(['ConverseStreamCommand']);
@@ -237,17 +268,71 @@ describe('a call is charged even when its history cannot be saved', () => {
 });
 
 describe('bedrock-converse retries only what Bedrock fails', () => {
-    it('a stream whose recording throws makes one Bedrock call and streams the answer once', async () => {
+    it('a stream whose recording throws makes one Bedrock call and streams the answer once, to the end', async () => {
         vi.spyOn(BedrockConverse.prototype, 'saveThread').mockRejectedValue(new Error('recording failed'));
         const res = await post('/v1/chat/completions', chatStream, 's1');
         expect(upstream).toEqual(['ConverseStreamCommand']);
         expect(hellos(res.text)).toBe(1);
+        expect(res.text.trimEnd().endsWith('data: [DONE]')).toBe(true);
+        expect(state.logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'bedrock-converse could not record the call', error: 'recording failed' }));
     });
 
-    it('a non-stream call whose recording throws makes one Bedrock call', async () => {
+    it('a non-stream call whose recording throws makes one Bedrock call and still gets its answer', async () => {
         vi.spyOn(BedrockConverse.prototype, 'saveThread').mockRejectedValue(new Error('recording failed'));
-        await post('/v1/chat/completions', chatSync, 's1');
+        const res = await post('/v1/chat/completions', chatSync, 's1');
         expect(upstream).toEqual(['ConverseCommand']);
+        expect(res.status).toBe(200);
+        expect(JSON.parse(res.text).choices[0].message.content).toBe('HELLO');
+    });
+
+    it('a non-stream answer with a redacted reasoning block is fetched once, charged once and answered', async () => {
+        bedrockAnswers(() => ({
+            output: { message: { role: 'assistant', content: [{ reasoningContent: { redactedContent: new Uint8Array([1, 2, 3]) } }, { text: 'HELLO' }] } },
+            usage: { inputTokens: 1000, outputTokens: 1000, totalTokens: 2000 },
+            metrics: { latencyMs: 5 },
+            stopReason: 'end_turn',
+            $metadata: { requestId: 'req-1' },
+        }));
+        const res = await post('/v1/chat/completions', chatSync, 's1');
+        expect(upstream).toEqual(['ConverseCommand']);
+        expect(charges()).toHaveLength(1);
+        expect(chargedFee(charges()[0])).toBe(true);
+        expect(res.status).toBe(200);
+        expect(JSON.parse(res.text).choices[0].message.content).toBe('HELLO');
+    });
+
+    it('a stream whose client leaves after the first delta makes one Bedrock call and is charged once', async () => {
+        let release!: () => void;
+        const rest = new Promise<void>((resolve) => { release = resolve; });
+        bedrockAnswers(() => ({
+            stream: (async function* () {
+                yield { contentBlockDelta: { contentBlockIndex: 0, delta: { text: 'HELLO' } } };
+                await rest;
+                yield { contentBlockDelta: { contentBlockIndex: 0, delta: { text: ' AGAIN' } } };
+                yield { messageStop: { stopReason: 'end_turn' } };
+                yield { metadata: { usage: { inputTokens: 1000, outputTokens: 1000 }, metrics: { latencyMs: 5 } } };
+            })(),
+        }));
+        const client = new AbortController();
+        const res = await fetch(`${base}/v1/chat/completions`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: 'Bearer user-key', 'session-id': 's1' },
+            body: JSON.stringify(chatStream),
+            signal: client.signal,
+        });
+        const reader = res.body!.getReader();
+        let seen = '';
+        while (!seen.includes('HELLO')) {
+            const { value } = await reader.read();
+            seen += new TextDecoder().decode(value);
+        }
+        client.abort();
+        await vi.waitFor(() => expect(state.closed).toBe(1));
+        release();
+        await vi.waitFor(() => expect(state.handled).toBe(1));
+        expect(upstream).toEqual(['ConverseStreamCommand']);
+        expect(charges()).toHaveLength(1);
+        expect(chargedFee(charges()[0])).toBe(true);
     });
 
     it('still retries a Bedrock error and records only the call that succeeded', async () => {

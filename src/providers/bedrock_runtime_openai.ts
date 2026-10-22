@@ -8,6 +8,7 @@ import {
 } from "./bedrock_openai/transport";
 import {
     MAX_SESSION_ID_LENGTH, RETRYABLE_STATUSES, Sleep, backoffMs, gatewayError, isNetworkError, maxRetriesOf, messageOf, readErrorBody, realSleep, retryAfterMs,
+    sessionIdTooLong,
 } from "./bedrock_openai/retry";
 import { OpenAIUsage } from "./bedrock_openai/types";
 import { computeUsageCost, pricesOf } from "./bedrock_openai/usage";
@@ -52,8 +53,7 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
         if (chatRequest.model_id) {
             throw new BedrockHttpError(400, `The [${modelData.name}] model does not accept a model id override ("${modelData.name}/<model id>"). Send the model name only.`);
         }
-        // A longer one could not be saved with the call's usage. Postgres counts characters, not UTF-16 units.
-        if (typeof session_id === 'string' && Array.from(session_id).length > MAX_SESSION_ID_LENGTH) {
+        if (sessionIdTooLong(session_id)) {
             throw new BedrockHttpError(400, `Session-Id must be at most ${MAX_SESSION_ID_LENGTH} characters.`);
         }
         const config = modelData.config || {};

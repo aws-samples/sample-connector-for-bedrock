@@ -1,6 +1,6 @@
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
-    BedrockRuntimeClient, BedrockRuntimeClientConfig, ConverseStreamCommand, ConverseCommand
+    BedrockRuntimeClient, BedrockRuntimeClientConfig, ConverseStreamCommand, ConverseCommand, ConverseCommandOutput
 } from "@aws-sdk/client-bedrock-runtime";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -23,6 +23,17 @@ export function stripDeprecatedSampling(modelId: string, inferenceConfig: any): 
         delete inferenceConfig.topP;
     }
     return deprecated;
+}
+
+// The usage of a non-stream call, for saveThread.
+function syncUsageOf(apiResponse: ConverseCommandOutput): ResponseData {
+    return {
+        text: apiResponse.output.message?.content[0]?.text,
+        input_tokens: apiResponse.usage.inputTokens,
+        output_tokens: apiResponse.usage.outputTokens,
+        invocation_latency: 0,
+        first_byte_latency: apiResponse.metrics.latencyMs
+    };
 }
 
 // How many regions a retry can move between. selectRandomRegion accepts a comma-separated string or an array.
@@ -170,6 +181,9 @@ export default class BedrockConverse extends AbstractProvider {
         ctx.status = 200;
 
         let response: ResponseData | undefined;
+        // Bedrock's answer to a non-stream call. It is converted after the retry below, so that only the call itself
+        // is retried.
+        let apiResponse: ConverseCommandOutput | undefined;
         try {
             this.retryCount++;
             // console.log("retry times:", this.retryCount);
@@ -184,9 +198,7 @@ export default class BedrockConverse extends AbstractProvider {
                 ctx.set({
                     'Content-Type': 'application/json',
                 });
-                const answer = await this.chatSync(ctx, payload, chatRequest);
-                ctx.body = answer.body;
-                response = answer.response;
+                apiResponse = await this.chatSync(ctx, payload, chatRequest);
             }
             this.excludeAccessKeyId = null;
             this.retryCount = 0;
@@ -239,13 +251,22 @@ export default class BedrockConverse extends AbstractProvider {
         }
 
         // Recorded outside the retry above, which is for Bedrock's errors only: Bedrock has answered by now, so a
-        // failure to record must not call it again.
-        if (response) {
-            await this.saveThread(ctx, session_id, chatRequest, response);
+        // failure to record must not call it again, nor keep the answer from the client.
+        try {
+            if (apiResponse) {
+                response = syncUsageOf(apiResponse);
+            }
+            if (response) {
+                await this.saveThread(ctx, session_id, chatRequest, response);
+            }
+        } catch (error) {
+            ctx.logger.error({ message: 'bedrock-converse could not record the call', error: error instanceof Error ? error.message : String(error), modelId: this.modelId });
         }
         if (chatRequest.stream) {
             ctx.res.write("data: [DONE]\n\n")
             ctx.res.end();
+        } else {
+            ctx.body = this.chatSyncBody(apiResponse, chatRequest);
         }
     }
 
@@ -453,23 +474,17 @@ export default class BedrockConverse extends AbstractProvider {
 
     }
 
-    // Returns the response body and the call's usage, which chat() records.
-    async chatSync(ctx: any, input: any, chatRequest: ChatRequest): Promise<{ body: any, response: ResponseData }> {
-        const command = new ConverseCommand(input);
-        const apiResponse = await this.client.send(command);
+    // Sends a non-stream call. This is all that chat() retries: it records and converts the answer afterwards.
+    async chatSync(ctx: any, input: any, chatRequest: ChatRequest): Promise<ConverseCommandOutput> {
+        return this.client.send(new ConverseCommand(input));
+    }
 
+    // Converts Bedrock's answer to a non-stream call into the OpenAI response body.
+    chatSyncBody(apiResponse: ConverseCommandOutput, chatRequest: ChatRequest) {
         const content = apiResponse.output.message?.content;
         // console.log("ori content:", JSON.stringify(apiResponse, null, 2));
         const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
-        const { latencyMs } = apiResponse.metrics;
         const { requestId } = apiResponse["$metadata"];
-        const response: ResponseData = {
-            text: content[0]?.text,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            invocation_latency: 0,
-            first_byte_latency: latencyMs
-        }
 
         const choices = [];
         let assistantMessage: any = { role: "assistant" };
@@ -481,7 +496,7 @@ export default class BedrockConverse extends AbstractProvider {
 
         content.map((c: any, index: number) => {
             if (c.reasoningContent) {
-                assistantMessage.reasoning_content = c.reasoningContent.reasoningText.text;
+                assistantMessage.reasoning_content = c.reasoningContent.reasoningText?.text;
                 hasReasoningContent = true;
             }
             if (c.text) {
@@ -535,7 +550,7 @@ export default class BedrockConverse extends AbstractProvider {
         //         total_tokens: totalTokens
         //     }
         // })
-        const body = {
+        return {
             id: requestId,
             model: chatRequest.model,
             choices, usage: {
@@ -544,7 +559,6 @@ export default class BedrockConverse extends AbstractProvider {
                 total_tokens: totalTokens
             }
         };
-        return { body, response };
     }
 
     /**

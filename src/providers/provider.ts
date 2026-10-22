@@ -3,7 +3,7 @@ import helper from '../util/helper';
 import { withAnthropicType } from '../util/anthropic_error';
 import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
-import { MAX_SESSION_ID_LENGTH } from "./bedrock_openai/retry";
+import { MAX_SESSION_ID_LENGTH, sessionIdTooLong } from "./bedrock_openai/retry";
 // Providers
 // import BedrockClaude from "./bedrock_claude";
 // import BedrockMixtral from "./bedrock_mixtral";
@@ -439,11 +439,11 @@ class Provider {
         return existsPersonal;
     }
 
-    // The Session-Id header. A longer one than eiai_session.key holds is refused before the call is made, as the
-    // bedrock-runtime-* providers refuse it. Postgres counts characters, not UTF-16 units.
+    // The Session-Id header. One too long to save is refused before the call is made, as the bedrock-runtime-*
+    // providers refuse it.
     sessionIdOf(ctx: any): string | undefined {
         const session_id = ctx.headers["session-id"];
-        if (typeof session_id === 'string' && Array.from(session_id).length > MAX_SESSION_ID_LENGTH) {
+        if (sessionIdTooLong(session_id)) {
             throw withAnthropicType(new Error(`Session-Id must be at most ${MAX_SESSION_ID_LENGTH} characters.`), 'invalid_request_error');
         }
         return session_id;

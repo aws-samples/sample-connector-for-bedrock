@@ -196,7 +196,7 @@ describe('provider registry', () => {
                 ctx.logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() };
                 if (budget) ctx.headers['think-budget'] = budget;
                 const res: any = await providers.init(ctx);
-                res.provider.chatSync = vi.fn().mockResolvedValue({});
+                res.provider.chatSync = vi.fn().mockResolvedValue({ output: { message: { content: [{ text: 'ok' }] } }, usage: {}, metrics: {}, $metadata: {} });
                 await res.provider.chat(res.chatRequest, undefined, ctx);
                 return res.provider.chatSync.mock.calls[0][1];
             };
