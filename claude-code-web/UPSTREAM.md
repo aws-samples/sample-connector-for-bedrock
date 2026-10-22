@@ -174,3 +174,10 @@ directory must be listed here.
     (with its base64 data); the role is coerced to a string of at most 32 characters. The `start` stream
     event echoes that summary instead of the dict (the client reads only its `session_id`); a string
     message is still echoed as is. Tests: `backend/tests/test_message_log.py`.
+- `backend/core/user_settings.py` (new): `apply_default_user_settings` adds `"skipWebFetchPreflight": true` to
+  `~/.claude/settings.json` when the key is missing (creates the file if absent), so Claude Code does not send
+  the hostname of each WebFetch to api.anthropic.com for a domain check. Other keys and an explicit value are
+  left as they are; a file that is not a JSON object is left unchanged and logged. The write is atomic
+  (temp file, then rename). `backend/core/session.py`: `connect()` calls it just before the SDK client is
+  created, so it runs after the per-user `.claude` restore from S3 and the later backup keeps the key.
+  Tests: `backend/tests/test_web_fetch_preflight_default.py`.

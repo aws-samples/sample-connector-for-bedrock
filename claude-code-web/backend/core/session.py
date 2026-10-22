@@ -33,6 +33,7 @@ from claude_agent_sdk import (
 
 from ..models import MessageBlock, PermissionRequest, SendMessageResponse, SessionStatus
 from .message_log import summarize_message
+from .user_settings import apply_default_user_settings
 
 
 def load_custom_system_prompt() -> Optional[str]:
@@ -277,6 +278,9 @@ class AgentSession:
             print(f"[Session] env vars: None")
         print(f"[Session] setting_sources: ['user']")
         print(f"[Session] ===============================================")
+
+        # Default missing user settings (after the .claude sync, before the SDK reads them)
+        apply_default_user_settings()
 
         # Add setting_sources to load user plugins
         options_dict["setting_sources"] = ["user"]
