@@ -169,6 +169,7 @@ export default class BedrockConverse extends AbstractProvider {
         // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
+        let response: ResponseData | undefined;
         try {
             this.retryCount++;
             // console.log("retry times:", this.retryCount);
@@ -178,12 +179,14 @@ export default class BedrockConverse extends AbstractProvider {
                     'Cache-Control': 'no-cache',
                     'Content-Type': 'text/event-stream'
                 });
-                await this.chatStream(ctx, payload, chatRequest, session_id);
+                response = await this.chatStream(ctx, payload, chatRequest);
             } else {
                 ctx.set({
                     'Content-Type': 'application/json',
                 });
-                ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+                const answer = await this.chatSync(ctx, payload, chatRequest);
+                ctx.body = answer.body;
+                response = answer.response;
             }
             this.excludeAccessKeyId = null;
             this.retryCount = 0;
@@ -210,7 +213,9 @@ export default class BedrockConverse extends AbstractProvider {
             }
             this.excludeAccessKeyId = this.currentAK;
             if (this.retryCount <= this.maxRetry) {
+                // The retry records its own call.
                 await this.chat(chatRequest, session_id, ctx);
+                return;
             } else {
                 this.excludeAccessKeyId = null;
                 this.retryCount = 0;
@@ -231,6 +236,16 @@ export default class BedrockConverse extends AbstractProvider {
                 };
                 throw enhancedError;
             }
+        }
+
+        // Recorded outside the retry above, which is for Bedrock's errors only: Bedrock has answered by now, so a
+        // failure to record must not call it again.
+        if (response) {
+            await this.saveThread(ctx, session_id, chatRequest, response);
+        }
+        if (chatRequest.stream) {
+            ctx.res.write("data: [DONE]\n\n")
+            ctx.res.end();
         }
     }
 
@@ -270,7 +285,8 @@ export default class BedrockConverse extends AbstractProvider {
         ctx.res.end();
     }
 
-    async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+    // Relays Bedrock's stream to the client and returns the call's usage. chat() records it and ends the stream.
+    async chatStream(ctx: any, input: any, chatRequest: ChatRequest): Promise<ResponseData | undefined> {
         // // let i = 0;
         // writeFile('./api-test/output.txt', JSON.stringify(chatRequest, null, 2), 'utf8', (err) => {
         //     if (err) {
@@ -284,6 +300,7 @@ export default class BedrockConverse extends AbstractProvider {
         const command = new ConverseStreamCommand(input);
         const response = await this.client.send(command);
 
+        let usage: ResponseData | undefined;
         if (response.stream) {
             let responseText = "";
             const reqId = this.newRequestID();
@@ -385,21 +402,19 @@ export default class BedrockConverse extends AbstractProvider {
                     const first_byte_latency = item.metadata.metrics.latencyMs;
 
                     ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", finish_reason, output_tokens, input_tokens, reqId) + "\n\n");
-                    const response: ResponseData = {
+                    usage = {
                         text: responseText,
                         input_tokens,
                         output_tokens,
                         invocation_latency: 0,
                         first_byte_latency
                     }
-                    await this.saveThread(ctx, session_id, chatRequest, response);
                 }
             }
         } else {
             throw new Error("No response.");
         }
-        ctx.res.write("data: [DONE]\n\n")
-        ctx.res.end();
+        return usage;
     }
 
     async completeSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
@@ -438,7 +453,8 @@ export default class BedrockConverse extends AbstractProvider {
 
     }
 
-    async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+    // Returns the response body and the call's usage, which chat() records.
+    async chatSync(ctx: any, input: any, chatRequest: ChatRequest): Promise<{ body: any, response: ResponseData }> {
         const command = new ConverseCommand(input);
         const apiResponse = await this.client.send(command);
 
@@ -454,7 +470,6 @@ export default class BedrockConverse extends AbstractProvider {
             invocation_latency: 0,
             first_byte_latency: latencyMs
         }
-        await this.saveThread(ctx, session_id, chatRequest, response);
 
         const choices = [];
         let assistantMessage: any = { role: "assistant" };
@@ -520,7 +535,7 @@ export default class BedrockConverse extends AbstractProvider {
         //         total_tokens: totalTokens
         //     }
         // })
-        return {
+        const body = {
             id: requestId,
             model: chatRequest.model,
             choices, usage: {
@@ -529,6 +544,7 @@ export default class BedrockConverse extends AbstractProvider {
                 total_tokens: totalTokens
             }
         };
+        return { body, response };
     }
 
     /**

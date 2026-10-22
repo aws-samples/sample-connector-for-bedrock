@@ -3,6 +3,7 @@ import helper from '../util/helper';
 import { withAnthropicType } from '../util/anthropic_error';
 import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
+import { MAX_SESSION_ID_LENGTH } from "./bedrock_openai/retry";
 // Providers
 // import BedrockClaude from "./bedrock_claude";
 // import BedrockMixtral from "./bedrock_mixtral";
@@ -94,7 +95,7 @@ class Provider {
         }
 
 
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: embeddingRequest.model }, ctx);
 
 
@@ -133,7 +134,7 @@ class Provider {
         }
 
 
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: request.model }, ctx);
 
         if (ctx.db) {
@@ -172,7 +173,7 @@ class Provider {
         }
 
 
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
 
 
@@ -248,7 +249,7 @@ class Provider {
             chatRequest.model_id = modelRes.model_id;
         }
 
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
 
         chatRequest.currency = modelData.config.currency || "USD";
         chatRequest.price_in = modelData.price_in || 0;
@@ -436,6 +437,16 @@ class Provider {
         });
 
         return existsPersonal;
+    }
+
+    // The Session-Id header. A longer one than eiai_session.key holds is refused before the call is made, as the
+    // bedrock-runtime-* providers refuse it. Postgres counts characters, not UTF-16 units.
+    sessionIdOf(ctx: any): string | undefined {
+        const session_id = ctx.headers["session-id"];
+        if (typeof session_id === 'string' && Array.from(session_id).length > MAX_SESSION_ID_LENGTH) {
+            throw withAnthropicType(new Error(`Session-Id must be at most ${MAX_SESSION_ID_LENGTH} characters.`), 'invalid_request_error');
+        }
+        return session_id;
     }
 }
 
