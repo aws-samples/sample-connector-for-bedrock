@@ -1,7 +1,14 @@
 import logger from '../util/logger';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
-export type CcConfig = { runtimeArn: string; workspaceRoleArn: string; bucket: string; prefix: string };
+export type CcConfig = {
+    runtimeArn: string;
+    workspaceRoleArn: string;
+    bucket: string;
+    prefix: string;
+    // AgentCore Gateway with the web search connector; the session policy allows InvokeGateway on it.
+    webSearchGatewayArn?: string;
+};
 
 type Deps = { env?: NodeJS.ProcessEnv; getParameter?: (arn: string) => Promise<string>; now?: () => number };
 
@@ -35,6 +42,9 @@ function nonEmpty(v: unknown): v is string {
 function validPrefix(v: unknown): v is string {
     return nonEmpty(v) && !/[*?${}]/.test(v) && !v.startsWith('/') && !v.endsWith('/');
 }
+
+// The ARN becomes a session policy Resource, so it must name exactly one gateway: no * ? or ${...}.
+const GATEWAY_ARN = /^arn:aws[a-z-]*:bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:gateway\/[0-9a-z][0-9a-z-]*$/;
 
 export async function loadCcConfig(deps: Deps = {}): Promise<CcConfig | null> {
     if (cached) return cached;
@@ -87,7 +97,14 @@ async function readConfig(env: NodeJS.ProcessEnv, deps: Deps): Promise<CcConfig 
             logger.warn(`claude-code-web disabled: SSM config has missing or invalid fields: ${bad.join(', ')}`);
             return null;
         }
-        return { runtimeArn: v.runtimeArn, workspaceRoleArn: v.workspaceRoleArn, bucket: v.bucket, prefix: v.prefix };
+        const config: CcConfig = { runtimeArn: v.runtimeArn, workspaceRoleArn: v.workspaceRoleArn, bucket: v.bucket, prefix: v.prefix };
+        const gateway = v.webSearchGatewayArn;
+        if (gateway !== undefined && gateway !== null && gateway !== '') {
+            // Optional, so a bad value turns off web search only, not Claude Code Web.
+            if (typeof gateway === 'string' && GATEWAY_ARN.test(gateway)) config.webSearchGatewayArn = gateway;
+            else logger.warn('claude-code-web: ignoring webSearchGatewayArn in the SSM config: not an AgentCore gateway ARN');
+        }
+        return config;
     } catch (err: any) {
         // Name and HTTP status only; the message may carry request details.
         logger.warn(

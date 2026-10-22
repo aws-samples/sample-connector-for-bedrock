@@ -11,7 +11,7 @@ title: Claude Code Web
 - 浏览器只和 BRConnector 通信。BRConnector 校验 key 之后，用自己的 IAM 角色调用后端。
 - 后端（本仓库 [`claude-code-web/`](https://github.com/aws-samples/sample-connector-for-bedrock/tree/main/claude-code-web) 目录里的 fork）跑在 Amazon Bedrock AgentCore Runtime 上。每个 API key 有自己的 microVM。Runtime 只接受 IAM 签名的调用，所以只有 BRConnector 能访问它。
 - microVM 里的 Claude Code 每次调用模型，都用该用户的 key 打回 BRConnector 的 `/v1/messages`，额度和计费与其他客户端一样生效。microVM 没有任何 Bedrock 权限，没法绕过 BRConnector。
-- 每个 key 在 S3 里有自己的工作区，前缀为 `user_data/brc-key-<补零到 16 位的 key id>/`。交给 microVM 的凭证只能访问这个前缀。
+- 每个 key 在 S3 里有自己的工作区，前缀为 `user_data/brc-key-<补零到 16 位的 key id>/`。交给 microVM 的凭证只能访问这个前缀；打开联网搜索时，还能调用联网搜索 gateway。
 - key 被删除或者额度用完，就不能再使用 Claude Code Web。
 
 ## 打开开关
@@ -28,6 +28,7 @@ Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](h
 | `ClaudeCodeBackgroundModel` | Claude Code 后台任务使用的模型，默认 `claude-haiku-5-5`。 |
 | `SourceRepoUrl`、`SourceRef` | 构建后端镜像所用的代码仓库和 ref，其中必须包含 `claude-code-web/` 目录。 |
 | `ClaudeCodeWebImageBuildId` | 修改它（例如从 `1` 改成 `2`）只重建后端镜像，不动其他资源，见「已知限制」。默认 `1`。 |
+| `EnableWebSearch` | `true`（默认）时同时创建 AgentCore Web Search 的 gateway，见「联网搜索」。`false` 时不创建。 |
 
 不满足上述组合时，模板的 `Rules` 会在创建任何资源之前拒绝。
 
@@ -37,15 +38,30 @@ Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](h
 - AgentCore Runtime；
 - 存放工作区的 S3 bucket，删除 stack 时会**保留**；
 - Runtime 的 IAM 角色、访问工作区的 IAM 角色，以及挂在 BRConnector 角色上、允许它调用 Runtime 的策略；
-- SSM 参数 `/brconnector/<stack 名>/claude-code-web`，BRConnector 从这里读取 Runtime 的配置（`CC_CONFIG_PARAM`）。
+- SSM 参数 `/brconnector/<stack 名>/claude-code-web`，BRConnector 从这里读取 Runtime 的配置（`CC_CONFIG_PARAM`）；
+- `EnableWebSearch` 为 `true` 且所在区域提供 AgentCore Web Search 时：一个带 Web Search connector 的 AgentCore Gateway 及其 IAM 角色，见「联网搜索」。
 
 stack 输出 `ClaudeCodeWebUrl` 就是访问地址。
 
-模板支持 us-east-1、us-east-2、us-west-1、us-west-2，这四个区域都提供 AgentCore Runtime。`lambda-web` 只能用在提供 Lambda Web Functions 的区域。
+模板支持 us-east-1、us-east-2、us-west-1、us-west-2，这四个区域都提供 AgentCore Runtime。`lambda-web` 只能用在提供 Lambda Web Functions 的区域。除 us-west-1 外，这几个区域都提供 AgentCore Web Search。
 
 ### 不用 CloudFormation
 
 如果自己运行 BRConnector，可以给它设置 `CC_CONFIG_PARAM`（一个 SSM 参数的 ARN，参数值是 JSON `{"runtimeArn","workspaceRoleArn","bucket","prefix"}`），或者直接设置环境变量 `CC_RUNTIME_ARN`、`CC_WORKSPACE_ROLE_ARN`、`CC_WORKSPACE_BUCKET`，以及可选的 `CC_WORKSPACE_PREFIX`（默认 `user_data`）。两种都设置时，直接设置的环境变量优先。两种都没有时，`/cc` 返回 404。
+
+SSM 的 JSON 里还可以写 `webSearchGatewayArn`，即一个 AgentCore Gateway 的 ARN。BRConnector 会在每个用户的 session policy 里允许对这个 gateway 的 `bedrock-agentcore:InvokeGateway`；工作区角色也必须允许这个操作。如果这个值不是 gateway ARN，BRConnector 会忽略它并记一条警告，Claude Code Web 照常运行，只是没有这项权限。
+
+## 联网搜索
+
+`EnableWebSearch` 为 `true`（默认）时，stack 还会创建一个带 [AgentCore Web Search](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-web-search-tool.html) connector 的 AgentCore Gateway，供 Claude Code Web 联网搜索：
+
+- 这个 gateway 是一个只接受 SigV4（IAM）调用的 MCP server。它的地址是 stack 输出 `WebSearchGatewayUrl`，Runtime 通过环境变量 `AGENTCORE_WEB_SEARCH_GATEWAY_URL` 拿到它。
+- gateway 自己的 IAM 角色只能调用这个 gateway 和 Web Search connector。
+- Runtime 角色和访问工作区的角色可以调用这个 gateway（对它的 ARN 有 `bedrock-agentcore:InvokeGateway` 权限）。SSM 参数里带有 `webSearchGatewayArn`，所以 BRConnector 也会把同样的权限加进每个用户的 session policy。
+
+AgentCore Web Search 只在 us-east-1、us-east-2、us-west-2、eu-west-1、ap-southeast-2、ap-northeast-1 提供。在其他区域（例如 us-west-1），stack 不会创建这些资源，Claude Code Web 照常可用，只是没有联网搜索。
+
+搜索按每 1,000 次查询 7 美元收费（[价格](https://aws.amazon.com/bedrock/agentcore/pricing/)），**费用由部署 stack 的 AWS 账号承担，不计入 key**。搜索不经过 BRConnector，所以不受 key 的额度和余额限制。默认每个账号在每个区域每秒最多 10 次搜索，这个配额可以申请调整。不需要联网搜索时，把 `EnableWebSearch` 设为 `false`。
 
 ## 给用户开通
 
@@ -72,6 +88,7 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 
 - **模型 token**：按 BRConnector 里设置的价格计入用户的 key，和其他客户端一样。
 - **其他费用**都由部署 stack 的 AWS 账号承担，不计入任何 key：microVM 运行期间的 AgentCore Runtime 计算费用、每次构建镜像的 CodeBuild 时长、工作区的 S3 存储、镜像的 ECR 存储，以及 CloudWatch Logs。每个 key 最多一个 microVM，空闲 15 分钟后停止。
+- **联网搜索**（打开时，见「联网搜索」）：每 1,000 次查询 7 美元，同样由账号承担，不计入 key。
 - 打开并处于前台的 `/cc` 页面每 5 秒检查一次后端健康状态；打开的终端即使页面在后台也会持续拉取输出。这些调用都算作活动，所以只要页面开着，microVM 就一直运行，最长到 AgentCore 的 8 小时生命周期上限（之后 AgentCore 会换一个新的）。空闲 15 分钟停止的计时，要等页面关闭、或者页面隐藏且没有打开终端之后才开始。请提醒用户用完后关闭页面或登出。
 - 删除 stack 时会保留工作区 bucket。不再需要时请手动清空并删除。
 
@@ -85,6 +102,6 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 - microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。
 - microVM 里的 AWS 凭证每次请求都会更新，有效期最长 1 小时。终端以及从终端启动的进程会一直用启动时拿到的凭证，这些凭证会在 15 分钟到 1 小时之后过期，此后访问 S3 等 AWS 服务会报凭证过期。请新开一个终端。
 - `/cc` 和 `/manager` 共用 BRConnector 的同一个 origin，两者都把 key 存在浏览器的 localStorage 里，所以一边的页面能读到另一边的 key。尽量不要在使用 `/cc` 的同一个浏览器 profile 里使用 admin key。
-- 用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标，以及获取这个 Runtime 的 workload access token，没有任何 Bedrock 或 S3 权限。
+- 用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀，打开联网搜索时还能调用联网搜索 gateway。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标、获取这个 Runtime 的 workload access token，以及在打开联网搜索时调用联网搜索 gateway，没有任何 Bedrock 或 S3 权限。因此用户可以在 shell 里直接发起联网搜索，费用由账号承担。
 - 第一次进入要冷启动 microVM，可能要等几十秒。
 - 不支持 GitHub OAuth，也不支持 `lambda` 计算形态。

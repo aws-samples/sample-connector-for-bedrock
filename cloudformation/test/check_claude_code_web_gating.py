@@ -11,11 +11,13 @@ is merged: that template already contains it, and the check would then always fa
 script evaluates the current template as if the switch were off and compares the result
 with the template at BASE_REF:
 
-- resources and outputs with `Condition: IsClaudeCodeWeb` are dropped;
-- the new parameters, the IsClaudeCodeWeb condition, the new rule and the new parameter
-  group are dropped;
-- every `Fn::If` on IsClaudeCodeWeb takes its false branch, and a false branch of
-  `AWS::NoValue` drops the key or list item it sits in;
+- a gate is IsClaudeCodeWeb, or a condition defined as an `Fn::And` that holds a gate
+  (IsClaudeCodeWebSearch), so every gate is false while the switch is off;
+- resources and outputs whose `Condition` is a gate are dropped;
+- the new parameters, the gate conditions, the new rule and the new parameter group are
+  dropped;
+- every `Fn::If` on a gate takes its false branch, and a false branch of `AWS::NoValue`
+  drops the key or list item it sits in;
 - a `Fn::Sub` variable whose value is such an `Fn::If` is inlined into the string, and a
   variable map left empty collapses back to the plain-string form;
 - the descriptions of SourceRepoUrl and SourceRef may differ.
@@ -24,7 +26,7 @@ Anything else that differs, down to one space in the ec2 `docker run` line, fail
 path of the first difference. Existing stacks must not see any change while the switch is
 off: a UserData change alone makes CloudFormation stop and restart the BRConnector instance.
 
-It also checks that every ClaudeCodeWeb* resource and output carries the condition, that
+It also checks that every ClaudeCodeWeb* resource and output carries a gate condition, that
 the ec2 `docker run` line stays a single line with `--name brconnector` when the switch is
 on, because the SSM auto-update replays that line from the cloud-init log, and that
 ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
@@ -41,7 +43,13 @@ TEMPLATE = 'cloudformation/quick-build-brconnector.yaml'
 DEFAULT_BASE_REF = '7ba1548'
 GATE = 'IsClaudeCodeWeb'
 PREFIX = 'ClaudeCodeWeb'
-NEW_PARAMETERS = {'EnableClaudeCodeWeb', 'ClaudeCodeDefaultModel', 'ClaudeCodeBackgroundModel', 'ClaudeCodeWebImageBuildId'}
+NEW_PARAMETERS = {
+    'EnableClaudeCodeWeb',
+    'ClaudeCodeDefaultModel',
+    'ClaudeCodeBackgroundModel',
+    'ClaudeCodeWebImageBuildId',
+    'EnableWebSearch',
+}
 NEW_RULES = {'ClaudeCodeWebRequirements'}
 NEW_PARAMETER_GROUP = 'Claude Code Web (optional)'
 DESCRIPTION_MAY_DIFFER = {'SourceRepoUrl', 'SourceRef'}
@@ -87,59 +95,78 @@ def load(text):
     return yaml.load(text, Loader=CfnLoader)  # nosec B506 - CfnLoader subclasses yaml.CSafeLoader
 
 
-def is_gate_if(node):
-    return isinstance(node, dict) and set(node) == {'Fn::If'} and node['Fn::If'][0] == GATE
+def gates(template):
+    """IsClaudeCodeWeb and every condition that is an Fn::And holding a gate: all false when off."""
+    found = {GATE}
+    conditions = template.get('Conditions', {})
+    while True:
+        more = {
+            name
+            for name, body in conditions.items()
+            if name not in found
+            and isinstance(body, dict)
+            and set(body) == {'Fn::And'}
+            and any(item == {'Condition': g} for item in body['Fn::And'] for g in found)
+        }
+        if not more:
+            return found
+        found |= more
 
 
-def switch_off(node):
-    """Evaluate every IsClaudeCodeWeb decision in node as false."""
-    if is_gate_if(node):
+def is_gate_if(node, gate_names=(GATE,)):
+    return isinstance(node, dict) and set(node) == {'Fn::If'} and node['Fn::If'][0] in gate_names
+
+
+def switch_off(node, gate_names):
+    """Evaluate every decision on a gate in node as false."""
+    if is_gate_if(node, gate_names):
         false_branch = node['Fn::If'][2]
         if false_branch == {'Ref': 'AWS::NoValue'}:
             return DROPPED
-        return switch_off(false_branch)
+        return switch_off(false_branch, gate_names)
     if isinstance(node, dict):
         if set(node) == {'Fn::Sub'} and isinstance(node['Fn::Sub'], list):
-            return switch_off_sub(node['Fn::Sub'])
+            return switch_off_sub(node['Fn::Sub'], gate_names)
         out = {}
         for key, value in node.items():
-            value = switch_off(value)
+            value = switch_off(value, gate_names)
             if value is not DROPPED:
                 out[key] = value
         return out
     if isinstance(node, list):
-        return [v for v in (switch_off(item) for item in node) if v is not DROPPED]
+        return [v for v in (switch_off(item, gate_names) for item in node) if v is not DROPPED]
     return node
 
 
-def switch_off_sub(args):
+def switch_off_sub(args, gate_names):
     text, variables = args
     inlined = False
     kept = {}
     for name, value in variables.items():
-        if is_gate_if(value):
+        if is_gate_if(value, gate_names):
             false_branch = value['Fn::If'][2]
             if not isinstance(false_branch, str):
-                raise SystemExit(f'FAIL: Fn::Sub variable {name}: the {GATE} false branch must be a plain string')
+                raise SystemExit(f'FAIL: Fn::Sub variable {name}: the {value["Fn::If"][0]} false branch must be a plain string')
             text = text.replace('${' + name + '}', false_branch)
             inlined = True
         else:
-            kept[name] = switch_off(value)
+            kept[name] = switch_off(value, gate_names)
     if inlined and not kept:
         return {'Fn::Sub': text}
     return {'Fn::Sub': [text, kept]}
 
 
 def render_off(template, base):
+    gate_names = gates(template)
     t = dict(template)
-    t['Resources'] = {k: v for k, v in t['Resources'].items() if v.get('Condition') != GATE}
+    t['Resources'] = {k: v for k, v in t['Resources'].items() if v.get('Condition') not in gate_names}
     if 'Outputs' in t:
-        t['Outputs'] = {k: v for k, v in t['Outputs'].items() if v.get('Condition') != GATE}
+        t['Outputs'] = {k: v for k, v in t['Outputs'].items() if v.get('Condition') not in gate_names}
     t['Parameters'] = {k: dict(v) for k, v in t['Parameters'].items() if k not in NEW_PARAMETERS}
     for name in DESCRIPTION_MAY_DIFFER:
         if name in t['Parameters'] and name in base.get('Parameters', {}):
             t['Parameters'][name]['Description'] = base['Parameters'][name].get('Description')
-    t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k != GATE}
+    t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k not in gate_names}
     if 'Rules' in t:
         rules = {k: v for k, v in t['Rules'].items() if k not in NEW_RULES}
         if rules:
@@ -151,7 +178,7 @@ def render_off(template, base):
         groups = [g for g in interface['ParameterGroups'] if g.get('Label', {}).get('default') != NEW_PARAMETER_GROUP]
         t['Metadata'] = dict(t['Metadata'])
         t['Metadata']['AWS::CloudFormation::Interface'] = dict(interface, ParameterGroups=groups)
-    return switch_off(t)
+    return switch_off(t, gate_names)
 
 
 def first_difference(a, b, path=''):
@@ -189,11 +216,12 @@ def first_difference(a, b, path=''):
 
 
 def check_conditions(template):
+    gate_names = gates(template)
     problems = []
     for section in ('Resources', 'Outputs'):
         for name, body in template.get(section, {}).items():
-            if name.startswith(PREFIX) and body.get('Condition') != GATE:
-                problems.append(f'{section}.{name} lacks Condition: {GATE}')
+            if name.startswith(PREFIX) and body.get('Condition') not in gate_names:
+                problems.append(f'{section}.{name} lacks a gate Condition ({", ".join(sorted(gate_names))})')
     return problems
 
 
