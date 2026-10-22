@@ -50,4 +50,4 @@ curl http://localhost:8866/v1/chat/completions \
 }'
 ```
 
-**Note about Session-Id**: You can generate a session ID when making the call. Just ensure you use a consistent value throughout your interaction session. In the current implementation, this provider only processes the latest user input, so there's no need to include multiple conversation turns in your request.
+**Note about Session-Id**: You can generate a session ID when making the call. Just ensure you use a consistent value throughout your interaction session. It can be at most 128 characters; a longer one gets HTTP 400. In the current implementation, this provider only processes the latest user input, so there's no need to include multiple conversation turns in your request.

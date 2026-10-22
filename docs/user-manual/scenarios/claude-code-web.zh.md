@@ -12,6 +12,7 @@ title: Claude Code Web
 - 后端（本仓库 [`claude-code-web/`](https://github.com/aws-samples/sample-connector-for-bedrock/tree/main/claude-code-web) 目录里的 fork）跑在 Amazon Bedrock AgentCore Runtime 上。每个 API key 有自己的 microVM。Runtime 只接受 IAM 签名的调用，所以只有 BRConnector 能访问它。
 - microVM 里的 Claude Code 每次调用模型，都用该用户的 key 打回 BRConnector 的 `/v1/messages`，额度和计费与其他客户端一样生效。microVM 没有任何 Bedrock 权限，没法绕过 BRConnector。
 - 每个 key 在 S3 里有自己的工作区，前缀为 `user_data/brc-key-<补零到 16 位的 key id>/`。交给 microVM 的凭证只能访问这个前缀。
+- 会话启动时，如果用户的 `~/.claude/settings.json` 里没有 `skipWebFetchPreflight`，会写入 `"skipWebFetchPreflight": true`，这样 Claude Code 在 WebFetch 之前不会先向 api.anthropic.com 检查域名；用户自己设置的值会保留。
 - key 被删除或者额度用完，就不能再使用 Claude Code Web。
 
 ## 打开开关

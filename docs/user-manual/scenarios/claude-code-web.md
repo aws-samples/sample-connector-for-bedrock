@@ -12,6 +12,7 @@ Claude Code in the browser, served by BRConnector at `https://<BRConnector URL>/
 - The backend (the fork in [`claude-code-web/`](https://github.com/aws-samples/sample-connector-for-bedrock/tree/main/claude-code-web)) runs on Amazon Bedrock AgentCore Runtime. Each API key gets its own microVM, and the runtime accepts IAM-signed calls only, so nothing but BRConnector can reach it.
 - Claude Code in the microVM sends every model call back to BRConnector's `/v1/messages` with the user's key, so quotas and billing work as for any other client. The microVM has no Bedrock permission and cannot go around BRConnector.
 - Each key has its own workspace in S3, under `user_data/brc-key-<key id, 16 digits>/`. The credentials handed to a microVM can reach only that prefix.
+- When a session starts, `"skipWebFetchPreflight": true` is written to the user's `~/.claude/settings.json` if the key is missing, so Claude Code does not first check each WebFetch domain with api.anthropic.com; a value the user has set is kept.
 - When a key is deleted or its quota runs out, it can no longer use Claude Code Web.
 
 ## Turn it on
