@@ -88,7 +88,7 @@ Logging out stops your microVM. Your files stay in S3 and come back the next tim
 
 - **Model tokens**: billed to the user's key at the prices set in BRConnector, as for any other client.
 - **Everything else** is billed to the AWS account that runs the stack, not to any key: AgentCore Runtime compute while microVMs run, CodeBuild minutes for each image build, S3 storage for the workspaces, ECR storage for the image, and CloudWatch Logs. Each key has at most one microVM, and an idle microVM is stopped after 15 minutes.
-- **Web searches**, with [web search](#web-search) on: $7 per 1,000 queries, also billed to the account and not to the key.
+- **Web searches**, with [web search](#web-search) on: $7 per 1,000 queries, also billed to the account and not to the key. Each MCP `tools/list` and `tools/call` on the gateway is also an AgentCore Gateway call, billed to the account at $0.005 per 1,000; next to the searches this is negligible.
 - A `/cc` tab that is open and visible checks the backend's health every 5 seconds, and an open terminal polls for output even when the tab is in the background. Each of these calls counts as activity, so the microVM keeps running, up to AgentCore's 8-hour maximum lifetime (after which AgentCore starts a new one), for as long as the tab stays open. The 15-minute idle stop starts only after the tab is closed or hidden with no terminal open. Ask users to close the tab, or log out, when they are done.
 - The workspace bucket is kept when the stack is deleted. Empty and delete it by hand if you no longer need it.
 

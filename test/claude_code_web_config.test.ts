@@ -157,11 +157,25 @@ describe('loadCcConfig webSearchGatewayArn', () => {
         expect(await loadCcConfig({ env, getParameter })).toEqual({ ...ssmValue, webSearchGatewayArn: GATEWAY });
     });
 
-    it('leaves it out, without a warning, when the SSM JSON has none', async () => {
+    it('accepts gateway ARNs in the aws-cn and aws-us-gov partitions', async () => {
+        for (const arn of [
+            'arn:aws-cn:bedrock-agentcore:cn-north-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
+            'arn:aws-us-gov:bedrock-agentcore:us-gov-west-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
+        ]) {
+            resetCcConfigCache();
+            const getParameter = async () => JSON.stringify({ ...ssmValue, webSearchGatewayArn: arn });
+            expect((await loadCcConfig({ env, getParameter }))?.webSearchGatewayArn, arn).toBe(arn);
+        }
+    });
+
+    it('leaves it out, without a warning, when the SSM JSON has none, null or an empty string', async () => {
         const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
-        const cfg = await loadCcConfig({ env, getParameter: async () => JSON.stringify(ssmValue) });
-        expect(cfg).toEqual(ssmValue);
-        expect(cfg).not.toHaveProperty('webSearchGatewayArn');
+        for (const extra of [{}, { webSearchGatewayArn: null }, { webSearchGatewayArn: '' }]) {
+            resetCcConfigCache();
+            const cfg = await loadCcConfig({ env, getParameter: async () => JSON.stringify({ ...ssmValue, ...extra }) });
+            expect(cfg, JSON.stringify(extra)).toEqual(ssmValue);
+            expect(cfg, JSON.stringify(extra)).not.toHaveProperty('webSearchGatewayArn');
+        }
         expect(spy).not.toHaveBeenCalled();
         spy.mockRestore();
     });
@@ -175,6 +189,9 @@ describe('loadCcConfig webSearchGatewayArn', () => {
             'arn:aws:bedrock-agentcore:us-east-1:111111111111:runtime/fake',
             'arn:aws:bedrock-agentcore:us-east-1:*:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
             `${GATEWAY}/extra`,
+            'arn:aws-x:bedrock-agentcore:us-east-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
+            'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/a',
+            `${GATEWAY}-`,
             42,
             {},
         ];

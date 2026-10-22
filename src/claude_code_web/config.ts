@@ -44,7 +44,8 @@ function validPrefix(v: unknown): v is string {
 }
 
 // The ARN becomes a session policy Resource, so it must name exactly one gateway: no * ? or ${...}.
-const GATEWAY_ARN = /^arn:aws[a-z-]*:bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:gateway\/[0-9a-z][0-9a-z-]*$/;
+// The gateway id part follows the AgentCore API pattern ([0-9a-z][-]?){1,48}-[0-9a-z]{10}.
+const GATEWAY_ARN = /^arn:aws(-cn|-us-gov)?:bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway\/([0-9a-z]-?){1,48}-[0-9a-z]{10}$/;
 
 export async function loadCcConfig(deps: Deps = {}): Promise<CcConfig | null> {
     if (cached) return cached;
