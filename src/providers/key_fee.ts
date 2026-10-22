@@ -1,7 +1,19 @@
 import Cache from '../util/cache';
 
-// month_fee as of $2: a month_fee last written in an earlier month counts as 0.
-const MONTH_FEE = "CASE WHEN date_trunc('month', updated_at) < date_trunc('month', $2::timestamp) THEN 0 ELSE month_fee END";
+// updated_at also marks the month of month_fee. Every statement that stamps updated_at on a key writes month_fee
+// with this expression, so a month_fee last written in an earlier month than `now` (a parameter such as "$2")
+// counts as 0.
+export function monthFeeAt(now: string): string {
+    return `CASE WHEN date_trunc('month', updated_at) < date_trunc('month', ${now}::timestamp) THEN 0 ELSE month_fee END`;
+}
+
+// The same month test for a key read from the database or the cache. node-pg writes and reads timestamp columns in
+// local time, so this local-time comparison sees the same months as the SQL.
+export function isEarlierMonth(updatedAt: Date, now: Date): boolean {
+    return updatedAt.getFullYear() * 12 + updatedAt.getMonth() < now.getFullYear() * 12 + now.getMonth();
+}
+
+const MONTH_FEE = monthFeeAt('$2');
 
 // Charges one call of fee $1 at time $2 to key $3. The fee first fills what is left of the monthly quota and the
 // rest comes off the balance, which the call that uses it up may take below zero; the fee check then refuses the

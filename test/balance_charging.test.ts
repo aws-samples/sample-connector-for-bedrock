@@ -7,6 +7,7 @@ import providers from '../src/providers/provider';
 import { recordChatUsage } from '../src/providers/usage_recorder';
 import { ADD_KEY_FEE_SQL } from '../src/providers/key_fee';
 import PGClient from '../src/util/postgres';
+import keyService from '../src/service/key';
 import Cache from '../src/util/cache';
 
 // Both fee writers charge the key: AbstractProvider.saveThread (through updateKeyFee) for the legacy providers and
@@ -208,20 +209,17 @@ describe('the key charge', () => {
         expect(Cache.api_keys[0]).toEqual(other);
     });
 
-    // The fee check resets month_fee when the cached key was last charged in an earlier month. The charge stamps
-    // the cached key with the stored update time, so the check does not reset month_fee again later in the month.
-    it.each(writers)('from %s lets the fee check reset month_fee once in a new month', async (_name, write) => {
+    // The fee check counts a month_fee from an earlier month as 0. The charge stamps the cached key with the stored
+    // update time, so the check then sees the month_fee of the new month.
+    it.each(writers)('from %s lets the fee check see the new month_fee in a new month', async (_name, write) => {
         vi.useFakeTimers({ toFake: ['Date'] });
-        vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
-        const key = await newKey({ month_fee: 10, balance: 5 });
-        Cache.api_keys = [key];
         vi.setSystemTime(new Date('2026-11-15T12:00:00Z'));
-        for (let i = 0; i < 2; i++) {
-            const cached = Cache.api_keys[0];
-            await providers.checkFee({ db: appDb(), user: cached }, cached);
-            await write(appDb(), cached, 0.5);
-        }
-        expect(await stored(key.id)).toMatchObject({ total_fee: 3, month_fee: 1, balance: 5 });
+        const key = await newKey({ month_fee: 0.5, month_quota: 0.5, balance: 0, updated_at: new Date('2026-10-15T12:00:00Z') });
+        Cache.api_keys = [key];
+        await providers.checkFee({ db: appDb(), user: key }, key);
+        await write(appDb(), key, 0.5);
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2.5, month_fee: 0.5, balance: 0 });
+        await expect(providers.checkFee({ db: appDb(), user: Cache.api_keys[0] }, Cache.api_keys[0])).rejects.toThrow('Please recharge.');
     });
 
     it('from saveThread charges each call of a provider instance to the key', async () => {
@@ -235,5 +233,87 @@ describe('the key charge', () => {
         }
         expect(await stored(key.id)).toMatchObject({ total_fee: 3, month_fee: 10, balance: 4 });
         expect(ctx.user).toBe(key);
+    });
+});
+
+// updated_at also marks the month of month_fee, and the admin writes to a key stamp it. Each of them, and the fee
+// check, must start a new month the same way the charge does.
+describe('the first call of a new month', () => {
+    const lastMonth = new Date('2026-10-15T12:00:00Z');
+    const firstOfMonth = new Date('2026-11-01T12:00:00Z');
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(firstOfMonth);
+    });
+    // The fee check on the key as the cache still holds it, which must not write, then the charge.
+    const callWith = async (write: Writer, cached: any, fee: number) => {
+        statements = [];
+        await providers.checkFee({ db: appDb(), user: cached }, cached);
+        expect(statements, 'statements of the fee check').toEqual([]);
+        await write(appDb(), cached, fee);
+    };
+    const oneKeyWrite = () => {
+        expect(keyWrites()).toHaveLength(1);
+        expect(keyWrites()[0].sql).toContain("date_trunc('month', updated_at)");
+    };
+
+    it.each(writers)('after a recharge on the 1st, %s charges the first call to the new quota, not the balance', async (_name, write) => {
+        const key = await newKey({ month_fee: 10, balance: 1, updated_at: lastMonth });
+        const cached = { ...key };
+        statements = [];
+        await keyService.recharge(appDb(), { id: key.id, balance: 5 });
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2, month_fee: 0, balance: 6 });
+        oneKeyWrite();
+        await callWith(write, cached, 0.5);
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2.5, month_fee: 0.5, balance: 6 });
+    });
+
+    it.each(writers)('after an admin update on the 1st, %s charges the first call to the new quota, not the balance', async (_name, write) => {
+        const key = await newKey({ month_fee: 10, balance: 1, updated_at: lastMonth });
+        const cached = { ...key };
+        statements = [];
+        const updated = await keyService.update(appDb(), { id: key.id, name: 'renamed' });
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2, month_fee: 0, balance: 1 });
+        expect(updated).toMatchObject({ id: key.id, name: 'renamed' });
+        oneKeyWrite();
+        await callWith(write, cached, 0.5);
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2.5, month_fee: 0.5, balance: 1 });
+    });
+
+    it('a key reset on the 1st also starts the new month', async () => {
+        const key = await newKey({ month_fee: 10, balance: 1, updated_at: lastMonth });
+        statements = [];
+        const reset = await keyService.resetKey(appDb(), { id: key.id });
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2, month_fee: 0, balance: 1 });
+        expect(reset.api_key).not.toBe(key.api_key);
+        oneKeyWrite();
+    });
+
+    it.each(writers)('a key that ended last month at quota with no balance is allowed, and %s charges the call to the quota', async (_name, write) => {
+        const key = await newKey({ month_fee: 10, balance: -0.3, updated_at: lastMonth });
+        await callWith(write, { ...key }, 0.5);
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2.5, month_fee: 0.5, balance: -0.3 });
+    });
+
+    it('a key at quota with no balance in the current month is still refused', async () => {
+        const key = await newKey({ month_fee: 10, balance: 0, updated_at: new Date('2026-11-01T06:00:00Z') });
+        statements = [];
+        await expect(providers.checkFee({ db: appDb(), user: key }, key)).rejects.toThrow('Please recharge.');
+        expect(statements).toEqual([]);
+        const negative = await newKey({ month_fee: 10, balance: -0.3, updated_at: new Date('2026-11-01T06:00:00Z') });
+        await expect(providers.checkFee({ db: appDb(), user: negative }, negative)).rejects.toThrow('Please recharge.');
+    });
+
+    it('a recharge or an update in the same month keeps month_fee', async () => {
+        const sameMonth = new Date('2026-11-01T06:00:00Z');
+        const key = await newKey({ month_fee: 10, balance: 1, updated_at: sameMonth });
+        await keyService.recharge(appDb(), { id: key.id, balance: 5 });
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2, month_fee: 10, balance: 6 });
+        await keyService.update(appDb(), { id: key.id, month_quota: 20 });
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2, month_fee: 10, balance: 6 });
+        const after = await stored(key.id);
+        const { rows } = await pg.query<any>('SELECT $1::timestamp AS t, month_quota FROM eiai_key WHERE id = $2', [firstOfMonth, key.id]);
+        expect(after.updated_at).toEqual(rows[0].t);
+        expect(Number(rows[0].month_quota)).toBe(20);
     });
 });

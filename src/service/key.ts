@@ -1,4 +1,18 @@
 import helper from "../util/helper";
+import { monthFeeAt } from "../providers/key_fee";
+
+// Writes `data` to key `id` and stamps updated_at, in one statement. updated_at also marks the month of month_fee,
+// so the statement resets a month_fee from an earlier month as the charge does; otherwise the stamp would carry last
+// month's month_fee into this month. The column names come from this file, never from a request.
+async function writeKey(db: any, id: any, data: any, returning: string[]) {
+    const cols = Object.keys(data);
+    const now = `$${cols.length + 1}`;
+    const sets = cols.map((col, i) => `${col} = $${i + 1}`);
+    sets.push(`month_fee = ${monthFeeAt(now)}`, `updated_at = ${now}::timestamp`);
+    const sql = `UPDATE eiai_key SET ${sets.join(", ")} WHERE id = $${cols.length + 2} RETURNING ${returning.join(", ")}`;
+    const { rows } = await db.query(sql, [...cols.map((col) => data[col]), new Date(), id]);
+    return rows[0];
+}
 
 export default {
     loadById: async (db: any, id: number) => {
@@ -163,27 +177,16 @@ export default {
         return result;
     },
 
-    async rebillMonthly(db: any, id: number) {
-        const updateData: any = {
-            id,
-            month_fee: 0
-        };
-        return await db.update("eiai_key", updateData, ["id"]);
-    },
-
     async update(db: any, data: any) {
         if (!data.id) {
             throw new Error("id is required");
         }
-        const updateData: any = {
-            id: data.id
-        }
+        const updateData: any = {}
         data.role && (updateData.role = data.role);
         data.group_id && (updateData.group_id = data.group_id);
         data.name && (updateData.name = data.name);
         data.month_quota != undefined && (updateData.month_quota = data.month_quota);
-        updateData.updated_at = new Date()
-        return await db.update("eiai_key", updateData, ["id", "name", "email", "api_key", "group_id", "role", "month_quota", "balance"]);
+        return await writeKey(db, data.id, updateData, ["id", "name", "email", "api_key", "group_id", "role", "month_quota", "balance"]);
     },
 
     recharge: async (db: any, options: any) => {
@@ -208,10 +211,8 @@ export default {
             fee: 1.0 * options.balance
         });
 
-        return await db.update("eiai_key", {
-            id: key.id,
-            balance: 1.0 * key.balance + 1.0 * options.balance,
-            updated_at: new Date()
+        return await writeKey(db, key.id, {
+            balance: 1.0 * key.balance + 1.0 * options.balance
         }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
     },
 
@@ -314,10 +315,8 @@ export default {
             }
         }
 
-        return await db.update("eiai_key", {
-            id: key.id,
-            api_key: apiKey,
-            updated_at: new Date()
+        return await writeKey(db, key.id, {
+            api_key: apiKey
         }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
 
     },

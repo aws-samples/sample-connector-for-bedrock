@@ -1,9 +1,9 @@
 import { ChatRequest, EmbeddingRequest, ImageRequest, ModelData } from "../entity/chat_request"
 import helper from '../util/helper';
 import { withAnthropicType } from '../util/anthropic_error';
-import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
 import { MAX_SESSION_ID_LENGTH, sessionIdTooLong } from "./bedrock_openai/retry";
+import { isEarlierMonth } from "./key_fee";
 // Providers
 // import BedrockClaude from "./bedrock_claude";
 // import BedrockMixtral from "./bedrock_mixtral";
@@ -386,21 +386,13 @@ class Provider {
     }
 
 
+    // Refuses a key whose monthly quota and balance are both used up. A month_fee from an earlier month counts as 0;
+    // the next write to the key resets it in the database.
     async checkFee(ctx: any, key: any) {
-        let month_fee = parseFloat(key.month_fee);
+        const month_fee = isEarlierMonth(new Date(key.updated_at), new Date()) ? 0 : parseFloat(key.month_fee);
         const month_quota = parseFloat(key.month_quota);
         const balance = parseFloat(key.balance);
 
-        if (month_fee > 0) {
-            // New month set it to 0
-            const lastUpdate = new Date(key.updated_at);
-            const now = new Date();
-
-            if (now.getMonth() != lastUpdate.getMonth() || now.getFullYear() > lastUpdate.getFullYear()) {
-                await api_key.rebillMonthly(ctx.db, ctx.user.id);
-                key.month_fee = 0;
-            }
-        }
         if (month_fee >= month_quota && balance <= 0) {
             throw withAnthropicType(new Error("Please recharge."), 'billing_error');
         }
