@@ -50,34 +50,8 @@ You just need to create a new model named `default`.
 Yes, you can draw diagrams by configuring and using models with providers such as `painter` or `nova-canvas`.
 
 
-## Model Wildcard
+## Model Names That Contain a Slash {#model-wildcard}
 
-You can now configure a custom model and use slashes in the model name within API calls.
+Configure one model in BRConnector for each upstream model id you want to offer, and call it by its name. A configured model name may itself contain `/`, for example `team/nova-micro`, and is used as it is.
 
-Here is an example of an API call:
-
-```json
-POST {{baseURL}}/chat/completions
-Authorization: Bearer {{key}}
-Content-Type: application/json
-
-{
-    "model": "bedrock/us.amazon.nova-micro-v1:0",
-    "messages": [
-        {
-            "role": "user",
-            "content": "Tell me a joke that only programmers would understand"
-        }
-    ],
-    "max_tokens": 5120,
-    "stream": true
-}
-```
-
-To use this method, you must:
-
-1. Configure a custom model with the model name `bedrock` in the backend.
-2. The model name after the slash can be customized but must match the original vendor's model name.
-3. The provider will prioritize the model name after the slash, then consider the model name configured in the backend, and finally fall back to the original name if necessary.
-
-Currently, providers that support this usage include: `bedrock_converse`, `openai_compatiable`.
+Since 0.0.43, a model string `<name>/<model id>` that is not itself a configured model name gets HTTP 400; the part after the slash no longer selects the upstream model id.

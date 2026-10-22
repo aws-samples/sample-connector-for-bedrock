@@ -51,34 +51,8 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 可以，配置并使用 painter 或者 nova-canvas 为提供器的模型即可。
 
-## 模型通配
+## 模型名称中的斜杠 {#model-wildcard}
 
-现在你可以配置一个自定义模型，并且在 API 的调用中的模型名字中使用斜杠。
+请为每个要提供的上游模型 id 在 BRConnector 里配置一个模型，调用时使用模型名称。配置的模型名称本身可以包含 `/`，例如 `team/nova-micro`，这样的名称会原样使用。
 
-如下的 API 调用示例。
-
-```
-POST  {{hostLcoal}}/chat/completions
-Authorization: Bearer {{key}}
-Content-Type: application/json
-
-{
-    "model":"bedrock/us.amazon.nova-micro-v1:0",
-    "messages": [
-        {
-            "role": "user",
-            "content": "来一个只有程序员能听懂的笑话"
-        }
-    ],
-    "max_tokens": 5120,
-    "stream": true
-}
-```
-
-要使用上述方法，你必须：
-
-1. 需要你在后台定一个 model name 为 `bedrock` 的自定义模型。
-2. 斜杠后面的模型名字可以自定义，必须与原厂商的 模型名字一致。
-3. Provider 会首选考虑斜杠后面的模型名字，然后考虑后台配置中的模型名字，最后会考虑原样传输。
-
-当前有支持这个用法的 Provider 有：`bedrock_converse`, `openai_compatiable`
+从 0.0.43 起，`<名称>/<模型 id>` 形式的模型字符串如果本身不是已配置的模型名称，会返回 HTTP 400；斜杠后面的部分不再用来选择上游模型 id。
