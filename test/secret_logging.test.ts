@@ -63,3 +63,19 @@ describe('genApiKey', () => {
         expect(mr).not.toHaveBeenCalled();
     });
 });
+
+describe('Feishu card errors', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    it('sendCard logs the error message, not the error object', async () => {
+        const lines = captureOutput();
+        const err: any = new Error('request failed');
+        err.config = { headers: { Authorization: 'Bearer SECRET-MARKER' } };
+        const client: any = { im: { message: { create: async () => { throw err; } } } };
+        const { sendCard } = await import('../src/controller/bot/Feishu');
+        await expect(sendCard(client, 'ou_1', 't', 'c')).resolves.toBeNull();
+        const out = lines.join('\n');
+        expect(out).toContain('request failed');
+        expect(out).not.toContain('SECRET-MARKER');
+    });
+});

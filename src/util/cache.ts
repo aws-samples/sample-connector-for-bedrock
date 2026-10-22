@@ -27,7 +27,7 @@ const cache = {
         return true;
       }).catch((err) => {
         logger.defaultMeta.path = "global";
-        logger.error("err", err);
+        logger.error("err", err?.message);
         return false;
       });
     }

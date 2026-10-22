@@ -354,7 +354,7 @@ const buildCard = (title: string, content: string): any => {
   };
 };
 
-const sendCard = async (client: lark.Client, open_id: string, title: string, content: string): Promise<any> => {
+export const sendCard = async (client: lark.Client, open_id: string, title: string, content: string): Promise<any> => {
   let card = buildCard(title, content);
   try {
     return await client.im.message.create({
@@ -368,8 +368,8 @@ const sendCard = async (client: lark.Client, open_id: string, title: string, con
         uuid: helper.generateUUID(),
       }
     });
-  } catch (ex) {
-    console.error(ex);
+  } catch (ex: any) {
+    console.error("Failed to send card:", ex?.message, ex?.response?.status);
     return null;
   }
 };
@@ -385,8 +385,8 @@ const updateCard = async (client: lark.Client, messageId: string, title: string,
         content: JSON.stringify(card)
       }
     });
-  } catch (ex) {
-    console.error(ex);
+  } catch (ex: any) {
+    console.error("Failed to update card:", ex?.message, ex?.response?.status);
     return null;
   }
 };
@@ -428,7 +428,7 @@ const receive = (client: lark.Client, data: any, connectorName: string): void =>
         }
       }
     } else {
-      console.error("Failed to send initial card:", res);
+      console.error("Failed to send initial card:", res?.code, res?.msg);
     }
   });
 }

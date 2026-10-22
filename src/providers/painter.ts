@@ -473,7 +473,7 @@ export default class Painter extends AbstractProvider {
         return "> Error: Unsupported paint modelId";
       }
     } catch (e) {
-      logger.error(e);
+      logger.error((e as any)?.message ?? String(e));
       return "> Error: " + (e['message'] || e);
     }
 
