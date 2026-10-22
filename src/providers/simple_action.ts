@@ -45,7 +45,6 @@ export default class SimpleAction extends AbstractProvider {
     chatRequest.model = localLlmModel;
 
     const response = await this.askForParameters(chatRequest, entryPointApi, session_id, ctx);
-    console.log(JSON.stringify(response, null, 2));
     ctx.status = 200;
     const reqId = this.newRequestID();
     if (chatRequest.stream) {
@@ -96,7 +95,6 @@ export default class SimpleAction extends AbstractProvider {
         const lastResult = await response.json();
 
         const sumRes = await this.summarizeResult(chatRequest, lastResult, session_id, ctx);
-        console.log(JSON.stringify(sumRes, null, 2));
 
         ctx.res.write("data: " + WebResponse.wrap(0, chatRequest.model, sumRes.choices[0]["message"]["content"], null, null, null, reqId) + "\n\n");
       }
@@ -141,8 +139,6 @@ ${JSON.stringify(result, null, 2)}
 </result>
       `
     });
-
-    console.log(messages);
 
 
     const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
@@ -206,14 +202,6 @@ ${JSON.stringify(result, null, 2)}
     // chatRequest.tools = tools;
     // chatRequest.tool_choice = "auto";
     // chatRequest.stream = false;
-
-    console.log(JSON.stringify({
-      tools,
-      tool_choice: "auto",
-      model: chatRequest.model,
-      messages: chatRequest.messages
-
-    }, null, 2));
 
     const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',

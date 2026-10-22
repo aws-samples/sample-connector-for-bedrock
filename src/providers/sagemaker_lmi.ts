@@ -93,7 +93,6 @@ export default class SagemakerLMI extends AbstractProvider {
         const headers = { ...ctx.headers };
         delete headers.host;
         delete headers['content-length'];
-        console.log("ORI content:\n\n", JSON.stringify(headers, null, 2));
         // ctx.logger.error(headers);
         const rtn = Object.entries(headers)
             .map(([key, value]) => {
@@ -103,7 +102,6 @@ export default class SagemakerLMI extends AbstractProvider {
                 }
             })
             .join(',');
-        console.log("After  :\n\n", rtn, rtn.length);
         // ctx.logger.error(rtn);
         return rtn;
     }

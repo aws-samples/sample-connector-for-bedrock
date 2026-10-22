@@ -15,11 +15,17 @@ const helper = {
     },
     genApiKey() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let key = '';
         const keyLength = 29;
+        // Accept bytes below the largest multiple of 62 so every character is equally likely.
+        const limit = 256 - (256 % chars.length);
+        let key = '';
 
-        for (let i = 0; i < keyLength; i++) {
-            key += chars.charAt(Math.floor(Math.random() * chars.length));
+        while (key.length < keyLength) {
+            for (const byte of crypto.randomBytes(keyLength)) {
+                if (byte < limit && key.length < keyLength) {
+                    key += chars.charAt(byte % chars.length);
+                }
+            }
         }
         return "br-" + key;
     },
