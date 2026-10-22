@@ -194,6 +194,14 @@ describe('bedrock-runtime-anthropic provider', () => {
             message: "You must specify the parameters 'modelId' in the backend model configuration." });
         expect(h.seen.length).toBe(0);
     });
+    it('accepts a configured model whose name contains "/"', async () => {
+        const h = stubHandler([{ status: 200, body: okJson }]); const ctx = fakeCtx(model({ name: 'team/claude' }));
+        await new BedrockRuntimeAnthropic(h, noWait).messages(body({ model: 'team/claude' }), '', ctx);
+        expect(ctx.status).toBe(200);
+        expect(h.seen[0].json.model).toBe('global.anthropic.claude-sonnet-5-5');
+        expect(ctx.body).toEqual(JSON.parse(okJson));
+        expect(thread(ctx)).toMatchObject({ tokens_in: 90870, tokens_out: 4, completion: 'OK' });
+    });
     it('counts a session id in characters, not UTF-16 units', async () => {
         const h = stubHandler([{ status: 200, body: okJson }]);
         await expect(new BedrockRuntimeAnthropic(h, noWait).messages(body(), '\u{1F600}'.repeat(128), fakeCtx(model()))).resolves.toBeUndefined();

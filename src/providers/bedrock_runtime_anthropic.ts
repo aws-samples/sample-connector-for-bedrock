@@ -64,8 +64,9 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
         if (!modelData) {
             throw new Error('Model data is missing for this request.');
         }
-        // Backstop: Provider already refuses a "name/<id>" model string before it gets here.
-        if (typeof body?.model === 'string' && body.model.includes('/')) {
+        // Backstop: Provider already refuses a "name/<id>" model string before it gets here. A configured model name
+        // may itself contain "/", so only a string other than this model's name is refused.
+        if (typeof body?.model === 'string' && body.model.includes('/') && body.model !== modelData.name) {
             throw badRequest(`The [${modelData.name}] model does not accept a model id override ("${modelData.name}/<model id>"). Send the model name only.`);
         }
         if (sessionIdTooLong(session_id)) {

@@ -5,6 +5,7 @@ import Router from 'koa-router';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import { BedrockRuntimeClient, ConverseCommand, ConverseStreamCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import PGClient from '../src/util/postgres';
 import { authHandler, errorHandler } from '../src/middleware/handlers';
 import v1 from '../src/controller/runtime/v1';
@@ -20,6 +21,8 @@ const models = [
     { id: 7, name: 'cheap-model', provider: 'bedrock-converse', price_in: 1e-7, price_out: 2e-7, config: { modelId: 'test.cheap-v1:0', regions: ['us-east-1'] } },
     { id: 9, name: 'embed-model', provider: 'titan-embeddings', price_in: 1e-7, price_out: 0, config: { modelId: 'test.embed-v1:0', regions: ['us-east-1'] } },
     { id: 8, name: 'team/special', provider: 'bedrock-converse', price_in: 1e-7, price_out: 2e-7, config: { modelId: 'test.special-v1:0', regions: ['us-east-1'] } },
+    { id: 10, name: 'team/claude', provider: 'bedrock-runtime-anthropic', price_in: 1e-7, price_out: 2e-7,
+        config: { modelId: 'test.claude-v1:0', regions: ['us-east-1'], credentials: [{ accessKeyId: 'test-ak', secretAccessKey: 'fake-secret' }] } },
 ];
 const keys = [
     { id: 5, api_key: 'user-key', group_id: 1, role: 'user', month_fee: '0', month_quota: '10', balance: '0', total_fee: '0', updated_at: new Date() },
@@ -146,5 +149,34 @@ describe.each(routes.map(([route]) => route))('client-supplied model_id on %s', 
         const res = await post(route, model, 'user-key', { model_id: 'OTHER.model:0' });
         expect(res.status).toBe(200);
         expect(modelIds).toEqual([route === '/v1/embeddings' ? 'test.embed-v1:0' : 'test.cheap-v1:0']);
+    });
+});
+
+describe('native /v1/messages (bedrock-runtime-anthropic)', () => {
+    // The native provider posts through the transport's shared NodeHttpHandler; this stands in for Bedrock.
+    function nativeBedrock() {
+        const sent: { path: string; model: string }[] = [];
+        vi.spyOn(NodeHttpHandler.prototype, 'handle').mockImplementation(async (request: any) => {
+            sent.push({ path: request.path, model: JSON.parse(request.body).model });
+            const json = { id: 'm', type: 'message', role: 'assistant', content: [{ type: 'text', text: 'HELLO' }], usage: { input_tokens: 10, output_tokens: 10 } };
+            return { response: { statusCode: 200, headers: {}, body: (async function* () { yield Buffer.from(JSON.stringify(json)); })() } } as any;
+        });
+        return sent;
+    }
+
+    it('a configured model whose name contains "/" is used as is', async () => {
+        const sent = nativeBedrock();
+        const res = await post('/v1/messages', 'team/claude', 'user-key');
+        expect(res.status).toBe(200);
+        expect(res.json.content).toEqual([{ type: 'text', text: 'HELLO' }]);
+        expect(sent).toEqual([{ path: '/anthropic/v1/messages', model: 'test.claude-v1:0' }]);
+    });
+
+    it('team/claude/OTHER.model:0 gets the override 400 and Bedrock is not called', async () => {
+        const sent = nativeBedrock();
+        const res = await post('/v1/messages', 'team/claude/OTHER.model:0', 'user-key');
+        expect(res.status).toBe(400);
+        expect(res.json).toEqual({ type: 'error', error: { type: 'invalid_request_error', message: MESSAGE } });
+        expect(sent).toEqual([]);
     });
 });
