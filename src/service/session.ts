@@ -1,3 +1,10 @@
+const ORDER_BY: Record<string, string> = {
+    "id desc": "id desc",
+    "id asc": "id asc",
+    "updated_at desc": "updated_at desc",
+    "total_fee desc": "total_fee desc",
+};
+
 export default {
 
     detail: async (db: any, options: any) => {
@@ -20,7 +27,8 @@ export default {
 
         let where = "1=1";
         let params = [];
-        let orderBy = options.orderBy || "id desc";
+        const requested = options.orderBy;
+        const orderBy = typeof requested === "string" && Object.prototype.hasOwnProperty.call(ORDER_BY, requested) ? ORDER_BY[requested] : "id desc";
 
         let keys = [];
         if (options.key_id) {
