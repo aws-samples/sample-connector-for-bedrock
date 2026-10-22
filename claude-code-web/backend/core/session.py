@@ -280,6 +280,7 @@ class AgentSession:
         print(f"[Session] ===============================================")
 
         # Default missing user settings (after the .claude sync, before the SDK reads them)
+        # Synchronous, no await: two connect() calls on one loop cannot interleave here.
         apply_default_user_settings()
 
         # Add setting_sources to load user plugins

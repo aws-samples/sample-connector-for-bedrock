@@ -17,3 +17,6 @@ dependencies = [
     "s5cmd>=0.3.3",
     "uvicorn>=0.38.0",
 ]
+
+[dependency-groups]
+dev = ["pytest"]

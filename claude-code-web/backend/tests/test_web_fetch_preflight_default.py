@@ -51,6 +51,24 @@ def test_unreadable_file_is_left_alone_and_logged(settings_path, caplog, content
     assert "settings.json" in caplog.text
 
 
+def test_non_ascii_and_compact_array_survive(settings_path):
+    settings_path.parent.mkdir(parents=True)
+    settings_path.write_text('{"name": "é 中文", "list": [1,2,3]}', encoding="utf-8")
+    apply_default_user_settings()
+    text = settings_path.read_text(encoding="utf-8")
+    assert "é 中文" in text and "\\u" not in text
+    assert "[1, 2, 3]" in text
+    assert json.loads(text) == {"name": "é 中文", "list": [1, 2, 3], "skipWebFetchPreflight": True}
+    assert list(json.loads(text)) == ["name", "list", "skipWebFetchPreflight"]
+
+
+def test_detected_indent_is_reused(settings_path):
+    settings_path.parent.mkdir(parents=True)
+    settings_path.write_text('{\n    "a": "é"\n}\n', encoding="utf-8")
+    apply_default_user_settings()
+    assert settings_path.read_text(encoding="utf-8").startswith('{\n    "a": "é",\n    "skip')
+
+
 def test_no_temp_file_left_behind(settings_path):
     apply_default_user_settings()
     assert [p.name for p in settings_path.parent.iterdir()] == ["settings.json"]
