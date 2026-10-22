@@ -48,7 +48,7 @@ async function* converseStream() {
     yield { metadata: { usage: { inputTokens: 10, outputTokens: 10 }, metrics: { latencyMs: 5 } } };
 }
 
-beforeAll(() => {
+beforeAll(async () => {
     const db: any = new PGClient();
     db.pool = {
         query: async (text: string) => {
@@ -74,11 +74,13 @@ beforeAll(() => {
     const router = new Router();
     for (const [route, handler] of routes) router.post(route, handler);
     app.use(router.routes());
-    server = app.listen(0);
+    server = http.createServer(app.callback());
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
-afterAll(() => {
-    server.close();
+afterAll(async () => {
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
 });
 beforeEach(() => {
     for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value);
@@ -207,7 +209,7 @@ describe('without a database', () => {
         noDbBase = `http://127.0.0.1:${(noDbServer.address() as AddressInfo).port}`;
     });
     afterAll(async () => {
-        noDbServer.closeAllConnections();
+        noDbServer.closeAllConnections?.();
         await new Promise((resolve) => noDbServer.close(resolve));
     });
 

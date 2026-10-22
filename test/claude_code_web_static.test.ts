@@ -28,14 +28,16 @@ async function withServer(enabled: boolean, fn: (get: (p: string) => Promise<Res
         ctx.status = 200;
         ctx.body = 'NEXT';
     });
-    const server = app.listen(0);
+    const server = http.createServer(app.callback());
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     const port = (server.address() as AddressInfo).port;
     // note: fetch normalises ../ and %2e%2e client-side; raw traversal is tested via http.request below
     const get = (p: string) => fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual' });
     try {
         await fn(get, isEnabled, port);
     } finally {
-        server.close();
+        server.closeAllConnections?.();
+        await new Promise((resolve) => server.close(resolve));
     }
 }
 

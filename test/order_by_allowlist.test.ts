@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import http from 'http';
 import type { AddressInfo } from 'net';
 import type { Server } from 'http';
 
@@ -42,10 +43,17 @@ beforeAll(async () => {
     });
     app.use(authHandler);
     app.use(router.routes());
-    server = app.listen(0);
+    server = http.createServer(app.callback());
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }, 60000);
-afterAll(() => { server?.close(); vi.unstubAllEnvs(); });
+afterAll(async () => {
+    if (server) {
+        server.closeAllConnections?.();
+        await new Promise((resolve) => server.close(resolve));
+    }
+    vi.unstubAllEnvs();
+});
 beforeEach(() => { sqls = []; bound = []; });
 
 async function listSql(path: string, key: string, orderBy?: string): Promise<string> {

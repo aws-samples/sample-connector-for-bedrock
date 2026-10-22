@@ -4,6 +4,7 @@ import { koaBody } from 'koa-body';
 import Router from 'koa-router';
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import { BedrockRuntimeClient, ConverseCommand, ConverseStreamCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
@@ -89,7 +90,7 @@ let state: {
 let server: Server;
 let base: string;
 
-beforeAll(() => {
+beforeAll(async () => {
     const app = new Koa();
     app.use(async (ctx: any, next) => {
         ctx.logger = state.logger;
@@ -123,11 +124,13 @@ beforeAll(() => {
         router.post(route, handler);
     }
     app.use(router.routes());
-    server = app.listen(0);
+    server = http.createServer(app.callback());
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
-afterAll(() => {
-    server.close();
+afterAll(async () => {
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
 });
 
 beforeEach(() => {

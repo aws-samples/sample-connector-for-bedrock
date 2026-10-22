@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import Koa from 'koa';
+import http from 'http';
 import type { AddressInfo } from 'net';
 import type { Server } from 'http';
 import PGClient from '../src/util/postgres';
@@ -46,9 +47,13 @@ beforeEach(async () => {
     adminThread(router);
     userThread(router);
     app.use(router.routes());
-    server = app.listen(0);
+    server = http.createServer(app.callback());
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
 });
-afterEach(() => { server.close(); });
+afterEach(async () => {
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+});
 
 describe('/user/thread/list', () => {
     it('filters on the caller key id', async () => {
