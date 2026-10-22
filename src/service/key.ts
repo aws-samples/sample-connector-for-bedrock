@@ -1,16 +1,27 @@
 import helper from "../util/helper";
-import { monthFeeAt } from "../providers/key_fee";
+import { monthFeeAt, updatedAtAt } from "../providers/key_fee";
 
-// Writes `data` to key `id` and stamps updated_at, in one statement. updated_at also marks the month of month_fee,
-// so the statement resets a month_fee from an earlier month as the charge does; otherwise the stamp would carry last
-// month's month_fee into this month. The column names come from this file, never from a request.
-async function writeKey(db: any, id: any, data: any, returning: string[]) {
-    const cols = Object.keys(data);
-    const now = `$${cols.length + 1}`;
-    const sets = cols.map((col, i) => `${col} = $${i + 1}`);
-    sets.push(`month_fee = ${monthFeeAt(now)}`, `updated_at = ${now}::timestamp`);
-    const sql = `UPDATE eiai_key SET ${sets.join(", ")} WHERE id = $${cols.length + 2} RETURNING ${returning.join(", ")}`;
-    const { rows } = await db.query(sql, [...cols.map((col) => data[col]), new Date(), id]);
+// Writes `data` to key `id`, adds `add` to the stored values of its columns, and stamps updated_at, in one statement.
+// updated_at also marks the month of month_fee, so the statement resets a month_fee from an earlier month as the
+// charge does; otherwise the stamp would carry last month's month_fee into this month. The column names come from
+// this file, never from a request.
+async function writeKey(db: any, id: any, data: any, returning: string[], add: Record<string, number> = {}) {
+    const sets: string[] = [];
+    const params: any[] = [];
+    for (const [col, value] of Object.entries(data)) {
+        params.push(value);
+        sets.push(`${col} = $${params.length}`);
+    }
+    for (const [col, value] of Object.entries(add)) {
+        params.push(value);
+        sets.push(`${col} = ${col} + $${params.length}::numeric`);
+    }
+    params.push(new Date());
+    const now = `$${params.length}`;
+    sets.push(`month_fee = ${monthFeeAt(now)}`, `updated_at = ${updatedAtAt(now)}`);
+    params.push(id);
+    const sql = `UPDATE eiai_key SET ${sets.join(", ")} WHERE id = $${params.length} RETURNING ${returning.join(", ")}`;
+    const { rows } = await db.query(sql, params);
     return rows[0];
 }
 
@@ -195,7 +206,8 @@ export default {
             throw new Error("api_key or id is required");
         }
 
-        if (!options.balance || 1.0 * options.balance <= 0) {
+        const amount = Number(options.balance);
+        if (!options.balance || !Number.isFinite(amount) || amount <= 0) {
             throw new Error("balance is required");
         }
 
@@ -208,12 +220,11 @@ export default {
 
         await db.insert("eiai_payment", {
             key_id: key.id,
-            fee: 1.0 * options.balance
+            fee: amount
         });
 
-        return await writeKey(db, key.id, {
-            balance: 1.0 * key.balance + 1.0 * options.balance
-        }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
+        // Added to the stored balance, so a call charged since the key was read is kept.
+        return await writeKey(db, key.id, {}, ["id", "name", "email", "api_key", "role", "month_quota", "balance"], { balance: amount });
     },
 
     // If bound then remove, otherwise bind

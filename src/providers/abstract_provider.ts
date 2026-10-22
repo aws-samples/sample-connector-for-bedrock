@@ -244,35 +244,6 @@ export default abstract class AbstractProvider {
             ctx.logger.error({ message: 'could not save the session or thread', error: errorMessage(error), keyId: key_id });
         }
         return result;
-
-        // const month_fee = this.keyData.month_fee * 1.0;
-        // const month_quota = this.keyData.month_quota * 1.0;
-        // const balance = this.keyData.balance * 1.0;
-        // // Update keyData fee
-        // const keyDataUpdate: any = {
-        //     id: this.keyData.id,
-        //     total_fee: this.keyData.total_fee * 1.0 + fee,
-        //     updated_at: new Date()
-        // };
-
-        // if (month_fee + fee >= month_quota) { // The balance will be consumed
-        //     const balanceCost = month_fee + fee - month_quota;
-        //     keyDataUpdate.balance = balance - balanceCost;
-        //     // keyDataUpdate.month_fee = (month_fee > month_quota ? month_quota : month_fee); // Month quota may be modified in the middle of the process
-        //     keyDataUpdate.month_fee = month_quota;
-        // } else {
-        //     keyDataUpdate.month_fee = month_fee + fee; // Balance spending does not count as month_fee  
-        // }
-
-        // const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
-        // ctx.user = keyDataUpdate;
-        // this.keyData = keyResult;
-        // Cache.updateKeyFee(ctx.user.id, keyDataUpdate.month_fee);
-        // return {
-        //     session_updated: session_id ? true : false,
-        //     thread_updated: true,
-        //     key_updated: true
-        // };
     }
 
     // Charges the key for a call that has been answered. A failure is logged, not thrown, because the answer has

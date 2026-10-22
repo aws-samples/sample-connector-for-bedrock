@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { PGlite } from '@electric-sql/pglite';
+import { prepareValue } from 'pg/lib/utils';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import AbstractProvider from '../src/providers/abstract_provider';
 import providers from '../src/providers/provider';
@@ -12,7 +13,8 @@ import Cache from '../src/util/cache';
 
 // Both fee writers charge the key: AbstractProvider.saveThread (through updateKeyFee) for the legacy providers and
 // recordChatUsage for the bedrock-runtime-* providers. Each test records the statements a writer sends and runs them
-// on real Postgres (PGlite) with the eiai_key table from src/scripts/create.sql.
+// on real Postgres (PGlite) with the eiai_key table from src/scripts/create.sql. Parameters go through node-pg's own
+// serialization, so a Date reaches Postgres as local time, as it does in production.
 
 class TestProvider extends AbstractProvider {
     async chat() {}
@@ -43,9 +45,18 @@ let pg: PGlite;
 let statements: { sql: string; params: any[] }[] = [];
 const run = async (text: string, params: any[] = []) => {
     statements.push({ sql: text, params });
-    const r = await pg.query(text, params);
+    const r = await pg.query(text, params.map(prepareValue));
+    if (afterKeyLoad && /^select \* from eiai_key where id = \$1/.test(text)) {
+        const then = afterKeyLoad;
+        afterKeyLoad = null;
+        await then();
+    }
     return { rows: r.rows as any[], rowCount: r.affectedRows ?? r.rows.length };
 };
+// Runs once, right after the next load of a key by id, before the caller sees the row.
+let afterKeyLoad: (() => Promise<void>) | null = null;
+// A time as Postgres stores it from a Date.
+const pgTime = async (d: Date) => (await pg.query<any>('SELECT $1::timestamp AS t', [prepareValue(d)])).rows[0].t;
 // The app's PG client with PGlite in place of the pg pool.
 const appDb = () => Object.assign(new PGClient(), { pool: { query: run } });
 const keyWrites = () => statements.filter((s) => /^\s*update\s+eiai_key\b/i.test(s.sql));
@@ -55,7 +66,7 @@ let keys = 0;
 async function newKey(k: { month_fee: number; balance: number; month_quota?: number; updated_at?: Date }) {
     const { rows } = await pg.query<any>(
         'INSERT INTO eiai_key (api_key, name, total_fee, month_fee, month_quota, balance, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [`br-${++keys}`, `k${keys}`, 2, k.month_fee, k.month_quota ?? 10, k.balance, k.updated_at ?? new Date()],
+        [`br-${++keys}`, `k${keys}`, 2, k.month_fee, k.month_quota ?? 10, k.balance, k.updated_at ?? new Date()].map(prepareValue),
     );
     return rows[0];
 }
@@ -142,9 +153,7 @@ describe.each(writers)('%s charges the key', (_name, write) => {
             await write(appDb(), key, 0.5);
             const after = await stored(key.id);
             expect(after).toMatchObject({ total_fee: 2.5, month_fee: 0.5, balance: 5 });
-            // The time of the call, as Postgres stores it.
-            const { rows } = await pg.query<any>('SELECT $1::timestamp AS t', [now]);
-            expect(after.updated_at).toEqual(rows[0].t);
+            expect(after.updated_at).toEqual(await pgTime(now));
         });
 
         it('the reset applies once: the next call of the month adds to month_fee', async () => {
@@ -296,24 +305,97 @@ describe('the first call of a new month', () => {
     });
 
     it('a key at quota with no balance in the current month is still refused', async () => {
-        const key = await newKey({ month_fee: 10, balance: 0, updated_at: new Date('2026-11-01T06:00:00Z') });
+        vi.setSystemTime(new Date('2026-11-15T12:00:00Z'));
+        const key = await newKey({ month_fee: 10, balance: 0, updated_at: new Date('2026-11-02T12:00:00Z') });
         statements = [];
         await expect(providers.checkFee({ db: appDb(), user: key }, key)).rejects.toThrow('Please recharge.');
         expect(statements).toEqual([]);
-        const negative = await newKey({ month_fee: 10, balance: -0.3, updated_at: new Date('2026-11-01T06:00:00Z') });
+        const negative = await newKey({ month_fee: 10, balance: -0.3, updated_at: new Date('2026-11-02T12:00:00Z') });
         await expect(providers.checkFee({ db: appDb(), user: negative }, negative)).rejects.toThrow('Please recharge.');
     });
 
     it('a recharge or an update in the same month keeps month_fee', async () => {
-        const sameMonth = new Date('2026-11-01T06:00:00Z');
-        const key = await newKey({ month_fee: 10, balance: 1, updated_at: sameMonth });
+        const now = new Date('2026-11-15T12:00:00Z');
+        vi.setSystemTime(now);
+        const key = await newKey({ month_fee: 10, balance: 1, updated_at: new Date('2026-11-02T12:00:00Z') });
         await keyService.recharge(appDb(), { id: key.id, balance: 5 });
         expect(await stored(key.id)).toMatchObject({ total_fee: 2, month_fee: 10, balance: 6 });
         await keyService.update(appDb(), { id: key.id, month_quota: 20 });
         expect(await stored(key.id)).toMatchObject({ total_fee: 2, month_fee: 10, balance: 6 });
         const after = await stored(key.id);
-        const { rows } = await pg.query<any>('SELECT $1::timestamp AS t, month_quota FROM eiai_key WHERE id = $2', [firstOfMonth, key.id]);
-        expect(after.updated_at).toEqual(rows[0].t);
+        expect(after.updated_at).toEqual(await pgTime(now));
+        const { rows } = await pg.query<any>('SELECT month_quota FROM eiai_key WHERE id = $1', [key.id]);
         expect(Number(rows[0].month_quota)).toBe(20);
+    });
+});
+
+describe('a fee that is not a finite number of zero or more', () => {
+    const row = async (id: number) => (await pg.query<any>('SELECT * FROM eiai_key WHERE id = $1', [id])).rows[0];
+    const cases = writers.flatMap(([name, write]) => [NaN, Infinity, -0.5].map((fee) => [name, fee, write] as const));
+
+    it.each(cases)('%s leaves the key as it was for a fee of %s and logs the charge failure', async (name, fee, write) => {
+        const key = await newKey({ month_fee: 10, balance: 1 });
+        const before = await row(key.id);
+        logger.error.mockClear();
+        // eiai_thread.fee cannot hold Infinity, so that history row fails on its own; the providers catch it.
+        const done = write(appDb(), key, fee);
+        if (name === 'recordChatUsage' && fee === Infinity) {
+            await expect(done).rejects.toThrow('numeric field overflow');
+        } else {
+            await expect(done).resolves.toBeUndefined();
+        }
+        expect(await row(key.id)).toEqual(before);
+        expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: 'could not charge the key' }));
+    });
+});
+
+describe('a recharge', () => {
+    it('adds to the stored balance, so a charge between its read and its write is kept', async () => {
+        const key = await newKey({ month_fee: 10, balance: 1 });
+        afterKeyLoad = () => writers[1][1](appDb(), key, 0.5);
+        await keyService.recharge(appDb(), { id: key.id, balance: 5 });
+        expect(afterKeyLoad).toBeNull();
+        expect(await stored(key.id)).toMatchObject({ total_fee: 2.5, month_fee: 10, balance: 5.5 });
+        const { rows } = await pg.query<any>('SELECT fee FROM eiai_payment WHERE key_id = $1', [key.id]);
+        expect(rows.map((r) => Number(r.fee))).toEqual([5]);
+    });
+
+    it.each(['abc', 'Infinity', 0, -1])('refuses an amount of %s and leaves the key as it was', async (amount) => {
+        const key = await newKey({ month_fee: 10, balance: 1 });
+        const before = await stored(key.id);
+        await expect(keyService.recharge(appDb(), { id: key.id, balance: amount })).rejects.toThrow('balance is required');
+        expect(await stored(key.id)).toEqual(before);
+        const { rows } = await pg.query<any>('SELECT id FROM eiai_payment WHERE key_id = $1', [key.id]);
+        expect(rows).toEqual([]);
+    });
+});
+
+// A call stamps updated_at when it is sent. One sent in the old month can commit after a call of the new month.
+describe('a write stamped in the old month that commits late', () => {
+    const oldMonth = new Date('2026-10-30T12:00:00Z');
+    beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); });
+
+    it.each(writers)('from %s keeps updated_at in the new month, so month_fee is not reset again', async (_name, write) => {
+        const key = await newKey({ month_fee: 10, balance: 5, updated_at: new Date('2026-10-15T12:00:00Z') });
+        vi.setSystemTime(new Date('2026-11-15T12:00:00Z'));
+        await write(appDb(), key, 0.5);
+        vi.setSystemTime(oldMonth);
+        await write(appDb(), key, 0.5);
+        expect((await stored(key.id)).updated_at).toEqual(await pgTime(new Date('2026-11-15T12:00:00Z')));
+        vi.setSystemTime(new Date('2026-11-16T12:00:00Z'));
+        await write(appDb(), key, 0.5);
+        expect(await stored(key.id)).toMatchObject({ total_fee: 3.5, month_fee: 1.5, balance: 5 });
+    });
+
+    it('from an admin update keeps updated_at in the new month, so month_fee is not reset again', async () => {
+        const key = await newKey({ month_fee: 10, balance: 5, updated_at: new Date('2026-10-15T12:00:00Z') });
+        vi.setSystemTime(new Date('2026-11-15T12:00:00Z'));
+        await writers[1][1](appDb(), key, 0.5);
+        vi.setSystemTime(oldMonth);
+        await keyService.update(appDb(), { id: key.id, name: 'late' });
+        expect((await stored(key.id)).updated_at).toEqual(await pgTime(new Date('2026-11-15T12:00:00Z')));
+        vi.setSystemTime(new Date('2026-11-16T12:00:00Z'));
+        await writers[1][1](appDb(), key, 0.5);
+        expect(await stored(key.id)).toMatchObject({ total_fee: 3, month_fee: 1, balance: 5 });
     });
 });
