@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import type { AddressInfo } from 'net';
 import type { Server } from 'http';
 
-// Drives the real auth and services through a router, with a recording DB client, with a recording DB client, so the assertions are on the SQL text built.
+// Drives the real auth, controllers and services with a recording DB client, so the assertions are on the SQL text built.
 const MARKER = 'zz_marker_col';
 const ADMIN = 'admin-key-for-test';
 const USER = 'user-key-for-test';
@@ -10,6 +10,7 @@ const USER = 'user-key-for-test';
 let server: Server;
 let base: string;
 let sqls: string[] = [];
+let bound: any[][] = [];
 
 beforeAll(async () => {
     vi.stubEnv('ADMIN_API_KEY', ADMIN);
@@ -19,19 +20,9 @@ beforeAll(async () => {
     const Koa = (await import('koa')).default;
     const PGClient = (await import('../src/util/postgres')).default;
     const Router = (await import('koa-router')).default;
-    // The controllers (and routes.ts) use a type annotation esbuild cannot transform, so the two handlers are
-    // wired here exactly as the controllers do; the services, auth and the SQL building are the real ones.
-    const sessionService = (await import('../src/service/session')).default;
-    const paymentService = (await import('../src/service/payment')).default;
     const router = new Router();
-    router.get('/user/session/list', async (ctx: any) => {
-        const options = ctx.query;
-        options.key_id = ctx.user.id;
-        ctx.body = { data: await sessionService.list(ctx.db, options) };
-    });
-    router.get('/admin/payment/list', async (ctx: any) => {
-        ctx.body = { data: await paymentService.list(ctx.db, ctx.query) };
-    });
+    (await import('../src/controller/user/SessionController')).default(router);
+    (await import('../src/controller/admin/PaymentController')).default(router);
     const { authHandler, errorHandler, loggerHandler } = await import('../src/middleware/handlers');
     const app = new Koa();
     app.use(loggerHandler);
@@ -39,8 +30,9 @@ beforeAll(async () => {
     app.use(async (ctx: any, next: any) => {
         const db = new PGClient();
         db.pool = {
-            query: async (sql: string) => {
+            query: async (sql: string, params?: any[]) => {
                 sqls.push(sql);
+                bound.push(params ?? []);
                 return { rows: /count\(\*\)/.test(sql) ? [{ ct: 0 }] : [], rowCount: 0 };
             },
         };
@@ -54,7 +46,7 @@ beforeAll(async () => {
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }, 60000);
 afterAll(() => { server?.close(); vi.unstubAllEnvs(); });
-beforeEach(() => { sqls = []; });
+beforeEach(() => { sqls = []; bound = []; });
 
 async function listSql(path: string, key: string, orderBy?: string): Promise<string> {
     const qs = orderBy === undefined ? '' : `&orderBy=${encodeURIComponent(orderBy)}`;
@@ -88,9 +80,16 @@ describe.each(routes)('$name list orderBy', ({ path, key, allowed }) => {
         expect(sqls.find((s) => /^select \*/.test(s))).toMatch(/order by id desc limit/);
     });
 
+    it('scopes the session list to the caller key id', async () => {
+        if (path !== '/user/session/list') return;
+        const sql = await listSql(path, key);
+        expect(sql).toContain('key_id = $1');
+        expect(bound[sqls.findIndex((q) => /^select \*/.test(q))]).toEqual([7]);
+    });
+
     it('maps each allowed value to its own fragment', async () => {
         for (const [value, fragment] of Object.entries(allowed)) {
-            sqls = [];
+            sqls = []; bound = [];
             expect(await listSql(path, key, value)).toMatch(new RegExp(` order by ${fragment} limit 5 offset 0$`));
         }
     });
