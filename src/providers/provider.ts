@@ -35,6 +35,16 @@ export const RETIRED_PROVIDERS: Record<string, string> = {
     "web-miner": "Claude Code Web (/cc)",
 };
 
+// Fields the gateway sets from the model configuration; whatever the client sent for them is dropped.
+const SERVER_FIELDS = ['model_id', 'currency', 'price_in', 'price_out'];
+function stripServerFields(request: any) {
+    if (request && typeof request === 'object') {
+        for (const field of SERVER_FIELDS) {
+            delete request[field];
+        }
+    }
+}
+
 class Provider {
     constructor() {
         this["bedrock-converse"] = BedrockConverse;
@@ -92,6 +102,7 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const embeddingRequest: EmbeddingRequest = ctx.request.body;
+        stripServerFields(embeddingRequest);
 
         const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: embeddingRequest.model }, ctx);
@@ -125,6 +136,7 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const request: ImageRequest = ctx.request.body;
+        stripServerFields(request);
 
         const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: request.model }, ctx);
@@ -157,6 +169,7 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const chatRequest: ChatRequest = ctx.request.body;
+        stripServerFields(chatRequest);
 
 
         const session_id = this.sessionIdOf(ctx);

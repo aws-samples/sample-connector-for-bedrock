@@ -50,6 +50,7 @@ export default class BedrockRuntimeOpenAI extends AbstractProvider {
         if (!modelData) {
             throw new Error('Model data is missing for this request.');
         }
+        // Backstop: Provider already refuses a "name/<id>" model string and drops model_id before it gets here.
         if (chatRequest.model_id) {
             throw new BedrockHttpError(400, `The [${modelData.name}] model does not accept a model id override ("${modelData.name}/<model id>"). Send the model name only.`);
         }

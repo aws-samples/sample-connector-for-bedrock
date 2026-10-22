@@ -4,7 +4,7 @@ import { koaBody } from 'koa-body';
 import Router from 'koa-router';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
-import { BedrockRuntimeClient, ConverseCommand, ConverseStreamCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, ConverseCommand, ConverseStreamCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import PGClient from '../src/util/postgres';
 import { authHandler, errorHandler } from '../src/middleware/handlers';
 import v1 from '../src/controller/runtime/v1';
@@ -18,6 +18,7 @@ const MESSAGE = 'Model id override (name/<id>) is not supported; ask an administ
 
 const models = [
     { id: 7, name: 'cheap-model', provider: 'bedrock-converse', price_in: 1e-7, price_out: 2e-7, config: { modelId: 'test.cheap-v1:0', regions: ['us-east-1'] } },
+    { id: 9, name: 'embed-model', provider: 'titan-embeddings', price_in: 1e-7, price_out: 0, config: { modelId: 'test.embed-v1:0', regions: ['us-east-1'] } },
     { id: 8, name: 'team/special', provider: 'bedrock-converse', price_in: 1e-7, price_out: 2e-7, config: { modelId: 'test.special-v1:0', regions: ['us-east-1'] } },
 ];
 const keys = [
@@ -29,6 +30,7 @@ const routes: [string, any][] = [
     ['/v1/chat/completions', v1.chat_completions],
     ['/v1/completions', v1.completions],
     ['/v1/messages', anthropic.messages],
+    ['/v1/embeddings', v1.embeddings],
 ];
 
 const modelIds: string[] = [];
@@ -89,6 +91,9 @@ beforeEach(() => {
                 $metadata: { requestId: 'req-1' },
             };
         }
+        if (command instanceof InvokeModelCommand) {
+            return { body: new TextEncoder().encode(JSON.stringify({ embedding: [0.1], inputTextTokenCount: 10 })) };
+        }
         throw new Error(`unexpected command ${command.constructor.name}`);
     });
 });
@@ -96,10 +101,12 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
-async function post(path: string, model: string, apiKey: string) {
+async function post(path: string, model: string, apiKey: string, extra: Record<string, any> = {}) {
     const body: any = path === '/v1/messages'
-        ? { model, max_tokens: 100, messages: [{ role: 'user', content: 'hi' }] }
-        : { model, stream: false, messages: [{ role: 'user', content: 'hi' }] };
+        ? { model, max_tokens: 100, messages: [{ role: 'user', content: 'hi' }], ...extra }
+        : path === '/v1/embeddings'
+            ? { model, input: 'hi', ...extra }
+            : { model, stream: false, messages: [{ role: 'user', content: 'hi' }], ...extra };
     const res = await fetch(base + path, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
@@ -108,7 +115,7 @@ async function post(path: string, model: string, apiKey: string) {
     return { status: res.status, json: JSON.parse(await res.text()) };
 }
 
-describe.each(routes.map(([route]) => route))('model id override on %s', (route) => {
+describe.each(routes.map(([route]) => route).filter((r) => r !== '/v1/embeddings'))('model id override on %s', (route) => {
     it.each(['user-key', 'admin-key'])('%s: cheap-model/OTHER.model:0 gets a 400 and Bedrock is not called', async (apiKey) => {
         const res = await post(route, 'cheap-model/OTHER.model:0', apiKey);
         expect(res.status).toBe(400);
@@ -130,5 +137,14 @@ describe.each(routes.map(([route]) => route))('model id override on %s', (route)
         const res = await post(route, 'cheap-model', 'user-key');
         expect(res.status).toBe(200);
         expect(modelIds).toEqual(['test.cheap-v1:0']);
+    });
+});
+
+describe.each(routes.map(([route]) => route))('client-supplied model_id on %s', (route) => {
+    it('is ignored: Bedrock gets the configured model id', async () => {
+        const model = route === '/v1/embeddings' ? 'embed-model' : 'cheap-model';
+        const res = await post(route, model, 'user-key', { model_id: 'OTHER.model:0' });
+        expect(res.status).toBe(200);
+        expect(modelIds).toEqual([route === '/v1/embeddings' ? 'test.embed-v1:0' : 'test.cheap-v1:0']);
     });
 });

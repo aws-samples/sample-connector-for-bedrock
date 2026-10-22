@@ -83,12 +83,10 @@ const helper = {
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any): Promise<ModelData> => {
         const model = chatRequest.model;
         // A "name/<id>" string that is not itself a configured model is a request to pick the upstream model id.
-        const unknownModel = (): Error => {
-            if (typeof model === 'string' && model.includes('/')) {
-                return withAnthropicType(new Error(MODEL_ID_OVERRIDE_MESSAGE), 'invalid_request_error');
-            }
-            return withAnthropicType(new Error(`The model [${model}] not found.`), 'not_found_error');
-        };
+        const looksLikeOverride = typeof model === 'string' && model.includes('/');
+        const unknownModel = (): Error => looksLikeOverride
+            ? withAnthropicType(new Error(MODEL_ID_OVERRIDE_MESSAGE), 'invalid_request_error')
+            : withAnthropicType(new Error(`The model [${model}] not found.`), 'not_found_error');
         if (ctx.cache && ctx.db) {
             const models = ctx.cache.models.filter((e: any) => e.name === model);
             if (models.length > 0) {
@@ -99,7 +97,7 @@ const helper = {
         if (ctx.db) {
             let rtn = await modelService.loadByName(ctx.db, model);
             if (!rtn) {
-                if (typeof model === 'string' && model.includes('/')) {
+                if (looksLikeOverride) {
                     throw unknownModel();
                 }
                 rtn = await modelService.loadByName(ctx.db, "default");
@@ -114,7 +112,7 @@ const helper = {
             return rtn;
         }
         const builtIn = helper.getModelDataWithoutDB(model);
-        if (!builtIn && typeof model === 'string' && model.includes('/')) {
+        if (!builtIn && looksLikeOverride) {
             throw unknownModel();
         }
         return builtIn;
