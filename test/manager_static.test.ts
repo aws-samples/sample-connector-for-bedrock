@@ -58,6 +58,14 @@ describe('managerStaticHandler', () => {
         }
     });
 
+    it('serves index.html for paths that resolve to the UI root', async () => {
+        for (const p of ['/manager//', '/manager/.', '/manager/sub/..', '/manager/assets/..']) {
+            const r = await raw(p);
+            expect(r.status, p).toBe(200);
+            expect(r.body, p).toContain('INDEX');
+        }
+    });
+
     it('falls back to index.html for SPA deep links', async () => {
         const r = await raw('/manager/keys');
         expect(r.status).toBe(200);

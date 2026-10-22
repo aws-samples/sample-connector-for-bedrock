@@ -22,7 +22,7 @@ export function managerStaticHandler(staticDirOpt: string): Middleware {
       if (
         relativePath.includes("\0") ||
         /%00/i.test(relativePath) ||
-        !filePath.startsWith(staticDir + path.sep)
+        (filePath !== staticDir && !filePath.startsWith(staticDir + path.sep))
       ) {
         ctx.status = 404;
         return;
