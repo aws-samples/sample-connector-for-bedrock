@@ -8,10 +8,13 @@ connection, permission callbacks, and conversation state.
 
 import asyncio
 import os
+import re
+import sysconfig
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from fastapi import HTTPException
 
@@ -59,6 +62,38 @@ def load_custom_system_prompt() -> Optional[str]:
         logging.warning(f"Failed to load custom system prompt: {e}")
 
     return None
+
+
+WEB_SEARCH_SERVER_NAME = "web-search"
+_GATEWAY_HOST = re.compile(r"^[a-z0-9-]+\.gateway\.bedrock-agentcore\.([a-z0-9-]+)\.amazonaws\.com$")
+
+
+def web_search_mcp_server() -> Optional[dict[str, Any]]:
+    """
+    Stdio MCP server for the AgentCore gateway in AGENTCORE_WEB_SEARCH_GATEWAY_URL.
+
+    mcp-proxy-for-aws signs each request with SigV4. Its env blanks the per-key AWS_*
+    values that invocations copy into os.environ: they are fixed when the CLI starts and
+    expire while the session runs, so boto3 moves on to the runtime role from the microVM
+    metadata service, which it fetches fresh for every request.
+
+    Returns None when the variable is unset or is not an https gateway URL.
+    """
+    url = os.environ.get("AGENTCORE_WEB_SEARCH_GATEWAY_URL", "").strip()
+    if not url:
+        return None
+    parsed = urlparse(url)
+    match = _GATEWAY_HOST.match(parsed.hostname or "")
+    if parsed.scheme != "https" or not match:
+        print("[Session] Warning: AGENTCORE_WEB_SEARCH_GATEWAY_URL is not an https AgentCore gateway URL, web search not added")
+        return None
+    return {
+        "type": "stdio",
+        # Console script installed in the backend venv by uv sync
+        "command": str(Path(sysconfig.get_path("scripts")) / "mcp-proxy-for-aws"),
+        "args": [url, "--service", "bedrock-agentcore", "--region", match.group(1)],
+        "env": {name: "" for name in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")},
+    }
 
 
 class AgentSession:
@@ -245,10 +280,20 @@ class AgentSession:
             print(f"[Session] Loading MCP servers: {self.mcp_server_ids}")
             mcp_servers = await self._load_mcp_servers()
             if mcp_servers:
-                options_dict["mcp_servers"] = mcp_servers
                 print(f"[Session] Loaded {len(mcp_servers)} MCP server(s)")
             else:
                 print(f"[Session] No MCP servers loaded (config not found or invalid)")
+
+        # Preconfigured web search, passed per session only; a user server of the same name wins
+        web_search = web_search_mcp_server()
+        if web_search:
+            if WEB_SEARCH_SERVER_NAME in mcp_servers:
+                print(f"[Session] Keeping the user's '{WEB_SEARCH_SERVER_NAME}' MCP server")
+            else:
+                mcp_servers = {WEB_SEARCH_SERVER_NAME: web_search, **mcp_servers}
+
+        if mcp_servers:
+            options_dict["mcp_servers"] = mcp_servers
 
         # Print SDK options for debugging
         print(f"[Session] ========== SDK Connection Options ==========")
