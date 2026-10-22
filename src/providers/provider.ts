@@ -15,9 +15,6 @@ import BedrockRuntimeOpenAI from "./bedrock_runtime_openai";
 import BedrockRuntimeAnthropic from "./bedrock_runtime_anthropic";
 import SagemakerLMI from "./sagemaker_lmi"
 import Painter from "./painter";
-import WebMiner from "./web_miner";
-import AWSExecutor from "./aws_executor"
-import UrlsReader from "./urls_reader";
 import ContinueCoder from "./continue_coder";
 import SmartRouter from "./smart_router";
 // import SimpleAction from "./simple_action";
@@ -30,6 +27,13 @@ import AzureOpenAI from "./azure_openai"
 import AzureOpenAIImage from "./azure_openai_image"
 import BedrockAgent from "./bedrock_agent";
 import GeminiConverse from "./gemini_converse";
+
+// Providers that were removed, and what to use instead. A model still configured with one gets a 400 naming it.
+export const RETIRED_PROVIDERS: Record<string, string> = {
+    "aws-executor": "Claude Code Web (/cc)",
+    "urls-reader": "Claude Code Web (/cc)",
+    "web-miner": "Claude Code Web (/cc)",
+};
 
 class Provider {
     constructor() {
@@ -44,10 +48,7 @@ class Provider {
         this["painter"] = Painter;
         this["nova-canvas"] = NovaCanvas;
         this["ollama"] = OllamaAProvider;
-        this["web-miner"] = WebMiner;
         this["continue-coder"] = ContinueCoder;
-        this["urls-reader"] = UrlsReader;
-        this["aws-executor"] = AWSExecutor;
         // this["bedrock-claude3"] = BedrockClaude;
         // this["bedrock-mistral"] = BedrockMixtral;
         // this["bedrock-llama3"] = BedrockLlama3;
@@ -62,6 +63,9 @@ class Provider {
 
     /** Returns a new instance of the named provider, so no state is shared between requests. */
     createProvider(name: string): AbstractProvider {
+        if (Object.prototype.hasOwnProperty.call(RETIRED_PROVIDERS, name)) {
+            throw withAnthropicType(new Error(`Provider ${name} has been retired; use ${RETIRED_PROVIDERS[name]} instead.`), 'invalid_request_error');
+        }
         if (!Object.prototype.hasOwnProperty.call(this, name)) {
             throw new Error("You need to configure the provider correctly.");
         }

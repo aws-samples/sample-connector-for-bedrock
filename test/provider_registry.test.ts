@@ -126,10 +126,14 @@ describe('provider registry', () => {
         expect(Object.keys(providers)).toEqual([
             'bedrock-converse', 'bedrock-runtime-openai', 'bedrock-runtime-anthropic', 'smart-router', 'sagemaker-lmi',
             'bedrock-knowledge-base', 'bedrock-agent', 'painter', 'nova-canvas', 'ollama',
-            'web-miner', 'continue-coder', 'urls-reader', 'aws-executor', 'titan-embeddings',
+            'continue-coder', 'titan-embeddings',
             'openai-compatible', 'bedrock-deepseek', 'sagemaker-deepseek', 'azure-openai',
             'azure-openai-image', 'gemini-converse',
         ]);
+    });
+
+    it('no longer registers the retired providers', () => {
+        for (const name of ['aws-executor', 'urls-reader', 'web-miner']) expect((providers as any)[name]).toBeUndefined();
     });
 
     describe.each(ENTRY_POINTS)('%s', (_name, call, body) => {
