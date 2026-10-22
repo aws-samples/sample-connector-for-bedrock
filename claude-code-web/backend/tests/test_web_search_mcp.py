@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from botocore.credentials import EnvProvider
+from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny, ToolPermissionContext
 
 from backend.core import session as session_module
 from backend.core.session import AgentSession
@@ -137,3 +138,69 @@ def test_child_does_not_get_the_per_key_credentials(home, captured, monkeypatch)
     assert not any(value in json.dumps(server) for value in PER_KEY.values())
     assert EnvProvider(environ={**os.environ, **server["env"]}).load() is None
     assert EnvProvider(environ=dict(os.environ)).load().access_key == PER_KEY["AWS_ACCESS_KEY_ID"]
+
+
+# Built-in WebSearch sends a web_search server tool that Bedrock does not serve
+
+
+def connect_session(captured, mcp_server_ids=None):
+    session = AgentSession("s1", "u1", None, None, False, 8080, None, mcp_server_ids)
+    asyncio.run(session.connect())
+    return session
+
+
+def test_builtin_web_search_hidden_with_preconfigured_server(home, captured, monkeypatch):
+    monkeypatch.setenv("AGENTCORE_WEB_SEARCH_GATEWAY_URL", GATEWAY_URL)
+    connect(captured)
+    assert captured["options"].disallowed_tools == ["WebSearch"]
+
+
+def test_builtin_web_search_hidden_with_user_web_search_server(home, captured):
+    write_user_mcp(home, {"web-search": {"type": "http", "url": "https://search.example.com/mcp"}})
+    connect(captured, ["web-search"])
+    assert captured["options"].disallowed_tools == ["WebSearch"]
+
+
+@pytest.mark.parametrize("selected", [[], ["docs"], ["web-search-other"]])
+def test_builtin_web_search_kept_without_web_search_server(home, captured, selected):
+    write_user_mcp(
+        home,
+        {
+            "docs": {"type": "http", "url": "https://docs.example.com/mcp"},
+            "web-search-other": {"type": "http", "url": "https://other.example.com/mcp"},
+            # defined but not selected: does not count
+            "web-search": {"type": "http", "url": "https://search.example.com/mcp"},
+        },
+    )
+    connect(captured, selected)
+    assert captured["options"].disallowed_tools == []
+
+
+def test_existing_disallowed_tools_are_kept():
+    from backend.core.session import disallow_builtin_web_search
+
+    options = {"disallowed_tools": ["NotebookEdit"]}
+    disallow_builtin_web_search(options)
+    assert options["disallowed_tools"] == ["NotebookEdit", "WebSearch"]
+    disallow_builtin_web_search(options)
+    assert options["disallowed_tools"] == ["NotebookEdit", "WebSearch"]
+    empty = {}
+    disallow_builtin_web_search(empty)
+    assert empty == {"disallowed_tools": ["WebSearch"]}
+
+
+@pytest.mark.parametrize("auto_allow", [None, "WebSearch,Read"])
+def test_builtin_web_search_not_auto_allowed_with_web_search_server(home, captured, monkeypatch, auto_allow):
+    monkeypatch.setenv("AGENTCORE_WEB_SEARCH_GATEWAY_URL", GATEWAY_URL)
+    if auto_allow:
+        monkeypatch.setenv("AUTO_ALLOW_TOOLS", auto_allow)
+    session = connect_session(captured)
+    result = asyncio.run(session.permission_callback("WebSearch", {"query": "x"}, ToolPermissionContext()))
+    assert isinstance(result, PermissionResultDeny)
+    assert "mcp__web-search__" in result.message
+
+
+def test_builtin_web_search_still_auto_allowed_without_web_search_server(home, captured):
+    session = connect_session(captured)
+    result = asyncio.run(session.permission_callback("WebSearch", {"query": "x"}, ToolPermissionContext()))
+    assert isinstance(result, PermissionResultAllow)

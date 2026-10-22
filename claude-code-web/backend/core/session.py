@@ -96,6 +96,18 @@ def web_search_mcp_server() -> Optional[dict[str, Any]]:
     }
 
 
+# Claude Code's own web search tool. It sends a web_search server tool that Bedrock does not serve.
+BUILTIN_WEB_SEARCH_TOOL = "WebSearch"
+
+
+def disallow_builtin_web_search(options_dict: dict[str, Any]) -> None:
+    """Add the built-in WebSearch to options_dict["disallowed_tools"], keeping existing entries."""
+    disallowed = list(options_dict.get("disallowed_tools") or [])
+    if BUILTIN_WEB_SEARCH_TOOL not in disallowed:
+        disallowed.append(BUILTIN_WEB_SEARCH_TOOL)
+    options_dict["disallowed_tools"] = disallowed
+
+
 class AgentSession:
     """
     Represents a single Claude Agent session.
@@ -155,6 +167,8 @@ class AgentSession:
 
         # MCP servers configuration
         self.mcp_server_ids = mcp_server_ids or []
+        # Set by connect() when a web-search MCP server replaces the built-in WebSearch
+        self.builtin_web_search_disabled = False
 
         # Server info cache
         self.server_info: Optional[dict[str, Any]] = None
@@ -294,6 +308,12 @@ class AgentSession:
 
         if mcp_servers:
             options_dict["mcp_servers"] = mcp_servers
+
+        # With a web-search server (ours or the user's), hide the built-in WebSearch
+        self.builtin_web_search_disabled = WEB_SEARCH_SERVER_NAME in mcp_servers
+        if self.builtin_web_search_disabled:
+            disallow_builtin_web_search(options_dict)
+            print(f"[Session] disallowed_tools: {options_dict['disallowed_tools']}")
 
         # Print SDK options for debugging
         print(f"[Session] ========== SDK Connection Options ==========")
@@ -472,6 +492,13 @@ class AgentSession:
         if tool_name.startswith("mcp__"):
             print(f"[Permission] ✓ Auto-allow MCP tool: {tool_name}")
             return PermissionResultAllow()
+
+        # Disallowed at connect() already; never auto-allow it, whatever AUTO_ALLOW_TOOLS says
+        if tool_name == BUILTIN_WEB_SEARCH_TOOL and self.builtin_web_search_disabled:
+            print(f"[Permission] ✗ Deny built-in {tool_name}: the {WEB_SEARCH_SERVER_NAME} MCP server replaces it")
+            return PermissionResultDeny(
+                message=f"Use the mcp__{WEB_SEARCH_SERVER_NAME}__ tools for web search in this session."
+            )
 
         # Auto-allow operations based on environment variable
         # Default: auto-allow most tools (only require permission for destructive operations)
