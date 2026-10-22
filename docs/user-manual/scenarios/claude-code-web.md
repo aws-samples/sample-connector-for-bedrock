@@ -49,7 +49,7 @@ The template supports us-east-1, us-east-2, us-west-1 and us-west-2, and AgentCo
 
 If you run BRConnector yourself, give it either `CC_CONFIG_PARAM` (the ARN of an SSM parameter whose value is `{"runtimeArn","workspaceRoleArn","bucket","prefix"}` as JSON), or these variables directly: `CC_RUNTIME_ARN`, `CC_WORKSPACE_ROLE_ARN`, `CC_WORKSPACE_BUCKET` and, optionally, `CC_WORKSPACE_PREFIX` (default `user_data`). The direct variables win when both are set. Without either, `/cc` answers 404.
 
-The SSM JSON may also hold `webSearchGatewayArn`, the ARN of an AgentCore Gateway. BRConnector then allows `bedrock-agentcore:InvokeGateway` on that gateway in each user's session policy; the workspace role must allow it as well. A value that is not a gateway ARN is ignored with a warning, and Claude Code Web runs without it.
+An SSM value from an older stack that still holds a `webSearchGatewayArn` field is accepted; BRConnector ignores that field.
 
 ## Web search
 
@@ -57,11 +57,12 @@ With `EnableWebSearch` `true` (the default), the stack also creates an AgentCore
 
 - The gateway is an MCP server that accepts SigV4 (IAM) calls only. Its endpoint is the stack output `WebSearchGatewayUrl`, and the runtime gets it as `AGENTCORE_WEB_SEARCH_GATEWAY_URL`.
 - The gateway's own IAM role can call only this gateway and the Web Search connector.
-- The runtime role and the workspace access role may call this gateway (`bedrock-agentcore:InvokeGateway` on its ARN). The SSM parameter carries `webSearchGatewayArn`, so BRConnector adds the same permission to each user's session policy.
+- Only the runtime role may call this gateway (`bedrock-agentcore:InvokeGateway` on its ARN). The web search MCP server inside the runtime signs its calls with the runtime role. The workspace access role and each user's session policy have no `bedrock-agentcore` permission.
+- Because of that, gateway calls are attributed to the runtime role, and web search is on for every Claude Code Web user of the stack.
 
 AgentCore Web Search is available in us-east-1, us-east-2, us-west-2, eu-west-1, ap-southeast-2 and ap-northeast-1. In any other Region, such as us-west-1, the stack creates none of this, and Claude Code Web works without web search.
 
-Searches cost $7 per 1,000 queries ([pricing](https://aws.amazon.com/bedrock/agentcore/pricing/)) and are **billed to the AWS account that runs the stack, not to the key**. They do not go through BRConnector, so the key's quota and balance do not limit them. The default limit is 10 searches per second per account and Region, an adjustable quota. Set `EnableWebSearch` to `false` to leave web search out.
+Searches cost $7 per 1,000 queries ([pricing](https://aws.amazon.com/bedrock/agentcore/pricing/)) and are **billed by AWS to the account that runs the stack, not to the key**. They do not go through BRConnector, so they are not counted in the key's quota or balance. The default limit is 10 searches per second per account and Region, an adjustable quota. Set `EnableWebSearch` to `false` to leave web search out.
 
 ## Give users access
 

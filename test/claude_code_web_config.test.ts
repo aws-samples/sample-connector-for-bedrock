@@ -147,67 +147,25 @@ describe('loadCcConfig workspace prefix validation', () => {
     });
 });
 
-describe('loadCcConfig webSearchGatewayArn', () => {
+describe('loadCcConfig with a webSearchGatewayArn from an older stack', () => {
     beforeEach(() => resetCcConfigCache());
     const env = { CC_CONFIG_PARAM: PARAM };
-    const GATEWAY = 'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij';
 
-    it('reads an optional gateway ARN from the SSM JSON', async () => {
-        const getParameter = async () => JSON.stringify({ ...ssmValue, webSearchGatewayArn: GATEWAY });
-        expect(await loadCcConfig({ env, getParameter })).toEqual({ ...ssmValue, webSearchGatewayArn: GATEWAY });
-    });
-
-    it('accepts gateway ARNs in the aws-cn and aws-us-gov partitions', async () => {
-        for (const arn of [
-            'arn:aws-cn:bedrock-agentcore:cn-north-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
-            'arn:aws-us-gov:bedrock-agentcore:us-gov-west-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
+    it('loads the plain four-field config and ignores the extra field without a warning', async () => {
+        const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
+        for (const webSearchGatewayArn of [
+            'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
+            'not-an-arn',
+            null,
+            '',
+            42,
         ]) {
             resetCcConfigCache();
-            const getParameter = async () => JSON.stringify({ ...ssmValue, webSearchGatewayArn: arn });
-            expect((await loadCcConfig({ env, getParameter }))?.webSearchGatewayArn, arn).toBe(arn);
-        }
-    });
-
-    it('leaves it out, without a warning, when the SSM JSON has none, null or an empty string', async () => {
-        const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
-        for (const extra of [{}, { webSearchGatewayArn: null }, { webSearchGatewayArn: '' }]) {
-            resetCcConfigCache();
-            const cfg = await loadCcConfig({ env, getParameter: async () => JSON.stringify({ ...ssmValue, ...extra }) });
-            expect(cfg, JSON.stringify(extra)).toEqual(ssmValue);
-            expect(cfg, JSON.stringify(extra)).not.toHaveProperty('webSearchGatewayArn');
-        }
-        expect(spy).not.toHaveBeenCalled();
-        spy.mockRestore();
-    });
-
-    it('ignores a malformed gateway ARN with a warning and keeps the rest of the config', async () => {
-        const BAD = [
-            'not-an-arn',
-            'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/*',
-            'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/brc-?',
-            'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/${aws:username}',
-            'arn:aws:bedrock-agentcore:us-east-1:111111111111:runtime/fake',
-            'arn:aws:bedrock-agentcore:us-east-1:*:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
-            `${GATEWAY}/extra`,
-            'arn:aws-x:bedrock-agentcore:us-east-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
-            'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/a',
-            `${GATEWAY}-`,
-            42,
-            {},
-        ];
-        const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
-        for (const webSearchGatewayArn of BAD) {
-            resetCcConfigCache();
-            spy.mockClear();
-            const getParameter = async () => JSON.stringify({ ...ssmValue, webSearchGatewayArn });
-            const cfg = await loadCcConfig({ env, getParameter });
+            const cfg = await loadCcConfig({ env, getParameter: async () => JSON.stringify({ ...ssmValue, webSearchGatewayArn }) });
             expect(cfg, String(webSearchGatewayArn)).toEqual(ssmValue);
             expect(cfg, String(webSearchGatewayArn)).not.toHaveProperty('webSearchGatewayArn');
-            expect(spy, String(webSearchGatewayArn)).toHaveBeenCalledTimes(1);
-            const msg = String(spy.mock.calls[0][0]);
-            expect(msg).toContain('webSearchGatewayArn');
-            if (typeof webSearchGatewayArn === 'string') expect(msg).not.toContain(webSearchGatewayArn); // names the field, not its value
         }
+        expect(spy).not.toHaveBeenCalled();
         spy.mockRestore();
     });
 });

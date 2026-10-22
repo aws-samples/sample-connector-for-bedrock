@@ -40,6 +40,10 @@ EnableWebSearch (also from its parameter group), then requires that nothing refe
 was dropped and that the result equals the template at WEB_SEARCH_BASE_REF, which defaults
 to 076c5ce, the last upstream main with Claude Code Web but without web search. A Claude
 Code Web stack, on or off, therefore sees no change while web search is off.
+
+A third render evaluates IsClaudeCodeWebSearch as true and checks the grants: the runtime
+role may call the gateway (and only on its ARN), the workspace access role holds no
+bedrock-agentcore action, and the SSM config value does not name the gateway.
 """
 import subprocess
 import sys
@@ -214,6 +218,52 @@ def render_web_search_off(template):
     return switch_off(t, gate_names)
 
 
+def switch_on(node, gate_names):
+    """Evaluate every Fn::If on a gate as true; a true branch of AWS::NoValue drops the list item."""
+    if is_gate_if(node, gate_names):
+        return switch_on(node['Fn::If'][1], gate_names)
+    if isinstance(node, dict):
+        if node == {'Ref': 'AWS::NoValue'}:
+            return DROPPED
+        out = {}
+        for key, value in node.items():
+            value = switch_on(value, gate_names)
+            if value is not DROPPED:
+                out[key] = value
+        return out
+    if isinstance(node, list):
+        return [v for v in (switch_on(item, gate_names) for item in node) if v is not DROPPED]
+    return node
+
+
+def role_actions(template, role):
+    """(Sid, Action list, Resource) for every inline policy statement of the role."""
+    found = []
+    for policy in template['Resources'][role]['Properties'].get('Policies', []):
+        statements = policy['PolicyDocument']['Statement']
+        for st in statements if isinstance(statements, list) else [statements]:
+            actions = st.get('Action', [])
+            found.append((st.get('Sid'), [actions] if isinstance(actions, str) else actions, st.get('Resource')))
+    return found
+
+
+def check_web_search_on(template):
+    """With web search on, only the runtime role may call the gateway."""
+    on = switch_on(template, gates(template, WEB_SEARCH_GATE))
+    problems = []
+    gateway_arn = {'Fn::GetAtt': ['ClaudeCodeWebSearchGateway', 'GatewayArn']}
+    invoke = [(sid, res) for sid, acts, res in role_actions(on, 'ClaudeCodeWebRuntimeRole') if 'bedrock-agentcore:InvokeGateway' in acts]
+    if invoke != [('InvokeWebSearchGateway', gateway_arn)]:
+        problems.append(f'web-search-on: the runtime role must allow InvokeGateway on the gateway ARN only, found {invoke}')
+    for sid, acts, _ in role_actions(on, 'ClaudeCodeWebWorkspaceAccessRole'):
+        if any(a.startswith('bedrock-agentcore:') or a in ('*', 'bedrock-agentcore:*') for a in acts):
+            problems.append(f'web-search-on: the workspace access role statement {sid!r} has a bedrock-agentcore action')
+    ssm = on['Resources']['ClaudeCodeWebConfigParameter']['Properties']['Value']
+    if 'webSearchGatewayArn' in str(ssm) or 'WebSearchField' in str(ssm) or 'GatewayArn' in str(ssm):
+        problems.append('web-search-on: the SSM config value names the gateway')
+    return problems
+
+
 def dropped_by_web_search_off(template):
     """Names that must not be referenced once web search is off."""
     gate_names = gates(template, WEB_SEARCH_GATE)
@@ -348,6 +398,7 @@ def main():
     base = template_at(root, base_ref)
 
     problems = check_conditions(current) + check_ec2_docker_run_on(current) + check_image_only_parameter(current)
+    problems += check_web_search_on(current)
     diff = first_difference(render_off(current, base), base)
     if diff:
         problems.append(f'switch-off render differs from {base_ref} at {diff}')

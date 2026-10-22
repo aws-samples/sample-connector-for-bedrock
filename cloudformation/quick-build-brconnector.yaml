@@ -2153,14 +2153,6 @@ Resources:
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}
-              # The session policy repeats this only when the SSM config names the gateway.
-              - !If
-                - IsClaudeCodeWebSearch
-                - Sid: InvokeWebSearchGateway
-                  Effect: Allow
-                  Action: bedrock-agentcore:InvokeGateway
-                  Resource: !GetAtt ClaudeCodeWebSearchGateway.GatewayArn
-                - !Ref AWS::NoValue
 
   ClaudeCodeWebBuildRole:
     Condition: IsClaudeCodeWeb
@@ -2481,13 +2473,7 @@ Resources:
     Properties:
       Name: !Sub /brconnector/${AWS::StackName}/claude-code-web
       Type: String
-      # webSearchGatewayArn only with web search, so the value is otherwise unchanged.
-      Value: !Sub
-        - '{"runtimeArn":"${ClaudeCodeWebRuntime.AgentRuntimeArn}","workspaceRoleArn":"${ClaudeCodeWebWorkspaceAccessRole.Arn}","bucket":"${ClaudeCodeWebWorkspaceBucket}","prefix":"user_data"${WebSearchField}}'
-        - WebSearchField: !If
-            - IsClaudeCodeWebSearch
-            - !Sub ',"webSearchGatewayArn":"${ClaudeCodeWebSearchGateway.GatewayArn}"'
-            - ''
+      Value: !Sub '{"runtimeArn":"${ClaudeCodeWebRuntime.AgentRuntimeArn}","workspaceRoleArn":"${ClaudeCodeWebWorkspaceAccessRole.Arn}","bucket":"${ClaudeCodeWebWorkspaceBucket}","prefix":"user_data"}'
       Description: Claude Code Web settings for BRConnector, created by CloudFormation
       Tier: Standard
       DataType: text

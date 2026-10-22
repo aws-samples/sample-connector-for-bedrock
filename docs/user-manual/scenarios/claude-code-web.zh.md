@@ -49,7 +49,7 @@ stack 输出 `ClaudeCodeWebUrl` 就是访问地址。
 
 如果自己运行 BRConnector，可以给它设置 `CC_CONFIG_PARAM`（一个 SSM 参数的 ARN，参数值是 JSON `{"runtimeArn","workspaceRoleArn","bucket","prefix"}`），或者直接设置环境变量 `CC_RUNTIME_ARN`、`CC_WORKSPACE_ROLE_ARN`、`CC_WORKSPACE_BUCKET`，以及可选的 `CC_WORKSPACE_PREFIX`（默认 `user_data`）。两种都设置时，直接设置的环境变量优先。两种都没有时，`/cc` 返回 404。
 
-SSM 的 JSON 里还可以写 `webSearchGatewayArn`，即一个 AgentCore Gateway 的 ARN。BRConnector 会在每个用户的 session policy 里允许对这个 gateway 的 `bedrock-agentcore:InvokeGateway`；工作区角色也必须允许这个操作。如果这个值不是 gateway ARN，BRConnector 会忽略它并记一条警告，Claude Code Web 照常运行，只是没有这项权限。
+旧版 stack 留下的 SSM 值如果还带有 `webSearchGatewayArn` 字段，BRConnector 照常接受并忽略这个字段。
 
 ## 联网搜索
 
@@ -57,11 +57,12 @@ SSM 的 JSON 里还可以写 `webSearchGatewayArn`，即一个 AgentCore Gateway
 
 - 这个 gateway 是一个只接受 SigV4（IAM）调用的 MCP server。它的地址是 stack 输出 `WebSearchGatewayUrl`，Runtime 通过环境变量 `AGENTCORE_WEB_SEARCH_GATEWAY_URL` 拿到它。
 - gateway 自己的 IAM 角色只能调用这个 gateway 和 Web Search connector。
-- Runtime 角色和访问工作区的角色可以调用这个 gateway（对它的 ARN 有 `bedrock-agentcore:InvokeGateway` 权限）。SSM 参数里带有 `webSearchGatewayArn`，所以 BRConnector 也会把同样的权限加进每个用户的 session policy。
+- 只有 Runtime 角色可以调用这个 gateway（对它的 ARN 有 `bedrock-agentcore:InvokeGateway` 权限）。Runtime 里的联网搜索 MCP server 用 Runtime 角色给调用签名。访问工作区的角色和每个用户的 session policy 都没有 `bedrock-agentcore` 权限。
+- 因此 gateway 的调用记在 Runtime 角色名下，stack 的所有 Claude Code Web 用户都能联网搜索。
 
 AgentCore Web Search 只在 us-east-1、us-east-2、us-west-2、eu-west-1、ap-southeast-2、ap-northeast-1 提供。在其他区域（例如 us-west-1），stack 不会创建这些资源，Claude Code Web 照常可用，只是没有联网搜索。
 
-搜索按每 1,000 次查询 7 美元收费（[价格](https://aws.amazon.com/bedrock/agentcore/pricing/)），**费用由部署 stack 的 AWS 账号承担，不计入 key**。搜索不经过 BRConnector，所以不受 key 的额度和余额限制。默认每个账号在每个区域每秒最多 10 次搜索，这个配额可以申请调整。不需要联网搜索时，把 `EnableWebSearch` 设为 `false`。
+搜索按每 1,000 次查询 7 美元收费（[价格](https://aws.amazon.com/bedrock/agentcore/pricing/)），**由 AWS 向部署 stack 的账号收费，不计入 key**。搜索不经过 BRConnector，所以不计入 key 的额度和余额。默认每个账号在每个区域每秒最多 10 次搜索，这个配额可以申请调整。不需要联网搜索时，把 `EnableWebSearch` 设为 `false`。
 
 ## 给用户开通
 

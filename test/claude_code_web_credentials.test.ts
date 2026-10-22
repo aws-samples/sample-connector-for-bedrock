@@ -50,33 +50,13 @@ describe('buildSessionPolicy', () => {
         });
     });
 
-    it('allows InvokeGateway on exactly the configured web search gateway', () => {
+    it('never grants bedrock-agentcore, even when the SSM JSON carried a gateway ARN', () => {
         const gateway = 'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij';
-        const withGateway = JSON.parse(buildSessionPolicy({ ...config, webSearchGatewayArn: gateway }, 'u'));
-        const without = JSON.parse(buildSessionPolicy(config, 'u'));
-        expect(withGateway.Statement).toEqual([
-            ...without.Statement,
-            { Effect: 'Allow', Action: 'bedrock-agentcore:InvokeGateway', Resource: gateway },
-        ]);
-    });
-
-    it('grants no bedrock-agentcore action when no gateway is configured', () => {
-        const p = buildSessionPolicy(config, 'brc-key-0000000000000001');
+        const p = buildSessionPolicy({ ...config, webSearchGatewayArn: gateway } as any, 'brc-key-0000000000000001');
         expect(JSON.parse(p).Statement).toHaveLength(2);
         expect(p).not.toContain('bedrock-agentcore');
-    });
-
-    it('stays under the 2,048-character session policy limit with the gateway statement', () => {
-        // The longest an S3 bucket name can be, and the stack's gateway id in a long Region name.
-        const p = buildSessionPolicy(
-            {
-                ...config,
-                bucket: 'b'.repeat(63),
-                webSearchGatewayArn: 'arn:aws:bedrock-agentcore:ap-southeast-2:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
-            },
-            'brc-key-0000000000000001',
-        );
-        expect(p.length).toBeLessThan(2048);
+        expect(p).not.toContain('InvokeGateway');
+        expect(p).toBe(buildSessionPolicy(config, 'brc-key-0000000000000001'));
     });
 
     it('takes the partition from the role ARN', () => {

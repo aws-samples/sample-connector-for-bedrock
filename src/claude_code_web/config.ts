@@ -6,8 +6,6 @@ export type CcConfig = {
     workspaceRoleArn: string;
     bucket: string;
     prefix: string;
-    // AgentCore Gateway with the web search connector; the session policy allows InvokeGateway on it.
-    webSearchGatewayArn?: string;
 };
 
 type Deps = { env?: NodeJS.ProcessEnv; getParameter?: (arn: string) => Promise<string>; now?: () => number };
@@ -42,10 +40,6 @@ function nonEmpty(v: unknown): v is string {
 function validPrefix(v: unknown): v is string {
     return nonEmpty(v) && !/[*?${}]/.test(v) && !v.startsWith('/') && !v.endsWith('/');
 }
-
-// The ARN becomes a session policy Resource, so it must name exactly one gateway: no * ? or ${...}.
-// The gateway id part follows the AgentCore API pattern ([0-9a-z][-]?){1,48}-[0-9a-z]{10}.
-const GATEWAY_ARN = /^arn:aws(-cn|-us-gov)?:bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway\/([0-9a-z]-?){1,48}-[0-9a-z]{10}$/;
 
 export async function loadCcConfig(deps: Deps = {}): Promise<CcConfig | null> {
     if (cached) return cached;
@@ -99,12 +93,6 @@ async function readConfig(env: NodeJS.ProcessEnv, deps: Deps): Promise<CcConfig 
             return null;
         }
         const config: CcConfig = { runtimeArn: v.runtimeArn, workspaceRoleArn: v.workspaceRoleArn, bucket: v.bucket, prefix: v.prefix };
-        const gateway = v.webSearchGatewayArn;
-        if (gateway !== undefined && gateway !== null && gateway !== '') {
-            // Optional, so a bad value turns off web search only, not Claude Code Web.
-            if (typeof gateway === 'string' && GATEWAY_ARN.test(gateway)) config.webSearchGatewayArn = gateway;
-            else logger.warn('claude-code-web: ignoring webSearchGatewayArn in the SSM config: not an AgentCore gateway ARN');
-        }
         return config;
     } catch (err: any) {
         // Name and HTTP status only; the message may carry request details.
