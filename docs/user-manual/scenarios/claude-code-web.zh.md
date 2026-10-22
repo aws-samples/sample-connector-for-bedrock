@@ -96,7 +96,7 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 
 - 只支持在新建 stack 时打开开关。对已有 stack 打开开关不会生效：ec2 修改 UserData 不会重跑 cloud-init，SSM 自动升级重放的仍是第一次启动时的 `docker run` 行。
 - microVM 的计算费用算在部署 stack 的账号上，不计入 key 的额度。key 的额度只管模型 token。每个 key 最多一个 microVM，空闲 15 分钟回收。
-- ec2 每晚自动把 BRConnector 升级到 `latest`，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）：镜像会从 `SourceRepoUrl` 的 `SourceRef` 重新构建，`SourceRef` 是分支时会带上新提交，stack 里的其他资源不变。修改 `SourceRepoUrl`、`SourceRef` 或 `BRConnectorVersion` 也会重建镜像，但 BRConnector 本身也会跟着重建，因为它们是 EC2 实例 UserData 的一部分：`ec2` 形态下 BRConnector 实例会停止再启动；`lambda-web` 形态下辅助实例会重新构建部署包（`KeepEc2` 为 `false` 时更新会失败，因为该实例已经自行删除）。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。
+- ec2 每晚自动把 BRConnector 升级到 `latest`，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）：镜像会从 `SourceRepoUrl` 的 `SourceRef` 重新构建，`SourceRef` 是分支时会带上新提交，stack 里的其他资源不变。修改 `SourceRepoUrl`、`SourceRef` 或 `BRConnectorVersion` 也会重建镜像，但 BRConnector 本身也会跟着重建，因为它们是 EC2 实例 UserData 的一部分：`ec2` 形态下 BRConnector 实例会停止再启动；`lambda-web` 形态下 BRConnector 部署包不会重新构建，因为它只在创建 stack 时构建（`KeepEc2` 为 `false` 时更新会失败，因为辅助实例已经自行删除）。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。
 - 在上游发布带 `/cc` 的 BRConnector 版本、维护者推送公开镜像之前，`ec2` 和 `ecs` 形态用不了 Claude Code Web。
 - `lambda-web` 形态下，单次消息流最长 15 分钟（Lambda 超时 900 秒）；`ec2` 和 `ecs` 下受 AgentCore 同步请求 15 分钟的限制。
 - microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。

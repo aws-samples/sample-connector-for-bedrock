@@ -64,14 +64,14 @@ Once defined, models can be bound to groups or API Keys.
    - Searches are billed by AWS to the account that runs the stack (about USD 7 per 1,000 queries), outside BRConnector quotas. Consider an AWS Budgets alert, or set `EnableWebSearch` to `false`.
    - While the gateway is configured, Claude Code's built-in WebSearch tool is hidden.
 
-2. **Preset Models on Existing Databases** - At start-up BRConnector applies each SQL migration in `src/scripts/migrations/` that the database has not had yet. Preset models that an existing database lacks are added and bound to group 1; a model name that already exists is left unchanged. [#153](https://github.com/aws-samples/sample-connector-for-bedrock/pull/153)
+2. **Preset Models on Existing Databases** - At start-up (on every compute type except `lambda-web`, see item 4), BRConnector applies each SQL migration in `src/scripts/migrations/` that the database has not had yet. Preset models that an existing database lacks are added and bound to group 1; a model name that already exists is left unchanged. [#153](https://github.com/aws-samples/sample-connector-for-bedrock/pull/153)
 
 3. **Model Presets** - Seven GPT-6 and GPT-5.6 presets on bedrock-runtime-openai [#152](https://github.com/aws-samples/sample-connector-for-bedrock/pull/152). `claude-opus-5-5-chat`, `claude-sonnet-5-5-chat` and `claude-haiku-5-5-chat` on bedrock-converse, now used by NoDB mode and knowledge-base summaries. The Claude 3.x presets and NoDB defaults are removed; existing models are left as they are. [#154](https://github.com/aws-samples/sample-connector-for-bedrock/pull/154)
 
 4. **Retired Providers** - `aws-executor`, `urls-reader` and `web-miner` are removed; use Claude Code Web (`/cc`) instead.
    - The upgrade migration deletes the models on these providers and their key and group bindings. History (threads and sessions) is kept.
    - A request to a model on one of these providers gets HTTP 400 that points to Claude Code Web (`/cc`). Once the model is deleted, the request gets the usual unknown-model answer, and so does a smart-router rule, `localLlmModel` or bot connector that names it.
-   - `lambda-web` stacks do not run migrations at start-up. Their admins should delete these models by hand, with the statements of `src/scripts/migrations/2026-10-22-retire-providers.sql`:
+   - `lambda-web` stacks are different. Updating the stack does not deliver 0.0.43: the deployment package is built only when the stack is created, and the function does not run migrations at start-up. To run 0.0.43, deploy a new `lambda-web` stack; its database is set up for 0.0.43 when the stack is created. To bring an existing database up to date by hand, take a snapshot, then apply the files in `src/scripts/migrations/` in file-name order: `2026-10-20-preset-models.sql`, `2026-10-20b-claude-chat-presets.sql` and `2026-10-22-retire-providers.sql`. The last one runs:
 
      ```sql
      BEGIN;

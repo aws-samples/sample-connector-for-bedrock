@@ -10,14 +10,14 @@
    - 搜索由 AWS 向部署 stack 的账号收费（约每 1,000 次查询 7 美元），不计入 BRConnector 的额度。建议设置 AWS Budgets 告警，或者把 `EnableWebSearch` 设为 `false`。
    - 配置了 gateway 时，Claude Code 内置的 WebSearch 工具会被隐藏。
 
-2. **已有数据库也会获得预置模型** - BRConnector 启动时会执行 `src/scripts/migrations/` 中该数据库还没有执行过的 SQL migration。已有数据库缺少的预置模型会被添加并绑定到 group 1；已经存在的同名模型保持不变。[#153](https://github.com/aws-samples/sample-connector-for-bedrock/pull/153)
+2. **已有数据库也会获得预置模型** - BRConnector 启动时（`lambda-web` 形态除外，见第 4 条）会执行 `src/scripts/migrations/` 中该数据库还没有执行过的 SQL migration。已有数据库缺少的预置模型会被添加并绑定到 group 1；已经存在的同名模型保持不变。[#153](https://github.com/aws-samples/sample-connector-for-bedrock/pull/153)
 
 3. **预置模型** - bedrock-runtime-openai 新增 7 个 GPT-6、GPT-5.6 预置模型 [#152](https://github.com/aws-samples/sample-connector-for-bedrock/pull/152)。bedrock-converse 新增 `claude-opus-5-5-chat`、`claude-sonnet-5-5-chat`、`claude-haiku-5-5-chat`，NoDB 模式和知识库摘要改用它们。移除 Claude 3.x 预置模型和 NoDB 默认模型，已有的模型保持不变。[#154](https://github.com/aws-samples/sample-connector-for-bedrock/pull/154)
 
 4. **下线的 Provider** - 移除 `aws-executor`、`urls-reader`、`web-miner`，请改用 Claude Code Web（`/cc`）。
    - 升级时的 migration 会删除这些 provider 上的模型，以及它们与 key、group 的绑定。历史记录（threads 和 sessions）会保留。
    - 请求这些 provider 上的模型会返回 HTTP 400，并提示改用 Claude Code Web（`/cc`）。模型删除之后，这类请求会得到通常的模型不存在的回答，引用该模型的 smart-router 规则、`localLlmModel` 和机器人连接器也一样。
-   - `lambda-web` 形态在启动时不执行 migration，管理员需要手动删除这些模型，语句与 `src/scripts/migrations/2026-10-22-retire-providers.sql` 相同：
+   - `lambda-web` 形态不同。更新 stack 不会部署 0.0.43：部署包只在创建 stack 时构建，函数启动时也不执行 migration。要运行 0.0.43，请新建一个 `lambda-web` stack，它的数据库会在创建 stack 时按 0.0.43 初始化。如果要手动把已有数据库升级到最新，请先做快照，再按文件名顺序执行 `src/scripts/migrations/` 中的文件：`2026-10-20-preset-models.sql`、`2026-10-20b-claude-chat-presets.sql`、`2026-10-22-retire-providers.sql`。最后一个文件执行的语句是：
 
      ```sql
      BEGIN;
