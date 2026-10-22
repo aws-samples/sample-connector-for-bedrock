@@ -22,6 +22,7 @@ import path from "path";
 const fs = require("fs");
 import { version } from "../package.json";
 import { startUp } from "./util/warmup";
+import { managerStaticHandler } from "./middleware/manager_static";
 import { ccStaticHandler } from "./middleware/claude_code_web_static";
 import { ccBodyLimit } from "./middleware/claude_code_web_body";
 import { loadCcConfig } from "./claude_code_web/config";
@@ -35,34 +36,7 @@ const app = new Koa();
 // disable UI for the static files
 if (!config.disableUI) {
   const staticDir = path.resolve(__dirname, "../frontend");
-  app.use(async (ctx, next) => {
-    if (ctx.path.startsWith("/manager") && ctx.method === "GET") {
-      const relativePath = ctx.path.slice("/manager".length);
-      const filePath =
-        relativePath === "" || relativePath === "/"
-          ? path.join(staticDir, "index.html")
-          : path.join(staticDir, relativePath);
-
-      if (
-        relativePath !== "" &&
-        relativePath !== "/" &&
-        fs.existsSync(filePath) &&
-        fs.statSync(filePath).isFile()
-      ) {
-        ctx.type =
-          require("mime-types").lookup(filePath) || "application/octet-stream";
-        ctx.body = fs.createReadStream(filePath);
-        return;
-      }
-
-      if (!/\.\w+$/.test(ctx.path)) {
-        ctx.type = "text/html; charset=utf-8";
-        ctx.body = fs.readFileSync(path.join(staticDir, "index.html"));
-        return;
-      }
-    }
-    await next();
-  });
+  app.use(managerStaticHandler(staticDir));
 
   app.use(
     ccStaticHandler({
