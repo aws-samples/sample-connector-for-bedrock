@@ -22,6 +22,8 @@ You can:
 - Reset the Key.
 - Recharge the Key.
 
+A call is charged to the monthly quota first; once the quota is used up, the rest of the fee comes off the balance. The call that uses up the balance can take it below zero, and the key is then refused until a recharge brings the balance above zero or a new month starts.
+
 ### Import users
 
 You need to prepare a csv file, the column should contain the `name` and `email` fields.

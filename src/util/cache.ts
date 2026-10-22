@@ -43,10 +43,15 @@ const cache = {
     // console.log(cache.models);
     return true;
   },
-  updateKeyFee: (id: number, month_fee: number) => {
+  // Copies the fee columns of a key row, as the charge returned it, to the cached key.
+  updateKeyFee: (row: any) => {
     for (let item of cache.api_keys) {
-      if (item.id === id) {
-        item.month_fee = month_fee;
+      if (item.id === row.id) {
+        for (const col of ["total_fee", "month_fee", "balance", "updated_at"]) {
+          if (col in row) {
+            item[col] = row[col];
+          }
+        }
         break;
       }
     }

@@ -1,5 +1,5 @@
 import { ChatRequest, ResponseData, EmbeddingRequest, ImageRequest } from "../entity/chat_request";
-import Cache from '../util/cache';
+import { addKeyFee } from './key_fee';
 import crypto from 'crypto';
 import { selfBaseUrl } from "../util/self";
 
@@ -184,7 +184,6 @@ export default abstract class AbstractProvider {
         const fee_in = input_tokens * this.modelData.price_in;
         const fee_out = output_tokens * this.modelData.price_out;
         const fee: number = fee_in + fee_out;
-        // Read before the charge, which replaces ctx.user.
         const key_id = ctx.user.id;
 
         // The key is charged first and on its own, as recordChatUsage charges it: the call has been answered, so a
@@ -289,38 +288,11 @@ export default abstract class AbstractProvider {
     }
 
     async updateKeyFee(ctx: any, fee: number) {
-        const month_fee = this.keyData.month_fee * 1.0;
-        const month_quota = this.keyData.month_quota * 1.0;
-        const balance = this.keyData.balance * 1.0;
-        // Update keyData fee
-        const keyDataUpdate: any = {
-            id: this.keyData.id,
-            total_fee: this.keyData.total_fee * 1.0 + fee,
-            updated_at: new Date()
-        };
-
-        if (month_fee + fee >= month_quota) { // The balance will be consumed
-            const balanceCost = month_fee + fee - month_quota;
-            keyDataUpdate.balance = balance - balanceCost;
-            // keyDataUpdate.month_fee = (month_fee > month_quota ? month_quota : month_fee); // Month quota may be modified in the middle of the process
-            keyDataUpdate.month_fee = month_quota;
-        } else {
-            keyDataUpdate.month_fee = month_fee + fee; // Balance spending does not count as month_fee  
-        }
-
-
-        const sql = "update eiai_key set total_fee=total_fee+$1, month_fee=$2, updated_at=$3 where id=$4 RETURNING *";
-        const keyResult = await ctx.db.query(sql, [fee, keyDataUpdate.month_fee, new Date(), this.keyData.id])
-        // const keyResult = await ctx.db.update("eiai_key", keyDataUpdate, ["*"]);
-        ctx.user = keyDataUpdate;
-        this.keyData = keyResult;
-        Cache.updateKeyFee(ctx.user.id, keyDataUpdate.month_fee);
+        await addKeyFee(ctx.db, this.keyData.id, fee);
         return {
-            // session_updated: session_id ? true : false,
             thread_updated: true,
             key_updated: true
         };
-
     }
 }
 
