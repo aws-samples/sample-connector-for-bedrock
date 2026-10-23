@@ -89,6 +89,29 @@ describe('install migrations', () => {
         await (await loadInstall(fake, { SKIP_DB_INSTALL: 'true' })).default();
         expect(fake.queries).toEqual([]);
     });
+
+    it('install takes the migration lock before it checks for tables', async () => {
+        const fake = fakePg();
+        await (await loadInstall(fake)).default();
+        const q = fake.queries;
+        expect(q.indexOf('select pg_advisory_lock(727463001)')).toBeGreaterThanOrEqual(0);
+        expect(q.indexOf('select pg_advisory_lock(727463001)')).toBeLessThan(q.indexOf("SELECT to_regclass('public.eiai_key')"));
+        expect(q[q.length - 1]).toBe('select pg_advisory_unlock(727463001)');
+        expect(q.filter((x) => x === 'select pg_advisory_lock(727463001)').length)
+            .toBe(q.filter((x) => x === 'select pg_advisory_unlock(727463001)').length);
+    });
+
+    it('a create.sql failure still releases the lock and ends the client', async () => {
+        const fake = fakePg({ failOn: /CREATE TABLE IF NOT EXISTS eiai_key \(/ });
+        const end = vi.spyOn(fake.Client.prototype, 'end');
+        await expect((await loadInstall(fake)).default()).rejects.toThrow('simulated failure');
+        const q = fake.queries;
+        expect(q).toContain(patchSql[0]);
+        expect(q[q.length - 1]).toBe('select pg_advisory_unlock(727463001)');
+        expect(q.filter((x) => /pg_advisory_lock\(/.test(x))).toHaveLength(1);
+        expect(q.filter((x) => /pg_advisory_unlock\(/.test(x))).toHaveLength(1);
+        expect(end).toHaveBeenCalled();
+    });
 });
 
 describe('runMigrations', () => {

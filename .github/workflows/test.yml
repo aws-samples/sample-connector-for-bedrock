@@ -31,6 +31,6 @@ jobs:
       - name: Claude Code Web tests
         run: cd claude-code-web && UV_PYTHON=3.12 uv run pytest -q
       - name: Template tests
-        run: uv run --no-project --with pyyaml --with pytest python -m pytest cloudformation/test -q
+        run: uv run --no-project --with pyyaml --with pytest --with aws-sam-translator==1.115.0 python -m pytest cloudformation/test -q
       - name: Template gating checks
         run: uv run --no-project --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py

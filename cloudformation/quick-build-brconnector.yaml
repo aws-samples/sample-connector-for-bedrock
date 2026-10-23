@@ -21,6 +21,7 @@ Metadata:
           default: "Compute settings for BRConnector"
         Parameters:
           - ComputeType
+          - WebFnBuildId
 
       - Label: 
           default: "For EC2 settings" 
@@ -136,9 +137,9 @@ Parameters:
   SourceRepoUrl:
     Description: >-
       Used by ComputeType lambda-web and by Claude Code Web (EnableClaudeCodeWeb). The
-      git repository the helper EC2 clones to build the lambda-web deployment package,
-      and that CodeBuild clones to build the Claude Code Web backend image. Change it to
-      build from a fork, for example while a change is still under review upstream.
+      git repository that CodeBuild clones to build the lambda-web deployment package and
+      the Claude Code Web backend image. Change it to build from a fork, for example while
+      a change is still under review upstream.
     Type: String
     Default: https://github.com/aws-samples/sample-connector-for-bedrock.git
 
@@ -147,10 +148,18 @@ Parameters:
       Used by ComputeType lambda-web and by Claude Code Web (EnableClaudeCodeWeb). The git
       ref of SourceRepoUrl that the lambda-web deployment package and the Claude Code Web
       backend image are built from. The upstream repository publishes no tags, so this is
-      a branch or a commit. The lambda-web build clones with --branch, so it needs a
-      branch.
+      a branch or a commit.
     Type: String
     Default: main
+
+  WebFnBuildId:
+    Description: >-
+      Only used by ComputeType lambda-web. Change this value to rebuild the deployment
+      package from SourceRepoUrl at SourceRef and deploy it as a new Web Function
+      revision, for example to pick up new commits on SourceRef. Changing SourceRepoUrl
+      or SourceRef also rebuilds and deploys it.
+    Type: String
+    Default: '1'
 
   ECSTaskCPU:
     Description: CPU units for ECS task (1 vCPU = 1024 CPU units)
@@ -182,9 +191,7 @@ Parameters:
   EC2InstanceType:
     Description: >-
       Choose EC2 instance type, OS will be Amazon Linux 2023. Ignored when
-      ComputeType is lambda-web, which always uses t4g.medium: that path builds the
-      deployment package on this instance, Lambda Web Functions run arm64 only, and
-      the build host has to match the runtime architecture.
+      ComputeType is lambda-web, which always uses t4g.medium.
     Type: String
     AllowedValues:
       - t3.medium
@@ -623,9 +630,9 @@ Resources:
       # - PrivateECRRepository
     Type: AWS::EC2::Instance
     Properties:
-      # lambda-web builds the arm64 deployment package here, so the build host must be
-      # arm64 too. Forcing it is deliberate: an x86 build uploads and the stack still
-      # goes green, and the only symptom is the Web Function failing to load sharp.
+      # lambda-web stays on t4g.medium, from when its deployment package was built on this
+      # instance; CodeBuild builds it now. Changing either value on an existing stack would
+      # stop and start (InstanceType) or replace (ImageId) the instance.
       InstanceType: !If [IsLambdaWeb, t4g.medium, !Ref EC2InstanceType]
       # Fn::If is not allowed inside Fn::FindInMap's arguments, so the choice is made
       # around the whole value and each branch does its own lookup with a fixed key.
@@ -702,43 +709,6 @@ Resources:
           aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
           IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
           
-          # lambda-web takes a zip from S3, not an image, so build it here. This instance is
-          # forced to t4g.medium for this path, so the build is native arm64 and sharp
-          # resolves its linux-arm64 prebuild. The script also forces the platform flags and
-          # asserts the result, which is what catches a wrong binary before it ships.
-          if [[ ${ComputeType} == "lambda-web" ]]; then
-            build_webfn_zip() {
-              dnf install -y git tar gzip zip
-              export HOME=/root
-              curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-              . /root/.nvm/nvm.sh
-              nvm install 24
-              node --version
-              rm -rf /root/src
-              git clone --depth 1 --branch ${SourceRef} ${SourceRepoUrl} /root/src
-              cd /root/src
-              test -f scripts/build-web-function-zip.sh || {
-                echo "scripts/build-web-function-zip.sh is missing from ${SourceRepoUrl} at ref ${SourceRef}"
-                return 1
-              }
-              npx -y pnpm@10.34.6 install --frozen-lockfile
-              bash scripts/build-web-function-zip.sh
-              # The bucket name is built here rather than Ref'd: WebFnCodeBucket is a
-              # conditional resource, and referencing it from this shared UserData would
-              # break the ec2, lambda and ecs paths, where it does not exist.
-              aws s3 cp build/webfn/function.zip s3://brconnector-webfn-${AWS::AccountId}-${AWS::Region}-${RandomString}/brconnector/function.zip
-              cd /root
-            }
-            # Report a build failure to the WaitCondition instead of letting bash -xe exit
-            # before cfn-signal runs. Without this a broken build is indistinguishable from
-            # a slow one, and the stack sits until the WaitCondition times out: a two-minute
-            # failure cost a fifty-minute rollback during development.
-            if ! build_webfn_zip; then
-              /opt/aws/bin/cfn-signal -e 1 -r "lambda-web zip build failed; see this instance's console output" '${PrivateWaitHandle}'
-              exit 1
-            fi
-          fi
-
           if [[ ${ComputeType} == "lambda" ]]; then
             AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
             ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
@@ -820,11 +790,10 @@ Resources:
     Type: AWS::CloudFormation::WaitCondition
     Properties:
       Handle: !Ref PrivateWaitHandle
-      # The other paths copy a published image and signal in about 2-4 min. lambda-web
-      # additionally installs Node, clones the repository, builds, installs ~240 MB of
-      # production dependencies and uploads the zip, so it gets a longer budget. Timing
-      # out here rolls back a stack that has already created RDS, which is slow and
-      # expensive, so the budget is generous rather than tight.
+      # Every path signals in about 2-4 min. lambda-web keeps the longer budget it had when
+      # its deployment package was built on this instance, because a wait condition cannot
+      # be updated. Timing out here rolls back a stack that has already created RDS, which
+      # is slow and expensive, so the budget is generous rather than tight.
       Timeout: !If [IsLambdaWeb, '2400', '600']
       Count: 1
 
@@ -1709,9 +1678,10 @@ Resources:
   # ---------------------------------------------------------------------------
   # ComputeType: lambda-web  (AWS Lambda Web Functions)
   #
-  # The helper EC2 builds the deployment package and uploads it here, then signals
-  # PrivateWaitCondition. Everything below waits on that signal, so the object exists
-  # before the Web Function's revision is created.
+  # CodeBuild (WebFnPackageBuild) builds the deployment package from SourceRepoUrl at
+  # SourceRef and uploads it here; WebFnPackage answers with the new object version, and
+  # the Web Function's revision reads that version. So a new package always arrives as a
+  # new revision, and a failed build leaves the running revision as it is.
   # ---------------------------------------------------------------------------
 
   WebFnCodeBucket:
@@ -1726,8 +1696,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      # Name is deterministic so the shared UserData can build it with Sub instead of
-      # Ref'ing this conditional resource.
+      # Name is deterministic, so BRConnectorWebFn's CodeUri builds it with Sub.
       BucketName: !Sub brconnector-webfn-${AWS::AccountId}-${AWS::Region}-${RandomString}
       # Versioning is required: a Web Function revision reads the object by version.
       VersioningConfiguration:
@@ -1777,23 +1746,253 @@ Resources:
               Bool:
                 aws:SecureTransport: 'false'
 
-  # Attached to the shared EC2Role rather than editing it, so the other paths are untouched.
-  WebFnBuildUploadPolicy:
+  WebFnPackageBuildRole:
     Condition: IsLambdaWeb
-    Type: AWS::IAM::Policy
+    Type: AWS::IAM::Role
     Properties:
-      PolicyName: !Sub brconnector-webfn-upload-${AWS::StackName}
-      Roles:
-        - !Ref EC2Role
-      PolicyDocument:
+      AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Action:
-              - 's3:PutObject'
-              - 's3:GetObject'
-              - 's3:GetObjectVersion'
-            Resource: !Sub arn:${AWS::Partition}:s3:::${WebFnCodeBucket}/*
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: webfn-package-build
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-webfn-package
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-webfn-package:*
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:${AWS::Partition}:s3:::${WebFnCodeBucket}/brconnector/function.zip
+
+  # Builds the deployment package from SourceRepoUrl@SourceRef on native arm64, so sharp
+  # resolves its linux-arm64 prebuild, uploads it and answers WebFnPackage itself with the
+  # object version: the build outlives a Lambda, so the trigger only starts it. Every exit
+  # path answers, success with the version, failure with the step that failed; a build that
+  # never answers would leave the stack waiting for the full ServiceTimeout.
+  WebFnPackageBuild:
+    Condition: IsLambdaWeb
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-webfn-package
+      Description: Builds the BRConnector deployment package for Lambda Web Functions
+      ServiceRole: !GetAtt WebFnPackageBuildRole.Arn
+      # The script's own step limits end a hung build with a FAILED answer first. A build
+      # killed at this timeout, or one still queued after QueuedTimeoutInMinutes, sends no
+      # answer, and the stack then waits for ServiceTimeout.
+      TimeoutInMinutes: 50
+      QueuedTimeoutInMinutes: 15
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: ARM_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux-aarch64-standard:3.0
+        EnvironmentVariables:
+          - Name: BUCKET
+            Value: !Ref WebFnCodeBucket
+      Source:
+        Type: NO_SOURCE
+        # Started by WebFnPackageBuildTrigger, which adds CFN_RESPONSE_URL, CFN_STACK_ID,
+        # CFN_REQUEST_ID, CFN_LOGICAL_RESOURCE_ID, CFN_PHYSICAL_RESOURCE_ID,
+        # SOURCE_REPO_URL and SOURCE_REF.
+        BuildSpec: |
+          version: 0.2
+          env:
+            shell: bash
+          phases:
+            build:
+              commands:
+                - |
+                  # One subshell for the whole build, so its EXIT trap fires on every path.
+                  (
+                  set -euo pipefail
+                  STEP=start
+                  ANSWERED=0
+                  # Answer the custom resource. Every value is generated by AWS or by this
+                  # script and holds no quote or backslash, so printf builds valid JSON.
+                  answer() {
+                    local data='{}'
+                    if [ -n "${3:-}" ]; then data="{\"ObjectVersion\":\"$3\"}"; fi
+                    printf '{"Status":"%s","Reason":"%s","PhysicalResourceId":"%s","StackId":"%s","RequestId":"%s","LogicalResourceId":"%s","Data":%s}' \
+                      "$1" "$2" "$CFN_PHYSICAL_RESOURCE_ID" "$CFN_STACK_ID" "$CFN_REQUEST_ID" "$CFN_LOGICAL_RESOURCE_ID" "$data" > resp.json
+                    curl -sS -f --max-time 20 --retry 3 -X PUT -H 'Content-Type:' --data-binary @resp.json "$CFN_RESPONSE_URL"
+                  }
+                  on_exit() {
+                    local rc=$?
+                    if [ "$ANSWERED" != 1 ]; then
+                      answer FAILED "lambda-web package build failed at step $STEP (exit $rc), see CodeBuild build $CODEBUILD_BUILD_ID" || true
+                    fi
+                  }
+                  trap on_exit EXIT
+                  trap 'exit 143' TERM INT
+                  # Each slow step has its own limit, 43 minutes in all, so a hung step fails
+                  # (timeout exits 124) and is answered before the 50-minute build timeout,
+                  # which would kill the build without an answer.
+
+                  STEP=git-clone
+                  timeout 3m git clone --quiet --filter=blob:none "$SOURCE_REPO_URL" src
+                  timeout 2m git -C src checkout --quiet "$SOURCE_REF"
+                  git -C src log -1 --format='building commit %H'
+
+                  # nvm is not written for set -eu, so it runs in a shell of its own, which
+                  # prints only the directory of the node it installed. The image's default
+                  # node is older, so the version is checked.
+                  STEP=node
+                  export NVM_DIR="$HOME/.nvm"
+                  mkdir -p "$NVM_DIR"
+                  NODE_BIN=$(timeout 5m bash -c 'set -o pipefail
+                    curl -fsSL --max-time 60 https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash >&2 || exit 1
+                    . "$NVM_DIR/nvm.sh" --no-use || exit 1
+                    nvm install 24 >&2 || exit 1
+                    NODE=$(nvm which 24) || exit 1
+                    dirname "$NODE"')
+                  export PATH="$NODE_BIN:$PATH"
+                  NODE_VERSION=$(node --version)
+                  echo "node $NODE_VERSION"
+                  if [[ "$NODE_VERSION" != v24.* ]]; then echo "expected node 24, found $NODE_VERSION"; exit 1; fi
+
+                  cd src
+                  STEP=install
+                  timeout 10m npx -y pnpm@10.34.6 install --frozen-lockfile
+
+                  STEP=build
+                  if [ ! -f scripts/build-web-function-zip.sh ]; then echo "scripts/build-web-function-zip.sh is missing at $SOURCE_REF"; exit 1; fi
+                  timeout 20m bash scripts/build-web-function-zip.sh
+
+                  STEP=upload
+                  VERSION_ID=$(timeout 3m aws s3api put-object --bucket "$BUCKET" --key brconnector/function.zip --body build/webfn/function.zip --query VersionId --output text)
+                  if [[ -z "$VERSION_ID" || "$VERSION_ID" == None ]]; then echo "the upload returned no object version"; exit 1; fi
+
+                  STEP=answer-success
+                  answer SUCCESS "Uploaded brconnector/function.zip version $VERSION_ID" "$VERSION_ID"
+                  ANSWERED=1
+                  echo "answered SUCCESS with object version $VERSION_ID"
+                  )
+
+  WebFnPackageBuildTriggerRole:
+    Condition: IsLambdaWeb
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: start-webfn-package-build
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: codebuild:StartBuild
+                Resource: !GetAtt WebFnPackageBuild.Arn
+
+  # A function of its own rather than ClaudeCodeWebBuildTrigger: pointing ClaudeCodeWebImage
+  # at a shared one would change its properties and rebuild that image on update.
+  WebFnPackageBuildTrigger:
+    Condition: IsLambdaWeb
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      MemorySize: 128
+      Timeout: 60
+      Role: !GetAtt WebFnPackageBuildTriggerRole.Arn
+      Environment:
+        Variables:
+          PROJECT_NAME: !Ref WebFnPackageBuild
+          # What a successful build reports, the same on every update, so an update never
+          # looks like a replacement.
+          PHYSICAL_RESOURCE_ID: !Sub ${AWS::StackName}-webfn-package
+      Code:
+        ZipFile: |
+          #
+          # MIT-0 License
+          #
+          # Custom::WebFnPackage. Create and Update only start the CodeBuild build, which
+          # answers CloudFormation itself when it finishes; this function answers only
+          # Delete and a build that could not be started. Those answers echo the request's
+          # PhysicalResourceId when it has one: after a create that timed out, the rollback
+          # Delete carries an id CloudFormation assigned, not ours.
+          import json
+          import os
+          import urllib.request
+
+          import boto3
+
+
+          def respond(event, status, reason):
+              body = json.dumps({
+                  'Status': status,
+                  'Reason': reason[:1000],
+                  'PhysicalResourceId': event.get('PhysicalResourceId') or os.environ['PHYSICAL_RESOURCE_ID'],
+                  'StackId': event['StackId'],
+                  'RequestId': event['RequestId'],
+                  'LogicalResourceId': event['LogicalResourceId'],
+                  'Data': {},
+              }).encode()
+              req = urllib.request.Request(event['ResponseURL'], data=body, method='PUT', headers={'Content-Type': ''})
+              with urllib.request.urlopen(req, timeout=30):
+                  pass
+
+
+          def handler(event, context):
+              print('request', event['RequestType'], event['LogicalResourceId'])
+              if event['RequestType'] == 'Delete':
+                  # The package versions stay in WebFnCodeBucket, which is retained.
+                  respond(event, 'SUCCESS', 'Nothing to delete')
+                  return
+              try:
+                  props = event['ResourceProperties']
+                  env = {
+                      'CFN_RESPONSE_URL': event['ResponseURL'],
+                      'CFN_STACK_ID': event['StackId'],
+                      'CFN_REQUEST_ID': event['RequestId'],
+                      'CFN_LOGICAL_RESOURCE_ID': event['LogicalResourceId'],
+                      'CFN_PHYSICAL_RESOURCE_ID': os.environ['PHYSICAL_RESOURCE_ID'],
+                      'SOURCE_REPO_URL': props['SourceRepoUrl'],
+                      'SOURCE_REF': props['SourceRef'],
+                  }
+                  build = boto3.client('codebuild').start_build(
+                      projectName=os.environ['PROJECT_NAME'],
+                      environmentVariablesOverride=[
+                          {'name': k, 'value': v, 'type': 'PLAINTEXT'} for k, v in env.items()
+                      ],
+                  )
+                  print('started build', build['build']['id'])
+              except Exception as e:
+                  respond(event, 'FAILED', f'Could not start the package build: {type(e).__name__}: {e}')
+
+  # Rebuilt only when one of its properties changes; ObjectVersion is the S3 version id of
+  # brconnector/function.zip.
+  WebFnPackage:
+    Condition: IsLambdaWeb
+    Type: Custom::WebFnPackage
+    Properties:
+      ServiceToken: !GetAtt WebFnPackageBuildTrigger.Arn
+      # Seconds. The build answers on every exit path, so this is only a backstop.
+      ServiceTimeout: 3600
+      SourceRepoUrl: !Ref SourceRepoUrl
+      SourceRef: !Ref SourceRef
+      # Only here, so changing it rebuilds the package and nothing else.
+      BuildId: !Ref WebFnBuildId
 
   BRConnectorWebFnExecRole:
     Condition: IsLambdaWeb
@@ -1860,9 +2059,9 @@ Resources:
 
   BRConnectorWebFn:
     Condition: IsLambdaWeb
-    # The zip has to be in the bucket before the revision is created, and the admin key
-    # has to be seeded before the first request. Both happen on the helper EC2, which
-    # signals PrivateWaitCondition when it is done.
+    # The admin key has to be seeded before the first request. That happens on the helper
+    # EC2, which signals PrivateWaitCondition when it is done. The package comes from
+    # WebFnPackage, through CodeUri.
     DependsOn:
       - PrivateWaitCondition
       - WebFnCodeBucketPolicy
@@ -1879,6 +2078,9 @@ Resources:
       CodeUri:
         Bucket: !Sub brconnector-webfn-${AWS::AccountId}-${AWS::Region}-${RandomString}
         Key: brconnector/function.zip
+        # SAM puts this in the revision's S3Object.VersionId, so each new package version
+        # creates a new revision.
+        Version: !GetAtt WebFnPackage.ObjectVersion
       # 900 rather than the lambda path's 60, so a long stream is not truncated.
       Timeout: 900
       EgressNetworkConnectorArn: !If
@@ -1890,10 +2092,6 @@ Resources:
       EnvironmentVariables:
         ADMIN_API_KEY: !GetAtt MySSMParameterAdminKey.Value
         PERFORMANCE_MODE: !Ref PerformanceMode
-        # Migrations are applied once by the helper EC2's container against the same RDS.
-        # Without this every cold environment re-runs them, and two starting together on an
-        # empty database can race on CREATE TABLE.
-        SKIP_DB_INSTALL: 'true'
         PGSQL_HOST: !If [IsNoDB, !Ref AWS::NoValue, !GetAtt MyPG.Endpoint.Address]
         PGSQL_DATABASE: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGDatabase]
         PGSQL_USER: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGUser]
@@ -2616,7 +2814,7 @@ Outputs:
   WebFnCodeBucketName:
     Condition: IsLambdaWeb
     Description: >-
-      Bucket holding the deployment package built by the helper EC2. It is retained when
+      Bucket holding the deployment package built by CodeBuild. It is retained when
       the stack is deleted, because CloudFormation cannot delete a non-empty versioned
       bucket; empty and remove it by hand afterwards.
     Value: !Ref WebFnCodeBucket
