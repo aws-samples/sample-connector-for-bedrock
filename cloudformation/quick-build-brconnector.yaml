@@ -497,13 +497,10 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: "/"
+      # The SSM agent, BRConnector itself and the calls in UserData and in the nightly SSM
+      # document, nothing more. Every compute type boots this instance.
       ManagedPolicyArns:
-        # - arn:aws:iam::aws:policy/AdministratorAccess
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
-        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
         - arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicReadOnly
       Policies:
         - PolicyName: MyInlinePolicy-bedrock
@@ -528,22 +525,53 @@ Resources:
             Version: '2012-10-17'
             Statement:
             - Effect: Allow
+              Sid: SSMGetParameter
+              Action: 'ssm:GetParameter'
+              Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/pgdb-${AWS::StackName}
+            - Effect: Allow
               Sid: SSMPutParameter
+              Action: 'ssm:PutParameter'
+              Resource:
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/first-user-key-${AWS::StackName}
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/admin-key-${AWS::StackName}
+        - PolicyName: MyInlinePolicy-boot
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Sid: ECRLogin
+              Action: 'ecr:GetAuthorizationToken'
+              Resource: '*'
+            # lambda only: UserData copies the lambda image into this stack's repository.
+            - !If
+              - IsLambda
+              - Effect: Allow
+                Sid: CopyLambdaImage
+                Action:
+                - 'ecr:BatchCheckLayerAvailability'
+                - 'ecr:BatchGetImage'
+                - 'ecr:GetDownloadUrlForLayer'
+                - 'ecr:InitiateLayerUpload'
+                - 'ecr:UploadLayerPart'
+                - 'ecr:CompleteLayerUpload'
+                - 'ecr:PutImage'
+                Resource: !GetAtt PrivateECRRepository.Arn
+              - !Ref AWS::NoValue
+            - Effect: Allow
+              Sid: CleanupFunction
               Action:
-              - 'ssm:PutParameter'
-              - 'ssm:GetParameter'
-              - 'ssm:GetParameters'
-              Resource: 'arn:aws:ssm:*:*:parameter/*'
-        # - PolicyName: MyInlinePolicy-cfn-signal
-        #   PolicyDocument:
-        #     Version: '2012-10-17'
-        #     Statement:
-        #     - Effect: Allow
-        #       Action: 'cloudformation:SignalResource'
-        #       Resource: '*'
-        #     - Effect: Allow
-        #       Action: 's3:*'
-        #       Resource: '*'
+              - 'lambda:UpdateFunctionConfiguration'
+              - 'lambda:InvokeFunction'
+              Resource: !GetAtt DeleteEC2Lambda.Arn
+            # ecs creates its cluster and service after this instance signals, and they need
+            # the ECS service-linked role.
+            - Effect: Allow
+              Sid: ECSServiceLinkedRole
+              Action: 'iam:CreateServiceLinkedRole'
+              Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS
+              Condition:
+                StringEquals:
+                  iam:AWSServiceName: ecs.amazonaws.com
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -1243,7 +1271,18 @@ Resources:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+      # CloudFormation tags the instances it creates with the stack name.
+      Policies:
+        - PolicyName: terminate-this-stacks-instances
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ec2:TerminateInstances
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                Condition:
+                  StringEquals:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Ref AWS::StackName
 
   # ECS Resources
   ECSCluster:
@@ -1531,13 +1570,76 @@ Resources:
             Principal:
               Service: codebuild.amazonaws.com
             Action: "sts:AssumeRole"
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicReadOnly
-        - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
-        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+      # The buildspec's calls, and the network interfaces CodeBuild creates in the VPC.
+      Policies:
+        - PolicyName: nightly-lambda-update
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/MyCodeBuildProject-${AWS::StackName}
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/MyCodeBuildProject-${AWS::StackName}:*
+              - Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Ref AWS::StackId
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr-public:GetAuthorizationToken
+                  - sts:GetServiceBearerToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: !GetAtt PrivateECRRepository.Arn
+              - Effect: Allow
+                Action:
+                  - lambda:GetFunction
+                  - lambda:UpdateFunctionCode
+                Resource: !GetAtt BRConnectorLambda.Arn
+              # "Allow CodeBuild access to AWS services required to create a VPC network
+              # interface", CodeBuild User Guide.
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeDhcpOptions
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeVpcs
+                Resource: '*'
+              - Effect: Allow
+                Action: ec2:CreateNetworkInterfacePermission
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                Condition:
+                  StringEquals:
+                    ec2:AuthorizedService: codebuild.amazonaws.com
+                  ArnEquals:
+                    ec2:Subnet:
+                      - !Sub
+                        - arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${SubnetId}
+                        - SubnetId: !If
+                            - UseExistingVpcStack
+                            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet1Id"
+                            - !Ref PrivateSubnet1Id
+                      - !Sub
+                        - arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${SubnetId}
+                        - SubnetId: !If
+                            - UseExistingVpcStack
+                            - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet2Id"
+                            - !Ref PrivateSubnet2Id
 
   CodeBuildProject:
     Condition: IsAutoUpdateLambda
@@ -1675,6 +1777,22 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       BucketName: !Sub "ssmlogbucket-${MyEC2Instance}"
+
+  # The SSM agent uploads the nightly update's output with the instance's role. A policy
+  # of its own, because the bucket name depends on the instance, which needs EC2Role.
+  EC2AutoUpdateOutputPolicy:
+    Condition: IsAutoUpdateEc2
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-ssm-output-${AWS::StackName}
+      Roles:
+        - !Ref EC2Role
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: !Sub ${S3Bucket.Arn}/ssmoutput/*
 
   EC2AutoUpdateSSMDocument: 
     Condition: IsAutoUpdateEc2
