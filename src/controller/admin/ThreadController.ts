@@ -2,7 +2,7 @@ import service from "../../service/thread"
 import AbstractController from "../AbstractController";
 
 class ThreadController extends AbstractController {
-    public routers(router: import("koa-router") <any, {}>): void {
+    public routers(router: any): void {
         router.get("/admin/thread/detail", this.detail);
         router.get("/admin/thread/detail/:id", this.detail);
         router.get("/admin/thread/list", this.list);

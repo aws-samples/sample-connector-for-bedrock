@@ -100,7 +100,7 @@ class TitanEmbeddings extends AbstractProvider {
         }
       };
     } catch (error) {
-      console.error("Error in TitanEmbeddings embed method:", error);
+      console.error("Error in TitanEmbeddings embed method:", (error as any)?.message);
       throw error;
     }
   }

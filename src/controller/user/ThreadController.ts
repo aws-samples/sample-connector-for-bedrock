@@ -2,7 +2,7 @@ import service from "../../service/thread"
 import AbstractController from "../AbstractController";
 
 class ThreadController extends AbstractController {
-    public routers(router: import("koa-router") <any, {}>): void {
+    public routers(router: any): void {
         router.get("/user/thread/detail", this.detail);
         router.get("/user/thread/detail/:id", this.detail);
         router.get("/user/thread/list", this.list);
@@ -15,7 +15,8 @@ class ThreadController extends AbstractController {
         return super.ok(ctx, result);
     }
     async list(ctx: any) {
-        const options = ctx.query;
+        // Always scope to the caller, whatever the query says.
+        const options = { ...ctx.query, key_id: ctx.user.id };
         const result = await service.list(ctx.db, options);
         return super.ok(ctx, result);
     }

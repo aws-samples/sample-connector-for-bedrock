@@ -1,5 +1,52 @@
 # 更新日志
 
+## 0.0.43
+
+**升级警告** - 升级前请先给数据库做快照：这次升级会删除已下线 provider 的模型（第 4 条），并添加预置模型（第 2 条）。`AutoUpdateBRConnector` 为 `true` 的 stack（`ec2` 和 `lambda` 计算形态）会在 UTC 00:00 自动拉取新的 `latest` 镜像。
+
+1. **Claude Code Web** - 在浏览器里使用 Claude Code，由 BRConnector 在 `/cc` 提供，运行在 Amazon Bedrock AgentCore Runtime 上，每个 API key 有自己的 microVM 和 S3 工作区。它的模型调用用该用户的 key 打回 `/v1/messages`，额度和计费照常生效。在 CloudFormation 模板里用 `EnableClaudeCodeWeb` 打开，见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md)。[#155](https://github.com/aws-samples/sample-connector-for-bedrock/pull/155)
+   - 用户的 `~/.claude/settings.json` 里没有 `skipWebFetchPreflight` 时，会写入 `"skipWebFetchPreflight": true`；用户自己设置的值会保留。
+   - 新参数 `EnableWebSearch` 默认 `true`，更新已有 stack 时也是如此。打开 Claude Code Web、且区域为 us-east-1、us-east-2、us-west-2、eu-west-1、ap-southeast-2 或 ap-northeast-1 时，会创建一个带 Web Search target 的 AgentCore Gateway。只有 Runtime 角色可以调用这个 gateway。
+   - 搜索由 AWS 向部署 stack 的账号收费（约每 1,000 次查询 7 美元），不计入 BRConnector 的额度。建议设置 AWS Budgets 告警，或者把 `EnableWebSearch` 设为 `false`。
+   - 配置了 gateway 时，Claude Code 内置的 WebSearch 工具会被隐藏。
+
+2. **已有数据库也会获得预置模型** - BRConnector 启动时（`lambda-web` 形态除外，见第 4 条）会执行 `src/scripts/migrations/` 中该数据库还没有执行过的 SQL migration。已有数据库缺少的预置模型会被添加并绑定到 group 1；已经存在的同名模型保持不变。[#153](https://github.com/aws-samples/sample-connector-for-bedrock/pull/153)
+
+3. **预置模型** - bedrock-runtime-openai 新增 7 个 GPT-6、GPT-5.6 预置模型 [#152](https://github.com/aws-samples/sample-connector-for-bedrock/pull/152)。bedrock-converse 新增 `claude-opus-5-5-chat`、`claude-sonnet-5-5-chat`、`claude-haiku-5-5-chat`，NoDB 模式和知识库摘要改用它们。移除 Claude 3.x 预置模型和 NoDB 默认模型，已有的模型保持不变。[#154](https://github.com/aws-samples/sample-connector-for-bedrock/pull/154)
+
+4. **下线的 Provider** - 移除 `aws-executor`、`urls-reader`、`web-miner`，请改用 Claude Code Web（`/cc`）。
+   - 升级时的 migration 会删除这些 provider 上的模型，以及它们与 key、group 的绑定。历史记录（threads 和 sessions）会保留。
+   - 请求这些 provider 上的模型会返回 HTTP 400，并提示改用 Claude Code Web（`/cc`）。模型删除之后，这类请求会得到通常的模型不存在的回答，引用该模型的 smart-router 规则、`localLlmModel` 和机器人连接器也一样。
+   - `lambda-web` 形态不同。更新 stack 不会部署 0.0.43：部署包只在创建 stack 时构建，函数启动时也不执行 migration。要运行 0.0.43，请新建一个 `lambda-web` stack，它的数据库会在创建 stack 时按 0.0.43 初始化。如果要手动把已有数据库升级到最新，请先做快照，再按文件名顺序执行 `src/scripts/migrations/` 中的文件：`2026-10-20-preset-models.sql`、`2026-10-20b-claude-chat-presets.sql`、`2026-10-22-retire-providers.sql`。最后一个文件执行的语句是：
+
+     ```sql
+     BEGIN;
+     DELETE FROM eiai_key_model WHERE model_id IN (SELECT id FROM eiai_model WHERE provider IN ('aws-executor', 'urls-reader', 'web-miner'));
+     DELETE FROM eiai_group_model WHERE model_id IN (SELECT id FROM eiai_model WHERE provider IN ('aws-executor', 'urls-reader', 'web-miner'));
+     DELETE FROM eiai_model WHERE provider IN ('aws-executor', 'urls-reader', 'web-miner');
+     COMMIT;
+     ```
+
+5. **移除模型 id 覆盖** - 模型字符串 `name/<id>` 如果本身不是已配置的模型名称，现在对所有 key 都返回 HTTP 400。飞书机器人、知识库和 smart-router 中包含 `/` 的模型 id，以及 azure-openai 模型，同样如此。请求体里的 `model_id` 字段会被忽略。需要使用某个上游模型 id 时，请为它配置一个模型；配置的模型名称本身可以包含 `/`（见 [FAQ](faq.md#model-wildcard)）。
+
+6. **计费**
+   - 超出月度额度的花费现在从余额中扣除。
+   - 余额最多因最后几次调用变为负数。之后调用会被拒绝，直到充值，或者到下个月（月度额度大于 0 时）。
+   - 扣费是原子操作，充值会加到数据库中保存的余额上。
+   - 充值通过缓存在 60 秒内同步到所有实例。
+   - key 显示的 `month_fee` 在新月份第一次扣费之前，仍是上个月的值。
+
+7. **Session-Id** - 在所有路由上，超过 128 个字符的 `Session-Id` 都返回 HTTP 400。
+
+8. **用户 API**
+   - `/user/model/list` 只返回 `name`、`provider`、`price_in`、`price_out`、`multiple`、`group_name`。
+   - `/user/thread/list` 只返回调用者自己的 threads，`limit` 最大为 100（`/admin/thread/list` 也一样）。
+   - 会话列表和充值记录列表的 `orderBy` 只接受固定的几个值，其他值按默认顺序排序。
+
+9. **API key 与日志**
+   - 新的 API key 使用密码学随机源生成。
+   - 除 debug 模式外，日志不再记录 SQL 参数和完整的错误对象。
+
 ## 0.0.42
 
 1. **新增 bedrock-runtime-anthropic Provider** - 面向 Claude Code 等 Anthropic Messages 客户端。`POST /v1/messages` 直接透传到 Bedrock 原生的 `/anthropic/v1/messages`，`system`、`tools`、`thinking`、`cache_control`、`context_management` 原样送达模型。计费覆盖输入、缓存读、5 分钟与 1 小时缓存写入和输出；同一会话固定 region 和凭证，让 prompt cache 持续命中。新库预置 6 个 Claude 模型。[#147](https://github.com/aws-samples/sample-connector-for-bedrock/pull/147)

@@ -7,6 +7,11 @@ export const DEFAULT_MAX_RETRIES = 3;
 // The length of eiai_session.key and eiai_thread.session_key.
 export const MAX_SESSION_ID_LENGTH = 128;
 
+// Whether a Session-Id is too long to be saved with the call's usage. Postgres counts characters, not UTF-16 units.
+export function sessionIdTooLong(session_id: unknown): boolean {
+    return typeof session_id === 'string' && Array.from(session_id).length > MAX_SESSION_ID_LENGTH;
+}
+
 // Retries back off with full jitter: a random wait below a ceiling that doubles with each attempt, so clients
 // throttled together do not all come back together.
 const BACKOFF_BASE_MS = 200;

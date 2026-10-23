@@ -10,7 +10,6 @@ export default class SmartRouter extends AbstractProvider {
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any,) {
-    console.log(this.modelData.config);
     let { localLlmModel, rules } = this.modelData.config;
 
     if (!localLlmModel) {
@@ -30,8 +29,6 @@ export default class SmartRouter extends AbstractProvider {
     ctx.logger.info(`[smart-router]choosed model: ${the_model}`);
 
     chatRequest.model = the_model;
-
-    console.log("the_request:", JSON.stringify(chatRequest, null, 2))
 
     ctx.status = 200;
 

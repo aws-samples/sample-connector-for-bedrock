@@ -35,7 +35,7 @@ export default class PGClient {
     if (this.debug) {
       console.log("------------", new Date(), "----------------------------");
       console.log("sql: ", sql);
-      console.log("params: ", params);
+      console.log("params:", Array.isArray(params) ? params.length : 0);
       console.log("pool.totalCount:", this.pool.totalCount,
         "| pool.idleCount:", this.pool.idleCount,
         "| pool.waitingCount:", this.pool.waitingCount,

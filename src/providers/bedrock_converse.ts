@@ -1,6 +1,6 @@
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
-    BedrockRuntimeClient, BedrockRuntimeClientConfig, ConverseStreamCommand, ConverseCommand
+    BedrockRuntimeClient, BedrockRuntimeClientConfig, ConverseStreamCommand, ConverseCommand, ConverseCommandOutput
 } from "@aws-sdk/client-bedrock-runtime";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -23,6 +23,17 @@ export function stripDeprecatedSampling(modelId: string, inferenceConfig: any): 
         delete inferenceConfig.topP;
     }
     return deprecated;
+}
+
+// The usage of a non-stream call, for saveThread.
+function syncUsageOf(apiResponse: ConverseCommandOutput): ResponseData {
+    return {
+        text: apiResponse.output.message?.content[0]?.text,
+        input_tokens: apiResponse.usage.inputTokens,
+        output_tokens: apiResponse.usage.outputTokens,
+        invocation_latency: 0,
+        first_byte_latency: apiResponse.metrics.latencyMs
+    };
 }
 
 // How many regions a retry can move between. selectRandomRegion accepts a comma-separated string or an array.
@@ -120,11 +131,7 @@ export default class BedrockConverse extends AbstractProvider {
     async complete(chatRequest: ChatRequest, session_id: string, ctx: any) {
         await this.init();
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
-        if (chatRequest.model_id) {
-            payload["modelId"] = chatRequest.model_id;
-        } else {
-            payload["modelId"] = this.modelId;
-        }
+        payload["modelId"] = this.modelId;
         ctx.status = 200;
 
         if (chatRequest.stream) {
@@ -160,15 +167,15 @@ export default class BedrockConverse extends AbstractProvider {
         }
 
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
-        if (chatRequest.model_id) {
-            payload["modelId"] = chatRequest.model_id;
-        } else {
-            payload["modelId"] = this.modelId;
-        }
+        payload["modelId"] = this.modelId;
         // payload["modelId"] = this.modelId;
         // console.log("--payload-------------", JSON.stringify(payload, null, 2));
         ctx.status = 200;
 
+        let response: ResponseData | undefined;
+        // Bedrock's answer to a non-stream call. It is converted after the retry below, so that only the call itself
+        // is retried.
+        let apiResponse: ConverseCommandOutput | undefined;
         try {
             this.retryCount++;
             // console.log("retry times:", this.retryCount);
@@ -178,12 +185,12 @@ export default class BedrockConverse extends AbstractProvider {
                     'Cache-Control': 'no-cache',
                     'Content-Type': 'text/event-stream'
                 });
-                await this.chatStream(ctx, payload, chatRequest, session_id);
+                response = await this.chatStream(ctx, payload, chatRequest);
             } else {
                 ctx.set({
                     'Content-Type': 'application/json',
                 });
-                ctx.body = await this.chatSync(ctx, payload, chatRequest, session_id);
+                apiResponse = await this.chatSync(ctx, payload, chatRequest);
             }
             this.excludeAccessKeyId = null;
             this.retryCount = 0;
@@ -210,7 +217,9 @@ export default class BedrockConverse extends AbstractProvider {
             }
             this.excludeAccessKeyId = this.currentAK;
             if (this.retryCount <= this.maxRetry) {
+                // The retry records its own call.
                 await this.chat(chatRequest, session_id, ctx);
+                return;
             } else {
                 this.excludeAccessKeyId = null;
                 this.retryCount = 0;
@@ -231,6 +240,25 @@ export default class BedrockConverse extends AbstractProvider {
                 };
                 throw enhancedError;
             }
+        }
+
+        // Recorded outside the retry above, which is for Bedrock's errors only: Bedrock has answered by now, so a
+        // failure to record must not call it again, nor keep the answer from the client.
+        try {
+            if (apiResponse) {
+                response = syncUsageOf(apiResponse);
+            }
+            if (response) {
+                await this.saveThread(ctx, session_id, chatRequest, response);
+            }
+        } catch (error) {
+            ctx.logger.error({ message: 'bedrock-converse could not record the call', error: error instanceof Error ? error.message : String(error), modelId: this.modelId });
+        }
+        if (chatRequest.stream) {
+            ctx.res.write("data: [DONE]\n\n")
+            ctx.res.end();
+        } else {
+            ctx.body = this.chatSyncBody(apiResponse, chatRequest);
         }
     }
 
@@ -270,7 +298,8 @@ export default class BedrockConverse extends AbstractProvider {
         ctx.res.end();
     }
 
-    async chatStream(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
+    // Relays Bedrock's stream to the client and returns the call's usage. chat() records it and ends the stream.
+    async chatStream(ctx: any, input: any, chatRequest: ChatRequest): Promise<ResponseData | undefined> {
         // // let i = 0;
         // writeFile('./api-test/output.txt', JSON.stringify(chatRequest, null, 2), 'utf8', (err) => {
         //     if (err) {
@@ -284,6 +313,7 @@ export default class BedrockConverse extends AbstractProvider {
         const command = new ConverseStreamCommand(input);
         const response = await this.client.send(command);
 
+        let usage: ResponseData | undefined;
         if (response.stream) {
             let responseText = "";
             const reqId = this.newRequestID();
@@ -385,21 +415,19 @@ export default class BedrockConverse extends AbstractProvider {
                     const first_byte_latency = item.metadata.metrics.latencyMs;
 
                     ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", finish_reason, output_tokens, input_tokens, reqId) + "\n\n");
-                    const response: ResponseData = {
+                    usage = {
                         text: responseText,
                         input_tokens,
                         output_tokens,
                         invocation_latency: 0,
                         first_byte_latency
                     }
-                    await this.saveThread(ctx, session_id, chatRequest, response);
                 }
             }
         } else {
             throw new Error("No response.");
         }
-        ctx.res.write("data: [DONE]\n\n")
-        ctx.res.end();
+        return usage;
     }
 
     async completeSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
@@ -438,23 +466,17 @@ export default class BedrockConverse extends AbstractProvider {
 
     }
 
-    async chatSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {
-        const command = new ConverseCommand(input);
-        const apiResponse = await this.client.send(command);
+    // Sends a non-stream call. This is all that chat() retries: it records and converts the answer afterwards.
+    async chatSync(ctx: any, input: any, chatRequest: ChatRequest): Promise<ConverseCommandOutput> {
+        return this.client.send(new ConverseCommand(input));
+    }
 
+    // Converts Bedrock's answer to a non-stream call into the OpenAI response body.
+    chatSyncBody(apiResponse: ConverseCommandOutput, chatRequest: ChatRequest) {
         const content = apiResponse.output.message?.content;
         // console.log("ori content:", JSON.stringify(apiResponse, null, 2));
         const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
-        const { latencyMs } = apiResponse.metrics;
         const { requestId } = apiResponse["$metadata"];
-        const response: ResponseData = {
-            text: content[0]?.text,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            invocation_latency: 0,
-            first_byte_latency: latencyMs
-        }
-        await this.saveThread(ctx, session_id, chatRequest, response);
 
         const choices = [];
         let assistantMessage: any = { role: "assistant" };
@@ -466,7 +488,7 @@ export default class BedrockConverse extends AbstractProvider {
 
         content.map((c: any, index: number) => {
             if (c.reasoningContent) {
-                assistantMessage.reasoning_content = c.reasoningContent.reasoningText.text;
+                assistantMessage.reasoning_content = c.reasoningContent.reasoningText?.text;
                 hasReasoningContent = true;
             }
             if (c.text) {
@@ -539,7 +561,7 @@ export default class BedrockConverse extends AbstractProvider {
         await this.init();
 
         const payload = await this.chatMessageConverter.toPayload(chatRequest, this.modelData.config);
-        payload['modelId'] = chatRequest.model_id || this.modelId;
+        payload['modelId'] = this.modelId;
 
         ctx.status = 200;
 
@@ -668,17 +690,23 @@ export default class BedrockConverse extends AbstractProvider {
             }
         }
 
+        // Recorded before the stream ends, as chat() does, so the call is charged by the time the client sees
+        // message_stop. A failure to record is logged and does not keep the end of the stream from the client.
+        try {
+            await this.saveThread(ctx, session_id, chatRequest, {
+                text: responseText,
+                input_tokens: inputTokens,
+                output_tokens: outputTokens,
+                invocation_latency: 0,
+                first_byte_latency: 0
+            });
+        } catch (error) {
+            ctx.logger.error({ message: 'bedrock-converse could not record the call', error: error instanceof Error ? error.message : String(error), modelId: this.modelId });
+        }
+
         ctx.res.write(AnthropicResponse.messageDelta(stopReason, outputTokens));
         ctx.res.write(AnthropicResponse.messageStop());
         ctx.res.end();
-
-        await this.saveThread(ctx, session_id, chatRequest, {
-            text: responseText,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            invocation_latency: 0,
-            first_byte_latency: 0
-        });
     }
 
     async chatAnthropicSync(ctx: any, input: any, chatRequest: ChatRequest, session_id: string) {

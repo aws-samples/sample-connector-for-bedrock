@@ -2,7 +2,7 @@ import service from "../../service/statistics"
 import AbstractController from "../AbstractController";
 
 class StatisticsController extends AbstractController {
-    public routers(router: import("koa-router") <any, {}>): void {
+    public routers(router: any): void {
         router.get("/admin/statistics/total", this.total);
     }
 

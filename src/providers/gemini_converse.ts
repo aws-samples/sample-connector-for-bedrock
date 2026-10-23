@@ -133,7 +133,7 @@ export default class GeminiConverse extends AbstractProvider {
       await this.saveThread(ctx, session_id, chatRequest, response);
 
     } catch (error) {
-      console.error('Gemini streaming error:', error);
+      console.error('Gemini streaming error:', (error as any)?.message);
       ctx.res.write(`data: ${JSON.stringify({ error: error['message']||error })}\n\n`);
     }
 
@@ -192,7 +192,7 @@ export default class GeminiConverse extends AbstractProvider {
       };
 
     } catch (error) {
-      console.error('Gemini sync error:', error);
+      console.error('Gemini sync error:', (error as any)?.message);
       throw error;
     }
   }

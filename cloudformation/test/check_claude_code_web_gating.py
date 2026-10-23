@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Check that EnableClaudeCodeWeb=false leaves quick-build-brconnector.yaml unchanged.
+"""Check that EnableClaudeCodeWeb=false, and web search off, leave quick-build-brconnector.yaml unchanged.
 
 Run from anywhere inside the repository:
 
-    uv run --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py [BASE_REF]
+    uv run --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py [BASE_REF [WEB_SEARCH_BASE_REF]]
 
 BASE_REF must be a commit from before Claude Code Web was added; it defaults to 7ba1548,
 the upstream main this feature branched from. Do not pass upstream/main once the feature
@@ -11,11 +11,13 @@ is merged: that template already contains it, and the check would then always fa
 script evaluates the current template as if the switch were off and compares the result
 with the template at BASE_REF:
 
-- resources and outputs with `Condition: IsClaudeCodeWeb` are dropped;
-- the new parameters, the IsClaudeCodeWeb condition, the new rule and the new parameter
-  group are dropped;
-- every `Fn::If` on IsClaudeCodeWeb takes its false branch, and a false branch of
-  `AWS::NoValue` drops the key or list item it sits in;
+- a gate is IsClaudeCodeWeb, or a condition defined as an `Fn::And` that holds a gate
+  (IsClaudeCodeWebSearch), so every gate is false while the switch is off;
+- resources and outputs whose `Condition` is a gate are dropped;
+- the new parameters, the gate conditions, the new rule and the new parameter group are
+  dropped;
+- every `Fn::If` on a gate takes its false branch, and a false branch of `AWS::NoValue`
+  drops the key or list item it sits in;
 - a `Fn::Sub` variable whose value is such an `Fn::If` is inlined into the string, and a
   variable map left empty collapses back to the plain-string form;
 - the descriptions of SourceRepoUrl and SourceRef may differ.
@@ -24,11 +26,24 @@ Anything else that differs, down to one space in the ec2 `docker run` line, fail
 path of the first difference. Existing stacks must not see any change while the switch is
 off: a UserData change alone makes CloudFormation stop and restart the BRConnector instance.
 
-It also checks that every ClaudeCodeWeb* resource and output carries the condition, that
+It also checks that every ClaudeCodeWeb* resource and output carries a gate condition, that
 the ec2 `docker run` line stays a single line with `--name brconnector` when the switch is
 on, because the SSM auto-update replays that line from the cloud-init log, and that
 ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
 backend image without touching the BRConnector instance or deployment package.
+
+A second render covers web search. It evaluates only IsClaudeCodeWebSearch, and the
+conditions built on it, as false, which is what EnableWebSearch=false and a Region without
+AgentCore Web Search (us-west-1) both mean, and leaves IsClaudeCodeWeb unevaluated. It drops
+the resources and outputs under those conditions, the conditions themselves and
+EnableWebSearch (also from its parameter group), then requires that nothing references what
+was dropped and that the result equals the template at WEB_SEARCH_BASE_REF, which defaults
+to 076c5ce, the last upstream main with Claude Code Web but without web search. A Claude
+Code Web stack, on or off, therefore sees no change while web search is off.
+
+A third render evaluates IsClaudeCodeWebSearch as true and checks the grants: the runtime
+role may call the gateway (and only on its ARN), the workspace access role holds no
+bedrock-agentcore action, and the SSM config value does not name the gateway.
 """
 import subprocess
 import sys
@@ -41,13 +56,23 @@ TEMPLATE = 'cloudformation/quick-build-brconnector.yaml'
 DEFAULT_BASE_REF = '7ba1548'
 GATE = 'IsClaudeCodeWeb'
 PREFIX = 'ClaudeCodeWeb'
-NEW_PARAMETERS = {'EnableClaudeCodeWeb', 'ClaudeCodeDefaultModel', 'ClaudeCodeBackgroundModel', 'ClaudeCodeWebImageBuildId'}
+NEW_PARAMETERS = {
+    'EnableClaudeCodeWeb',
+    'ClaudeCodeDefaultModel',
+    'ClaudeCodeBackgroundModel',
+    'ClaudeCodeWebImageBuildId',
+    'EnableWebSearch',
+}
 NEW_RULES = {'ClaudeCodeWebRequirements'}
 NEW_PARAMETER_GROUP = 'Claude Code Web (optional)'
 DESCRIPTION_MAY_DIFFER = {'SourceRepoUrl', 'SourceRef'}
 EC2_SUB_VAR = 'CcEnvArg'
 IMAGE_ONLY_PARAMETER = 'ClaudeCodeWebImageBuildId'
 IMAGE_RESOURCE = 'ClaudeCodeWebImage'
+# Last upstream main with Claude Code Web but without web search.
+DEFAULT_WEB_SEARCH_BASE_REF = '076c5ce'
+WEB_SEARCH_GATE = 'IsClaudeCodeWebSearch'
+WEB_SEARCH_PARAMETERS = {'EnableWebSearch'}
 
 # Marks a value that evaluates to AWS::NoValue, so the enclosing key or item is dropped.
 DROPPED = object()
@@ -87,59 +112,78 @@ def load(text):
     return yaml.load(text, Loader=CfnLoader)  # nosec B506 - CfnLoader subclasses yaml.CSafeLoader
 
 
-def is_gate_if(node):
-    return isinstance(node, dict) and set(node) == {'Fn::If'} and node['Fn::If'][0] == GATE
+def gates(template, root=GATE):
+    """root and every condition that is an Fn::And holding a gate: all false while root is."""
+    found = {root}
+    conditions = template.get('Conditions', {})
+    while True:
+        more = {
+            name
+            for name, body in conditions.items()
+            if name not in found
+            and isinstance(body, dict)
+            and set(body) == {'Fn::And'}
+            and any(item == {'Condition': g} for item in body['Fn::And'] for g in found)
+        }
+        if not more:
+            return found
+        found |= more
 
 
-def switch_off(node):
-    """Evaluate every IsClaudeCodeWeb decision in node as false."""
-    if is_gate_if(node):
+def is_gate_if(node, gate_names=(GATE,)):
+    return isinstance(node, dict) and set(node) == {'Fn::If'} and node['Fn::If'][0] in gate_names
+
+
+def switch_off(node, gate_names):
+    """Evaluate every decision on a gate in node as false."""
+    if is_gate_if(node, gate_names):
         false_branch = node['Fn::If'][2]
         if false_branch == {'Ref': 'AWS::NoValue'}:
             return DROPPED
-        return switch_off(false_branch)
+        return switch_off(false_branch, gate_names)
     if isinstance(node, dict):
         if set(node) == {'Fn::Sub'} and isinstance(node['Fn::Sub'], list):
-            return switch_off_sub(node['Fn::Sub'])
+            return switch_off_sub(node['Fn::Sub'], gate_names)
         out = {}
         for key, value in node.items():
-            value = switch_off(value)
+            value = switch_off(value, gate_names)
             if value is not DROPPED:
                 out[key] = value
         return out
     if isinstance(node, list):
-        return [v for v in (switch_off(item) for item in node) if v is not DROPPED]
+        return [v for v in (switch_off(item, gate_names) for item in node) if v is not DROPPED]
     return node
 
 
-def switch_off_sub(args):
+def switch_off_sub(args, gate_names):
     text, variables = args
     inlined = False
     kept = {}
     for name, value in variables.items():
-        if is_gate_if(value):
+        if is_gate_if(value, gate_names):
             false_branch = value['Fn::If'][2]
             if not isinstance(false_branch, str):
-                raise SystemExit(f'FAIL: Fn::Sub variable {name}: the {GATE} false branch must be a plain string')
+                raise SystemExit(f'FAIL: Fn::Sub variable {name}: the {value["Fn::If"][0]} false branch must be a plain string')
             text = text.replace('${' + name + '}', false_branch)
             inlined = True
         else:
-            kept[name] = switch_off(value)
+            kept[name] = switch_off(value, gate_names)
     if inlined and not kept:
         return {'Fn::Sub': text}
     return {'Fn::Sub': [text, kept]}
 
 
 def render_off(template, base):
+    gate_names = gates(template)
     t = dict(template)
-    t['Resources'] = {k: v for k, v in t['Resources'].items() if v.get('Condition') != GATE}
+    t['Resources'] = {k: v for k, v in t['Resources'].items() if v.get('Condition') not in gate_names}
     if 'Outputs' in t:
-        t['Outputs'] = {k: v for k, v in t['Outputs'].items() if v.get('Condition') != GATE}
+        t['Outputs'] = {k: v for k, v in t['Outputs'].items() if v.get('Condition') not in gate_names}
     t['Parameters'] = {k: dict(v) for k, v in t['Parameters'].items() if k not in NEW_PARAMETERS}
     for name in DESCRIPTION_MAY_DIFFER:
         if name in t['Parameters'] and name in base.get('Parameters', {}):
             t['Parameters'][name]['Description'] = base['Parameters'][name].get('Description')
-    t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k != GATE}
+    t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k not in gate_names}
     if 'Rules' in t:
         rules = {k: v for k, v in t['Rules'].items() if k not in NEW_RULES}
         if rules:
@@ -151,7 +195,105 @@ def render_off(template, base):
         groups = [g for g in interface['ParameterGroups'] if g.get('Label', {}).get('default') != NEW_PARAMETER_GROUP]
         t['Metadata'] = dict(t['Metadata'])
         t['Metadata']['AWS::CloudFormation::Interface'] = dict(interface, ParameterGroups=groups)
-    return switch_off(t)
+    return switch_off(t, gate_names)
+
+
+def render_web_search_off(template):
+    """Evaluate the web search gates as false and leave IsClaudeCodeWeb as it is."""
+    gate_names = gates(template, WEB_SEARCH_GATE)
+    t = dict(template)
+    t['Resources'] = {k: v for k, v in t['Resources'].items() if v.get('Condition') not in gate_names}
+    if 'Outputs' in t:
+        t['Outputs'] = {k: v for k, v in t['Outputs'].items() if v.get('Condition') not in gate_names}
+    t['Parameters'] = {k: v for k, v in t['Parameters'].items() if k not in WEB_SEARCH_PARAMETERS}
+    t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k not in gate_names}
+    interface = t.get('Metadata', {}).get('AWS::CloudFormation::Interface')
+    if interface and 'ParameterGroups' in interface:
+        groups = [
+            dict(g, Parameters=[p for p in g.get('Parameters', []) if p not in WEB_SEARCH_PARAMETERS])
+            for g in interface['ParameterGroups']
+        ]
+        t['Metadata'] = dict(t['Metadata'])
+        t['Metadata']['AWS::CloudFormation::Interface'] = dict(interface, ParameterGroups=groups)
+    return switch_off(t, gate_names)
+
+
+def switch_on(node, gate_names):
+    """Evaluate every Fn::If on a gate as true; a true branch of AWS::NoValue drops the list item."""
+    if is_gate_if(node, gate_names):
+        return switch_on(node['Fn::If'][1], gate_names)
+    if isinstance(node, dict):
+        if node == {'Ref': 'AWS::NoValue'}:
+            return DROPPED
+        out = {}
+        for key, value in node.items():
+            value = switch_on(value, gate_names)
+            if value is not DROPPED:
+                out[key] = value
+        return out
+    if isinstance(node, list):
+        return [v for v in (switch_on(item, gate_names) for item in node) if v is not DROPPED]
+    return node
+
+
+def role_actions(template, role):
+    """(Sid, Action list, Resource) for every inline policy statement of the role."""
+    found = []
+    for policy in template['Resources'][role]['Properties'].get('Policies', []):
+        statements = policy['PolicyDocument']['Statement']
+        for st in statements if isinstance(statements, list) else [statements]:
+            actions = st.get('Action', [])
+            found.append((st.get('Sid'), [actions] if isinstance(actions, str) else actions, st.get('Resource')))
+    return found
+
+
+def check_web_search_on(template):
+    """With web search on, only the runtime role may call the gateway."""
+    on = switch_on(template, gates(template, WEB_SEARCH_GATE))
+    problems = []
+    gateway_arn = {'Fn::GetAtt': ['ClaudeCodeWebSearchGateway', 'GatewayArn']}
+    invoke = [(sid, res) for sid, acts, res in role_actions(on, 'ClaudeCodeWebRuntimeRole') if 'bedrock-agentcore:InvokeGateway' in acts]
+    if invoke != [('InvokeWebSearchGateway', gateway_arn)]:
+        problems.append(f'web-search-on: the runtime role must allow InvokeGateway on the gateway ARN only, found {invoke}')
+    for sid, acts, _ in role_actions(on, 'ClaudeCodeWebWorkspaceAccessRole'):
+        if any(a.startswith('bedrock-agentcore:') or a in ('*', 'bedrock-agentcore:*') for a in acts):
+            problems.append(f'web-search-on: the workspace access role statement {sid!r} has a bedrock-agentcore action')
+    ssm = on['Resources']['ClaudeCodeWebConfigParameter']['Properties']['Value']
+    if 'webSearchGatewayArn' in str(ssm) or 'WebSearchField' in str(ssm) or 'GatewayArn' in str(ssm):
+        problems.append('web-search-on: the SSM config value names the gateway')
+    return problems
+
+
+def dropped_by_web_search_off(template):
+    """Names that must not be referenced once web search is off."""
+    gate_names = gates(template, WEB_SEARCH_GATE)
+    resources = {k for k, v in template['Resources'].items() if v.get('Condition') in gate_names}
+    return resources | gate_names | WEB_SEARCH_PARAMETERS
+
+
+def mentions(node, names, path=''):
+    """Yield (path, name) for every Ref, GetAtt, Fn::Sub variable, condition or DependsOn naming one of names."""
+    if isinstance(node, dict):
+        get_att = node.get('Fn::GetAtt')
+        if_args = node.get('Fn::If')
+        depends = node.get('DependsOn')
+        # An IAM statement's Condition is a mapping, not a condition name, so only strings count.
+        candidates = [node.get('Ref'), node.get('Condition')]
+        candidates += [get_att[0]] if isinstance(get_att, list) and get_att else []
+        candidates += [if_args[0]] if isinstance(if_args, list) and if_args else []
+        candidates += [depends] if isinstance(depends, str) else depends if isinstance(depends, list) else []
+        found = {c for c in candidates if isinstance(c, str) and c in names}
+        sub = node.get('Fn::Sub')
+        text = sub[0] if isinstance(sub, list) and sub else sub
+        if isinstance(text, str):
+            found |= {n for n in names if '${' + n + '}' in text or '${' + n + '.' in text}
+        for name in sorted(found):
+            yield path, name
+        for key, value in node.items():
+            yield from mentions(value, names, f'{path}.{key}' if path else str(key))
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            yield from mentions(value, names, f'{path}[{i}]')
 
 
 def first_difference(a, b, path=''):
@@ -189,11 +331,12 @@ def first_difference(a, b, path=''):
 
 
 def check_conditions(template):
+    gate_names = gates(template)
     problems = []
     for section in ('Resources', 'Outputs'):
         for name, body in template.get(section, {}).items():
-            if name.startswith(PREFIX) and body.get('Condition') != GATE:
-                problems.append(f'{section}.{name} lacks Condition: {GATE}')
+            if name.startswith(PREFIX) and body.get('Condition') not in gate_names:
+                problems.append(f'{section}.{name} lacks a gate Condition ({", ".join(sorted(gate_names))})')
     return problems
 
 
@@ -241,24 +384,38 @@ def check_image_only_parameter(template):
     return [f'{IMAGE_ONLY_PARAMETER} is used outside {IMAGE_RESOURCE} at {p}' for p in found if not p.startswith(own)]
 
 
+def template_at(root, ref):
+    return load(
+        subprocess.run(['git', 'show', f'{ref}:{TEMPLATE}'], cwd=root, check=True, capture_output=True, text=True).stdout
+    )
+
+
 def main():
     base_ref = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_BASE_REF
+    web_search_base_ref = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_WEB_SEARCH_BASE_REF
     root = Path(__file__).resolve().parents[2]
     current = load((root / TEMPLATE).read_text())
-    base_text = subprocess.run(
-        ['git', 'show', f'{base_ref}:{TEMPLATE}'], cwd=root, check=True, capture_output=True, text=True
-    ).stdout
-    base = load(base_text)
+    base = template_at(root, base_ref)
 
     problems = check_conditions(current) + check_ec2_docker_run_on(current) + check_image_only_parameter(current)
+    problems += check_web_search_on(current)
     diff = first_difference(render_off(current, base), base)
     if diff:
         problems.append(f'switch-off render differs from {base_ref} at {diff}')
+
+    web_search_off = render_web_search_off(current)
+    for path, name in mentions(web_search_off, dropped_by_web_search_off(current)):
+        problems.append(f'web-search-off render still references {name} at {path}')
+    diff = first_difference(web_search_off, template_at(root, web_search_base_ref))
+    if diff:
+        problems.append(f'web-search-off render differs from {web_search_base_ref} at {diff}')
+
     if problems:
         for p in problems:
             print(f'FAIL: {p}')
         sys.exit(1)
     print(f'PASS: EnableClaudeCodeWeb=false renders {TEMPLATE} identical to {base_ref}')
+    print(f'PASS: web search off (EnableWebSearch=false or us-west-1) renders it identical to {web_search_base_ref}')
 
 
 if __name__ == '__main__':

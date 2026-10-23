@@ -1,6 +1,6 @@
 {
   "name": "sample-connector-for-bedrock",
-  "version": "0.0.42",
+  "version": "0.0.43",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -35,7 +35,6 @@
     "@smithy/signature-v4": "5.3.8",
     "csv-parser": "^3.2.0",
     "dotenv": "17.2.1",
-    "googleapis": "^144.0.0",
     "https-proxy-agent": "^7.0.6",
     "koa": "^2.16.3",
     "koa-body": "^6.0.1",
@@ -57,6 +56,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.6",
     "@babel/eslint-parser": "^7.28.6",
+    "@electric-sql/pglite": "0.5.11",
     "@types/koa": "^2.15.0",
     "@types/koa-router": "^7.4.9",
     "@types/koa__cors": "^5.0.1",

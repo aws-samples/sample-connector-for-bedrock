@@ -1,6 +1,6 @@
 import { ChatRequest, ModelData } from '../entity/chat_request';
-import Cache from '../util/cache';
 import { UsageCost } from './bedrock_openai/usage';
+import { addKeyFee } from './key_fee';
 
 export interface ChatUsageRecord {
     session_id?: string;
@@ -26,7 +26,7 @@ export async function recordChatUsage(ctx: any, rec: ChatUsageRecord): Promise<v
     const key = ctx.user;
 
     try {
-        await addKeyFee(ctx, key, cost.fee);
+        await addKeyFee(ctx.db, key.id, cost.fee);
     } catch (error) {
         ctx.logger.error({ message: 'could not charge the key', error: error instanceof Error ? error.message : String(error), keyId: key.id, fee: cost.fee });
     }
@@ -80,15 +80,4 @@ async function saveSession(ctx: any, key: any, rec: ChatUsageRecord): Promise<nu
     }
     const saved = await ctx.db.save('eiai_session', sessionData);
     return saved.id;
-}
-
-async function addKeyFee(ctx: any, key: any, fee: number): Promise<void> {
-    const monthFee = Number(key.month_fee);
-    const monthQuota = Number(key.month_quota);
-    // month_fee stops at the monthly quota; spending beyond it does not count as month_fee.
-    const newMonthFee = monthFee + fee >= monthQuota ? monthQuota : monthFee + fee;
-
-    const sql = 'update eiai_key set total_fee=total_fee+$1, month_fee=$2, updated_at=$3 where id=$4 RETURNING *';
-    await ctx.db.query(sql, [fee, newMonthFee, new Date(), key.id]);
-    Cache.updateKeyFee(key.id, newMonthFee);
 }

@@ -38,8 +38,8 @@ class FeishuController extends AbstractController {
           'im.message.receive_v1': async (data) => {
             try {
               await receive(client, data, name);
-            } catch (error) {
-              console.error(`Error processing message for ${name}:`, error);
+            } catch (error: any) {
+              console.error(`Error processing message for ${name}:`, error?.message, error?.response?.status);
             }
           },
         });
@@ -47,8 +47,8 @@ class FeishuController extends AbstractController {
         wsClient.start({eventDispatcher});
       }));
 
-    } catch (error) {
-      console.error('Error in FeishuController routers:', error);
+    } catch (error: any) {
+      console.error('Error in FeishuController routers:', error?.message, error?.response?.status);
       throw error; // Re-throw to allow proper error handling upstream
     }
   }
@@ -240,7 +240,7 @@ const determineMimeType = (buffer: Buffer): string => {
 };
 
 
-const handleFileContent = async (client: lark.Client, messageId: string, fileContent: any) => {
+export const handleFileContent = async (client: lark.Client, messageId: string, fileContent: any) => {
   try {
     const fileData = await client.im.messageResource.get({
         path: {
@@ -270,12 +270,12 @@ const handleFileContent = async (client: lark.Client, messageId: string, fileCon
         }
       }
     };
-  } catch (err) {
-    console.error("Failed to read file", err);
+  } catch (err: any) {
+    console.error("Failed to read file", err?.message, err?.response?.status);
   }
 };
 
-const handleImageContent = async (client: lark.Client, messageId: string, image_key: string) => {
+export const handleImageContent = async (client: lark.Client, messageId: string, image_key: string) => {
   try {
     console.log(`Attempting to retrieve image with key: ${image_key}`);
     const imageData = await client.im.messageResource.get({
@@ -305,8 +305,8 @@ const handleImageContent = async (client: lark.Client, messageId: string, image_
         url: `data:${mimeType};base64,${base64Image}`
       }
     };
-  } catch (err) {
-    console.error("Failed to read image file", err);
+  } catch (err: any) {
+    console.error("Failed to read image file", err?.message, err?.response?.status);
   }
 };
 
@@ -354,7 +354,7 @@ const buildCard = (title: string, content: string): any => {
   };
 };
 
-const sendCard = async (client: lark.Client, open_id: string, title: string, content: string): Promise<any> => {
+export const sendCard = async (client: lark.Client, open_id: string, title: string, content: string): Promise<any> => {
   let card = buildCard(title, content);
   try {
     return await client.im.message.create({
@@ -368,8 +368,8 @@ const sendCard = async (client: lark.Client, open_id: string, title: string, con
         uuid: helper.generateUUID(),
       }
     });
-  } catch (ex) {
-    console.error(ex);
+  } catch (ex: any) {
+    console.error("Failed to send card:", ex?.message, ex?.response?.status);
     return null;
   }
 };
@@ -385,8 +385,8 @@ const updateCard = async (client: lark.Client, messageId: string, title: string,
         content: JSON.stringify(card)
       }
     });
-  } catch (ex) {
-    console.error(ex);
+  } catch (ex: any) {
+    console.error("Failed to update card:", ex?.message, ex?.response?.status);
     return null;
   }
 };
@@ -428,7 +428,7 @@ const receive = (client: lark.Client, data: any, connectorName: string): void =>
         }
       }
     } else {
-      console.error("Failed to send initial card:", res);
+      console.error("Failed to send initial card:", res?.code, res?.msg);
     }
   });
 }

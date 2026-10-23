@@ -8,10 +8,13 @@ connection, permission callbacks, and conversation state.
 
 import asyncio
 import os
+import re
+import sysconfig
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from fastapi import HTTPException
 
@@ -33,6 +36,7 @@ from claude_agent_sdk import (
 
 from ..models import MessageBlock, PermissionRequest, SendMessageResponse, SessionStatus
 from .message_log import summarize_message
+from .user_settings import apply_default_user_settings
 
 
 def load_custom_system_prompt() -> Optional[str]:
@@ -58,6 +62,50 @@ def load_custom_system_prompt() -> Optional[str]:
         logging.warning(f"Failed to load custom system prompt: {e}")
 
     return None
+
+
+WEB_SEARCH_SERVER_NAME = "web-search"
+_GATEWAY_HOST = re.compile(r"^[a-z0-9-]+\.gateway\.bedrock-agentcore\.([a-z0-9-]+)\.amazonaws\.com$")
+
+
+def web_search_mcp_server() -> Optional[dict[str, Any]]:
+    """
+    Stdio MCP server for the AgentCore gateway in AGENTCORE_WEB_SEARCH_GATEWAY_URL.
+
+    mcp-proxy-for-aws signs each request with SigV4. Its env blanks the per-key AWS_*
+    values that invocations copy into os.environ: they are fixed when the CLI starts and
+    expire while the session runs, so boto3 moves on to the runtime role from the microVM
+    metadata service, which it fetches fresh for every request.
+
+    Returns None when the variable is unset or is not an https gateway URL.
+    """
+    url = os.environ.get("AGENTCORE_WEB_SEARCH_GATEWAY_URL", "").strip()
+    if not url:
+        return None
+    parsed = urlparse(url)
+    match = _GATEWAY_HOST.match(parsed.hostname or "")
+    if parsed.scheme != "https" or not match:
+        print("[Session] Warning: AGENTCORE_WEB_SEARCH_GATEWAY_URL is not an https AgentCore gateway URL, web search not added")
+        return None
+    return {
+        "type": "stdio",
+        # Console script installed in the backend venv by uv sync
+        "command": str(Path(sysconfig.get_path("scripts")) / "mcp-proxy-for-aws"),
+        "args": [url, "--service", "bedrock-agentcore", "--region", match.group(1)],
+        "env": {name: "" for name in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")},
+    }
+
+
+# Claude Code's own web search tool. It sends a web_search server tool that Bedrock does not serve.
+BUILTIN_WEB_SEARCH_TOOL = "WebSearch"
+
+
+def disallow_builtin_web_search(options_dict: dict[str, Any]) -> None:
+    """Add the built-in WebSearch to options_dict["disallowed_tools"], keeping existing entries."""
+    disallowed = list(options_dict.get("disallowed_tools") or [])
+    if BUILTIN_WEB_SEARCH_TOOL not in disallowed:
+        disallowed.append(BUILTIN_WEB_SEARCH_TOOL)
+    options_dict["disallowed_tools"] = disallowed
 
 
 class AgentSession:
@@ -119,6 +167,8 @@ class AgentSession:
 
         # MCP servers configuration
         self.mcp_server_ids = mcp_server_ids or []
+        # Set by connect() when a web-search MCP server replaces the built-in WebSearch
+        self.builtin_web_search_disabled = False
 
         # Server info cache
         self.server_info: Optional[dict[str, Any]] = None
@@ -244,10 +294,26 @@ class AgentSession:
             print(f"[Session] Loading MCP servers: {self.mcp_server_ids}")
             mcp_servers = await self._load_mcp_servers()
             if mcp_servers:
-                options_dict["mcp_servers"] = mcp_servers
                 print(f"[Session] Loaded {len(mcp_servers)} MCP server(s)")
             else:
                 print(f"[Session] No MCP servers loaded (config not found or invalid)")
+
+        # Preconfigured web search, passed per session only; a user server of the same name wins
+        web_search = web_search_mcp_server()
+        if web_search:
+            if WEB_SEARCH_SERVER_NAME in mcp_servers:
+                print(f"[Session] Keeping the user's '{WEB_SEARCH_SERVER_NAME}' MCP server")
+            else:
+                mcp_servers = {WEB_SEARCH_SERVER_NAME: web_search, **mcp_servers}
+
+        if mcp_servers:
+            options_dict["mcp_servers"] = mcp_servers
+
+        # With a web-search server (ours or the user's), hide the built-in WebSearch
+        self.builtin_web_search_disabled = WEB_SEARCH_SERVER_NAME in mcp_servers
+        if self.builtin_web_search_disabled:
+            disallow_builtin_web_search(options_dict)
+            print(f"[Session] disallowed_tools: {options_dict['disallowed_tools']}")
 
         # Print SDK options for debugging
         print(f"[Session] ========== SDK Connection Options ==========")
@@ -277,6 +343,10 @@ class AgentSession:
             print(f"[Session] env vars: None")
         print(f"[Session] setting_sources: ['user']")
         print(f"[Session] ===============================================")
+
+        # Default missing user settings (after the .claude sync, before the SDK reads them)
+        # Synchronous, no await: two connect() calls on one loop cannot interleave here.
+        apply_default_user_settings()
 
         # Add setting_sources to load user plugins
         options_dict["setting_sources"] = ["user"]
@@ -422,6 +492,13 @@ class AgentSession:
         if tool_name.startswith("mcp__"):
             print(f"[Permission] ✓ Auto-allow MCP tool: {tool_name}")
             return PermissionResultAllow()
+
+        # Disallowed at connect() already; never auto-allow it, whatever AUTO_ALLOW_TOOLS says
+        if tool_name == BUILTIN_WEB_SEARCH_TOOL and self.builtin_web_search_disabled:
+            print(f"[Permission] ✗ Deny built-in {tool_name}: the {WEB_SEARCH_SERVER_NAME} MCP server replaces it")
+            return PermissionResultDeny(
+                message=f"Use the mcp__{WEB_SEARCH_SERVER_NAME}__ tools for web search in this session."
+            )
 
         # Auto-allow operations based on environment variable
         # Default: auto-allow most tools (only require permission for destructive operations)

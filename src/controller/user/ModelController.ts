@@ -25,7 +25,16 @@ class ModelController extends AbstractController {
                 groupItems.push(kmd);
             }
         });
-        return super.ok(ctx, groupItems);
+        // Public fields only: model config holds provider credentials.
+        const items = groupItems.map((item: any) => ({
+            name: item.model_name,
+            provider: item.provider,
+            price_in: item.price_in,
+            price_out: item.price_out,
+            multiple: item.multiple,
+            group_name: item.group_name ?? null,
+        }));
+        return super.ok(ctx, items);
     }
 
     async listForBRClient(ctx: any) {

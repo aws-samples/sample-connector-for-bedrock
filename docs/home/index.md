@@ -11,7 +11,7 @@ It is compatible with any OpenAI client that can define a Host and API key.
 - Supports all current and future large language models from Bedrock (supported through bedrock-converse).
 - Supports models deployed through Sagemaker LMI (partial models).
 - Supports other forms of custom models, including Ollama, etc.
-- More AI workflow applications, such as internet search, AWS command executors, etc.
+- More AI workflow applications, such as Bedrock knowledge bases, Bedrock agents and image generation.
 
 ### API Key and Cost Management
 

@@ -2,7 +2,7 @@ import service from "../../service/session"
 import AbstractController from "../AbstractController";
 
 class SessionController extends AbstractController {
-    public routers(router: import("koa-router") <any, {}>): void {
+    public routers(router: any): void {
         router.get("/admin/session/detail", this.detail);
         router.get("/admin/session/detail/:id", this.detail);
         router.get("/admin/session/list", this.list);

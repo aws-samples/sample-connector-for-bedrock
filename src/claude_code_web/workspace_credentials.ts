@@ -22,22 +22,20 @@ const REFRESH_BEFORE_MS = 15 * 60 * 1000;
 export function buildSessionPolicy(config: CcConfig, userId: string): string {
     const partition = config.workspaceRoleArn.split(':')[1] || 'aws';
     const base = `${config.prefix}/${userId}`;
-    return JSON.stringify({
-        Version: '2012-10-17',
-        Statement: [
-            {
-                Effect: 'Allow',
-                Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject', 's3:AbortMultipartUpload'],
-                Resource: `arn:${partition}:s3:::${config.bucket}/${base}/*`,
-            },
-            {
-                Effect: 'Allow',
-                Action: 's3:ListBucket',
-                Resource: `arn:${partition}:s3:::${config.bucket}`,
-                Condition: { StringLike: { 's3:prefix': [`${base}/*`, base] } },
-            },
-        ],
-    });
+    const statements: object[] = [
+        {
+            Effect: 'Allow',
+            Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject', 's3:AbortMultipartUpload'],
+            Resource: `arn:${partition}:s3:::${config.bucket}/${base}/*`,
+        },
+        {
+            Effect: 'Allow',
+            Action: 's3:ListBucket',
+            Resource: `arn:${partition}:s3:::${config.bucket}`,
+            Condition: { StringLike: { 's3:prefix': [`${base}/*`, base] } },
+        },
+    ];
+    return JSON.stringify({ Version: '2012-10-17', Statement: statements });
 }
 
 async function defaultAssumeRole(input: AssumeRoleInput): Promise<WorkspaceCredentials> {

@@ -71,11 +71,9 @@ export default class NovaCanvas extends AbstractProvider {
 
 
     const { choices } = promptResult;
-    console.log(JSON.stringify(choices, null, 2));
 
     const choiceContent = choices.find(c => c?.message?.content);
     const choiceToolUse = choices.find(c => c?.message?.tool_calls);
-    console.log("some", choiceContent, choiceToolUse);
 
     // if (!choice) {
     //   // 处理没有找到合适的选择的情况
@@ -118,7 +116,6 @@ export default class NovaCanvas extends AbstractProvider {
     if (funName && typeof this[funName] === 'function') {
       try {
         const jArgs = JSON.parse(args);
-        console.log(funName, jArgs)
         imgs = await this[funName](jArgs);
       } catch (error) {
         throw new Error("Error: " + error);

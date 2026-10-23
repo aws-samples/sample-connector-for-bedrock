@@ -10,6 +10,7 @@ import {
 } from "./bedrock_openai/transport";
 import {
     MAX_SESSION_ID_LENGTH, RETRYABLE_STATUSES, Sleep, backoffMs, gatewayError, isNetworkError, maxRetriesOf, messageOf, readErrorBody, realSleep, retryAfterMs,
+    sessionIdTooLong,
 } from "./bedrock_openai/retry";
 import { ChatUsageRecord, recordChatUsage } from "./usage_recorder";
 
@@ -63,11 +64,12 @@ export default class BedrockRuntimeAnthropic extends AbstractProvider {
         if (!modelData) {
             throw new Error('Model data is missing for this request.');
         }
-        if (typeof body?.model === 'string' && body.model.includes('/')) {
+        // Backstop: Provider already refuses a "name/<id>" model string before it gets here. A configured model name
+        // may itself contain "/", so only a string other than this model's name is refused.
+        if (typeof body?.model === 'string' && body.model.includes('/') && body.model !== modelData.name) {
             throw badRequest(`The [${modelData.name}] model does not accept a model id override ("${modelData.name}/<model id>"). Send the model name only.`);
         }
-        // A longer one could not be saved with the call's usage. Postgres counts characters, not UTF-16 units.
-        if (typeof session_id === 'string' && Array.from(session_id).length > MAX_SESSION_ID_LENGTH) {
+        if (sessionIdTooLong(session_id)) {
             throw badRequest(`Session-Id must be at most ${MAX_SESSION_ID_LENGTH} characters.`);
         }
         const config = modelData.config || {};

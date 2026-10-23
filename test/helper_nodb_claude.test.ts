@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import helper from '../src/util/helper';
+import helper, { MODEL_ID_OVERRIDE_MESSAGE } from '../src/util/helper';
 import models from '../src/models_data';
 
 describe('NoDB Claude defaults', () => {
@@ -15,6 +15,16 @@ describe('NoDB Claude defaults', () => {
 
     it('unknown model falls back to claude-haiku-5-5-chat', () => {
         expect(helper.getModelDataWithoutDB('nope').name).toBe('claude-haiku-5-5-chat');
+    });
+
+    it('a name/<id> string gets the override error instead of the fallback model', async () => {
+        await expect(helper.refineModelParameters({ model: 'x/y' } as any, {})).rejects.toMatchObject({
+            message: MODEL_ID_OVERRIDE_MESSAGE, anthropicType: 'invalid_request_error',
+        });
+    });
+
+    it('an unknown name without "/" still falls back to claude-haiku-5-5-chat', async () => {
+        expect((await helper.refineModelParameters({ model: 'nope' } as any, {})).name).toBe('claude-haiku-5-5-chat');
     });
 
     it('lists no Claude 3.x models', () => {

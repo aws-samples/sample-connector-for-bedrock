@@ -50,6 +50,15 @@ describe('buildSessionPolicy', () => {
         });
     });
 
+    it('never grants bedrock-agentcore, even when the SSM JSON carried a gateway ARN', () => {
+        const gateway = 'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij';
+        const p = buildSessionPolicy({ ...config, webSearchGatewayArn: gateway } as any, 'brc-key-0000000000000001');
+        expect(JSON.parse(p).Statement).toHaveLength(2);
+        expect(p).not.toContain('bedrock-agentcore');
+        expect(p).not.toContain('InvokeGateway');
+        expect(p).toBe(buildSessionPolicy(config, 'brc-key-0000000000000001'));
+    });
+
     it('takes the partition from the role ARN', () => {
         const p = buildSessionPolicy({ ...config, workspaceRoleArn: 'arn:aws-cn:iam::1:role/r' }, 'u');
         expect(JSON.parse(p).Statement[0].Resource).toBe('arn:aws-cn:s3:::fake-bucket/user_data/u/*');

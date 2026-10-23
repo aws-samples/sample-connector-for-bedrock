@@ -3,11 +3,12 @@ import { ChatRequest, ModelData } from "../entity/chat_request";
 import modelService from "../service/model"
 import config from '../config';
 import nodemailer from 'nodemailer';
-import { exec } from 'child_process';
 import logger from './logger';
 import { withAnthropicType } from './anthropic_error';
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 const crypto = require('crypto');
+
+export const MODEL_ID_OVERRIDE_MESSAGE = 'Model id override (name/<id>) is not supported; ask an administrator to add the model.';
 
 const helper = {
     generateUUID() {
@@ -15,27 +16,20 @@ const helper = {
     },
     genApiKey() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let key = '';
         const keyLength = 29;
+        // Accept bytes below the largest multiple of 62 so every character is equally likely.
+        const limit = 256 - (256 % chars.length);
+        let key = '';
 
-        for (let i = 0; i < keyLength; i++) {
-            key += chars.charAt(Math.floor(Math.random() * chars.length));
+        while (key.length < keyLength) {
+            for (const byte of crypto.randomBytes(keyLength)) {
+                if (byte < limit && key.length < keyLength) {
+                    key += chars.charAt(byte % chars.length);
+                }
+            }
         }
         return "br-" + key;
     },
-    parseModelString(input: string) {
-        const slashIndex = input.indexOf('/');
-
-        if (slashIndex !== -1) {
-            const model = input.substring(0, slashIndex);
-            const model_id = input.substring(slashIndex + 1);
-
-            return { model: model, model_id: model_id };
-        } else {
-            return null;
-        }
-    },
-
     async downloadImageToBase64(url: string, client: S3Client): Promise<any> {
         if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
             const imageReq = await fetch(url);
@@ -88,29 +82,38 @@ const helper = {
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any): Promise<ModelData> => {
         const model = chatRequest.model;
+        // A "name/<id>" string that is not itself a configured model is a request to pick the upstream model id.
+        const looksLikeOverride = typeof model === 'string' && model.includes('/');
+        const unknownModel = (): Error => looksLikeOverride
+            ? withAnthropicType(new Error(MODEL_ID_OVERRIDE_MESSAGE), 'invalid_request_error')
+            : withAnthropicType(new Error(`The model [${model}] not found.`), 'not_found_error');
         if (ctx.cache && ctx.db) {
             const models = ctx.cache.models.filter((e: any) => e.name === model);
             if (models.length > 0) {
                 return models[0];
             }
-            throw withAnthropicType(new Error(`The model [${model}] not found.`), 'not_found_error');
+            throw unknownModel();
         }
         if (ctx.db) {
             let rtn = await modelService.loadByName(ctx.db, model);
             if (!rtn) {
+                if (looksLikeOverride) {
+                    throw unknownModel();
+                }
                 rtn = await modelService.loadByName(ctx.db, "default");
                 if (rtn) {
                     rtn.name = "default";
                 }
-                // rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
-                // throw new Error(`The model [${chatRequest.model}] is not found. You may refresh to get new models.`);
             }
             if (!rtn) {
-                // rtn = await modelService.loadByName(ctx.db, "claude-3-sonnet");
-                throw withAnthropicType(new Error(`The model [${model}] not found.`), 'not_found_error');
+                throw unknownModel();
             }
 
             return rtn;
+        }
+        // No built-in name contains "/", and an unknown name falls back to the default model, so check first.
+        if (looksLikeOverride) {
+            throw unknownModel();
         }
         return helper.getModelDataWithoutDB(model);
     },
@@ -601,22 +604,6 @@ const helper = {
     //     const randomIndex = Math.floor(Math.random() * credentials.length);
     //     return credentials[randomIndex];
     // },
-
-    execAWSCli: (commandLine: string) => new Promise<string>((resolve, reject) => {
-        if (commandLine.indexOf("aws") != 0) {
-            throw new Error("aws cli must starts with 'aws '");
-        }
-        exec(commandLine, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-            } else if (stderr) {
-                reject(stderr);
-            } else {
-                resolve(stdout);
-            }
-        });
-
-    })
 }
 
 export default helper;

@@ -1,4 +1,29 @@
 import helper from "../util/helper";
+import { monthFeeAt, updatedAtAt } from "../providers/key_fee";
+
+// Writes `data` to key `id`, adds `add` to the stored values of its columns, and stamps updated_at, in one statement.
+// updated_at also marks the month of month_fee, so the statement resets a month_fee from an earlier month as the
+// charge does; otherwise the stamp would carry last month's month_fee into this month. The column names come from
+// this file, never from a request.
+async function writeKey(db: any, id: any, data: any, returning: string[], add: Record<string, number> = {}) {
+    const sets: string[] = [];
+    const params: any[] = [];
+    for (const [col, value] of Object.entries(data)) {
+        params.push(value);
+        sets.push(`${col} = $${params.length}`);
+    }
+    for (const [col, value] of Object.entries(add)) {
+        params.push(value);
+        sets.push(`${col} = ${col} + $${params.length}::numeric`);
+    }
+    params.push(new Date());
+    const now = `$${params.length}`;
+    sets.push(`month_fee = ${monthFeeAt(now)}`, `updated_at = ${updatedAtAt(now)}`);
+    params.push(id);
+    const sql = `UPDATE eiai_key SET ${sets.join(", ")} WHERE id = $${params.length} RETURNING ${returning.join(", ")}`;
+    const { rows } = await db.query(sql, params);
+    return rows[0];
+}
 
 export default {
     loadById: async (db: any, id: number) => {
@@ -163,27 +188,16 @@ export default {
         return result;
     },
 
-    async rebillMonthly(db: any, id: number) {
-        const updateData: any = {
-            id,
-            month_fee: 0
-        };
-        return await db.update("eiai_key", updateData, ["id"]);
-    },
-
     async update(db: any, data: any) {
         if (!data.id) {
             throw new Error("id is required");
         }
-        const updateData: any = {
-            id: data.id
-        }
+        const updateData: any = {}
         data.role && (updateData.role = data.role);
         data.group_id && (updateData.group_id = data.group_id);
         data.name && (updateData.name = data.name);
         data.month_quota != undefined && (updateData.month_quota = data.month_quota);
-        updateData.updated_at = new Date()
-        return await db.update("eiai_key", updateData, ["id", "name", "email", "api_key", "group_id", "role", "month_quota", "balance"]);
+        return await writeKey(db, data.id, updateData, ["id", "name", "email", "api_key", "group_id", "role", "month_quota", "balance"]);
     },
 
     recharge: async (db: any, options: any) => {
@@ -192,7 +206,8 @@ export default {
             throw new Error("api_key or id is required");
         }
 
-        if (!options.balance || 1.0 * options.balance <= 0) {
+        const amount = Number(options.balance);
+        if (!options.balance || !Number.isFinite(amount) || amount <= 0) {
             throw new Error("balance is required");
         }
 
@@ -205,14 +220,11 @@ export default {
 
         await db.insert("eiai_payment", {
             key_id: key.id,
-            fee: 1.0 * options.balance
+            fee: amount
         });
 
-        return await db.update("eiai_key", {
-            id: key.id,
-            balance: 1.0 * key.balance + 1.0 * options.balance,
-            updated_at: new Date()
-        }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
+        // Added to the stored balance, so a call charged since the key was read is kept.
+        return await writeKey(db, key.id, {}, ["id", "name", "email", "api_key", "role", "month_quota", "balance"], { balance: amount });
     },
 
     // If bound then remove, otherwise bind
@@ -314,10 +326,8 @@ export default {
             }
         }
 
-        return await db.update("eiai_key", {
-            id: key.id,
-            api_key: apiKey,
-            updated_at: new Date()
+        return await writeKey(db, key.id, {
+            api_key: apiKey
         }, ["id", "name", "email", "api_key", "role", "month_quota", "balance"]);
 
     },

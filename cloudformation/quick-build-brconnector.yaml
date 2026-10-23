@@ -65,6 +65,7 @@ Metadata:
           - ClaudeCodeDefaultModel
           - ClaudeCodeBackgroundModel
           - ClaudeCodeWebImageBuildId
+          - EnableWebSearch
 
       - Label: 
           default: "Debugging Settings"
@@ -320,6 +321,18 @@ Parameters:
     Type: String
     Default: '1'
 
+  EnableWebSearch:
+    Description: >-
+      Claude Code Web only. Create an AgentCore Gateway with the AgentCore Web Search
+      connector, which Claude Code Web may call. Searches are billed per query to this
+      account, not to any key. Creates nothing in a Region without AgentCore Web Search,
+      such as us-west-1.
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+
 Rules:
   # Claude Code Web needs a BRConnector that has /cc and normal (non-admin) keys.
   ClaudeCodeWebRequirements:
@@ -397,6 +410,17 @@ Conditions:
     - !Equals [!Ref ComputeType, 'lambda']
     - !Not [!Equals [!Ref LambdaEdgeVersionArn, '']]
   IsClaudeCodeWeb: !Equals [!Ref EnableClaudeCodeWeb, 'true']
+  # The Regions where AgentCore Web Search is available; anywhere else it creates nothing.
+  IsClaudeCodeWebSearch: !And
+    - !Condition IsClaudeCodeWeb
+    - !Equals [!Ref EnableWebSearch, 'true']
+    - !Or
+      - !Equals [!Ref AWS::Region, us-east-1]
+      - !Equals [!Ref AWS::Region, us-east-2]
+      - !Equals [!Ref AWS::Region, us-west-2]
+      - !Equals [!Ref AWS::Region, eu-west-1]
+      - !Equals [!Ref AWS::Region, ap-southeast-2]
+      - !Equals [!Ref AWS::Region, ap-northeast-1]
 
 Mappings:
   ArchitectureMapping:
@@ -2005,6 +2029,7 @@ Resources:
   # "IAM Permissions for AgentCore Runtime" minus every bedrock:* statement, so model calls
   # must go through BRConnector, and with the log statements narrowed to this runtime. No
   # S3 either; workspace access arrives with each request, scoped to that user's prefix.
+  # With web search it may also call this stack's web search gateway.
   ClaudeCodeWebRuntimeRole:
     Condition: IsClaudeCodeWeb
     Type: AWS::IAM::Role
@@ -2085,6 +2110,13 @@ Resources:
                   - !Sub
                     - arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:workload-identity-directory/default/workload-identity/brc_cc_${StackUuidHead}-*
                     - StackUuidHead: !Select [0, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+              - !If
+                - IsClaudeCodeWebSearch
+                - Sid: InvokeWebSearchGateway
+                  Effect: Allow
+                  Action: bedrock-agentcore:InvokeGateway
+                  Resource: !GetAtt ClaudeCodeWebSearchGateway.GatewayArn
+                - !Ref AWS::NoValue
 
   # BRConnector assumes this for each user, always with a session policy that narrows it
   # to user_data/<user id>/, and hands the result to that user's microVM. Only the
@@ -2429,6 +2461,10 @@ Resources:
         S3_WORKSPACE_BUCKET: !Ref ClaudeCodeWebWorkspaceBucket
         S3_WORKSPACE_PREFIX: user_data
         AWS_DEFAULT_REGION: !Ref AWS::Region
+        AGENTCORE_WEB_SEARCH_GATEWAY_URL: !If
+          - IsClaudeCodeWebSearch
+          - !GetAtt ClaudeCodeWebSearchGateway.GatewayUrl
+          - !Ref AWS::NoValue
 
   # Read by BRConnector through CC_CONFIG_PARAM, the ARN of this fixed name.
   ClaudeCodeWebConfigParameter:
@@ -2473,6 +2509,89 @@ Resources:
             Effect: Allow
             Action: ssm:GetParameter
             Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
+
+  # ---------------------------------------------------------------------------
+  # Web search for Claude Code Web  (EnableWebSearch=true, in a Region with AgentCore
+  # Web Search)
+  #
+  # An AgentCore Gateway with the Web Search connector: an MCP server at
+  # https://<gateway id>.gateway.bedrock-agentcore.<region>.amazonaws.com/mcp that accepts
+  # SigV4 (IAM) calls only. Only the runtime role may call it.
+  # Searches are billed per query to this account, not to any key.
+  # ---------------------------------------------------------------------------
+
+  # The gateway uses this to call the connector. A gateway id is its name, a hyphen and
+  # ten characters, so the trust and the grant name this stack's gateway only.
+  ClaudeCodeWebSearchGatewayRole:
+    Condition: IsClaudeCodeWebSearch
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub
+                  - arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:gateway/brc-cc-ws-${StackUuidHead}-*
+                  - StackUuidHead: !Select [0, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+      Policies:
+        - PolicyName: agentcore-web-search
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: InvokeGateway
+                Effect: Allow
+                Action: bedrock-agentcore:InvokeGateway
+                Resource: !Sub
+                  - arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:gateway/brc-cc-ws-${StackUuidHead}-*
+                  - StackUuidHead: !Select [0, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+              # Owned by the service (account "aws") and checked on every search.
+              - Sid: InvokeWebSearch
+                Effect: Allow
+                Action: bedrock-agentcore:InvokeWebSearch
+                Resource: !Sub arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:aws:tool/web-search.v1
+
+  ClaudeCodeWebSearchGateway:
+    Condition: IsClaudeCodeWebSearch
+    Type: AWS::BedrockAgentCore::Gateway
+    Properties:
+      # Names allow only ([0-9a-zA-Z][-]?){1,48}, so the first group of the stack id's
+      # UUID makes it unique, as for the runtime.
+      Name: !Sub
+        - brc-cc-ws-${StackUuidHead}
+        - StackUuidHead: !Select [0, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+      Description: !Sub AgentCore Web Search for Claude Code Web, BRConnector stack ${AWS::StackName}
+      AuthorizerType: AWS_IAM
+      ProtocolType: MCP
+      RoleArn: !GetAtt ClaudeCodeWebSearchGatewayRole.Arn
+
+  # Exposes the connector's WebSearch tool as web-search___WebSearch. No version pin: the
+  # target gets the connector's current version.
+  ClaudeCodeWebSearchTarget:
+    Condition: IsClaudeCodeWebSearch
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !Ref ClaudeCodeWebSearchGateway
+      Name: web-search
+      TargetConfiguration:
+        Mcp:
+          Connector:
+            Source:
+              ConnectorId: web-search
+            Configurations:
+              - Name: WebSearch
+                ParameterValues: {}
+      CredentialProviderConfigurations:
+        - CredentialProviderType: GATEWAY_IAM_ROLE
 
 Outputs:
   WebFnCloudFrontURL:
@@ -2646,3 +2765,10 @@ Outputs:
         - IsLambdaWeb
         - !Sub https://${WebFnDistribution.DomainName}/cc/
         - !Sub https://${Ec2CloudFrontDistribution.DomainName}/cc/
+
+  WebSearchGatewayUrl:
+    Condition: IsClaudeCodeWebSearch
+    Description: >-
+      MCP endpoint of the AgentCore Web Search gateway for Claude Code Web. It accepts
+      SigV4 (IAM) calls only. Searches are billed per query to this account.
+    Value: !GetAtt ClaudeCodeWebSearchGateway.GatewayUrl

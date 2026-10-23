@@ -1,8 +1,9 @@
 import { ChatRequest, EmbeddingRequest, ImageRequest, ModelData } from "../entity/chat_request"
 import helper from '../util/helper';
 import { withAnthropicType } from '../util/anthropic_error';
-import api_key from "../service/key";
 import AbstractProvider from "./abstract_provider";
+import { MAX_SESSION_ID_LENGTH, sessionIdTooLong } from "./bedrock_openai/retry";
+import { isEarlierMonth } from "./key_fee";
 // Providers
 // import BedrockClaude from "./bedrock_claude";
 // import BedrockMixtral from "./bedrock_mixtral";
@@ -14,9 +15,6 @@ import BedrockRuntimeOpenAI from "./bedrock_runtime_openai";
 import BedrockRuntimeAnthropic from "./bedrock_runtime_anthropic";
 import SagemakerLMI from "./sagemaker_lmi"
 import Painter from "./painter";
-import WebMiner from "./web_miner";
-import AWSExecutor from "./aws_executor"
-import UrlsReader from "./urls_reader";
 import ContinueCoder from "./continue_coder";
 import SmartRouter from "./smart_router";
 // import SimpleAction from "./simple_action";
@@ -29,6 +27,23 @@ import AzureOpenAI from "./azure_openai"
 import AzureOpenAIImage from "./azure_openai_image"
 import BedrockAgent from "./bedrock_agent";
 import GeminiConverse from "./gemini_converse";
+
+// Providers that were removed, and what to use instead. A model still configured with one gets a 400 naming it.
+export const RETIRED_PROVIDERS: Record<string, string> = {
+    "aws-executor": "Claude Code Web (/cc)",
+    "urls-reader": "Claude Code Web (/cc)",
+    "web-miner": "Claude Code Web (/cc)",
+};
+
+// Fields the gateway sets from the model configuration; whatever the client sent for them is dropped.
+const SERVER_FIELDS = ['model_id', 'currency', 'price_in', 'price_out'];
+function stripServerFields(request: any) {
+    if (request && typeof request === 'object') {
+        for (const field of SERVER_FIELDS) {
+            delete request[field];
+        }
+    }
+}
 
 class Provider {
     constructor() {
@@ -43,10 +58,7 @@ class Provider {
         this["painter"] = Painter;
         this["nova-canvas"] = NovaCanvas;
         this["ollama"] = OllamaAProvider;
-        this["web-miner"] = WebMiner;
         this["continue-coder"] = ContinueCoder;
-        this["urls-reader"] = UrlsReader;
-        this["aws-executor"] = AWSExecutor;
         // this["bedrock-claude3"] = BedrockClaude;
         // this["bedrock-mistral"] = BedrockMixtral;
         // this["bedrock-llama3"] = BedrockLlama3;
@@ -61,6 +73,9 @@ class Provider {
 
     /** Returns a new instance of the named provider, so no state is shared between requests. */
     createProvider(name: string): AbstractProvider {
+        if (Object.prototype.hasOwnProperty.call(RETIRED_PROVIDERS, name)) {
+            throw withAnthropicType(new Error(`Provider ${name} has been retired; use ${RETIRED_PROVIDERS[name]} instead.`), 'invalid_request_error');
+        }
         if (!Object.prototype.hasOwnProperty.call(this, name)) {
             throw new Error("You need to configure the provider correctly.");
         }
@@ -87,14 +102,9 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const embeddingRequest: EmbeddingRequest = ctx.request.body;
-        const modelRes = helper.parseModelString(embeddingRequest.model);
-        if (modelRes) {
-            embeddingRequest.model = modelRes.model;
-            embeddingRequest.model_id = modelRes.model_id;
-        }
+        stripServerFields(embeddingRequest);
 
-
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: embeddingRequest.model }, ctx);
 
 
@@ -126,14 +136,9 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const request: ImageRequest = ctx.request.body;
-        const modelRes = helper.parseModelString(request.model);
-        if (modelRes) {
-            request.model = modelRes.model;
-            request.model_id = modelRes.model_id;
-        }
+        stripServerFields(request);
 
-
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters({ model: request.model }, ctx);
 
         if (ctx.db) {
@@ -164,15 +169,10 @@ class Provider {
         // console.log("-ori--------------", JSON.stringify(ctx.request.body, null, 2));
 
         const chatRequest: ChatRequest = ctx.request.body;
-
-        const modelRes = helper.parseModelString(chatRequest.model);
-        if (modelRes) {
-            chatRequest.model = modelRes.model;
-            chatRequest.model_id = modelRes.model_id;
-        }
+        stripServerFields(chatRequest);
 
 
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
         const modelData = await helper.refineModelParameters(chatRequest, ctx);
 
 
@@ -219,12 +219,8 @@ class Provider {
         const body = ctx.request.body;
 
         // Resolve the model from the raw body first, because the native provider needs the
-        // provider name before anything is converted. A missing or non-string model is left to
-        // refineModelParameters to report, rather than raising a TypeError in parseModelString.
-        const rawModel = body?.model;
-        const modelRes = typeof rawModel === 'string' ? helper.parseModelString(rawModel) : null;
-        const baseModel = modelRes ? modelRes.model : rawModel;
-        const modelData = await helper.refineModelParameters({ model: baseModel } as ChatRequest, ctx);
+        // provider name before anything is converted.
+        const modelData = await helper.refineModelParameters({ model: body?.model } as ChatRequest, ctx);
 
         if (ctx.db) {
             const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
@@ -234,8 +230,7 @@ class Provider {
         }
 
         if (modelData.provider === 'bedrock-runtime-anthropic') {
-            // Native path: the body goes through untouched (including a "name/override" model
-            // string, which the provider rejects) and the provider reads ctx.state.modelData.
+            // Native path: the body goes through untouched and the provider reads ctx.state.modelData.
             const provider = this.bindProvider(ctx, modelData);
             const session_id = ctx.headers["session-id"] || ctx.headers["x-claude-code-session-id"];
             return { provider, chatRequest: { model: modelData.name } as ChatRequest, session_id, native: true, body };
@@ -243,12 +238,8 @@ class Provider {
 
         // Convert Anthropic Messages API request → internal ChatRequest
         const chatRequest: ChatRequest = this.convertAnthropicRequest(body);
-        if (modelRes) {
-            chatRequest.model = modelRes.model;
-            chatRequest.model_id = modelRes.model_id;
-        }
 
-        const session_id = ctx.headers["session-id"];
+        const session_id = this.sessionIdOf(ctx);
 
         chatRequest.currency = modelData.config.currency || "USD";
         chatRequest.price_in = modelData.price_in || 0;
@@ -395,21 +386,13 @@ class Provider {
     }
 
 
+    // Refuses a key whose monthly quota and balance are both used up. A month_fee from an earlier month counts as 0;
+    // the next write to the key resets it in the database.
     async checkFee(ctx: any, key: any) {
-        let month_fee = parseFloat(key.month_fee);
+        const month_fee = isEarlierMonth(new Date(key.updated_at), new Date()) ? 0 : parseFloat(key.month_fee);
         const month_quota = parseFloat(key.month_quota);
         const balance = parseFloat(key.balance);
 
-        if (month_fee > 0) {
-            // New month set it to 0
-            const lastUpdate = new Date(key.updated_at);
-            const now = new Date();
-
-            if (now.getMonth() != lastUpdate.getMonth() || now.getFullYear() > lastUpdate.getFullYear()) {
-                await api_key.rebillMonthly(ctx.db, ctx.user.id);
-                key.month_fee = 0;
-            }
-        }
         if (month_fee >= month_quota && balance <= 0) {
             throw withAnthropicType(new Error("Please recharge."), 'billing_error');
         }
@@ -436,6 +419,16 @@ class Provider {
         });
 
         return existsPersonal;
+    }
+
+    // The Session-Id header. One too long to save is refused before the call is made, as the bedrock-runtime-*
+    // providers refuse it.
+    sessionIdOf(ctx: any): string | undefined {
+        const session_id = ctx.headers["session-id"];
+        if (sessionIdTooLong(session_id)) {
+            throw withAnthropicType(new Error(`Session-Id must be at most ${MAX_SESSION_ID_LENGTH} characters.`), 'invalid_request_error');
+        }
+        return session_id;
     }
 }
 

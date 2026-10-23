@@ -174,3 +174,39 @@ directory must be listed here.
     (with its base64 data); the role is coerced to a string of at most 32 characters. The `start` stream
     event echoes that summary instead of the dict (the client reads only its `session_id`); a string
     message is still echoed as is. Tests: `backend/tests/test_message_log.py`.
+- `backend/core/user_settings.py` (new): `apply_default_user_settings` adds `"skipWebFetchPreflight": true` to
+  `~/.claude/settings.json` when the key is missing (creates the file if absent), so Claude Code does not send
+  the hostname of each WebFetch to api.anthropic.com for a domain check. Other keys and an explicit value are
+  left as they are; a file that is not a JSON object is left unchanged and logged. The write is atomic
+  (temp file, then rename). `backend/core/session.py`: `connect()` calls it just before the SDK client is
+  created, so it runs after the per-user `.claude` restore from S3 and the later backup keeps the key.
+  Tests: `backend/tests/test_web_fetch_preflight_default.py`.
+- `backend/core/session.py`: added `web_search_mcp_server()`. When `AGENTCORE_WEB_SEARCH_GATEWAY_URL` is an https
+  `<id>.gateway.bedrock-agentcore.<region>.amazonaws.com` URL, `connect()` adds a stdio MCP server `web-search` to the
+  session's `mcp_servers`: `<venv scripts dir>/mcp-proxy-for-aws <url> --service bedrock-agentcore --region <region from
+  the host>`. It is passed to the SDK per session and never written to `~/.claude/mcp.json`. A user server named
+  `web-search` replaces it only when it is selected for the session; one that is only defined in `mcp.json` does not.
+  Its `env` sets `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` to
+  empty strings: the CLI starts MCP servers with its own environment plus `env`, so the per-request workspace
+  credentials (fixed when the CLI starts, expiring within the hour) are replaced, and boto3 uses the runtime role from
+  the microVM metadata service (MMDS), fetched for every signed request. Unset, blank or any other URL adds nothing
+  (another URL is logged). Tests: `backend/tests/test_web_search_mcp.py`.
+  Because the proxy signs with the runtime role and not the per-key credentials: CloudTrail attributes the gateway calls
+  to the runtime role, not to the key; web search cannot be turned off for a single key; a microVM that is still
+  running after its key is revoked can keep calling the gateway until the microVM ends; and searches cost about
+  $7 per 1,000 queries (AgentCore Web Search pricing) outside BRConnector's quotas and cost tracking.
+- `backend/core/session.py`: when the session's MCP servers include one named `web-search` (the preconfigured one or a
+  selected user server), `connect()` adds `WebSearch` to `disallowed_tools` (kept with any existing entries, as
+  `--disallowedTools`), and `permission_callback` denies `WebSearch` instead of auto-allowing it, even when
+  `AUTO_ALLOW_TOOLS` lists it. Claude Code treats the BRConnector base URL as the first-party API and offers its built-in
+  `WebSearch`, which sends a `web_search_20250305` server tool that Bedrock does not serve; hiding it leaves the MCP
+  tool as the only web search. Without a `web-search` server nothing changes. Tests: `backend/tests/test_web_search_mcp.py`.
+- `backend/tests/test_files_upload.py` (new): `/files/upload` with a multipart body (file plus `directory` form field)
+  writes the file; covers the `python-multipart` update below.
+- `pyproject.toml`, `uv.lock`: added `mcp-proxy-for-aws==1.7.0` (MCP Proxy for AWS, console script `mcp-proxy-for-aws`
+  = `mcp_proxy_for_aws.server:main`) with `uv add` (uv 0.13.1). Not `mcp-proxy-for-aws-cli`: that wheel holds no code,
+  only exact pins for every dependency plus a `mcp-proxy-for-aws-cli` script for the same function, and its
+  `packaging==26.1` pin cannot resolve with `langfuse>=2,<3`. The lock gains 39 packages (`fastmcp` 3.4.0 and its
+  dependencies); `python-multipart` goes from 0.0.22 to 0.0.32; no other locked version changes. Every new package has a
+  `py3-none-any` or `manylinux` aarch64 wheel. `Dockerfile` unchanged: `uv sync --frozen --no-dev` installs the script
+  in `/app/.venv/bin`, so nothing is downloaded at runtime.

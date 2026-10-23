@@ -1,7 +1,12 @@
 import logger from '../util/logger';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
-export type CcConfig = { runtimeArn: string; workspaceRoleArn: string; bucket: string; prefix: string };
+export type CcConfig = {
+    runtimeArn: string;
+    workspaceRoleArn: string;
+    bucket: string;
+    prefix: string;
+};
 
 type Deps = { env?: NodeJS.ProcessEnv; getParameter?: (arn: string) => Promise<string>; now?: () => number };
 
@@ -87,7 +92,8 @@ async function readConfig(env: NodeJS.ProcessEnv, deps: Deps): Promise<CcConfig 
             logger.warn(`claude-code-web disabled: SSM config has missing or invalid fields: ${bad.join(', ')}`);
             return null;
         }
-        return { runtimeArn: v.runtimeArn, workspaceRoleArn: v.workspaceRoleArn, bucket: v.bucket, prefix: v.prefix };
+        const config: CcConfig = { runtimeArn: v.runtimeArn, workspaceRoleArn: v.workspaceRoleArn, bucket: v.bucket, prefix: v.prefix };
+        return config;
     } catch (err: any) {
         // Name and HTTP status only; the message may carry request details.
         logger.warn(

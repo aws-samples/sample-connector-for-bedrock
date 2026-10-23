@@ -223,6 +223,10 @@ GET /v1/models
 Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+### Session-Id header
+
+`/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, `/v1/images/generations` and `/v1/messages` accept an optional `Session-Id` header, which groups the calls into one session in the chat records. It can be at most 128 characters; a longer one gets HTTP 400 before the model is called.
+
 ## Admin API
 
 ### API key

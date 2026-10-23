@@ -1,3 +1,5 @@
+const MAX_LIMIT = 100;
+
 export default {
 
     detail: async (db: any, options: any) => {
@@ -16,8 +18,8 @@ export default {
     },
     list: async (db: any, options: any) => {
 
-        const limit = ~~(options.limit) || 20;
-        const offset = ~~(options.offset) || 0;
+        const limit = Math.min(Math.max(~~(options.limit), 0) || 20, MAX_LIMIT);
+        const offset = Math.max(~~(options.offset), 0);
 
         let where = "1=1";
         let params = [];
@@ -27,7 +29,7 @@ export default {
         if (options.session_id) {
             keys.push("session_id");
         }
-        if (options.key_id) {
+        if (options.key_id !== undefined && options.key_id !== null && options.key_id !== "") {
             keys.push("key_id");
         }
         if (options.q) {

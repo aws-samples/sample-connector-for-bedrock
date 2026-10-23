@@ -147,6 +147,29 @@ describe('loadCcConfig workspace prefix validation', () => {
     });
 });
 
+describe('loadCcConfig with a webSearchGatewayArn from an older stack', () => {
+    beforeEach(() => resetCcConfigCache());
+    const env = { CC_CONFIG_PARAM: PARAM };
+
+    it('loads the plain four-field config and ignores the extra field without a warning', async () => {
+        const spy = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
+        for (const webSearchGatewayArn of [
+            'arn:aws:bedrock-agentcore:us-east-1:111111111111:gateway/brc-cc-ws-1a2b3c4d-abcdefghij',
+            'not-an-arn',
+            null,
+            '',
+            42,
+        ]) {
+            resetCcConfigCache();
+            const cfg = await loadCcConfig({ env, getParameter: async () => JSON.stringify({ ...ssmValue, webSearchGatewayArn }) });
+            expect(cfg, String(webSearchGatewayArn)).toEqual(ssmValue);
+            expect(cfg, String(webSearchGatewayArn)).not.toHaveProperty('webSearchGatewayArn');
+        }
+        expect(spy).not.toHaveBeenCalled();
+        spy.mockRestore();
+    });
+});
+
 describe('cc identity', () => {
     it('pads the key id to 16 digits', () => {
         expect(ccUserId(42)).toBe('brc-key-0000000000000042');

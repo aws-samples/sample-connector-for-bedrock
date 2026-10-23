@@ -76,7 +76,6 @@ export default class SagemakerDeepSeek extends AbstractProvider {
       clonedRequest.top_p = 0.99
     }
 
-    console.log(clonedRequest)
     // console.log(JSON.stringify(clonedRequest));
 
     const input: any = {
@@ -163,7 +162,6 @@ export default class SagemakerDeepSeek extends AbstractProvider {
           if (chunk) {
             lineText += chunk;
             lineText = lineText.trim();
-            console.log(lineText);
 
             if (lineText.startsWith("data:")) {
               lineText = lineText.substring(5);
@@ -187,7 +185,6 @@ export default class SagemakerDeepSeek extends AbstractProvider {
               if (finish_reason) {
                 finish_reason = "stop"
 
-                console.log("responseText", responseText);
                 ctx.res.write("data: " + WebResponse.wrap(i++, chatRequest.model, "", finish_reason, i, 0, reqId) + "\n\n");
                 const response: ResponseData = {
                   text: responseText,

@@ -75,11 +75,12 @@ describe('provider registry', () => {
             ctx.headers['x-claude-code-session-id'] = 'cc-sess';
             expect((await providers.initForAnthropic(ctx)).session_id).toBe('explicit');
         });
-        it('leaves a name/override model string untouched for the provider to reject', async () => {
+        it('rejects a name/override model string before the provider is bound', async () => {
             const body = { ...raw(), model: 'claude-sonnet-5-5/override' };
-            const res: any = await providers.initForAnthropic(ctxFor(body, { models: [claude] }));
-            expect(res.native).toBe(true);
-            expect(res.body.model).toBe('claude-sonnet-5-5/override');
+            await expect(providers.initForAnthropic(ctxFor(body, { models: [claude] }))).rejects.toMatchObject({
+                anthropicType: 'invalid_request_error',
+                message: 'Model id override (name/<id>) is not supported; ask an administrator to add the model.',
+            });
         });
         it('keeps the converse path: converts, and ignores x-claude-code-session-id', async () => {
             const spy = vi.spyOn(providers, 'convertAnthropicRequest');
@@ -126,10 +127,14 @@ describe('provider registry', () => {
         expect(Object.keys(providers)).toEqual([
             'bedrock-converse', 'bedrock-runtime-openai', 'bedrock-runtime-anthropic', 'smart-router', 'sagemaker-lmi',
             'bedrock-knowledge-base', 'bedrock-agent', 'painter', 'nova-canvas', 'ollama',
-            'web-miner', 'continue-coder', 'urls-reader', 'aws-executor', 'titan-embeddings',
+            'continue-coder', 'titan-embeddings',
             'openai-compatible', 'bedrock-deepseek', 'sagemaker-deepseek', 'azure-openai',
             'azure-openai-image', 'gemini-converse',
         ]);
+    });
+
+    it('no longer registers the retired providers', () => {
+        for (const name of ['aws-executor', 'urls-reader', 'web-miner']) expect((providers as any)[name]).toBeUndefined();
     });
 
     describe.each(ENTRY_POINTS)('%s', (_name, call, body) => {
@@ -196,7 +201,7 @@ describe('provider registry', () => {
                 ctx.logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() };
                 if (budget) ctx.headers['think-budget'] = budget;
                 const res: any = await providers.init(ctx);
-                res.provider.chatSync = vi.fn().mockResolvedValue({});
+                res.provider.chatSync = vi.fn().mockResolvedValue({ output: { message: { content: [{ text: 'ok' }] } }, usage: {}, metrics: {}, $metadata: {} });
                 await res.provider.chat(res.chatRequest, undefined, ctx);
                 return res.provider.chatSync.mock.calls[0][1];
             };
