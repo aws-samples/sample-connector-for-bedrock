@@ -4,10 +4,11 @@ Use CloudFormation for quick deployment.
 
 ## Supported Region
 
-Cloudformation template are verified in following regions:
+Every compute type (`ec2`, `lambda`, `lambda-web` and `ecs`) works in these Regions: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2, ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1.
 
-- us-east-1
-- us-west-2
+[Claude Code Web](../user-manual/scenarios/claude-code-web.md) also needs AgentCore Runtime, which is available in all of them except ap-northeast-3, so it cannot run there.
+
+The Lambda@Edge stack for `lambda` with AWS_IAM authorization is always deployed in us-east-1.
 
 ## Prerequisites
 
@@ -44,7 +45,7 @@ Here are some recommend deployment patterns:
 
 ## Deploy Guide
 
-- (Mandatory, if you need lambda function URL with AWS_IAM auth type) deploy lambda@edge at us-east-1 region for Cloudfront Origin Request. After deploy successfully, get lambda version ARN from outputs page. <mark style="background: #FFB86CA6;">If skip this step, lambda function URL will be public.</mark>
+- (Mandatory, if you need lambda function URL with AWS_IAM auth type) deploy lambda@edge at us-east-1 region for Cloudfront Origin Request. After deploy successfully, get lambda version ARN from outputs page. The template publishes version `v2`; when you update an existing Lambda@Edge stack, set the `LambdaEdgeVersionArn` parameter of your BRConnector stack to the new `LambdaEdgeVersionArn` output. <mark style="background: #FFB86CA6;">If skip this step, lambda function URL will be public.</mark>
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
 
@@ -88,7 +89,7 @@ Here are some recommend deployment patterns:
 - Debugging parameters
   - If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.
   - Don't delete EC2 if you choose EC2 as ComputeType
-  - If you set `true` to AutoUpdateBRConnector, one script will be add to ec2 crontab
+  - If you set `true` to AutoUpdateBRConnector, BRConnector is updated every night; see [AutoUpdate](#autoupdate)
 
 ![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
@@ -98,19 +99,41 @@ Here are some recommend deployment patterns:
 
 - Also you could connect to `BRConnector` EC2 instance with SSM Session Manager ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 
-## Update BRConnector
+## AutoUpdate
 
-### AutoUpdate is true
+With `AutoUpdateBRConnector` set to `true`, the stack moves BRConnector to `latest` every night at 00:00 UTC, even when `BRConnectorVersion` is pinned to another version.
 
-- Check your ECR settings, if has rules in pull through cache page, you have enabled this feature to update ECR image with upstream repo automatically.
-- Go to codebuild page, one project will be triggered to build regularly to update your lambda image automatically
-- Images in EC2 will be updated using state manager in SSM automatically.
+| ComputeType | What runs at 00:00 UTC |
+| --- | --- |
+| `ec2` | An SSM association pulls the `latest` image and, when it changed, runs `/root/brconnector-run.sh latest` on the instance. Stacks created before 0.0.44 have no run script: the association replays the `docker run` line logged at first boot instead, with the tag set to `latest`. Each run also restricts the permissions of the boot log and the key files in `/root`. |
+| `lambda` | An EventBridge rule starts a CodeBuild project, which copies the `-lambda:latest` image to your private ECR repository and updates the function. |
+| `ecs` | No nightly job. |
+| `lambda-web` | No nightly job. A stack update rebuilds the package from `SourceRepoUrl` at `SourceRef` and deploys it when `SourceRepoUrl`, `SourceRef` or `WebFnBuildId` changes, and on the first update to a 0.0.44 template. Change `WebFnBuildId` (for example from `1` to `2`) to rebuild without changing anything else. |
 
-### AutoUpdate is false
+If the update of a `lambda-web` stack fails, CloudFormation rolls it back by building the previous `SourceRef` again, so keep that ref (branch or commit) available in the repository until the update completes. If the rollback build fails too, the stack ends in `UPDATE_ROLLBACK_FAILED`. Recover with:
 
-- Check your ECR settings, if has rules in pull through cache page, you have enabled this feature to update ECR image with upstream repo automatically.
-- Go to codebuild page, one project could be triggered to update your lambda image manually. Click `Start build` to update lambda image.
-- Images in EC2 will NOT be updated using state manager in SSM automatically due to no association created. Reference document in SSM to execute commands in EC2 manually.
+```sh
+aws cloudformation continue-update-rollback --stack-name <stack name> --resources-to-skip WebFnPackage
+```
+
+With `AutoUpdateBRConnector` set to `false`:
+
+- Go to the CodeBuild page; one project could be triggered to update your lambda image manually. Click `Start build`.
+- Images in EC2 will NOT be updated by SSM State Manager automatically, because no association is created. Use the SSM document to run the update on EC2 manually.
+- Check your ECR settings: if there are rules in the pull through cache page, you have enabled this feature to update the ECR image with the upstream repository automatically.
+
+## Template updates of existing stacks
+
+Updating a stack to the 0.0.44 template changes the instance's UserData, so:
+
+- An `ec2` instance is stopped and started once, which is a short outage.
+- `lambda` and `lambda-web` stacks created with `KeepEc2` set to `false` cannot take the update, because the helper instance deleted itself. Recreate them.
+- `lambda-web` applies the database migrations when it starts. Take a database snapshot before you update.
+- Set `LambdaEdgeVersionArn` to the output of the new Lambda@Edge stack (version `v2`) when you use AWS_IAM authorization on the function URL.
+
+## CloudFront to origin
+
+CloudFront reaches the origin over HTTP for `ec2` and `ecs`. For `lambda-web` the connection is HTTPS from the viewer to the Web Function.
 
 ### ECR without pull through cache enabled (only for previous cfn version)
 
@@ -146,13 +169,13 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 
 ### BRConnector on EC2
 
-- login to ec2 to update local image and restart brconnector container
+- login to ec2 to update local image and restart brconnector container. Stacks created before 0.0.44 have no `/root/brconnector-run.sh`; replay the logged line instead: `cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh`
 
 ```sh
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
 docker rm -f brconnector
-cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sh
+bash /root/brconnector-run.sh latest
 
 ```
 

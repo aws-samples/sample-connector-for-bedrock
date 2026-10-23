@@ -1,9 +1,7 @@
 # Quick Deploy BRConnector using Cloudformation
 
 ## Supported Region
-Cloudformation template are verified in following regions:
-- us-east-1
-- us-west-2
+Every compute type works in us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2, ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1. Claude Code Web needs AgentCore Runtime, which is available in all of them except ap-northeast-3.
 
 ## Prerequisites
 Enable Claude Sonnet 5.5 or Haiku 5.5 in your region - If you are new to using Anthropic models, go to the [Amazon Bedrock console](https://console.aws.amazon.com/bedrock/) and choose **Model access** on the bottom left pane. Request access separately for Claude Sonnet 5.5 or Haiku 5.5.

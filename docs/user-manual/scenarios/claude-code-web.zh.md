@@ -44,7 +44,7 @@ Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](h
 
 stack 输出 `ClaudeCodeWebUrl` 就是访问地址。
 
-模板支持 us-east-1、us-east-2、us-west-1、us-west-2，这四个区域都提供 AgentCore Runtime。`lambda-web` 只能用在提供 Lambda Web Functions 的区域。除 us-west-1 外，这几个区域都提供 AgentCore Web Search。
+模板可用于 us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。Claude Code Web 需要 AgentCore Runtime，除 ap-northeast-3 外这些区域都提供，所以它不能在 ap-northeast-3 运行。AgentCore Web Search 只在「联网搜索」一节列出的区域提供。
 
 ### 不用 CloudFormation
 
@@ -62,6 +62,28 @@ stack 输出 `ClaudeCodeWebUrl` 就是访问地址。
 AgentCore Web Search 只在 us-east-1、us-east-2、us-west-2、eu-west-1、ap-southeast-2、ap-northeast-1 提供。在其他区域（例如 us-west-1），stack 不会创建这些资源，Claude Code Web 照常可用，只是没有联网搜索。
 
 搜索按每 1,000 次查询 7 美元收费（[价格](https://aws.amazon.com/bedrock/agentcore/pricing/)），**由 AWS 向部署 stack 的账号收费，不计入 key**。搜索不经过 BRConnector，所以不计入 key 的额度和余额。默认每个账号在每个区域每秒最多 10 次搜索，这个配额可以申请调整。不需要联网搜索时，把 `EnableWebSearch` 设为 `false`。
+
+想在花费增长时收到通知，可以针对搜索的用量类型建一个按月的成本预算。下面的例子在达到 50 美元（约 7,000 次查询）的 80 % 时发邮件，请替换 `<account id>` 和邮箱地址：
+
+```sh
+aws budgets create-budget --account-id <account id> \
+  --budget '{
+    "BudgetName": "claude-code-web-web-search",
+    "BudgetType": "COST",
+    "TimeUnit": "MONTHLY",
+    "BudgetLimit": {"Amount": "50", "Unit": "USD"},
+    "CostFilters": {
+      "Service": ["Amazon Bedrock AgentCore"],
+      "UsageType": ["USE1-WebSearchTool:Consumption-based:Queries"]
+    }
+  }' \
+  --notifications-with-subscribers '[{
+    "Notification": {"NotificationType": "ACTUAL", "ComparisonOperator": "GREATER_THAN", "Threshold": 80, "ThresholdType": "PERCENTAGE"},
+    "Subscribers": [{"SubscriptionType": "EMAIL", "Address": "you@example.com"}]
+  }]'
+```
+
+`USE1-` 是 us-east-1 的前缀，其他区域有各自的前缀，可用 `aws ce get-dimension-values --dimension USAGE_TYPE --search-string WebSearchTool --time-period Start=<yyyy-mm-01>,End=<today>` 列出。预算只负责提醒，不会停止搜索，BRConnector 的额度也不适用于搜索。
 
 ## 给用户开通
 
@@ -94,9 +116,9 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 
 ## 已知限制
 
-- 只支持在新建 stack 时打开开关。对已有 stack 打开开关不会生效：ec2 修改 UserData 不会重跑 cloud-init，SSM 自动升级重放的仍是第一次启动时的 `docker run` 行。
+- 只支持在新建 stack 时打开开关。对已有 stack 打开开关不会生效：ec2 修改 UserData 不会重跑 cloud-init，每晚的 SSM 升级执行的是 `/root/brconnector-run.sh`（0.0.44 之前创建的 stack 重放第一次启动时记录的 `docker run` 行），而这个脚本是实例第一次部署时写下的。
 - microVM 的计算费用算在部署 stack 的账号上，不计入 key 的额度。key 的额度只管模型 token。每个 key 最多一个 microVM，空闲 15 分钟回收。
-- ec2 每晚自动把 BRConnector 升级到 `latest`，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）：镜像会从 `SourceRepoUrl` 的 `SourceRef` 重新构建，`SourceRef` 是分支时会带上新提交，stack 里的其他资源不变。修改 `SourceRepoUrl`、`SourceRef` 或 `BRConnectorVersion` 也会重建镜像，但 BRConnector 本身也会跟着重建，因为它们是 EC2 实例 UserData 的一部分：`ec2` 形态下 BRConnector 实例会停止再启动；`lambda-web` 形态下 BRConnector 部署包不会重新构建，因为它只在创建 stack 时构建（`KeepEc2` 为 `false` 时更新会失败，因为辅助实例已经自行删除）。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。
+- ec2 每晚自动把 BRConnector 升级到 `latest`，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）：镜像会从 `SourceRepoUrl` 的 `SourceRef` 重新构建，`SourceRef` 是分支时会带上新提交，stack 里的其他资源不变。修改 `SourceRepoUrl` 或 `SourceRef` 也会重建镜像。`lambda-web` 形态下，更新 stack 还会从同一个仓库和 ref 重新构建 BRConnector 部署包（更新失败时通过重新构建上一个 `SourceRef` 回滚，所以更新完成前请保留它，见 [AutoUpdate](../../home/deployment.zh.md#autoupdate)）。`ec2` 形态下，`SourceRepoUrl` 和 `SourceRef` 不会动实例；修改 `BRConnectorVersion` 会改变 UserData，实例会停止再启动一次。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。
 - 在上游发布带 `/cc` 的 BRConnector 版本、维护者推送公开镜像之前，`ec2` 和 `ecs` 形态用不了 Claude Code Web。
 - `lambda-web` 形态下，单次消息流最长 15 分钟（Lambda 超时 900 秒）；`ec2` 和 `ecs` 下受 AgentCore 同步请求 15 分钟的限制。
 - microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。

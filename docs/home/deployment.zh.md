@@ -4,10 +4,11 @@
 
 ## 支持的区域
 
-CloudFormation 模板已在以下区域进行验证：
+所有部署形态（`ec2`、`lambda`、`lambda-web`、`ecs`）都可以用在这些区域：us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。
 
-- us-east-1
-- us-west-2
+[Claude Code Web](../user-manual/scenarios/claude-code-web.md) 还需要 AgentCore Runtime，除 ap-northeast-3 外这些区域都提供，所以它不能在 ap-northeast-3 运行。
+
+`lambda` 使用 AWS_IAM 认证时所需的 Lambda@Edge stack 始终部署在 us-east-1。
 
 ## 前提条件
 
@@ -43,7 +44,7 @@ CloudFormation 模板已在以下区域进行验证：
 
 ## 部署指南
 
-- （如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB86CA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark>
+- （如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。模板发布的版本是 `v2`；更新已有的 Lambda@Edge stack 后，把 BRConnector stack 的 `LambdaEdgeVersionArn` 参数设为新的 `LambdaEdgeVersionArn` 输出。<mark style="background: #FFB86CA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark>
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
 
@@ -87,7 +88,7 @@ CloudFormation 模板已在以下区域进行验证：
 - 调试参数
   - 如果您选择 Lambda 作为计算类型，可以选择在所有资源部署成功后删除 EC2。此 EC2 用于临时编译和构建 BRConnector 容器。
   - 如果您选择 EC2 作为计算类型，请不要删除 EC2
-  - 如果您将 AutoUpdateBRConnector 设置为 `true`，将在 ec2 crontab 中添加一个脚本
+  - 如果您将 AutoUpdateBRConnector 设置为 `true`，BRConnector 每晚自动更新，见 [AutoUpdate](#autoupdate)
 
 ![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
@@ -97,19 +98,41 @@ CloudFormation 模板已在以下区域进行验证：
 
 - 您还可以使用 SSM 会话管理器连接到 `BRConnector` EC2 实例 ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 
-## 更新 BRConnector
+## AutoUpdate
 
-### AutoUpdate 为 true
+`AutoUpdateBRConnector` 为 `true` 时，stack 每晚 00:00 UTC 把 BRConnector 更新到 `latest`，即使 `BRConnectorVersion` 固定在其他版本也一样。
 
-- 检查您的 ECR 设置，如果在拉取缓存页面中有规则，则您已启用此功能以使用上游存储库自动更新 ECR 映像。
-- 转到 codebuild 页面，将触发一个项目定期构建以自动更新您的 lambda 映像
-- EC2 中的映像将使用 SSM 中的状态管理器自动更新。
+| ComputeType | 00:00 UTC 执行的内容 |
+| --- | --- |
+| `ec2` | 一个 SSM association 拉取 `latest` 镜像，镜像有变化时在实例上执行 `/root/brconnector-run.sh latest`。0.0.44 之前创建的 stack 没有这个脚本：association 改为重放第一次启动时记录的 `docker run` 行，并把标签换成 `latest`。每次执行还会限制 `/root` 下启动日志和密钥文件的权限。 |
+| `lambda` | 一条 EventBridge 规则启动 CodeBuild 项目，项目把 `-lambda:latest` 镜像复制到您的私有 ECR 仓库并更新函数。 |
+| `ecs` | 没有夜间任务。 |
+| `lambda-web` | 没有夜间任务。`SourceRepoUrl`、`SourceRef` 或 `WebFnBuildId` 变化时，以及第一次更新到 0.0.44 模板时，更新 stack 会从 `SourceRepoUrl` 的 `SourceRef` 重新构建部署包并发布。只想重新构建时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）。 |
 
-### AutoUpdate 为 false
+`lambda-web` stack 更新失败时，CloudFormation 通过重新构建上一个 `SourceRef` 来回滚，所以在更新完成之前，请保留这个 ref（分支或提交）。如果回滚构建也失败，stack 会停在 `UPDATE_ROLLBACK_FAILED`。用下面的命令恢复：
 
-- 检查您的 ECR 设置，如果在拉取缓存页面中有规则，则您已启用此功能以使用上游存储库自动更新 ECR 映像。
-- 转到 codebuild 页面，可以触发一个项目来手动更新您的 lambda 映像。单击“开始构建”以更新 lambda 映像。
-- 由于未创建关联，EC2 中的映像将不会使用 SSM 中的状态管理器自动更新。参考 SSM 中的文档以手动在 EC2 中执行命令。
+```sh
+aws cloudformation continue-update-rollback --stack-name <stack name> --resources-to-skip WebFnPackage
+```
+
+`AutoUpdateBRConnector` 为 `false` 时：
+
+- 转到 CodeBuild 页面，可以触发一个项目来手动更新 lambda 映像。单击“开始构建”。
+- 由于没有创建 association，EC2 中的映像不会由 SSM State Manager 自动更新。请用 SSM 文档在 EC2 上手动执行更新。
+- 检查您的 ECR 设置：如果拉取缓存页面中有规则，则已启用用上游仓库自动更新 ECR 映像的功能。
+
+## 已有 stack 的模板更新
+
+把 stack 更新到 0.0.44 模板会改变实例的 UserData，因此：
+
+- `ec2` 实例会停止再启动一次，有一次短暂的中断。
+- 创建时 `KeepEc2` 为 `false` 的 `lambda` 和 `lambda-web` stack 无法接受这次更新，因为辅助实例已经自行删除，需要重新创建。
+- `lambda-web` 启动时会执行数据库迁移。更新前请先做数据库快照。
+- 函数 URL 使用 AWS_IAM 认证时，把 `LambdaEdgeVersionArn` 设为新 Lambda@Edge stack（版本 `v2`）的输出。
+
+## CloudFront 到源站
+
+`ec2` 和 `ecs` 下，CloudFront 通过 HTTP 访问源站。`lambda-web` 从访问者到 Web Function 全程 HTTPS。
 
 ### 未启用拉取缓存的 ECR（仅适用于以前的 cfn 版本）
 
@@ -144,13 +167,13 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 
 ### 运行在 EC2 上的 BRConnector
 
-- 登录到 ec2 以更新本地映像并重新启动 brconnector 容器
+- 登录到 ec2 以更新本地映像并重新启动 brconnector 容器。0.0.44 之前创建的 stack 没有 `/root/brconnector-run.sh`，请改为重放记录的那一行：`cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh`
 
 ```sh
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
 docker rm -f brconnector
-cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sh
+bash /root/brconnector-run.sh latest
 
 ```
 

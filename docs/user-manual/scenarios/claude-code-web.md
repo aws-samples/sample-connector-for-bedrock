@@ -44,7 +44,7 @@ With the switch on, the stack also creates:
 
 The stack output `ClaudeCodeWebUrl` is the address to open.
 
-The template supports us-east-1, us-east-2, us-west-1 and us-west-2, and AgentCore Runtime is available in all four. `lambda-web` is available only where Lambda Web Functions are. AgentCore Web Search is available in all of them except us-west-1.
+The template works in us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2, ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1. Claude Code Web needs AgentCore Runtime, which is available in all of them except ap-northeast-3, so it cannot run there. AgentCore Web Search is available only in the Regions listed in [Web search](#web-search).
 
 ### Without CloudFormation
 
@@ -62,6 +62,28 @@ With `EnableWebSearch` `true` (the default), the stack also creates an AgentCore
 AgentCore Web Search is available in us-east-1, us-east-2, us-west-2, eu-west-1, ap-southeast-2 and ap-northeast-1. In any other Region, such as us-west-1, the stack creates none of this, and Claude Code Web works without web search.
 
 Searches cost $7 per 1,000 queries ([pricing](https://aws.amazon.com/bedrock/agentcore/pricing/)) and are **billed by AWS to the account that runs the stack, not to the key**. They do not go through BRConnector, so they are not counted in the key's quota or balance. The default limit is 10 searches per second per account and Region, an adjustable quota. Set `EnableWebSearch` to `false` to leave web search out.
+
+To be told when the spend grows, create a monthly cost budget for the search usage type. This example alerts at 80 % of USD 50 (about 7,000 queries) to an e-mail address; replace `<account id>` and the address:
+
+```sh
+aws budgets create-budget --account-id <account id> \
+  --budget '{
+    "BudgetName": "claude-code-web-web-search",
+    "BudgetType": "COST",
+    "TimeUnit": "MONTHLY",
+    "BudgetLimit": {"Amount": "50", "Unit": "USD"},
+    "CostFilters": {
+      "Service": ["Amazon Bedrock AgentCore"],
+      "UsageType": ["USE1-WebSearchTool:Consumption-based:Queries"]
+    }
+  }' \
+  --notifications-with-subscribers '[{
+    "Notification": {"NotificationType": "ACTUAL", "ComparisonOperator": "GREATER_THAN", "Threshold": 80, "ThresholdType": "PERCENTAGE"},
+    "Subscribers": [{"SubscriptionType": "EMAIL", "Address": "you@example.com"}]
+  }]'
+```
+
+`USE1-` is the us-east-1 prefix. Other Regions use their own prefix; list the usage types with `aws ce get-dimension-values --dimension USAGE_TYPE --search-string WebSearchTool --time-period Start=<yyyy-mm-01>,End=<today>`. The budget is an alert only: it does not stop searches, and BRConnector quotas do not apply to them.
 
 ## Give users access
 
@@ -94,9 +116,9 @@ Logging out stops your microVM. Your files stay in S3 and come back the next tim
 
 ## Known limitations
 
-- The switch only works when the stack is created. Turning it on for an existing stack does not take effect: with ec2, changing the UserData does not run cloud-init again, and the SSM auto-update replays the `docker run` line from the first boot.
+- The switch only works when the stack is created. Turning it on for an existing stack does not take effect: with ec2, changing the UserData does not run cloud-init again, and the nightly SSM update runs `/root/brconnector-run.sh` (stacks created before 0.0.44 replay the `docker run` line logged at first boot), which was written when the instance was first set up.
 - The microVM compute cost is billed to the account that deploys the stack and does not count against the key's quota. The key's quota covers model tokens only. Each key has at most one microVM, reclaimed after 15 minutes idle.
-- With ec2, BRConnector is upgraded to `latest` every night, but the Claude Code Web backend image is rebuilt only by a stack update. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`): the image is built again from `SourceRepoUrl` at `SourceRef`, so a branch picks up its new commits, and nothing else in the stack changes. Changing `SourceRepoUrl`, `SourceRef` or `BRConnectorVersion` also rebuilds the image, but rebuilds BRConnector itself too, because they are part of the EC2 instance's UserData: with `ec2` the BRConnector instance is stopped and started, and with `lambda-web` the BRConnector deployment package is not rebuilt, because it is built only when the stack is created (and the update fails when `KeepEc2` is `false`, because the helper instance has already deleted itself). The contract between BRConnector and the backend (passing invocations through, and the four custom headers) must stay backward compatible.
+- With ec2, BRConnector is upgraded to `latest` every night, but the Claude Code Web backend image is rebuilt only by a stack update. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`): the image is built again from `SourceRepoUrl` at `SourceRef`, so a branch picks up its new commits, and nothing else in the stack changes. Changing `SourceRepoUrl` or `SourceRef` also rebuilds the image. With `lambda-web`, the stack update also rebuilds the BRConnector deployment package from the same repository and ref (a failed update rolls back by rebuilding the previous `SourceRef`, so keep it available until the update completes; see [AutoUpdate](../../home/deployment.md#autoupdate)). With `ec2`, `SourceRepoUrl` and `SourceRef` do not touch the instance; changing `BRConnectorVersion` changes the UserData, so the instance is stopped and started once. The contract between BRConnector and the backend (passing invocations through, and the four custom headers) must stay backward compatible.
 - `ec2` and `ecs` cannot use Claude Code Web until a BRConnector release with `/cc` is published upstream and the maintainers push the public image.
 - With `lambda-web`, a single message stream lasts at most 15 minutes (the Lambda timeout is 900 seconds). With `ec2` and `ecs`, AgentCore's 15-minute limit for a synchronous request applies.
 - An idle microVM is reclaimed after 15 minutes. The workspace comes back from S3, but processes running in the terminal are lost.
