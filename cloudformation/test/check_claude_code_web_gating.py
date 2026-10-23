@@ -374,7 +374,7 @@ def check_ec2_docker_run_on(template):
     begin, end = rendered.index(RUN_SCRIPT_BEGIN), rendered.index(RUN_SCRIPT_END)
     lines = [l for l in rendered[begin:end] if '--name brconnector' in l]
     elsewhere = [l for l in rendered[:begin] + rendered[end:] if '--name brconnector' in l]
-    if len(lines) != 1 or elsewhere or not lines[0].lstrip().startswith('docker run ') or on_text not in lines[0]:
+    if len(lines) != 1 or elsewhere or 'docker run ' not in lines[0] or on_text not in lines[0]:
         return [f'the switched-on run script must hold the only docker run line, one line with --name brconnector and {EC2_SUB_VAR}']
     return []
 

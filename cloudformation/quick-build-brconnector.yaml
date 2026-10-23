@@ -769,13 +769,16 @@ Resources:
           # start brconnector container in ECR
           # BEGIN brconnector-run
           # The run script holds the database password and the admin key. It starts the
-          # image tag given as its argument, by default BRConnectorVersion.
+          # image tag given as its argument, by default BRConnectorVersion. The docker run
+          # arguments are expanded here once, as the docker run line of earlier versions
+          # expanded them, and written quoted, so every run passes exactly these values.
           BRC_DEFAULT_TAG=${BRConnectorVersion}
+          BRC_RUN_LINE=$(printf '%q ' docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY${CcEnvArg} -d)
           cat > /root/brconnector-run.sh <<EOF
           #!/bin/bash -e
           IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
           IMAGE_TAG="\${!1:-$BRC_DEFAULT_TAG}"
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY${CcEnvArg} -d "public.ecr.aws/\$IMG_EC2:\$IMAGE_TAG"
+          $BRC_RUN_LINE"public.ecr.aws/\$IMG_EC2:\$IMAGE_TAG"
           EOF
           chmod 700 /root/brconnector-run.sh
           bash /root/brconnector-run.sh

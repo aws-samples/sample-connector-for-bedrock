@@ -110,9 +110,9 @@ def render_sub(text, values=None, cc=False):
     return re.sub(r'\$\{(!?)([^}]*)\}', one, text)
 
 
-def run_script_block(root, cc=False):
+def run_script_block(root, cc=False, values=None):
     """The rendered BEGIN/END block, with /root/ mapped to root."""
-    text = render_sub(userdata_text(), cc=cc)
+    text = render_sub(userdata_text(), values, cc=cc)
     start = text.index('# BEGIN brconnector-run\n')
     end = text.index('# END brconnector-run', start)
     return text[start:end].replace('/root/', f'{root}/')
@@ -171,10 +171,22 @@ def env(stub_dir, **extra):
     return {'PATH': f'{stub_dir}:/usr/bin:/bin', 'STUB_DIR': str(stub_dir), **extra}
 
 
-def bash(args, stub_dir, **extra):
+def bash(args, stub_dir, cwd=None, **extra):
     return subprocess.run(
-        [shutil.which('bash'), *map(str, args)], env=env(stub_dir, **extra), capture_output=True, text=True, timeout=60
+        [shutil.which('bash'), *map(str, args)],
+        env=env(stub_dir, **extra),
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
+
+
+def old_boot(work, stub_dir, values=None, cc=True, trace=False, cwd=None):
+    """First boot of a 0.0.43 stack: its docker run line, run by bash where UserData ran it."""
+    boot = work / 'boot-0.0.43.sh'
+    boot.write_text('IMG_EC2=x6u9o2u4/sample-connector-for-bedrock\n' + render_sub(LOGGED_LINE, values, cc=cc) + '\n')
+    return bash(['-x', boot] if trace else [boot], stub_dir, cwd=cwd, KEY='KEY-MARKER', PGHOST='172.17.0.1')
 
 
 def docker_calls(stub_dir):
@@ -243,6 +255,39 @@ def test_run_script_starts_the_pinned_image_then_latest(tmp_path, cc):
     assert calls[1][:-1] == calls[0][:-1]
 
 
+# Values as typed into the stack parameters. CloudFormation inserts them into UserData unchanged.
+PARAMETER_VALUES = ['mysecretpassword', 'pa$word', 'a b', 'x*y', 'p%q^r~t', 'a\\$b', 'a\\\\b', "it's"]
+
+
+@pytest.mark.parametrize('cc', [False, True])
+@pytest.mark.parametrize('field', ['PGPassword', 'PGUser', 'PGDatabase'])
+@pytest.mark.parametrize('value', PARAMETER_VALUES)
+def test_run_script_passes_the_arguments_of_the_0_0_43_line(tmp_path, value, field, cc):
+    values = dict(VALUES, **{field: value})
+    # Both run where UserData runs, next to files a glob in the value would match.
+    cwd = tmp_path / 'cwd'
+    cwd.mkdir()
+    for name in ('PGSQL_PASSWORD', 'PGSQL_USER', 'PGSQL_DATABASE'):
+        (cwd / f'{name}=x1y').write_text('')
+    old, new = tmp_path / 'old', tmp_path / 'new'
+    old.mkdir()
+    new.mkdir()
+    old_stubs, new_stubs = stubs(old), stubs(new)
+    old_boot(old, old_stubs, values, cc=cc, cwd=cwd)
+    block = new / 'block.sh'
+    block.write_text(run_script_block(new, cc=cc, values=values))
+    bash(['-e', block], new_stubs, cwd=cwd, KEY='KEY-MARKER', PGHOST='172.17.0.1')
+    expected = docker_calls(old_stubs)
+    # A value with an unmatched quote never started a container, and still does not.
+    assert len(expected) == (0 if value == "it's" else 1)
+    assert docker_calls(new_stubs) == expected
+    if expected:
+        # The nightly update, from another directory: the same arguments with only the tag changed.
+        proc = bash([new / 'brconnector-run.sh', 'latest'], new_stubs, cwd=tmp_path)
+        assert proc.returncode == 0, proc.stderr
+        assert docker_calls(new_stubs)[1] == expected[0][:-1] + [f'{IMAGE}:latest']
+
+
 def test_no_secret_goes_to_stdout():
     lines = userdata_text().splitlines()
     api = [line for line in lines if 'curl' in line and '/admin/api-key/' in line]
@@ -301,9 +346,7 @@ def test_ssm_update_falls_back_to_the_logged_line(tmp_path):
     assert LOGGED_LINE_REPLAY in '\n'.join(ssm_commands())
     stub_dir = stubs(tmp_path, sed)
     # First boot of a 0.0.43 stack, Claude Code Web on: bash -x traces the docker run line.
-    boot = tmp_path / 'boot.sh'
-    boot.write_text('IMG_EC2=x6u9o2u4/sample-connector-for-bedrock\n' + render_sub(LOGGED_LINE, cc=True) + '\n')
-    proc = bash(['-x', boot], stub_dir, KEY='KEY-MARKER', PGHOST='172.17.0.1')
+    proc = old_boot(tmp_path, stub_dir, cc=True, trace=True)
     assert proc.returncode == 0, proc.stderr
     (tmp_path / 'cloud-init-output.log').write_text(
         "Cloud-init v. 22.2.2 running 'modules:final'\n"
