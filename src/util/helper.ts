@@ -5,7 +5,6 @@ import config from '../config';
 import nodemailer from 'nodemailer';
 import logger from './logger';
 import { withAnthropicType } from './anthropic_error';
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 const crypto = require('crypto');
 
 export const MODEL_ID_OVERRIDE_MESSAGE = 'Model id override (name/<id>) is not supported; ask an administrator to add the model.';
@@ -29,56 +28,6 @@ const helper = {
             }
         }
         return "br-" + key;
-    },
-    async downloadImageToBase64(url: string, client: S3Client): Promise<any> {
-        if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
-            const imageReq = await fetch(url);
-            const blob = await imageReq.blob();
-            let buffer = Buffer.from(await blob.arrayBuffer());
-            return buffer.toString('base64');
-        } else if (url.indexOf('s3://') >= 0) {
-            const urlParts = url.replace('s3://', '').split('/');
-            const bucketName = urlParts.shift();
-            const key = urlParts.join('/');
-            const params = {
-                Bucket: bucketName,
-                Key: key,
-            };
-
-            try {
-                const command = new GetObjectCommand(params);
-                const response = await client.send(command);
-                const byteArray = await response.Body.transformToByteArray();
-                return Buffer.from(byteArray).toString('base64');
-
-            } catch (error) {
-                // console.error("Error downloading and converting image:", error);
-                throw error;
-            }
-
-        }
-    },
-    async parseImageUrl(url: string): Promise<any> {
-        if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
-            const imageReq = await fetch(url);
-            const blob = await imageReq.blob();
-            let buffer = Buffer.from(await blob.arrayBuffer());
-            return {
-                "type": "base64",
-                "media_type": blob.type,
-                "data": buffer.toString('base64')
-            };
-        } else if (url.indexOf('data:') >= 0) {
-            const media_type = url.substring(5, url.indexOf(';'));
-            const type = url.substring(url.indexOf(';') + 1, url.indexOf(','));
-            const data = url.substring(url.indexOf(',') + 1);
-            return {
-                type,
-                media_type,
-                data
-            }
-        }
-        return null;
     },
     refineModelParameters: async (chatRequest: ChatRequest, ctx: any): Promise<ModelData> => {
         const model = chatRequest.model;

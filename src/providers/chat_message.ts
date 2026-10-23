@@ -1,5 +1,6 @@
 
 import { ChatRequest } from "../entity/chat_request";
+import { fetchPublicImage } from "../util/public_fetch";
 
 
 export default class ChatMessageConverter {
@@ -21,17 +22,7 @@ export default class ChatMessageConverter {
     }
 
     async parseImageUrl(url: string): Promise<any> {
-        if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
-            const imageReq = await fetch(url);
-            const blob = await imageReq.blob();
-            let buffer = Buffer.from(await blob.arrayBuffer());
-
-            return {
-                "type": "base64",
-                "media_type": blob.type,
-                "data": buffer.toString('base64')
-            };
-        } else if (url.indexOf('data:') >= 0) {
+        if (/^data:/i.test(url)) {
             const media_type = url.substring(5, url.indexOf(';'));
             const type = url.substring(url.indexOf(';') + 1, url.indexOf(','));
             const data = url.substring(url.indexOf(',') + 1);
@@ -41,7 +32,13 @@ export default class ChatMessageConverter {
                 data
             }
         }
-        return null;
+        // Any other URL must be http(s) on a public address; a rejection answers 400.
+        const { bytes, contentType } = await fetchPublicImage(url);
+        return {
+            "type": "base64",
+            "media_type": contentType,
+            "data": bytes.toString('base64')
+        };
     }
 
     async convertSingleType(contentItem: any): Promise<any> {

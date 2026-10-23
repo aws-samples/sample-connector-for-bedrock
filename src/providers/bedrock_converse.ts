@@ -9,6 +9,7 @@ import helper from "../util/helper";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import AnthropicResponse from '../util/anthropic_response';
+import { fetchPublicImage } from '../util/public_fetch';
 
 // Claude models that answer 400 when temperature or top_p is sent. Measured on Converse in us-east-1 on 2026-10-16:
 // Opus 4.8, Opus 5.5, Sonnet 5.5 and Haiku 5.5 reject both, while Sonnet 4.6 and Haiku 4.5 accept them. Opus 4.x
@@ -778,19 +779,7 @@ class MessageConverter {
 
 
     async parseImageUrl(url: string): Promise<any> {
-        if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
-            const imageRes = await fetch(url);
-            const mime = imageRes.headers.get('Content-Type');
-            const blob = await imageRes.blob();
-            let bytes = Buffer.from(await blob.arrayBuffer());
-
-            return {
-                format: helper.convertImageExt(mime), // required
-                source: {
-                    bytes
-                },
-            }
-        } else if (url.indexOf('data:') >= 0) {
+        if (/^data:/i.test(url)) {
             const media_type = url.substring(5, url.indexOf(';'));
             const type = url.substring(url.indexOf(';') + 1, url.indexOf(','));
             const data = url.substring(url.indexOf(',') + 1);
@@ -802,7 +791,14 @@ class MessageConverter {
                 },
             }
         }
-        return null;
+        // Any other URL must be http(s) on a public address; a rejection answers 400.
+        const { bytes, contentType } = await fetchPublicImage(url);
+        return {
+            format: helper.convertImageExt(contentType), // required
+            source: {
+                bytes
+            },
+        }
     }
 
     async convertContent(content: any): Promise<any[]> {

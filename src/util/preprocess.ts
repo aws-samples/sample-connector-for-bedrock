@@ -1,5 +1,8 @@
 import sharp from 'sharp';
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { fetchPublicImage } from './public_fetch';
+
+export const S3_IMAGE_OUTSIDE_BUCKET = "s3:// image URLs must point to the model's s3Bucket.";
 
 export default {
   async scaleDownImage(input: Buffer | ArrayBuffer | Uint8Array | Uint8ClampedArray | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array | Float64Array | string, factor: number, max?: number) {
@@ -45,16 +48,18 @@ export default {
     return Math.ceil(num / factor) * factor;
   },
 
-  async downloadImageForNovaToBase64(url: string, client: S3Client): Promise<any> {
+  // bucket is the model's s3Bucket: an s3:// URL is read only from that bucket.
+  async downloadImageForNovaToBase64(url: string, client: S3Client, bucket: string): Promise<any> {
     if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
-      const imageReq = await fetch(url);
-      const blob = await imageReq.blob();
-      let buffer = Buffer.from(await blob.arrayBuffer());
-      let nbuffer = await this.scaleDownImage(buffer, 16, 2048);
+      const { bytes } = await fetchPublicImage(url);
+      let nbuffer = await this.scaleDownImage(bytes, 16, 2048);
       return nbuffer.toString('base64');
     } else if (url.indexOf('s3://') >= 0) {
       const urlParts = url.replace('s3://', '').split('/');
       const bucketName = urlParts.shift();
+      if (!bucket || bucketName !== bucket) {
+        throw Object.assign(new Error(S3_IMAGE_OUTSIDE_BUCKET), { statusCode: 400 });
+      }
       const key = urlParts.join('/');
       const params = {
         Bucket: bucketName,

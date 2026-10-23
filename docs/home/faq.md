@@ -55,3 +55,15 @@ Yes, you can draw diagrams by configuring and using models with providers such a
 Configure one model in BRConnector for each upstream model id you want to offer, and call it by its name. A configured model name may itself contain `/`, for example `team/nova-micro`, and is used as it is.
 
 Since 0.0.43, a model string `<name>/<model id>` that is not itself a configured model name gets HTTP 400; the part after the slash no longer selects the upstream model id.
+
+## Image URLs in Chat Requests {#image-urls}
+
+An image in a chat request can be a `data:` URL (`data:image/png;base64,...`) or an `http(s)` URL. Where BRConnector downloads an `http(s)` image itself, for example for `bedrock-converse` and `nova-canvas` models, it accepts the URL only when:
+
+- the host is on a public address, checked again on every redirect; private, loopback, link-local and other reserved ranges are not accepted;
+- the image arrives within 15 seconds, after at most 3 redirects;
+- the response has an `image/*` content type and is at most 10 MiB.
+
+Any other URL gets HTTP 400 with `Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.` An image on a private network can be sent as a `data:` URL instead. BRConnector connects to the image host directly, not through `HTTPS_PROXY` or `HTTP_PROXY`.
+
+For `nova-canvas` models, an `s3://` image URL must name the bucket in the model's `s3Bucket` setting; any other bucket gets HTTP 400.

@@ -118,6 +118,10 @@ export default class NovaCanvas extends AbstractProvider {
         const jArgs = JSON.parse(args);
         imgs = await this[funName](jArgs);
       } catch (error) {
+        // A rejected image URL keeps its own message and status.
+        if ((error as any)?.statusCode === 400) {
+          throw error;
+        }
         throw new Error("Error: " + error);
       }
     }
@@ -176,7 +180,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client, this.s3Bucket);
 
     let inputBody: any = {
       taskType: "COLOR_GUIDED_GENERATION",
@@ -221,7 +225,7 @@ export default class NovaCanvas extends AbstractProvider {
     const imageDatas = [];
 
     for (const imgUrl of input.image_urls) {
-      imageDatas.push(await preprocess.downloadImageForNovaToBase64(imgUrl, this.s3Client));
+      imageDatas.push(await preprocess.downloadImageForNovaToBase64(imgUrl, this.s3Client, this.s3Bucket));
     }
 
     let inputBody: any = {
@@ -263,7 +267,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client, this.s3Bucket);
     // console.log("VVVVVV", imageData);
 
     let inputBody: any = {
@@ -306,7 +310,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client, this.s3Bucket);
     let inputBody: any = {
       taskType: "INPAINTING",
       inPaintingParams: {
@@ -347,7 +351,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client, this.s3Bucket);
     let inputBody: any = {
       "taskType": "BACKGROUND_REMOVAL",
       "backgroundRemovalParams": {
@@ -381,7 +385,7 @@ export default class NovaCanvas extends AbstractProvider {
         message: "No image url."
       }
     }
-    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client);
+    const imageData = await preprocess.downloadImageForNovaToBase64(input.image_url, this.s3Client, this.s3Bucket);
 
     let inputBody: any = {
       taskType: "TEXT_IMAGE",
