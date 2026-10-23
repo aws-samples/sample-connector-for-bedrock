@@ -210,6 +210,10 @@ export default {
         if (!options.balance || !Number.isFinite(amount) || amount <= 0) {
             throw new Error("balance is required");
         }
+        // eiai_payment.fee is DECIMAL(10,2)
+        if (Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-6) {
+            throw new Error("balance must have at most 2 decimal places");
+        }
 
         const key = options.id ?
             await db.loadById("eiai_key", options.id) :
@@ -218,13 +222,15 @@ export default {
             throw new Error("api_key or id is invalid");
         }
 
-        await db.insert("eiai_payment", {
-            key_id: key.id,
-            fee: amount
-        });
+        return await db.transaction(async (tx: any) => {
+            await tx.insert("eiai_payment", {
+                key_id: key.id,
+                fee: amount
+            });
 
-        // Added to the stored balance, so a call charged since the key was read is kept.
-        return await writeKey(db, key.id, {}, ["id", "name", "email", "api_key", "role", "month_quota", "balance"], { balance: amount });
+            // Added to the stored balance, so a call charged since the key was read is kept.
+            return await writeKey(tx, key.id, {}, ["id", "name", "email", "api_key", "role", "month_quota", "balance"], { balance: amount });
+        });
     },
 
     // If bound then remove, otherwise bind
