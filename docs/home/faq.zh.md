@@ -59,14 +59,18 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ## 聊天请求中的图片 URL {#image-urls}
 
-聊天请求中的图片可以是 `data:` URL（`data:image/png;base64,...`），也可以是 `http(s)` URL。当 BRConnector 自行下载 `http(s)` 图片时（例如 `bedrock-converse` 和 `nova-canvas` 模型），只接受满足以下条件的 URL：
+聊天模型（例如 `bedrock-converse`）接受 `data:` URL（`data:image/png;base64,...`）或 `http(s)` URL 形式的图片。`bedrock-runtime-anthropic` 和 `bedrock-runtime-openai` 会把请求原样转发给 Bedrock，本节内容不适用于它们。
+
+`nova-canvas` 模型接受 `http(s)` URL，或指向模型 `s3Bucket` 配置中存储桶的 `s3://` URL；不读取 `data:` URL。指向其他存储桶的 `s3://` URL 会返回 HTTP 400，消息为 `s3:// image URLs must point to the model's s3Bucket.`。
+
+BRConnector 自行下载 `http(s)` 图片，只接受满足以下条件的 URL：
 
 - 主机位于公网地址，每次重定向后都会重新检查；私有、回环、链路本地及其他保留地址段不被接受；
 - 图片在 15 秒内下载完成，重定向不超过 3 次；
 - 响应的内容类型为 `image/*`，大小不超过 10 MiB。
 
-其他 URL 会返回 HTTP 400，消息为 `Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.`。私有网络中的图片可以改用 `data:` URL 发送。
+其他 `http(s)` URL 会返回 HTTP 400，消息为 `Image URL is not allowed: use an http(s) URL on a public address.`。对于聊天模型，使用 `http`、`https`、`data` 以外协议的 URL 也会返回同样的错误。聊天模型可以改用 `data:` URL 发送私有网络中的图片。
 
-图片 URL 由 BRConnector 所在主机直接下载，不经过代理：`HTTPS_PROXY` 和 `HTTP_PROXY` 对其不生效。没有直接互联网出口的部署应以 `data:` URL 发送图片。
+图片 URL 由 BRConnector 所在主机直接下载，不经过代理：`HTTPS_PROXY` 和 `HTTP_PROXY` 对其不生效。没有直接互联网出口的部署，请以 `data:` URL 向聊天模型发送图片。
 
-对于 `nova-canvas` 模型，`s3://` 图片 URL 必须指向模型 `s3Bucket` 配置中的存储桶；其他存储桶会返回 HTTP 400。
+以 Bedrock 自身格式发送的内容块（例如 `image`、`document`、`video`，包括 `toolResult` 中的内容块）必须内联携带内容。`source` 中含 `s3Location` 时会返回 HTTP 400，消息为 `s3Location sources are not accepted; send the content inline.`。

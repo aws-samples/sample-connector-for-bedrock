@@ -4,10 +4,11 @@ import net from 'node:net';
 import dns from 'node:dns';
 import { Agent, fetch as undiciFetch } from 'undici';
 import { withAnthropicType } from './anthropic_error';
+import logger from './logger';
 
 export const PUBLIC_FETCH_LIMITS = { maxBytes: 10 * 1024 * 1024, timeoutMs: 15000, maxRedirects: 3 };
 
-export const IMAGE_URL_NOT_ALLOWED = 'Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.';
+export const IMAGE_URL_NOT_ALLOWED = 'Image URL is not allowed: use an http(s) URL on a public address.';
 
 export type PublicFetchOptions = {
     resolve?: (host: string) => Promise<string[]>;
@@ -22,10 +23,12 @@ const NOT_PUBLIC_V4: Array<[string, number]> = [
     ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['198.51.100.0', 24],
     ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
 ];
-// 64:ff9b::/96 and 64:ff9b:1::/48 are NAT64 prefixes, which a DNS64/NAT64 network translates to IPv4 addresses.
+// Also not public: the IPv6 forms that carry an IPv4 address. 64:ff9b::/96 and 64:ff9b:1::/48 are NAT64 prefixes,
+// ::/96 is IPv4-compatible, ::ffff:0:0:0/96 IPv4-translated and 2002::/16 6to4. IPv4-mapped addresses
+// (::ffff:0:0/96) are covered range by range above: a BlockList matches every IPv4 address against that whole prefix.
 const NOT_PUBLIC_V6: Array<[string, number]> = [
     ['::', 128], ['::1', 128], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8], ['2001:db8::', 32],
-    ['64:ff9b::', 96], ['64:ff9b:1::', 48],
+    ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['::', 96], ['::ffff:0:0:0', 96], ['2002::', 16],
 ];
 
 const notPublic = new net.BlockList();
@@ -96,17 +99,12 @@ function allowedLookup(resolve: (host: string) => Promise<string[]>, isAllowed: 
     };
 }
 
-function httpUrl(raw: string, base?: URL): URL {
-    let url: URL;
+function parseUrl(raw: string, base?: URL): URL {
     try {
-        url = new URL(raw, base);
+        return new URL(raw, base);
     } catch {
         throw new ImageUrlNotAllowedError('scheme');
     }
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        throw new ImageUrlNotAllowedError('scheme');
-    }
-    return url;
 }
 
 function literalAddress(url: URL): string | undefined {
@@ -153,9 +151,15 @@ export async function fetchPublicImage(url: string, opts: PublicFetchOptions = {
     const timer = setTimeout(() => timeout.abort(), opts.timeoutMs ?? PUBLIC_FETCH_LIMITS.timeoutMs);
     // Its own dispatcher, so neither a proxy nor the global dispatcher takes part in the connection.
     const dispatcher = new Agent({ connect: { lookup: allowedLookup(opts.resolve ?? systemResolve, isAllowed) } });
+    // Only the host is logged with a rejection, never the path or query.
+    let host: string | undefined;
     try {
-        let target = httpUrl(url);
+        let target = parseUrl(url);
         for (let redirects = 0; ; redirects++) {
+            host = target.host;
+            if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+                throw new ImageUrlNotAllowedError('scheme');
+            }
             const literal = literalAddress(target);
             if (literal !== undefined && !isAllowed(literal)) {
                 throw new ImageUrlNotAllowedError('address');
@@ -171,7 +175,7 @@ export async function fetchPublicImage(url: string, opts: PublicFetchOptions = {
                 if (redirects >= maxRedirects || !location) {
                     throw new ImageUrlNotAllowedError('redirects');
                 }
-                target = httpUrl(location, target);
+                target = parseUrl(location, target);
                 continue;
             }
             const contentType = (response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
@@ -186,11 +190,9 @@ export async function fetchPublicImage(url: string, opts: PublicFetchOptions = {
             return { bytes: await readAtMost(response.body as ReadableStream<Uint8Array> | null, maxBytes), contentType };
         }
     } catch (error) {
-        const rejection = rejectionIn(error);
-        if (rejection) {
-            throw rejection;
-        }
-        throw new ImageUrlNotAllowedError(timeout.signal.aborted ? 'timeout' : 'network');
+        const rejection = rejectionIn(error) ?? new ImageUrlNotAllowedError(timeout.signal.aborted ? 'timeout' : 'network');
+        logger.warn({ message: 'Image URL rejected', host, reason: rejection.reason });
+        throw rejection;
     } finally {
         clearTimeout(timer);
         dispatcher.destroy().catch(() => undefined);

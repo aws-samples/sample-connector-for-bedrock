@@ -10,6 +10,7 @@ import ChatMessageConverter from '../src/providers/chat_message';
 import NovaCanvas from '../src/providers/nova_canvas';
 import providers from '../src/providers/provider';
 import { errorHandler } from '../src/middleware/handlers';
+import logger from '../src/util/logger';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
 
 // The real fetchPublicImage runs unless a test replaces one call, so the converters can be checked on a public URL.
@@ -18,7 +19,7 @@ vi.mock('../src/util/public_fetch', async (importOriginal) => {
     return { ...actual, fetchPublicImage: vi.fn(actual.fetchPublicImage) };
 });
 
-const NOT_ALLOWED = 'Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.';
+const NOT_ALLOWED = 'Image URL is not allowed: use an http(s) URL on a public address.';
 const OUTSIDE_BUCKET = "s3:// image URLs must point to the model's s3Bucket.";
 
 type Route = (req: http.IncomingMessage, res: http.ServerResponse) => void;
@@ -75,6 +76,7 @@ afterAll(async () => {
 
 let s3Send: ReturnType<typeof vi.spyOn>;
 let bedrockSend: ReturnType<typeof vi.spyOn>;
+let warn: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
     server.requests = 0;
@@ -85,12 +87,14 @@ beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('unexpected use of the global fetch'); }));
     s3Send = vi.spyOn(S3Client.prototype, 'send').mockRejectedValue(new Error('unexpected S3 call') as never);
     bedrockSend = vi.spyOn(BedrockRuntimeClient.prototype, 'send').mockRejectedValue(new Error('unexpected Bedrock call') as never);
+    warn = vi.spyOn(logger, 'warn').mockImplementation((() => logger) as never);
 });
 
 afterEach(() => {
     vi.unstubAllGlobals();
     s3Send.mockRestore();
     bedrockSend.mockRestore();
+    warn.mockRestore();
 });
 
 describe('isPublicAddress', () => {
@@ -99,10 +103,11 @@ describe('isPublicAddress', () => {
         '172.31.255.255', '100.127.255.255', '192.0.0.8', '192.0.2.1', '198.18.0.1', '198.19.255.255', '198.51.100.7',
         '203.0.113.9', '240.0.0.1', '255.255.255.255', '::', 'ff02::1', '2001:db8::1', '::ffff:7f00:1',
         '::ffff:169.254.169.254', '::ffff:192.168.0.1', 'fe80::1%eth0', 'localhost', '',
-        '64:ff9b::a00:1', '64:ff9b::a9fe:a9fe', '64:ff9b:1::1', '64:ff9b:1:ffff::1'])
+        '64:ff9b::a00:1', '64:ff9b::a9fe:a9fe', '64:ff9b:1::1', '64:ff9b:1:ffff::1',
+        '::7f00:1', '::a00:1', '::ffff:0:7f00:1', '::ffff:0:a9fe:a9fe', '2002:7f00:1::', '2002:808:808::1'])
         ('%s is not public', (ip) => expect(isPublicAddress(ip)).toBe(false));
     it.each(['8.8.8.8', '2606:4700::1111', '1.1.1.1', '172.32.0.1', '100.128.0.1', '192.0.1.1', '198.20.0.1', '::ffff:8.8.8.8',
-        '64:ff9b:0:1::1', '64:ff9b:2::1'])
+        '64:ff9b:0:1::1', '64:ff9b:2::1', '2003::1', '2001:4860:4860::8888'])
         ('%s is public', (ip) => expect(isPublicAddress(ip)).toBe(true));
 });
 
@@ -197,11 +202,20 @@ describe('fetchPublicImage', () => {
         expect(literal.bytes.equals(png)).toBe(true);
         expect(literal.contentType).toBe('image/png');
 
-        const resolve = resolver({ 'img.test': ['10.0.0.5', '127.0.0.1'] });
+        const resolve = resolver({ 'img.test': ['127.0.0.1'] });
         const named = await fetchPublicImage(`http://img.test:${server.port}/img.png`, { resolve, isAllowedAddress: onlyLoopback });
         expect(named.bytes.equals(png)).toBe(true);
         expect(named.contentType).toBe('image/png');
         expect(server.requests).toBe(2);
+    });
+
+    it('never dials a resolved address that is not allowed', async () => {
+        server.routes.set('/img.png', image());
+        // The server listens on 127.0.0.1 only, so a request can arrive only if the lookup handed that address out.
+        const resolve = resolver({ 'img.test': ['127.0.0.1', '::1'] });
+        const ex = await rejection(() => fetchPublicImage(`http://img.test:${server.port}/img.png`, { resolve, isAllowedAddress: (ip) => ip === '::1' }));
+        expect(ex.message).toBe(NOT_ALLOWED);
+        expect(server.requests).toBe(0);
     });
 
     it('rejects a non-image content type and a body over maxBytes', async () => {
@@ -258,6 +272,20 @@ describe('fetchPublicImage', () => {
             expect(ex.reason).toBe('scheme');
         }
         expect(server.requests).toBe(0);
+    });
+
+    it('logs the host and the reason of a rejection, without the path or query', async () => {
+        server.routes.set('/page?token=abc', image('text/html', Buffer.from('<html></html>')));
+        await rejection(() => fetchPublicImage('http://10.0.0.1:8080/private/path?token=abc'));
+        await rejection(() => fetchPublicImage(at('/page?token=abc'), { isAllowedAddress: onlyLoopback }));
+        await rejection(() => fetchPublicImage('file:///etc/passwd'));
+        expect(warn.mock.calls).toEqual([
+            [{ message: 'Image URL rejected', host: '10.0.0.1:8080', reason: 'address' }],
+            [{ message: 'Image URL rejected', host: `127.0.0.1:${server.port}`, reason: 'content-type' }],
+            [{ message: 'Image URL rejected', host: '', reason: 'scheme' }],
+        ]);
+        const logged = JSON.stringify(warn.mock.calls);
+        for (const part of ['private', 'path', 'token', 'abc', 'passwd']) expect(logged).not.toContain(part);
     });
 
     it('answers 400, typed invalid_request_error for /v1/messages', async () => {

@@ -10,6 +10,7 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import AnthropicResponse from '../util/anthropic_response';
 import { fetchPublicImage } from '../util/public_fetch';
+import { assertInlineSources } from '../util/content_sources';
 
 // Claude models that answer 400 when temperature or top_p is sent. Measured on Converse in us-east-1 on 2026-10-16:
 // Opus 4.8, Opus 5.5, Sonnet 5.5 and Haiku 5.5 reject both, while Sonnet 4.6 and Haiku 4.5 accept them. Opus 4.x
@@ -864,6 +865,7 @@ class MessageConverter {
                 }
             }
         }
+        assertInlineSources(contentItem);
         return contentItem;
     }
 

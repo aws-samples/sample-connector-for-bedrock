@@ -1,6 +1,7 @@
 
 import { ChatRequest } from "../entity/chat_request";
 import { fetchPublicImage } from "../util/public_fetch";
+import { assertInlineSources } from "../util/content_sources";
 
 
 export default class ChatMessageConverter {
@@ -55,6 +56,7 @@ export default class ChatMessageConverter {
                 text: contentItem.text
             }
         }
+        assertInlineSources(contentItem);
         return contentItem;
     }
 
