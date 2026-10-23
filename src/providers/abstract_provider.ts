@@ -1,5 +1,6 @@
 import { ChatRequest, ResponseData, EmbeddingRequest, ImageRequest } from "../entity/chat_request";
 import { addKeyFee } from './key_fee';
+import { legacyFee } from './legacy_fee';
 import crypto from 'crypto';
 import { selfBaseUrl } from "../util/self";
 
@@ -179,11 +180,9 @@ export default abstract class AbstractProvider {
             return null;
         }
 
-        const input_tokens = response.input_tokens;
+        // tokens_in includes the cache-read and cache-write tokens.
+        const { fee, tokens_in } = legacyFee(this.modelData, response);
         const output_tokens = response.output_tokens;
-        const fee_in = input_tokens * this.modelData.price_in;
-        const fee_out = output_tokens * this.modelData.price_out;
-        const fee: number = fee_in + fee_out;
         const key_id = ctx.user.id;
 
         // The key is charged first and on its own, as recordChatUsage charges it: the call has been answered, so a
@@ -199,7 +198,7 @@ export default abstract class AbstractProvider {
                     sessionData.title = response.text && response.text.slice(0, 30);
                 }
 
-                sessionData.total_in_tokens = session ? session.total_in_tokens + input_tokens : input_tokens;
+                sessionData.total_in_tokens = session ? session.total_in_tokens + tokens_in : tokens_in;
                 sessionData.total_out_tokens = session ? session.total_out_tokens + output_tokens : output_tokens;
                 sessionData.total_fee = session ? fee * 1.0 + session.total_fee * 1.0 : fee;
 
@@ -226,7 +225,7 @@ export default abstract class AbstractProvider {
                 whole_prompt,
                 key_id,
                 session_key: session_id,
-                tokens_in: input_tokens,
+                tokens_in,
                 tokens_out: output_tokens,
                 price_in: this.modelData.price_in,
                 price_out: this.modelData.price_out,

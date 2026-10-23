@@ -28,6 +28,8 @@ Amazon Bedrock LLM 统一调用。
 | thinkBudget  |  number   | N     | 1024 | 在开启 thinking 的情况下，推理部分允许的最大 tokens 数量 |
 | promptCache.fields  |  string[]   | N     |  | 在什么位置开启提示词缓存，支持三个字符串："system", "messages", "tools"|
 | promptCache.messagePositions  |  int[]   | N     |  |多轮对话中，可以指定 messages 缓存的加载位置 |
+| price_cache_read  |  number   | N     | `price_in` | 提示词缓存读取的单价，**按每 token 计**（不是每百万 token） |
+| price_cache_write  |  number   | N     | `price_in` | 提示词缓存写入的单价，**按每 token 计**（不是每百万 token） |
 | maxRetries  |  number   | N     |  | 当访问 bedrock 出错的时候，会持续尝试，如果存在多组 aksk，则会排除当前的 key 再尝试 |
 | credentials  |  object[]   | N     |  | 多组 AKSK 的配置，具体参见下面的配置 |
 
@@ -39,7 +41,6 @@ bedrock-converse 的配置示例如下：
 
 ```json
 {
-  {
   "modelId": "global.anthropic.claude-sonnet-5-5",
   "regions": [
     "us-east-1"
@@ -47,6 +48,8 @@ bedrock-converse 的配置示例如下：
   "thinking": false,
   "maxTokens": 32000,
   "maxRetries": 3,
+  "price_cache_read": 0.0000001,
+  "price_cache_write": 0.0000025,
   "credentials": [
     {
       "accessKeyId": "a0",
@@ -82,8 +85,22 @@ bedrock-converse 的配置示例如下：
   },
   "thinkBudget": 2000
 }
-}
 ```
+
+使用这个模型时，在管理页面里把提示词价格（Price-In）填 `2`，输出价格（Price-Out）填 `10`。
+
+## 计费
+
+Converse 把从提示词缓存读取和写入缓存的 token 与其他输入 token 分开报告。一次调用的费用是：
+
+- 输入 token（不含缓存读取和缓存写入的部分）按 `price_in` 计；
+- 缓存读取 token 按 `price_cache_read` 计；
+- 缓存写入 token 按 `price_cache_write` 计，不区分缓存时长；
+- 输出 token 按 `price_out` 计。
+
+记录的输入 token 数等于输入、缓存读取和缓存写入 token 之和。缓存价格缺失、为空或不是有限数字时，按 `price_in` 计。`claude-*-5-5-chat` 预置模型没有配置缓存价格，在它们的 config 里设置 `price_cache_read` 和 `price_cache_write` 之前，缓存 token 按 `price_in` 计。对应 `claude-*-5-5` 预置模型的缓存价格见 [bedrock-runtime-anthropic](bedrock-runtime-anthropic.md) 的预置模型表。
+
+> **两类价格的单位不同。** 管理页面里的提示词价格（Price-In）和输出价格（Price-Out）按每**百万** token 填写；config 里的 `price_cache_read` 和 `price_cache_write` 按每 **token** 填写。如果把缓存价格按每百万 token 填写，例如填了 `0.1` 而不是 `0.0000001`，缓存 token 的费用会多算一百万倍。
 
 ## 输出结果
 

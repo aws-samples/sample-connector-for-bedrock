@@ -1,6 +1,6 @@
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import {
-    BedrockRuntimeClient, BedrockRuntimeClientConfig, ConverseStreamCommand, ConverseCommand, ConverseCommandOutput
+    BedrockRuntimeClient, BedrockRuntimeClientConfig, ConverseStreamCommand, ConverseCommand, ConverseCommandOutput, TokenUsage
 } from "@aws-sdk/client-bedrock-runtime";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -8,6 +8,7 @@ import helper from "../util/helper";
 // import config from "../config";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
+import { LegacyUsage } from "./legacy_fee";
 import AnthropicResponse from '../util/anthropic_response';
 import { fetchPublicImage } from '../util/public_fetch';
 import { assertInlineSources } from '../util/content_sources';
@@ -27,12 +28,22 @@ export function stripDeprecatedSampling(modelId: string, inferenceConfig: any): 
     return deprecated;
 }
 
+// The token counts of a Converse usage. inputTokens leaves out the tokens read from and written to the prompt cache,
+// which Converse reports apart and saveThread bills at their own prices.
+export function converseUsageOf(usage?: TokenUsage): LegacyUsage {
+    return {
+        input_tokens: usage?.inputTokens ?? 0,
+        output_tokens: usage?.outputTokens ?? 0,
+        cache_read_tokens: usage?.cacheReadInputTokens ?? 0,
+        cache_write_tokens: usage?.cacheWriteInputTokens ?? 0,
+    };
+}
+
 // The usage of a non-stream call, for saveThread.
 function syncUsageOf(apiResponse: ConverseCommandOutput): ResponseData {
     return {
         text: apiResponse.output.message?.content[0]?.text,
-        input_tokens: apiResponse.usage.inputTokens,
-        output_tokens: apiResponse.usage.outputTokens,
+        ...converseUsageOf(apiResponse.usage),
         invocation_latency: 0,
         first_byte_latency: apiResponse.metrics.latencyMs
     };
@@ -279,13 +290,10 @@ export default class BedrockConverse extends AbstractProvider {
                 }
                 if (item.metadata) {
                     // console.log("resp----", responseText);
-                    const input_tokens = item.metadata.usage.inputTokens;
-                    const output_tokens = item.metadata.usage.outputTokens;
                     const first_byte_latency = item.metadata.metrics.latencyMs;
                     const response: ResponseData = {
                         text: responseText,
-                        input_tokens,
-                        output_tokens,
+                        ...converseUsageOf(item.metadata.usage),
                         invocation_latency: 0,
                         first_byte_latency
                     }
@@ -412,15 +420,13 @@ export default class BedrockConverse extends AbstractProvider {
                 }
                 if (item.metadata) {
                     // console.log(item);
-                    const input_tokens = item.metadata.usage.inputTokens;
-                    const output_tokens = item.metadata.usage.outputTokens;
+                    const tokens = converseUsageOf(item.metadata.usage);
                     const first_byte_latency = item.metadata.metrics.latencyMs;
 
-                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", finish_reason, output_tokens, input_tokens, reqId) + "\n\n");
+                    ctx.res.write("data: " + WebResponse.wrap(index, chatRequest.model, "", finish_reason, tokens.output_tokens, tokens.input_tokens, reqId) + "\n\n");
                     usage = {
                         text: responseText,
-                        input_tokens,
-                        output_tokens,
+                        ...tokens,
                         invocation_latency: 0,
                         first_byte_latency
                     }
@@ -438,12 +444,12 @@ export default class BedrockConverse extends AbstractProvider {
 
         const content = apiResponse.output.message?.content;
         // console.log("ori content:", JSON.stringify(content, null, 2));
-        const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
+        const tokens = converseUsageOf(apiResponse.usage);
+        const totalTokens = apiResponse.usage?.totalTokens;
         const { latencyMs } = apiResponse.metrics;
         const response: ResponseData = {
             text: content[0].text,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
+            ...tokens,
             invocation_latency: 0,
             first_byte_latency: latencyMs
         }
@@ -460,8 +466,8 @@ export default class BedrockConverse extends AbstractProvider {
         return {
             model: chatRequest.model,
             choices, usage: {
-                completion_tokens: outputTokens,
-                prompt_tokens: inputTokens,
+                completion_tokens: tokens.output_tokens,
+                prompt_tokens: tokens.input_tokens,
                 total_tokens: totalTokens
             }
         };
@@ -477,7 +483,8 @@ export default class BedrockConverse extends AbstractProvider {
     chatSyncBody(apiResponse: ConverseCommandOutput, chatRequest: ChatRequest) {
         const content = apiResponse.output.message?.content;
         // console.log("ori content:", JSON.stringify(apiResponse, null, 2));
-        const { inputTokens, outputTokens, totalTokens } = apiResponse.usage;
+        const tokens = converseUsageOf(apiResponse.usage);
+        const totalTokens = apiResponse.usage?.totalTokens;
         const { requestId } = apiResponse["$metadata"];
 
         const choices = [];
@@ -537,19 +544,12 @@ export default class BedrockConverse extends AbstractProvider {
                 message: assistantMessage
             });
         }
-        // console.log({
-        //     choices, usage: {
-        //         completion_tokens: outputTokens,
-        //         prompt_tokens: inputTokens,
-        //         total_tokens: totalTokens
-        //     }
-        // })
         return {
             id: requestId,
             model: chatRequest.model,
             choices, usage: {
-                completion_tokens: outputTokens,
-                prompt_tokens: inputTokens,
+                completion_tokens: tokens.output_tokens,
+                prompt_tokens: tokens.input_tokens,
                 total_tokens: totalTokens
             }
         };
@@ -589,8 +589,7 @@ export default class BedrockConverse extends AbstractProvider {
 
         const msgId = AnthropicResponse.messageId();
         let responseText = '';
-        let inputTokens = 0;
-        let outputTokens = 0;
+        let tokens = converseUsageOf();
         let stopReason = 'end_turn';
         let blockIndex = 0;
         // contentBlockIndex (Bedrock) -> { toolIndex, toolId, toolName, argsBuffer }
@@ -687,8 +686,7 @@ export default class BedrockConverse extends AbstractProvider {
             }
 
             if (item.metadata) {
-                inputTokens = item.metadata.usage.inputTokens;
-                outputTokens = item.metadata.usage.outputTokens;
+                tokens = converseUsageOf(item.metadata.usage);
             }
         }
 
@@ -697,8 +695,7 @@ export default class BedrockConverse extends AbstractProvider {
         try {
             await this.saveThread(ctx, session_id, chatRequest, {
                 text: responseText,
-                input_tokens: inputTokens,
-                output_tokens: outputTokens,
+                ...tokens,
                 invocation_latency: 0,
                 first_byte_latency: 0
             });
@@ -706,7 +703,7 @@ export default class BedrockConverse extends AbstractProvider {
             ctx.logger.error({ message: 'bedrock-converse could not record the call', error: error instanceof Error ? error.message : String(error), modelId: this.modelId });
         }
 
-        ctx.res.write(AnthropicResponse.messageDelta(stopReason, outputTokens));
+        ctx.res.write(AnthropicResponse.messageDelta(stopReason, tokens.output_tokens));
         ctx.res.write(AnthropicResponse.messageStop());
         ctx.res.end();
     }
@@ -717,7 +714,7 @@ export default class BedrockConverse extends AbstractProvider {
         const apiResponse = await this.client.send(command);
 
         const rawContent = apiResponse.output.message?.content || [];
-        const { inputTokens, outputTokens } = apiResponse.usage;
+        const tokens = converseUsageOf(apiResponse.usage);
         const { latencyMs } = apiResponse.metrics;
         const stopReason = AnthropicResponse.mapStopReason(apiResponse.stopReason || 'end_turn');
 
@@ -745,8 +742,7 @@ export default class BedrockConverse extends AbstractProvider {
 
         await this.saveThread(ctx, session_id, chatRequest, {
             text: responseText,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
+            ...tokens,
             invocation_latency: 0,
             first_byte_latency: latencyMs
         });
@@ -755,7 +751,7 @@ export default class BedrockConverse extends AbstractProvider {
             chatRequest.model,
             content,
             stopReason,
-            { input_tokens: inputTokens, output_tokens: outputTokens }
+            { input_tokens: tokens.input_tokens, output_tokens: tokens.output_tokens }
         );
     }
 }
