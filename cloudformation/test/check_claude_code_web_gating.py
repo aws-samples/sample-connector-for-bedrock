@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-"""Check that EnableClaudeCodeWeb=false, and web search off, leave quick-build-brconnector.yaml unchanged.
+"""Check how quick-build-brconnector.yaml gates Claude Code Web and web search.
 
 Run from anywhere inside the repository:
 
-    uv run --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py [BASE_REF [WEB_SEARCH_BASE_REF]]
+    uv run --no-project --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py
+    uv run --no-project --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py --against BASE_REF WEB_SEARCH_BASE_REF
+
+With no arguments the structural checks run (see the end of this text). They hold for every
+version of the template. With --against the script also compares the switch-off renders with
+the template at two commits (the equality checks below). Use that mode on a branch that only
+adds Claude Code Web: any other template change makes the renders differ from the old
+commits, so the equality checks are off by default.
 
 BASE_REF must be a commit from before Claude Code Web was added; it defaults to 7ba1548,
 the upstream main this feature branched from. Do not pass upstream/main once the feature
@@ -44,6 +51,11 @@ Code Web stack, on or off, therefore sees no change while web search is off.
 A third render evaluates IsClaudeCodeWebSearch as true and checks the grants: the runtime
 role may call the gateway (and only on its ARN), the workspace access role holds no
 bedrock-agentcore action, and the SSM config value does not name the gateway.
+
+The structural checks are: gate conditions on every ClaudeCodeWeb* resource and output, the
+ec2 `docker run` line, the image build id, the web-search-on grants, nothing referencing
+what the web-search-off render dropped, and nothing referencing the gated resources, gate
+conditions, new parameters or new rules in the switch-off render.
 """
 import subprocess
 import sys
@@ -173,7 +185,7 @@ def switch_off_sub(args, gate_names):
     return {'Fn::Sub': [text, kept]}
 
 
-def render_off(template, base):
+def render_off(template, base=None):
     gate_names = gates(template)
     t = dict(template)
     t['Resources'] = {k: v for k, v in t['Resources'].items() if v.get('Condition') not in gate_names}
@@ -181,7 +193,7 @@ def render_off(template, base):
         t['Outputs'] = {k: v for k, v in t['Outputs'].items() if v.get('Condition') not in gate_names}
     t['Parameters'] = {k: dict(v) for k, v in t['Parameters'].items() if k not in NEW_PARAMETERS}
     for name in DESCRIPTION_MAY_DIFFER:
-        if name in t['Parameters'] and name in base.get('Parameters', {}):
+        if base and name in t['Parameters'] and name in base.get('Parameters', {}):
             t['Parameters'][name]['Description'] = base['Parameters'][name].get('Description')
     t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k not in gate_names}
     if 'Rules' in t:
@@ -384,6 +396,26 @@ def check_image_only_parameter(template):
     return [f'{IMAGE_ONLY_PARAMETER} is used outside {IMAGE_RESOURCE} at {p}' for p in found if not p.startswith(own)]
 
 
+def dropped_by_switch_off(template):
+    """Names that must not be referenced once the Claude Code Web switch is off."""
+    gate_names = gates(template)
+    resources = {k for k, v in template['Resources'].items() if v.get('Condition') in gate_names}
+    return resources | gate_names | NEW_PARAMETERS | NEW_RULES
+
+
+def structural_problems(template):
+    """Checks that hold for any version of the template, with no base commit needed."""
+    problems = check_conditions(template) + check_ec2_docker_run_on(template) + check_image_only_parameter(template)
+    problems += check_web_search_on(template)
+    off = render_off(template)
+    for path, name in mentions(off, dropped_by_switch_off(template)):
+        problems.append(f'switch-off render still references {name} at {path}')
+    web_search_off = render_web_search_off(template)
+    for path, name in mentions(web_search_off, dropped_by_web_search_off(template)):
+        problems.append(f'web-search-off render still references {name} at {path}')
+    return problems
+
+
 def template_at(root, ref):
     return load(
         subprocess.run(['git', 'show', f'{ref}:{TEMPLATE}'], cwd=root, check=True, capture_output=True, text=True).stdout
@@ -391,31 +423,36 @@ def template_at(root, ref):
 
 
 def main():
-    base_ref = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_BASE_REF
-    web_search_base_ref = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_WEB_SEARCH_BASE_REF
+    args = sys.argv[1:]
+    against = None
+    if args and args[0] == '--against':
+        if len(args) > 3:
+            raise SystemExit('usage: check_claude_code_web_gating.py [--against BASE_REF [WEB_SEARCH_BASE_REF]]')
+        against = (args[1] if len(args) > 1 else DEFAULT_BASE_REF, args[2] if len(args) > 2 else DEFAULT_WEB_SEARCH_BASE_REF)
+    elif args:
+        raise SystemExit('usage: check_claude_code_web_gating.py [--against BASE_REF [WEB_SEARCH_BASE_REF]]')
     root = Path(__file__).resolve().parents[2]
     current = load((root / TEMPLATE).read_text())
-    base = template_at(root, base_ref)
 
-    problems = check_conditions(current) + check_ec2_docker_run_on(current) + check_image_only_parameter(current)
-    problems += check_web_search_on(current)
-    diff = first_difference(render_off(current, base), base)
-    if diff:
-        problems.append(f'switch-off render differs from {base_ref} at {diff}')
-
-    web_search_off = render_web_search_off(current)
-    for path, name in mentions(web_search_off, dropped_by_web_search_off(current)):
-        problems.append(f'web-search-off render still references {name} at {path}')
-    diff = first_difference(web_search_off, template_at(root, web_search_base_ref))
-    if diff:
-        problems.append(f'web-search-off render differs from {web_search_base_ref} at {diff}')
+    problems = structural_problems(current)
+    if against:
+        base_ref, web_search_base_ref = against
+        base = template_at(root, base_ref)
+        diff = first_difference(render_off(current, base), base)
+        if diff:
+            problems.append(f'switch-off render differs from {base_ref} at {diff}')
+        diff = first_difference(render_web_search_off(current), template_at(root, web_search_base_ref))
+        if diff:
+            problems.append(f'web-search-off render differs from {web_search_base_ref} at {diff}')
 
     if problems:
         for p in problems:
             print(f'FAIL: {p}')
         sys.exit(1)
-    print(f'PASS: EnableClaudeCodeWeb=false renders {TEMPLATE} identical to {base_ref}')
-    print(f'PASS: web search off (EnableWebSearch=false or us-west-1) renders it identical to {web_search_base_ref}')
+    print(f'PASS: structural checks on {TEMPLATE}')
+    if against:
+        print(f'PASS: EnableClaudeCodeWeb=false renders {TEMPLATE} identical to {against[0]}')
+        print(f'PASS: web search off (EnableWebSearch=false or us-west-1) renders it identical to {against[1]}')
 
 
 if __name__ == '__main__':

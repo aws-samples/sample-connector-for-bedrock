@@ -1,0 +1,36 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npx -y pnpm@10.34.6 install --frozen-lockfile
+      - run: npx tsc --noEmit
+      - run: npx -y pnpm@10.34.6 exec vitest run
+      - run: npx -y pnpm@10.34.6 run build
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.1"
+      - name: Claude Code Web tests
+        run: cd claude-code-web && UV_PYTHON=3.12 uv run pytest -q
+      - name: Template tests
+        run: uv run --no-project --with pyyaml --with pytest python -m pytest cloudformation/test -q
+      - name: Template gating checks
+        run: uv run --no-project --with pyyaml python3 cloudformation/test/check_claude_code_web_gating.py
