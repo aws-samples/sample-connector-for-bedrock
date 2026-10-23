@@ -225,11 +225,15 @@ async def health_check():
 
 @app.get("/ping")
 async def ping():
-    """Ping endpoint for health monitoring."""
-    import time
+    """Ping endpoint for health monitoring.
+
+    time_of_last_update is the last real activity, so it does not move on a ping
+    and AgentCore's idle timeout can fire.
+    """
+    from .core.activity import last_activity
     return {
         "status": "Healthy",
-        "time_of_last_update": int(time.time())
+        "time_of_last_update": last_activity()
     }
 
 

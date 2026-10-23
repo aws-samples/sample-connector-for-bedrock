@@ -8,7 +8,9 @@ mkdir -p logs
 # Generate log filename with timestamp
 LOG_FILE="logs/server_$(date +%Y%m%d_%H%M%S).log"
 
-# Run server with output to both stdout and log file
-# Using 'tee' to duplicate output stream
+# Send output to both stdout and the log file. The redirection runs tee as a
+# process substitution so the server can be exec'd below: uv then replaces bash
+# as PID 1 and forwards SIGTERM to uvicorn, which runs its shutdown handlers.
 echo "Starting server... Logs will be saved to: $LOG_FILE"
-uv run uvicorn backend.server:app --host 0.0.0.0 --port 8080 2>&1 | tee "$LOG_FILE"
+exec > >(tee "$LOG_FILE") 2>&1
+exec uv run uvicorn backend.server:app --host 0.0.0.0 --port 8080

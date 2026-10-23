@@ -210,3 +210,11 @@ directory must be listed here.
   dependencies); `python-multipart` goes from 0.0.22 to 0.0.32; no other locked version changes. Every new package has a
   `py3-none-any` or `manylinux` aarch64 wheel. `Dockerfile` unchanged: `uv sync --frozen --no-dev` installs the script
   in `/app/.venv/bin`, so nothing is downloaded at runtime.
+- `backend/core/activity.py` (new), `backend/server.py` (`/ping`), `backend/api/invocations.py`: `/ping` reports
+  `time_of_last_update` as the time of the last real activity (process start before any) instead of the current time, so
+  AgentCore's idle timeout can fire. `invocations` now wraps the former handler (renamed `_route_invocation`) and marks
+  activity at the start and end of every invocation whose inner `path` is not `/ping` or `/health`; a streamed response
+  marks again when the stream ends. `status` stays `Healthy`. Tests: `backend/tests/test_ping_idle.py`.
+- `serve`: the log tee is now a process substitution (`exec > >(tee "$LOG_FILE") 2>&1`) and the server is started with
+  `exec uv run uvicorn ...`, so uv is PID 1 and forwards SIGTERM to uvicorn, which runs its shutdown handlers. Tests:
+  `backend/tests/test_serve_signals.py`.
