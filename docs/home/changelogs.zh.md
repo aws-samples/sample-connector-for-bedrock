@@ -66,6 +66,10 @@
 
 13. **依赖** - nodemailer 10.2.1 [#165](https://github.com/aws-samples/sample-connector-for-bedrock/pull/165)、vite 6.4.5 [#166](https://github.com/aws-samples/sample-connector-for-bedrock/pull/166)。Claude Code Web：source-map-js 1.2.2 [#156](https://github.com/aws-samples/sample-connector-for-bedrock/pull/156)、nanoid 3.3.20 [#157](https://github.com/aws-samples/sample-connector-for-bedrock/pull/157)、postcss 8.5.31 [#158](https://github.com/aws-samples/sample-connector-for-bedrock/pull/158)、react-router 和 react-router-dom 7.18.4 [#159](https://github.com/aws-samples/sample-connector-for-bedrock/pull/159)、baseline-browser-mapping 2.11.31 [#160](https://github.com/aws-samples/sample-connector-for-bedrock/pull/160)、browserslist 4.29.4 [#161](https://github.com/aws-samples/sample-connector-for-bedrock/pull/161)、vite 7.3.7（随之引入 esbuild 0.28）[#162](https://github.com/aws-samples/sample-connector-for-bedrock/pull/162)、aiohttp 3.14.4 [#163](https://github.com/aws-samples/sample-connector-for-bedrock/pull/163)、pyjwt 2.15.0 [#167](https://github.com/aws-samples/sample-connector-for-bedrock/pull/167)。
 
+14. **lambda 计算形态修复**
+   - 新建的 `lambda` stack 无法访问：2025 年 10 月起创建的 function URL 还需要 `lambda:InvokeFunction` 权限。模板现在授予该权限，并限定只能通过 function URL 调用；更新已有的 `lambda` stack 会补上这条权限。
+   - `KeepEc2` 为 `false` 时，辅助实例现在会在安装完成后被终止。
+
 ## 0.0.43
 
 **升级警告** - 升级前请先给数据库做快照：这次升级会删除已下线 provider 的模型（第 4 条），并添加预置模型（第 2 条）。`AutoUpdateBRConnector` 为 `true` 的 stack（`ec2` 和 `lambda` 计算形态）会在 UTC 00:00 自动拉取新的 `latest` 镜像。

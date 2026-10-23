@@ -120,6 +120,10 @@ Once defined, models can be bound to groups or API Keys.
 
 13. **Dependencies** - nodemailer 10.2.1 [#165](https://github.com/aws-samples/sample-connector-for-bedrock/pull/165) and vite 6.4.5 [#166](https://github.com/aws-samples/sample-connector-for-bedrock/pull/166). Claude Code Web: source-map-js 1.2.2 [#156](https://github.com/aws-samples/sample-connector-for-bedrock/pull/156), nanoid 3.3.20 [#157](https://github.com/aws-samples/sample-connector-for-bedrock/pull/157), postcss 8.5.31 [#158](https://github.com/aws-samples/sample-connector-for-bedrock/pull/158), react-router and react-router-dom 7.18.4 [#159](https://github.com/aws-samples/sample-connector-for-bedrock/pull/159), baseline-browser-mapping 2.11.31 [#160](https://github.com/aws-samples/sample-connector-for-bedrock/pull/160), browserslist 4.29.4 [#161](https://github.com/aws-samples/sample-connector-for-bedrock/pull/161), vite 7.3.7 with esbuild 0.28 [#162](https://github.com/aws-samples/sample-connector-for-bedrock/pull/162), aiohttp 3.14.4 [#163](https://github.com/aws-samples/sample-connector-for-bedrock/pull/163) and pyjwt 2.15.0 [#167](https://github.com/aws-samples/sample-connector-for-bedrock/pull/167).
 
+14. **lambda Compute Type Fixes**
+   - New `lambda` stacks could not be reached: function URLs created since October 2025 also need the `lambda:InvokeFunction` permission. The template now grants it, limited to calls through the function URL, and updating an existing `lambda` stack adds the permission.
+   - With `KeepEc2` set to `false`, the helper instance is now terminated after setup.
+
 ## 0.0.43
 
 **Upgrade warning** - Take a database snapshot before you upgrade: the upgrade deletes the models of the retired providers (item 4) and adds preset models (item 2). Stacks with `AutoUpdateBRConnector` set to `true` (`ec2` and `lambda` compute types) pick up the new `latest` image automatically at 00:00 UTC.
