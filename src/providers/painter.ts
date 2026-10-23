@@ -70,6 +70,8 @@ export default class Painter extends AbstractProvider {
     const reqId = this.newRequestID();
 
     if (chatRequest.stream) {
+      // The user's messages, before toPaintPrompt appends its system prompt, for the image call's thread.
+      const userRequest: ChatRequest = { ...chatRequest, messages: [...chatRequest.messages] };
       const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
 
       const { choices } = promptResult;
@@ -131,13 +133,15 @@ export default class Painter extends AbstractProvider {
       negative_prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null, null, null, reqId) + "\n\n");
 
       if (prompt) {
-        const responseImage = await this.draw(paintModelId, {
+        const { markdown, images } = await this.draw(paintModelId, {
           prompt,
           negative_prompt,
           width,
           height
         });
-        ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${responseImage}`, null, null, null, reqId) + "\n\n");
+        ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${markdown}`, null, null, null, reqId) + "\n\n");
+        // The prompt call is billed by the chat API it went to. The drawing is billed here, per image returned.
+        await this.saveThread(ctx, session_id, userRequest, { text: content ?? "", input_tokens: 0, output_tokens: 0, images });
       }
       ctx.res.write("data: [DONE]\n\n")
     } else {
@@ -452,7 +456,8 @@ export default class Painter extends AbstractProvider {
     return base64Data;
   }
 
-  async draw(modelId: string, input: any) {
+  // Returns the markdown to show and the number of images drawn, which is 0 when the drawing failed.
+  async draw(modelId: string, input: any): Promise<{ markdown: string; images: number }> {
     let [width, height] = this.nearestMultiplesOf64AndScaleDown(input.width || 768, input.height || 768);
     width = width < 256 ? 256 : width;
     height = height < 256 ? 256 : height;
@@ -470,11 +475,11 @@ export default class Painter extends AbstractProvider {
       } else if (modelId.startsWith("amazon.nova-canvas")) {
         base64Data = await this.drawByNova(modelId, input);
       } else {
-        return "> Error: Unsupported paint modelId";
+        return { markdown: "> Error: Unsupported paint modelId", images: 0 };
       }
     } catch (e) {
       logger.error((e as any)?.message ?? String(e));
-      return "> Error: " + (e['message'] || e);
+      return { markdown: "> Error: " + (e['message'] || e), images: 0 };
     }
 
     const now = new Date();
@@ -492,6 +497,6 @@ export default class Painter extends AbstractProvider {
     const commandGet = new GetObjectCommand(inputS3);
     const url = await getSignedUrl(this.s3Client, commandGet, { expiresIn: 3600 });
 
-    return `![](${url})`
+    return { markdown: `![](${url})`, images: 1 };
   }
 }

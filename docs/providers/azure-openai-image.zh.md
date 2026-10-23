@@ -18,6 +18,7 @@ Azure OpenAI 图像生成接口。
 | apiKey | string | 是 | | 您的 Azure OpenAI API 密钥 |
 | baseURL | string | 是 | | Azure OpenAI 部署的基础 URL，包括部署名称（例如："<https://your-resource-name.openai.azure.com/openai/deployments/your-deployment-name"）> |
 | apiVersion | string | 是 | | 要使用的 Azure OpenAI API 版本（例如："2023-05-15" 或 "2025-01-01-preview"） |
+| price_per_image | number | 否 | 0 | 每张图片的价格，币种与模型相同。设置后图像生成才会计费，见下文“计费”一节 |
 
 配置示例：
 
@@ -44,6 +45,11 @@ Azure OpenAI 图像生成接口。
   ]
 }
 ```
+
+## 计费
+
+- 每个请求按响应 `data` 里的图片数量，每张按 `price_per_image` 计费，币种与模型相同。例如 `"price_per_image": 0.04` 时，返回 2 张图片的响应计 0.08。
+- `price_per_image` 按每**张图片**计，不是按 token 计。它缺失、为空或不是数字时，图片按 0 记录，所以请设置它，图像生成才会计费，例如设为您的部署在所允许的尺寸和质量下的单张价格。
 
 ## 使用方法
 

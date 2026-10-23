@@ -31,6 +31,7 @@
 | s3Prefix  | string   | N    |  |   The S3 prefix combined with the date will ultimately form the S3 key.  |
 | s3Region  | string   | Y     | | S3 bucket region  |
 | regions  | string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
+| price_per_image  | number   | N     | 0 |   每张图片的价格，币种与模型相同。设置后画图才会计费，见下文“计费”一节。  |
 
 paintModelId 可以是如下的参数:
 
@@ -43,6 +44,12 @@ paintModelId 可以是如下的参数:
 - amazon.titan-image-generator-v2:0
 
 然后将此模型授予组或 api key。
+
+## 计费
+
+- 每次画图按返回的图片数量，每张按 `price_per_image` 计费，币种与模型相同。例如 `"price_per_image": 0.04` 表示每张图片计 0.04。画图失败时按 0 张图片记录。
+- `price_per_image` 按每**张图片**计，不是按 token 计。它缺失、为空或不是数字时，图片按 0 记录，所以请设置它，图像生成才会计费，例如设为 `paintModelId` 在您所在区域的价格，见 [Amazon Bedrock 定价页面](https://aws.amazon.com/bedrock/pricing/)。
+- 生成画图提示词的调用发给 `localLlmModel`，按对该模型的调用以它的价格计费。
 
 ## BRClient 中的功能和截图
 

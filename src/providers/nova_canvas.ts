@@ -67,6 +67,8 @@ export default class NovaCanvas extends AbstractProvider {
 
     chatRequest.model = localLlmModel;
     ctx.status = 200;
+    // The user's messages, before toPaintPrompt appends its system prompt, for the image call's thread.
+    const userRequest: ChatRequest = { ...chatRequest, messages: [...chatRequest.messages] };
     const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
 
 
@@ -113,10 +115,12 @@ export default class NovaCanvas extends AbstractProvider {
       //     "\n\n tool: " + funName + "\n\nparameters:\n\n```\n" + JSON.stringify(args, null, 2) + "\n```", null) + "\n\n");
     }
 
+    let generated = false;
     if (funName && typeof this[funName] === 'function') {
       try {
         const jArgs = JSON.parse(args);
         imgs = await this[funName](jArgs);
+        generated = true;
       } catch (error) {
         // A rejected image URL keeps its own message and status.
         if ((error as any)?.statusCode === 400) {
@@ -133,6 +137,18 @@ export default class NovaCanvas extends AbstractProvider {
     //   imgs = await this[funName](jArgs);
     // }
 
+    // The prompt call is billed by the chat API it went to. The image call is billed here, per image returned.
+    const saveImages = async () => {
+      if (generated) {
+        await this.saveThread(ctx, session_id, userRequest, {
+          text: content ?? "",
+          input_tokens: 0,
+          output_tokens: 0,
+          images: Array.isArray(imgs) ? imgs.length : 0,
+        });
+      }
+    };
+
     if (chatRequest.stream) {
       if (imgs && Array.isArray(imgs)) {
         for (const img of imgs) {
@@ -141,6 +157,7 @@ export default class NovaCanvas extends AbstractProvider {
           ctx.res.write("data: " + WebResponse.wrap(0, this.paintModelId, `\n\n${mdImg}`, null, null, null, reqId) + "\n\n");
         }
       }
+      await saveImages();
       ctx.res.write("data: [DONE]\n\n");
     } else {
       ctx.set({
@@ -153,6 +170,7 @@ export default class NovaCanvas extends AbstractProvider {
           images.push(url);
         }
       }
+      await saveImages();
       promptResult.images = images;
       ctx.body = promptResult;
     }

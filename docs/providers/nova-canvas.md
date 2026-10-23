@@ -25,6 +25,7 @@ This Provider implements various image processing and generation capabilities of
 | s3Prefix | string | No | - | S3 prefix, combines with date to form the final S3 key |
 | s3Region | string | Yes | - | Region of the S3 bucket |
 | regions | string[] | No | ["us-east-1"] | Available regions for paintModelId |
+| price_per_image | number | No | 0 | The price of one image, in the model's currency. Set it so that image generation is billed; see [Billing](#billing) |
 
 ## Feature Overview
 
@@ -43,6 +44,12 @@ Supports multi-turn image processing dialogues using natural language. Main feat
 Additionally, you can specify the number and dimensions of images to generate during the conversation.
 
 For detailed examples, please refer to: <https://docs.aws.amazon.com/nova/latest/userguide/image-gen-access.html>
+
+## Billing
+
+- Each image task is billed at `price_per_image` for each image the model returns, in the model's currency. For example, `"price_per_image": 0.04` bills 0.08 for a task that returns 2 images.
+- `price_per_image` is per **image**, not per token. When it is missing, blank or not a number, images are recorded at 0, so set it to bill image generation, for example to the price of `paintModelId` in your Region on the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).
+- The call that chooses the task and its parameters goes to `localLlmModel` and is billed as a call to that model, at its prices.
 
 ## Additional Notes
 

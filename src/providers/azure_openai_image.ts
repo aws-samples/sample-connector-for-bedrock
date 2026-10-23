@@ -77,10 +77,22 @@ export default class AzureOpenAIImage extends AbstractProvider {
 
     // const imagePara = imageRequest as Images.ImageGenerateParams;
     // console.log(JSON.stringify(imageParam, null, 2));
-    const result = await this.client.images.generate(imageParam);
+    const result: any = await this.client.images.generate(imageParam);
 
     ctx.body = result;
 
+    // Billed per image returned, at price_per_image from the model config.
+    await this.saveThread(ctx, session_id, {
+      model: imageRequest.model,
+      stream: false,
+      currency: imageRequest.currency,
+      messages: [{ role: "user", content: prompt }],
+    }, {
+      text: "",
+      input_tokens: 0,
+      output_tokens: 0,
+      images: Array.isArray(result?.data) ? result.data.length : 0,
+    });
   }
 
 

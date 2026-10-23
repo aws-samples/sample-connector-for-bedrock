@@ -30,6 +30,12 @@ Amazon Bedrock Agent 接口。
 }
 ```
 
+## 计费
+
+调用 agent 时会开启 trace，因为 Bedrock 在 trace 里报告每次模型调用的 token 数。一次调用按所有调用模型的步骤（预处理、编排、后处理和路由分类器）的 `inputTokens` 与 `outputTokens` 之和计费。输入 token 按本模型的 `price_in` 计，输出 token 按 `price_out` 计，流式和非流式调用都一样。只对模型 token 计费，agent 的 action group 或知识库产生的费用不计入。
+
+trace 只用于计费，不会发给客户端，也不会写入日志。
+
 ## 使用示例
 
 以下是使用 Sample Connector for Bedrock 调用 Bedrock Agent 的示例：

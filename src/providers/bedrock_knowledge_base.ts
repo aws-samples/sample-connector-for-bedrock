@@ -2,7 +2,7 @@ import { ChatRequest, ModelData, ResponseData } from "../entity/chat_request"
 import AbstractProvider from "./abstract_provider";
 import helper from '../util/helper';
 import ChatMessageConverter from './chat_message';
-import { stripDeprecatedSampling } from './bedrock_converse';
+import { converseUsageOf, stripDeprecatedSampling } from './bedrock_converse';
 import WebResponse from "../util/response";
 import {
   BedrockAgentRuntimeClient,
@@ -44,8 +44,9 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
       this.client = new BedrockRuntimeClient({ region });
       this.clientAgent = new BedrockAgentRuntimeClient({ region });
     }
+    // The last message is read, not removed, so saveThread records it as the prompt.
     const { messages } = chatRequest;
-    const lastMsg = messages.pop();
+    const lastMsg = messages[messages.length - 1];
     const q = lastMsg.content;
     if (!q) {
       throw new Error("Please enter your question.")
@@ -59,7 +60,7 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
     });
 
     if (bedrockModelArn) {
-      await this.retrieveAndGen(ctx, knowledgeBaseId, q, bedrockModelArn, 20);
+      await this.retrieveAndGen(ctx, knowledgeBaseId, q, bedrockModelArn, 20, chatRequest, session_id);
 
     } else if (summaryModel) {
       const kbResponse = await this.retrieve(knowledgeBaseId, q, 5);
@@ -80,7 +81,7 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
     }
   }
 
-  async retrieveAndGen(ctx: any, knowledgeBaseId: string, text: string, modelArn: string, numberOfResults: any) {
+  async retrieveAndGen(ctx: any, knowledgeBaseId: string, text: string, modelArn: string, numberOfResults: any, chatRequest: ChatRequest, session_id: string) {
     const reqId = this.newRequestID();
     const input: any = {
       input: {
@@ -106,6 +107,8 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
 
     if (response.stream) {
       let responseText = "";
+      // The characters of the question and of every retrieved reference, from which the input tokens are estimated.
+      let inputChars = String(text).length;
       let citationIndex = 1;
       const citationFiles = [];
       for await (const item of response.stream) {
@@ -116,6 +119,7 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
         }
         if (item.citation) {
           for (const ref of item.citation.retrievedReferences) {
+            inputChars += ref.content?.text?.length ?? 0;
             ctx.res.write("data: " + WebResponse.wrap(0, "kb", this.getCitaIndexString(citationIndex), null, null, null, reqId) + "\n\n");
             citationIndex++;
             citationFiles.push(ref.location.s3Location.uri || "unknown");
@@ -132,6 +136,13 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
         ctx.res.write("data: " + WebResponse.wrap(0, null, citaContent, null, null, null, reqId) + "\n\n");
       }
 
+      // RetrieveAndGenerate reports no token usage, so it is estimated at 4 characters a token and billed at this
+      // model's prices.
+      await this.saveThread(ctx, session_id, chatRequest, {
+        text: responseText,
+        input_tokens: Math.ceil(inputChars / 4),
+        output_tokens: Math.ceil(responseText.length / 4),
+      });
 
       ctx.res.write("data: [DONE]\n\n")
       ctx.res.end();
@@ -197,13 +208,10 @@ export default class BedrockKnowledgeBase extends AbstractProvider {
         }
         if (item.metadata) {
           // console.log(item);
-          const input_tokens = item.metadata.usage.inputTokens;
-          const output_tokens = item.metadata.usage.outputTokens;
           const first_byte_latency = item.metadata.metrics.latencyMs;
           const response: ResponseData = {
             text: responseText,
-            input_tokens,
-            output_tokens,
+            ...converseUsageOf(item.metadata.usage),
             invocation_latency: 0,
             first_byte_latency
           }
