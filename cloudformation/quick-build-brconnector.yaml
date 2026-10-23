@@ -112,9 +112,11 @@ Parameters:
       Choose using Lambda, EC2, ECS or Lambda Web Functions to running BRConnector.
       lambda-web runs on Lambda Web Functions, which need no adapter and support
       native response streaming. Lambda Web Functions are available in us-east-1,
-      us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2,
-      eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2,
-      ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1.
+      us-east-2, us-west-2, ap-northeast-1 and eu-west-1; see AWS Capabilities by Region
+      (https://builder.aws.com/build/capabilities) for the current list. ec2, lambda and
+      ecs also work in us-west-1, ca-central-1, sa-east-1, eu-west-2, eu-west-3,
+      eu-central-1, eu-north-1, ap-northeast-2, ap-northeast-3, ap-southeast-1,
+      ap-southeast-2 and ap-south-1.
     Type: String
     AllowedValues:
       - ec2
@@ -344,6 +346,14 @@ Parameters:
     Default: 'true'
 
 Rules:
+  # Lambda Web Functions launch Regions; widen this list when AWS adds Regions.
+  LambdaWebRegion:
+    RuleCondition: !Equals [!Ref ComputeType, 'lambda-web']
+    Assertions:
+      - Assert: !Contains [['us-east-1', 'us-east-2', 'us-west-2', 'ap-northeast-1', 'eu-west-1'], !Ref 'AWS::Region']
+        AssertDescription: >-
+          ComputeType lambda-web is available only in us-east-1, us-east-2, us-west-2,
+          ap-northeast-1 and eu-west-1. Use ec2, ecs or lambda in other Regions.
   # Claude Code Web needs a BRConnector that has /cc and normal (non-admin) keys.
   ClaudeCodeWebRequirements:
     RuleCondition: !Equals [!Ref EnableClaudeCodeWeb, 'true']

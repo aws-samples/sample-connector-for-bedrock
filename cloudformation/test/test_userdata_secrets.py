@@ -423,4 +423,4 @@ def test_compute_type_names_the_lambda_web_regions():
     description = params()['ComputeType']['Description']
     named = set(re.findall(r'\b[a-z]{2}-[a-z]+-\d\b', description))
     assert named == set(EXPECTED_17)
-    assert set(TEMPLATE['Rules']) == {'ClaudeCodeWebRequirements'}
+    assert set(TEMPLATE['Rules']) == {'ClaudeCodeWebRequirements', 'LambdaWebRegion'}
