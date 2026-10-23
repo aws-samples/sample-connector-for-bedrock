@@ -65,6 +65,8 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 - 图片在 15 秒内下载完成，重定向不超过 3 次；
 - 响应的内容类型为 `image/*`，大小不超过 10 MiB。
 
-其他 URL 会返回 HTTP 400，消息为 `Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.`。私有网络中的图片可以改用 `data:` URL 发送。BRConnector 直接连接图片所在的主机，不经过 `HTTPS_PROXY` 或 `HTTP_PROXY`。
+其他 URL 会返回 HTTP 400，消息为 `Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.`。私有网络中的图片可以改用 `data:` URL 发送。
+
+图片 URL 由 BRConnector 所在主机直接下载，不经过代理：`HTTPS_PROXY` 和 `HTTP_PROXY` 对其不生效。没有直接互联网出口的部署应以 `data:` URL 发送图片。
 
 对于 `nova-canvas` 模型，`s3://` 图片 URL 必须指向模型 `s3Bucket` 配置中的存储桶；其他存储桶会返回 HTTP 400。

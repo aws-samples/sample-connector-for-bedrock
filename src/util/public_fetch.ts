@@ -22,8 +22,10 @@ const NOT_PUBLIC_V4: Array<[string, number]> = [
     ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['198.51.100.0', 24],
     ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
 ];
+// 64:ff9b::/96 and 64:ff9b:1::/48 are NAT64 prefixes, which a DNS64/NAT64 network translates to IPv4 addresses.
 const NOT_PUBLIC_V6: Array<[string, number]> = [
     ['::', 128], ['::1', 128], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8], ['2001:db8::', 32],
+    ['64:ff9b::', 96], ['64:ff9b:1::', 48],
 ];
 
 const notPublic = new net.BlockList();

@@ -64,6 +64,8 @@ An image in a chat request can be a `data:` URL (`data:image/png;base64,...`) or
 - the image arrives within 15 seconds, after at most 3 redirects;
 - the response has an `image/*` content type and is at most 10 MiB.
 
-Any other URL gets HTTP 400 with `Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.` An image on a private network can be sent as a `data:` URL instead. BRConnector connects to the image host directly, not through `HTTPS_PROXY` or `HTTP_PROXY`.
+Any other URL gets HTTP 400 with `Image URL is not allowed: use an http(s) URL on a public address, or a data: URL.` An image on a private network can be sent as a `data:` URL instead.
+
+Image URLs are fetched directly from the BRConnector host, not through a proxy: `HTTPS_PROXY` and `HTTP_PROXY` are not used for them. A deployment without direct internet egress should send images as `data:` URLs.
 
 For `nova-canvas` models, an `s3://` image URL must name the bucket in the model's `s3Bucket` setting; any other bucket gets HTTP 400.
