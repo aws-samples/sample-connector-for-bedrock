@@ -419,7 +419,7 @@ def test_prefix_list_table():
     assert mapping == EXPECTED_17
 
 
-def test_compute_type_names_the_lambda_web_regions():
+def test_compute_type_names_every_supported_region():
     description = params()['ComputeType']['Description']
     named = set(re.findall(r'\b[a-z]{2}-[a-z]+-\d\b', description))
     assert named == set(EXPECTED_17)
