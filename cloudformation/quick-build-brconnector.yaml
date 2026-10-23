@@ -111,7 +111,10 @@ Parameters:
     Description: >-
       Choose using Lambda, EC2, ECS or Lambda Web Functions to running BRConnector.
       lambda-web runs on Lambda Web Functions, which need no adapter and support
-      native response streaming, and is only available in the Regions that offer them.
+      native response streaming. Lambda Web Functions are available in us-east-1,
+      us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2,
+      eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2,
+      ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1.
     Type: String
     AllowedValues:
       - ec2
@@ -245,6 +248,7 @@ Parameters:
   PGPassword:
     Description: PostgreSQL default password
     Type: String
+    NoEcho: true
     Default: mysecretpassword
 
   EnableCloudfront:
@@ -450,6 +454,32 @@ Mappings:
       PrefixList: pl-4ea04527
     us-west-2:
       PrefixList: pl-82a045eb
+    ca-central-1:
+      PrefixList: pl-38a64351
+    sa-east-1:
+      PrefixList: pl-5da64334
+    eu-west-1:
+      PrefixList: pl-4fa04526
+    eu-west-2:
+      PrefixList: pl-93a247fa
+    eu-west-3:
+      PrefixList: pl-75b1541c
+    eu-central-1:
+      PrefixList: pl-a3a144ca
+    eu-north-1:
+      PrefixList: pl-fab65393
+    ap-northeast-1:
+      PrefixList: pl-58a04531
+    ap-northeast-2:
+      PrefixList: pl-22a6434b
+    ap-northeast-3:
+      PrefixList: pl-31a14458
+    ap-southeast-1:
+      PrefixList: pl-31a34658
+    ap-southeast-2:
+      PrefixList: pl-b8a742d1
+    ap-south-1:
+      PrefixList: pl-9aa247f3
 
 Resources:
   EC2Role:
@@ -668,13 +698,14 @@ Resources:
         - Key: Name
           Value: !Join ["", ["BRConnectorInstance-", !Ref AWS::StackName]]
       UserData:
-        # CcEnvArg is empty unless EnableClaudeCodeWeb is true. It is glued to the docker
-        # run line without a space, so with the switch off that line is byte-identical and
-        # existing stacks see no UserData change. The line must stay a single line holding
-        # --name brconnector: the SSM auto-update replays it from the cloud-init log.
+        # cloud-init copies everything this script prints to its log and the console, so
+        # nothing here traces commands or prints a key or password. The docker run line
+        # lives in the root-only /root/brconnector-run.sh, which the SSM auto-update runs
+        # with "latest"; it must stay a single line holding --name brconnector. CcEnvArg is
+        # empty unless EnableClaudeCodeWeb is true and is glued to that line without a space.
         Fn::Base64: !Sub
         - |-
-          #!/bin/bash -xe
+          #!/bin/bash -e
           # install packages & buildx
           yum install -y aws-cfn-bootstrap docker jq git cronie
           systemctl restart docker
@@ -698,7 +729,9 @@ Resources:
             sudo mv regctl /usr/local/bin/
           fi
 
-          # save default settings 
+          # files written from here on are readable by root only
+          umask 077
+          # save default settings
           export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
           export KEY=$(uuidgen |tee /root/admin-api-key.txt)
           export AWS_DEFAULT_REGION="${AWS::Region}"
@@ -734,18 +767,29 @@ Resources:
           #   PerformanceModeStr="true"
           # fi
           # start brconnector container in ECR
+          # BEGIN brconnector-run
+          # The run script holds the database password and the admin key. It starts the
+          # image tag given as its argument, by default BRConnectorVersion.
+          BRC_DEFAULT_TAG=${BRConnectorVersion}
+          cat > /root/brconnector-run.sh <<EOF
+          #!/bin/bash -e
           IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
-          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY${CcEnvArg} -d public.ecr.aws/$IMG_EC2:${BRConnectorVersion}
+          IMAGE_TAG="\${!1:-$BRC_DEFAULT_TAG}"
+          docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY${CcEnvArg} -d "public.ecr.aws/\$IMG_EC2:\$IMAGE_TAG"
+          EOF
+          chmod 700 /root/brconnector-run.sh
+          bash /root/brconnector-run.sh
+          # END brconnector-run
 
           # create first user
           sleep 60
           curl "http://localhost:8866/"
-          curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY"
+          curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" -o /dev/null
           # if set dbmode to NoDB donnot generate first userkey
           if [[ $PGHOST != "" ]]; then
-            curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}'
+            curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}' -o /dev/null
             # list users
-            curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . |tee /root/first-user-key.txt
+            curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . > /root/first-user-key.txt
             USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
             aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
           fi
@@ -769,7 +813,7 @@ Resources:
 
           # prepare to delete self
           TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-          INST_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/dynamic/instance-identity/document |jq -r .instanceId)
+          INST_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/dynamic/instance-identity/document |jq -r .instanceId)
           aws lambda update-function-configuration --function-name ${DeleteEC2Lambda} --environment "Variables={INSTANCE_ID=$INST_ID}"
 
           # call back to cfn
@@ -1340,6 +1384,7 @@ Resources:
       RetentionInDays: 14
 
   ECSLBSecurityGroup:
+    Condition: IsEcs
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub "ecs-lb-sg-${AWS::StackName}"
@@ -1646,7 +1691,7 @@ Resources:
           name: AutoUpdateBrConnectorInEc2
           inputs:
             runCommand:
-            - "#!/bin/bash -x"
+            - "#!/bin/bash"
             - BRC_DIGEST=$(docker images --digests public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock |grep -v -e DIGEST -e grep |awk '{print $3}')
             - BRC_REG_DIGEST=$(regctl image digest public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock:latest)
             - |
@@ -1654,7 +1699,12 @@ Resources:
                 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
                 docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
                 docker rm -f brconnector
-                cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh
+                if [[ -f /root/brconnector-run.sh ]]; then
+                  bash /root/brconnector-run.sh latest
+                else
+                  # Stacks created before 0.0.44 have no run script, only the docker run line logged at first boot.
+                  cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh
+                fi
               fi
             - echo "Bootstrap Complete"
 

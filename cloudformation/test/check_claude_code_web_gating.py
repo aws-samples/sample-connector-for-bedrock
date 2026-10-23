@@ -34,8 +34,9 @@ path of the first difference. Existing stacks must not see any change while the 
 off: a UserData change alone makes CloudFormation stop and restart the BRConnector instance.
 
 It also checks that every ClaudeCodeWeb* resource and output carries a gate condition, that
-the ec2 `docker run` line stays a single line with `--name brconnector` when the switch is
-on, because the SSM auto-update replays that line from the cloud-init log, and that
+with the switch on the ec2 run script (the UserData block between `# BEGIN brconnector-run`
+and `# END brconnector-run`) holds the only `docker run` line with `--name brconnector`, as a
+single line, because the SSM auto-update starts the container from that script, and that
 ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
 backend image without touching the BRConnector instance or deployment package.
 
@@ -53,9 +54,9 @@ role may call the gateway (and only on its ARN), the workspace access role holds
 bedrock-agentcore action, and the SSM config value does not name the gateway.
 
 The structural checks are: gate conditions on every ClaudeCodeWeb* resource and output, the
-ec2 `docker run` line, the image build id, the web-search-on grants, nothing referencing
-what the web-search-off render dropped, and nothing referencing the gated resources, gate
-conditions, new parameters or new rules in the switch-off render.
+ec2 run script's `docker run` line, the image build id, the web-search-on grants, nothing
+referencing what the web-search-off render dropped, and nothing referencing the gated
+resources, gate conditions, new parameters or new rules in the switch-off render.
 """
 import subprocess
 import sys
@@ -79,6 +80,8 @@ NEW_RULES = {'ClaudeCodeWebRequirements'}
 NEW_PARAMETER_GROUP = 'Claude Code Web (optional)'
 DESCRIPTION_MAY_DIFFER = {'SourceRepoUrl', 'SourceRef'}
 EC2_SUB_VAR = 'CcEnvArg'
+RUN_SCRIPT_BEGIN = '# BEGIN brconnector-run'
+RUN_SCRIPT_END = '# END brconnector-run'
 IMAGE_ONLY_PARAMETER = 'ClaudeCodeWebImageBuildId'
 IMAGE_RESOURCE = 'ClaudeCodeWebImage'
 # Last upstream main with Claude Code Web but without web search.
@@ -353,7 +356,7 @@ def check_conditions(template):
 
 
 def check_ec2_docker_run_on(template):
-    """With the switch on, the docker run line must still be one line naming brconnector."""
+    """With the switch on, the run script's docker run line must still be one line naming brconnector."""
     sub = template['Resources']['MyEC2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Sub']
     if isinstance(sub, str):
         return []  # Nothing is injected, so the line is the base line.
@@ -365,9 +368,14 @@ def check_ec2_docker_run_on(template):
     on_text = on['Fn::Sub'] if isinstance(on, dict) and isinstance(on.get('Fn::Sub'), str) else on
     if not isinstance(on_text, str) or '\n' in on_text:
         return [f'{EC2_SUB_VAR} true branch must be a single-line string or Fn::Sub string']
-    lines = [l for l in text.replace('${' + EC2_SUB_VAR + '}', on_text).split('\n') if '--name brconnector' in l]
-    if len(lines) != 1 or not lines[0].lstrip().startswith('docker run ') or on_text not in lines[0]:
-        return [f'the switched-on docker run line must be one line holding --name brconnector and {EC2_SUB_VAR}']
+    rendered = text.replace('${' + EC2_SUB_VAR + '}', on_text).split('\n')
+    if rendered.count(RUN_SCRIPT_BEGIN) != 1 or rendered.count(RUN_SCRIPT_END) != 1:
+        return [f'UserData must write the run script once, between {RUN_SCRIPT_BEGIN!r} and {RUN_SCRIPT_END!r}']
+    begin, end = rendered.index(RUN_SCRIPT_BEGIN), rendered.index(RUN_SCRIPT_END)
+    lines = [l for l in rendered[begin:end] if '--name brconnector' in l]
+    elsewhere = [l for l in rendered[:begin] + rendered[end:] if '--name brconnector' in l]
+    if len(lines) != 1 or elsewhere or not lines[0].lstrip().startswith('docker run ') or on_text not in lines[0]:
+        return [f'the switched-on run script must hold the only docker run line, one line with --name brconnector and {EC2_SUB_VAR}']
     return []
 
 
