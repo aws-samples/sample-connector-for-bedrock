@@ -51,6 +51,16 @@ aws cloudformation deploy \
 - **CDN加速**：通过CloudFront提供全球分发和HTTPS支持
 - **自动更新机制**：定期检查并部署新版本
 
+## 管理员密钥
+
+管理员 API 密钥保存在 SSM 参数中（堆栈输出 `AdminApiKeyParameter` 给出参数名称），不出现在堆栈输出里。更新堆栈会生成新的管理员密钥。读取方式：
+
+```bash
+aws ssm get-parameter --name /brconnector/admin-key-<堆栈名称> --query Parameter.Value --output text
+```
+
+ALB 只接受来自 CloudFront 的 80 端口流量，请通过 `CloudFrontURL` 访问。
+
 ## 后续步骤
 
 1. 查看[部署指南](ecs-fargate-deployment.md)获取详细信息

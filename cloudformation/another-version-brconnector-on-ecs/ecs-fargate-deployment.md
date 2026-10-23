@@ -74,7 +74,15 @@ aws cloudformation deploy \
 1. **CloudFrontURL**: 通过CloudFront访问BRConnector
 2. **CloudFrontManagerURL**: 管理界面URL
 3. **CloudFrontBrclientURL**: 客户端WebUI URL
-4. **AdminApiKey**: 用于管理员API访问的密钥
+4. **AdminApiKeyParameter**: 保存管理员 API 密钥的 SSM 参数名称
+
+管理员 API 密钥不再出现在堆栈输出中。更新堆栈会生成一个新的管理员密钥。读取方式：
+
+```bash
+aws ssm get-parameter --name /brconnector/admin-key-<堆栈名称> --query Parameter.Value --output text
+```
+
+ALB 的安全组只允许 CloudFront 回源前缀列表访问 80 端口，不再提供 `LoadBalancerURL` 输出，请通过 `CloudFrontURL` 访问。
 
 你需要访问 https://aws-samples.github.io/sample-connector-for-bedrock/home/quick-start/#5-creat-the-first-admin-user 创建第一个用户 key，然后开始使用 BRConnector
 
