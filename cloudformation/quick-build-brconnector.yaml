@@ -1771,28 +1771,14 @@ Resources:
             - 'codebuild:StartBuild'
             Resource: !GetAtt CodeBuildProject.Arn
 
+  # Stays empty: no role may write to it, so the association's output is not uploaded, and
+  # delete-stack can remove the bucket, which DeletionPolicy Delete does not empty first.
   S3Bucket:
     Condition: IsAutoUpdateEc2
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
     Properties:
       BucketName: !Sub "ssmlogbucket-${MyEC2Instance}"
-
-  # The SSM agent uploads the nightly update's output with the instance's role. A policy
-  # of its own, because the bucket name depends on the instance, which needs EC2Role.
-  EC2AutoUpdateOutputPolicy:
-    Condition: IsAutoUpdateEc2
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: !Sub brconnector-ssm-output-${AWS::StackName}
-      Roles:
-        - !Ref EC2Role
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: s3:PutObject
-            Resource: !Sub ${S3Bucket.Arn}/ssmoutput/*
 
   EC2AutoUpdateSSMDocument: 
     Condition: IsAutoUpdateEc2

@@ -1,13 +1,18 @@
-"""The helper EC2, cleanup and update roles grant only the calls their scripts make.
+"""The roles in ROLES grant only the calls their scripts make.
 
-The scripts are read from the template itself: the helper's UserData, the nightly SSM
-document and the CodeBuild buildspecs. Every `aws <service> <operation>` call in them, and
-every `regctl image copy` into the private registry, must appear in CALLS, and each action
-CALLS names must be granted on the resource CALLS names, in every combination of the
-parameters that decide which resources and statements exist.
+The scripts are read from the template itself: the helper's UserData and the nightly SSM
+document (EC2Role), and the buildspecs of the CodeBuild projects that run as CodeBuildRole
+and WebFnPackageBuildRole. Every `aws <service> <operation>` call in them, and every
+`regctl image copy` into the private registry, must appear in CALLS, and each action CALLS
+names must be granted on the resource CALLS names, in every combination of the parameters
+that decide which resources and statements exist. Conversely, each (action, resource,
+Condition) these roles grant must come from CALLS or NOT_A_CALL. Other roles, and other
+commands such as docker push, are not checked here.
 """
+import fnmatch
 import importlib.util
 import itertools
+import json
 import re
 from pathlib import Path
 
@@ -95,17 +100,53 @@ CALLS = {
         (['s3:PutObject'], sub('arn:${AWS::Partition}:s3:::${WebFnCodeBucket}/brconnector/function.zip'), None)],
 }
 
-# Grants a role holds for something other than a script call.
+LOGS = ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents']
+VPC_NETWORK_INTERFACE = ['ec2:CreateNetworkInterface', 'ec2:DescribeDhcpOptions', 'ec2:DescribeNetworkInterfaces',
+                         'ec2:DeleteNetworkInterface', 'ec2:DescribeSubnets', 'ec2:DescribeSecurityGroups',
+                         'ec2:DescribeVpcs']
+SUBNET_ARN = 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${SubnetId}'
+BEDROCK_INVOKE = ['bedrock:InvokeModelWithResponseStream', 'bedrock:InvokeModel']
+
+
+def build_log_group(project_name):
+    group = 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/' + project_name
+    return [sub(group), sub(group + ':*')]
+
+
+def codebuild_subnet_condition():
+    subnets = RESOURCES['CodeBuildProject']['Properties']['VpcConfig']['Subnets']
+    return {
+        'StringEquals': {'ec2:AuthorizedService': 'codebuild.amazonaws.com'},
+        'ArnEquals': {'ec2:Subnet': [{'Fn::Sub': [SUBNET_ARN, {'SubnetId': s}]} for s in subnets]},
+    }
+
+
+# Grants a role holds for something other than a script call: [(actions, resource, Condition)].
 NOT_A_CALL = {
     # BRConnector itself, which runs on the helper EC2 for every compute type.
-    'EC2Role': {'bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream', 'bedrock:ListFoundationModels',
-                # The SSM agent writes the nightly update's output to S3Bucket.
-                's3:PutObject'},
-    'CodeBuildRole': {'logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents',
-                      'ec2:CreateNetworkInterface', 'ec2:DescribeDhcpOptions', 'ec2:DescribeNetworkInterfaces',
-                      'ec2:DeleteNetworkInterface', 'ec2:DescribeSubnets', 'ec2:DescribeSecurityGroups',
-                      'ec2:DescribeVpcs', 'ec2:CreateNetworkInterfacePermission'},
+    'EC2Role': [
+        (BEDROCK_INVOKE, 'arn:aws:bedrock:*::foundation-model/*', None),
+        (BEDROCK_INVOKE, 'arn:aws:bedrock:*:*:inference-profile/*', None),
+        (['bedrock:ListFoundationModels'], '*', None),
+    ],
+    'DeleteEC2LambdaExecutionRole': [
+        (['ec2:TerminateInstances'], sub('arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*'),
+         {'StringEquals': {'aws:ResourceTag/aws:cloudformation:stack-name': {'Ref': 'AWS::StackName'}}}),
+    ],
+    'CodeBuildRole': [(LOGS, group, None) for group in build_log_group('MyCodeBuildProject-${AWS::StackName}')] + [
+        # "Allow CodeBuild access to AWS services required to create a VPC network interface".
+        (VPC_NETWORK_INTERFACE, '*', None),
+        (['ec2:CreateNetworkInterfacePermission'],
+         sub('arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*'),
+         codebuild_subnet_condition()),
+    ],
+    'WebFnPackageBuildRole': [(LOGS, group, None) for group in build_log_group('${AWS::StackName}-webfn-package')],
 }
+
+# Managed policies that may sit on a role while S3Bucket exists; none of them writes to S3,
+# per the AWS managed policy reference.
+MANAGED_WITHOUT_S3_WRITE = {'AmazonSSMManagedInstanceCore', 'AmazonElasticContainerRegistryPublicReadOnly',
+                            'AWSLambdaBasicExecutionRole'}
 
 # The parameters that decide which roles, policies and statements exist.
 SCENARIO_PARAMETERS = {
@@ -238,6 +279,25 @@ def granted(found, action, resource, condition):
     )
 
 
+def own_statements(role, truth):
+    """The statements role grants itself: inline, and attached policies other than Claude Code Web's."""
+    props = resolve(RESOURCES[role]['Properties'], truth)
+    found = [st for p in props.get('Policies', []) for st in as_list(p['PolicyDocument']['Statement'])]
+    for name, policy in attached_policies(role, truth):
+        if not name.startswith('ClaudeCodeWeb'):
+            found += as_list(policy['PolicyDocument']['Statement'])
+    return found
+
+
+def triples(entries, truth):
+    """{(action, resource, Condition)} for CALLS-style entries in this scenario, JSON-encoded so they hash."""
+    return {
+        (action, json.dumps(resolve(resource, truth), sort_keys=True), json.dumps(resolve(condition, truth), sort_keys=True))
+        for actions, resource, condition in entries
+        for action in actions
+    }
+
+
 def every_scenario_role():
     """(scenario, truth, role) for each role in ROLES that exists in the scenario."""
     for scenario, truth in scenarios():
@@ -283,12 +343,12 @@ def service_role(project):
 
 
 def sources():
-    """(label, resource that holds the script, script text, role the script runs as)."""
+    """(label, resource that holds the script, script text, role the script runs as), for ROLES."""
     yield 'UserData', 'MyEC2Instance', userdata(), instance_role()
     # The association targets this stack's instance, so the document runs as its role.
     yield 'SSM document', 'EC2AutoUpdateSSMDocument', ssm_document(), instance_role()
     for name, body in RESOURCES.items():
-        if body['Type'] == 'AWS::CodeBuild::Project':
+        if body['Type'] == 'AWS::CodeBuild::Project' and service_role(name) in ROLES:
             yield f'{name} buildspec', name, buildspec(name), service_role(name)
 
 
@@ -320,6 +380,36 @@ def calls(text):
             if '.dkr.ecr.' in destination:
                 found.append(('regctl image copy', destination, line))
     return found
+
+
+def wanted_calls(role, scenario, truth):
+    """The CALLS keys of the scripts that run as role in this scenario."""
+    for _, holder, text, source_role in sources():
+        if source_role != role or not present(holder, truth):
+            continue
+        for call, target, _ in calls(text):
+            # The UserData copies the lambda image only when ComputeType is lambda; the
+            # private repository exists only then.
+            if holder == 'MyEC2Instance' and call == 'regctl image copy' and scenario['ComputeType'] != 'lambda':
+                continue
+            yield call, target
+
+
+def covers_log_bucket(resource):
+    """Whether a statement Resource can name S3Bucket or an object in it."""
+    if any(True for _ in gating.mentions(resource, {'S3Bucket'})):
+        return True
+    if isinstance(resource, dict) and set(resource) == {'Fn::Sub'}:
+        text = resource['Fn::Sub'][0] if isinstance(resource['Fn::Sub'], list) else resource['Fn::Sub']
+        resource = re.sub(r'\$\{[^}]*\}', '\x00', text.replace('${AWS::Partition}', 'aws'))
+    if not isinstance(resource, str):
+        return False
+    return any(fnmatch.fnmatchcase(arn, resource) for arn in (
+        'arn:aws:s3:::ssmlogbucket-i-0123456789abcdef0', 'arn:aws:s3:::ssmlogbucket-i-0123456789abcdef0/ssmoutput/x'))
+
+
+def is_s3_write(action):
+    return action == '*' or (action.startswith('s3:') and not action[3:].startswith(('Get', 'List', 'Head')))
 
 
 # ---------------------------------------------------------------------------
@@ -355,21 +445,16 @@ def test_every_cli_call_is_granted():
         for call, target, line in found:
             assert (call, target) in CALLS, f'{label}: unmapped call {call!r} on {target!r}: {line}'
             seen.add((call, target))
-        for scenario, truth in scenarios():
-            if not present(holder, truth):
+    for scenario, truth in scenarios():
+        for role in ROLES:
+            if not present(role, truth):
                 continue
-            # The UserData copies the lambda image only when ComputeType is lambda; the
-            # private repository exists only then.
-            wanted = [
-                (call, target) for call, target, _ in found
-                if not (holder == 'MyEC2Instance' and call == 'regctl image copy' and scenario['ComputeType'] != 'lambda')
-            ]
             grants = statements(role, truth)
-            for key in wanted:
+            for key in wanted_calls(role, scenario, truth):
                 for actions, resource, condition in CALLS[key]:
                     for action in actions:
                         assert granted(grants, action, resource, condition), (
-                            f'{label}: {role} lacks {action} on {resource} for {key[0]} ({scenario})')
+                            f'{role} lacks {action} on {resource} for {key[0]} ({scenario})')
     # Every line of CALLS is still used by some script.
     assert seen == set(CALLS), set(CALLS) - seen
 
@@ -384,21 +469,18 @@ def test_ec2_role_copies_into_the_lambda_repository_only_on_lambda():
 
 
 def test_no_grant_beyond_the_calls():
-    needed = {}
-    for label, holder, text, role in sources():
-        for call, target, _ in calls(text):
-            needed.setdefault(role, set()).update(a for actions, _, _ in CALLS[(call, target)] for a in actions)
-    for scenario, truth in scenarios():
-        for role in ('EC2Role', 'CodeBuildRole'):
-            if not present(role, truth):
-                continue
-            props = resolve(RESOURCES[role]['Properties'], truth)
-            own = [st for p in props.get('Policies', []) for st in as_list(p['PolicyDocument']['Statement'])]
-            own += [st for name, p in attached_policies(role, truth) if not name.startswith('ClaudeCodeWeb')
-                    for st in as_list(p['PolicyDocument']['Statement'])]
-            for st in own:
-                for action in as_list(st['Action']):
-                    assert action in needed[role] | NOT_A_CALL[role], (role, action, scenario)
+    # Every (action, resource, Condition) a role in ROLES grants itself is one that a call
+    # of its scripts in this scenario, or NOT_A_CALL, names.
+    for scenario, truth, role in every_scenario_role():
+        allowed = triples(NOT_A_CALL[role], truth)
+        for key in wanted_calls(role, scenario, truth):
+            allowed |= triples(CALLS[key], truth)
+        for st in own_statements(role, truth):
+            assert st.get('Effect') == 'Allow' and set(st) <= {'Sid', 'Effect', 'Action', 'Resource', 'Condition'}, (role, st)
+            for action in as_list(st['Action']):
+                for resource in as_list(st['Resource']):
+                    grant = (action, json.dumps(resource, sort_keys=True), json.dumps(st.get('Condition'), sort_keys=True))
+                    assert grant in allowed, (role, grant, scenario)
 
 
 def test_cleanup_function_terminates_only_this_stacks_instances():
@@ -422,18 +504,28 @@ def test_cleanup_function_terminates_only_this_stacks_instances():
     assert targets == [{'Key': 'tag:aws:cloudformation:stack-name', 'Values': [sub('${AWS::StackName}')]}]
 
 
-def test_association_output_is_granted():
-    policy = RESOURCES['EC2AutoUpdateOutputPolicy']
-    assert policy['Type'] == 'AWS::IAM::Policy'
-    assert policy['Condition'] == RESOURCES['EC2AutoUpdateAssociation']['Condition'] == 'IsAutoUpdateEc2'
-    assert policy['Properties']['Roles'] == [{'Ref': instance_role()}]
-    output = RESOURCES['EC2AutoUpdateAssociation']['Properties']['OutputLocation']['S3Location']
-    assert output['OutputS3BucketName'] == {'Ref': 'S3Bucket'}
-    assert as_list(policy['Properties']['PolicyDocument']['Statement']) == [{
-        'Effect': 'Allow',
-        'Action': 's3:PutObject',
-        'Resource': sub('${S3Bucket.Arn}/' + output['OutputS3KeyPrefix'] + '/*'),
-    }]
+def test_no_role_writes_to_the_ssm_log_bucket():
+    # S3Bucket has DeletionPolicy Delete and nothing empties it, so it must stay empty:
+    # delete-stack cannot remove a bucket that holds objects. No principal may write to it.
+    assert not [n for n, b in RESOURCES.items()
+                if b['Type'] == 'AWS::S3::BucketPolicy' and any(True for _ in gating.mentions(b, {'S3Bucket'}))]
+    checked = 0
+    for scenario, truth in scenarios():
+        if not present('S3Bucket', truth):
+            continue
+        checked += 1
+        for name, body in RESOURCES.items():
+            if body['Type'] != 'AWS::IAM::Role' or not present(name, truth):
+                continue
+            props = resolve(body['Properties'], truth)
+            for arn in props.get('ManagedPolicyArns', []):
+                assert managed_name(arn) in MANAGED_WITHOUT_S3_WRITE, (name, arn, scenario)
+            for st in statements(name, truth, managed=False):
+                assert 'NotAction' not in st and 'NotResource' not in st, (name, st)
+                writes = [a for a in as_list(st['Action']) if is_s3_write(a)]
+                if writes and st.get('Effect') == 'Allow':
+                    assert not [r for r in as_list(st['Resource']) if covers_log_bucket(r)], (name, st, scenario)
+    assert checked
 
 
 def test_build_logs_go_to_the_projects_log_group():
