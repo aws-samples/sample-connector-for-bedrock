@@ -49,7 +49,7 @@ The output follows the standard OpenAI API format for image generation:
 ## Billing
 
 - Each request is billed at `price_per_image` for each image in the response's `data`, in the model's currency. For example, `"price_per_image": 0.04` bills 0.08 for a response with 2 images.
-- `price_per_image` is per **image**, not per token. When it is missing, blank or not a number, images are recorded at 0, so set it to bill image generation, for example to your deployment's price for the size and quality you allow.
+- `price_per_image` is per **image**, not per token. When it is missing, blank, negative or not a number, images are recorded at 0, so set it to bill image generation, for example to your deployment's price for the size and quality you allow.
 
 ## Usage
 

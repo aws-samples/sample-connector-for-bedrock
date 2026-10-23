@@ -90,6 +90,22 @@ describe.each(providers)('%s stream usage', (_name, make, config) => {
         expect(charges(ctx)[0]).toBeCloseTo(FEE, 12);
     });
 
+    // Some upstreams send the final usage chunk without a choices key at all.
+    it('treats a usage chunk without choices as usage-only', async () => {
+        const { choices: _omit, ...bare } = usageChunk;
+        const chunks = [chunk({ role: 'assistant', content: 'Hel' }), chunk({ content: 'lo' }, 'stop'), bare];
+
+        const dropped = setup(make, config, chunks);
+        await dropped.provider.chat(request(), 's-1', dropped.ctx);
+        expect(written(dropped.ctx).map((p: any) => p.choices?.[0]?.delta?.content)).toEqual(['Hel', 'lo']);
+        expect(charges(dropped.ctx)).toHaveLength(1);
+        expect(charges(dropped.ctx)[0]).toBeCloseTo(FEE, 12);
+
+        const asked = setup(make, config, chunks);
+        await asked.provider.chat(request({ stream_options: { include_usage: true } }), 's-1', asked.ctx);
+        expect(written(asked.ctx).filter((p: any) => !('choices' in p))).toEqual([bare]);
+    });
+
     it('saves 0 tokens and warns when the upstream reports no usage', async () => {
         const { provider, ctx } = setup(make, config, [chunk({ role: 'assistant', content: 'Hel' }), chunk({ content: 'lo' }, 'stop')]);
         await provider.chat(request(), 's-1', ctx);

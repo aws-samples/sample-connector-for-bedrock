@@ -254,8 +254,8 @@ describe('azure-openai-image', () => {
         expect(thread(ctx)).toMatchObject({ tokens_in: 0, tokens_out: 0, prompt: JSON.stringify('a cute cat'), session_key: 's-1' });
     });
 
-    it('records an image call at 0 when no price is set, and for "" or "abc"', async () => {
-        for (const extra of [{}, { price_per_image: '' }, { price_per_image: 'abc' }]) {
+    it('records an image call at 0 when no price is set, and for "", "abc" or a negative price', async () => {
+        for (const extra of [{}, { price_per_image: '' }, { price_per_image: 'abc' }, { price_per_image: -0.04 }, { price_per_image: '-0.04' }]) {
             const { p } = azure(azureConfig(extra), [{ b64_json: 'a' }]);
             const ctx = fakeCtx();
             await p.images({ model: 'azure-image', prompt: 'a cute cat', currency: 'USD' }, undefined, ctx);
@@ -263,6 +263,33 @@ describe('azure-openai-image', () => {
             expect(thread(ctx)).toMatchObject({ fee: 0, tokens_in: 0, tokens_out: 0 });
             expect(ctx.logger.error).not.toHaveBeenCalled();
         }
+    });
+});
+
+describe('session title', () => {
+    const existing = () => fakeDb({ id: 3, title: 'my chat', total_in_tokens: 0, total_out_tokens: 0, total_fee: '0' });
+    const savedSession = (ctx: any) => ctx.db.calls.find((c: any[]) => c[0] === 'save' && c[1] === 'eiai_session')?.[2];
+    const imageModel = () => {
+        const config = { baseURL: 'https://example.openai.azure.com/openai/deployments/img', apiKey: 'k', apiVersion: '2025-01-01-preview', model: 'gpt-image-1' };
+        const p = provider(AzureOpenAIImage, model('azure-openai-image', config, { price_in: 0, price_out: 0 }));
+        p.client = { baseURL: config.baseURL, images: { generate: vi.fn(async () => ({ created: 1, data: [{ b64_json: 'a' }] })) } };
+        return p;
+    };
+
+    it('keeps the session title when an image call has no text', async () => {
+        const ctx = fakeCtx();
+        ctx.db = existing();
+        await imageModel().images({ model: 'azure-image', prompt: 'a cute cat', currency: 'USD' }, 's-1', ctx);
+        expect(savedSession(ctx)).toMatchObject({ id: 3 });
+        expect(savedSession(ctx)).not.toHaveProperty('title');
+    });
+
+    it('titles the session with the first 30 characters of a non-stream reply', async () => {
+        const ctx = fakeCtx();
+        ctx.db = existing();
+        const request = { model: 'm', stream: false, currency: 'USD', messages: [{ role: 'user', content: 'hi' }] } as any;
+        await imageModel().saveThread(ctx, 's-1', request, { text: 'x'.repeat(40), input_tokens: 0, output_tokens: 0 });
+        expect(savedSession(ctx).title).toBe('x'.repeat(30));
     });
 });
 
@@ -304,7 +331,7 @@ describe('legacyFee images', () => {
         expect(legacyFee(data(' 0.04 '), { input_tokens: 0, output_tokens: 0, images: 2 }).fee).toBeCloseTo(0.08, 10);
     });
 
-    it.each([undefined, null, '', '  ', 'abc', Infinity, NaN])('counts price_per_image %s as 0', (price) => {
+    it.each([undefined, null, '', '  ', 'abc', Infinity, NaN, -0.04, '-0.04', -Infinity])('counts price_per_image %s as 0', (price) => {
         expect(legacyFee(data(price), { input_tokens: 0, output_tokens: 0, images: 2 }).fee).toBe(0);
     });
 

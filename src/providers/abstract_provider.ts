@@ -194,8 +194,8 @@ export default abstract class AbstractProvider {
             if (session_id) {
                 const session = await ctx.db.loadByKV("eiai_session", "key", session_id);
                 const sessionData: any = {};
-                if (!chatRequest.stream) { // in BRClient, no stream means summary session's title.
-                    sessionData.title = response.text && response.text.slice(0, 30);
+                if (!chatRequest.stream && response.text) { // in BRClient, no stream means summary session's title.
+                    sessionData.title = response.text.slice(0, 30);
                 }
 
                 sessionData.total_in_tokens = session ? session.total_in_tokens + tokens_in : tokens_in;

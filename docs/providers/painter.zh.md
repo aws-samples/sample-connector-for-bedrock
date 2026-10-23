@@ -48,7 +48,7 @@ paintModelId 可以是如下的参数:
 ## 计费
 
 - 每次画图按返回的图片数量，每张按 `price_per_image` 计费，币种与模型相同。例如 `"price_per_image": 0.04` 表示每张图片计 0.04。画图失败时按 0 张图片记录。
-- `price_per_image` 按每**张图片**计，不是按 token 计。它缺失、为空或不是数字时，图片按 0 记录，所以请设置它，图像生成才会计费，例如设为 `paintModelId` 在您所在区域的价格，见 [Amazon Bedrock 定价页面](https://aws.amazon.com/bedrock/pricing/)。
+- `price_per_image` 按每**张图片**计，不是按 token 计。它缺失、为空、为负数或不是数字时，图片按 0 记录，所以请设置它，图像生成才会计费，例如设为 `paintModelId` 在您所在区域的价格，见 [Amazon Bedrock 定价页面](https://aws.amazon.com/bedrock/pricing/)。
 - 生成画图提示词的调用发给 `localLlmModel`，按对该模型的调用以它的价格计费。
 
 ## BRClient 中的功能和截图

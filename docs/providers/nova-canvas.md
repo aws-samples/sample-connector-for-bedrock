@@ -48,7 +48,7 @@ For detailed examples, please refer to: <https://docs.aws.amazon.com/nova/latest
 ## Billing
 
 - Each image task is billed at `price_per_image` for each image the model returns, in the model's currency. For example, `"price_per_image": 0.04` bills 0.08 for a task that returns 2 images.
-- `price_per_image` is per **image**, not per token. When it is missing, blank or not a number, images are recorded at 0, so set it to bill image generation, for example to the price of `paintModelId` in your Region on the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).
+- `price_per_image` is per **image**, not per token. When it is missing, blank, negative or not a number, images are recorded at 0, so set it to bill image generation, for example to the price of `paintModelId` in your Region on the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).
 - The call that chooses the task and its parameters goes to `localLlmModel` and is billed as a call to that model, at its prices.
 
 ## Additional Notes

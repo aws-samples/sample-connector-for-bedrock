@@ -18,14 +18,14 @@ function tokenCount(value: unknown): number {
     return Number.isFinite(count) && count > 0 ? count : 0;
 }
 
-// price_per_image comes from the free-form model config. A value that is missing, blank or not a finite number
-// counts as 0, so the images of a model without one are recorded at no charge.
+// price_per_image comes from the free-form model config. A value that is missing, blank, negative or not a finite
+// number counts as 0, so the images of a model without one are recorded at no charge.
 function imagePrice(configured: unknown): number {
     if (typeof configured !== 'number' && typeof configured !== 'string') {
         return 0;
     }
     const price = Number(configured);
-    return Number.isFinite(price) ? price : 0;
+    return Number.isFinite(price) && price > 0 ? price : 0;
 }
 
 // The fee of one call and the input tokens to record for it. Prices are per token, and price_per_image is per image.

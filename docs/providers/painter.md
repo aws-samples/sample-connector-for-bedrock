@@ -48,7 +48,7 @@ Then grant this model to  group or apikey.
 ## Billing
 
 - Each drawing is billed at `price_per_image` for each image it returns, in the model's currency. For example, `"price_per_image": 0.04` bills 0.04 per image. A drawing that fails is recorded with 0 images.
-- `price_per_image` is per **image**, not per token. When it is missing, blank or not a number, images are recorded at 0, so set it to bill image generation, for example to the price of `paintModelId` in your Region on the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).
+- `price_per_image` is per **image**, not per token. When it is missing, blank, negative or not a number, images are recorded at 0, so set it to bill image generation, for example to the price of `paintModelId` in your Region on the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).
 - The call that writes the drawing prompt goes to `localLlmModel` and is billed as a call to that model, at its prices.
 
 ## Features and Screenshots in BRClient
