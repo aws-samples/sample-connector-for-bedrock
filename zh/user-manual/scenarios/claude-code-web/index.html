@@ -899,7 +899,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        给用户开通
+        联网搜索
       
     </span>
   </a>
@@ -910,7 +910,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        登录
+        给用户开通
       
     </span>
   </a>
@@ -921,7 +921,7 @@
   <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        费用
+        登录
       
     </span>
   </a>
@@ -930,6 +930,17 @@
       
         <li class="md-nav__item">
   <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        费用
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         已知限制
@@ -1206,12 +1217,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1272,34 +1277,6 @@
     
   
     使用 Provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../providers/aws-executor/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    aws-executor
   
 
     
@@ -1817,62 +1794,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../providers/urls-reader/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    urls-reader
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../providers/web-miner/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    web-miner
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1949,7 +1870,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        给用户开通
+        联网搜索
       
     </span>
   </a>
@@ -1960,7 +1881,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        登录
+        给用户开通
       
     </span>
   </a>
@@ -1971,7 +1892,7 @@
   <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
-        费用
+        登录
       
     </span>
   </a>
@@ -1980,6 +1901,17 @@
       
         <li class="md-nav__item">
   <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        费用
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         已知限制
@@ -2017,6 +1949,7 @@
 <li>后端（本仓库 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/tree/main/claude-code-web"><code>claude-code-web/</code></a> 目录里的 fork）跑在 Amazon Bedrock AgentCore Runtime 上。每个 API key 有自己的 microVM。Runtime 只接受 IAM 签名的调用，所以只有 BRConnector 能访问它。</li>
 <li>microVM 里的 Claude Code 每次调用模型，都用该用户的 key 打回 BRConnector 的 <code>/v1/messages</code>，额度和计费与其他客户端一样生效。microVM 没有任何 Bedrock 权限，没法绕过 BRConnector。</li>
 <li>每个 key 在 S3 里有自己的工作区，前缀为 <code>user_data/brc-key-&lt;补零到 16 位的 key id&gt;/</code>。交给 microVM 的凭证只能访问这个前缀。</li>
+<li>会话启动时，如果用户的 <code>~/.claude/settings.json</code> 里没有 <code>skipWebFetchPreflight</code>，会写入 <code>"skipWebFetchPreflight": true</code>，这样 Claude Code 在 WebFetch 之前不会先向 api.anthropic.com 检查域名；用户自己设置的值会保留。</li>
 <li>key 被删除或者额度用完，就不能再使用 Claude Code Web。</li>
 </ul>
 <h2 id="_2">打开开关<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
@@ -2061,6 +1994,10 @@
 <td><code>ClaudeCodeWebImageBuildId</code></td>
 <td>修改它（例如从 <code>1</code> 改成 <code>2</code>）只重建后端镜像，不动其他资源，见「已知限制」。默认 <code>1</code>。</td>
 </tr>
+<tr>
+<td><code>EnableWebSearch</code></td>
+<td><code>true</code>（默认）时同时创建 AgentCore Web Search 的 gateway，见「联网搜索」。<code>false</code> 时不创建。</td>
+</tr>
 </tbody>
 </table>
 <p>不满足上述组合时，模板的 <code>Rules</code> 会在创建任何资源之前拒绝。</p>
@@ -2070,13 +2007,24 @@
 <li>AgentCore Runtime；</li>
 <li>存放工作区的 S3 bucket，删除 stack 时会<strong>保留</strong>；</li>
 <li>Runtime 的 IAM 角色、访问工作区的 IAM 角色，以及挂在 BRConnector 角色上、允许它调用 Runtime 的策略；</li>
-<li>SSM 参数 <code>/brconnector/&lt;stack 名&gt;/claude-code-web</code>，BRConnector 从这里读取 Runtime 的配置（<code>CC_CONFIG_PARAM</code>）。</li>
+<li>SSM 参数 <code>/brconnector/&lt;stack 名&gt;/claude-code-web</code>，BRConnector 从这里读取 Runtime 的配置（<code>CC_CONFIG_PARAM</code>）；</li>
+<li><code>EnableWebSearch</code> 为 <code>true</code> 且所在区域提供 AgentCore Web Search 时：一个带 Web Search connector 的 AgentCore Gateway 及其 IAM 角色，见「联网搜索」。</li>
 </ul>
 <p>stack 输出 <code>ClaudeCodeWebUrl</code> 就是访问地址。</p>
-<p>模板支持 us-east-1、us-east-2、us-west-1、us-west-2，这四个区域都提供 AgentCore Runtime。<code>lambda-web</code> 只能用在提供 Lambda Web Functions 的区域。</p>
+<p>模板支持 us-east-1、us-east-2、us-west-1、us-west-2，这四个区域都提供 AgentCore Runtime。<code>lambda-web</code> 只能用在提供 Lambda Web Functions 的区域。除 us-west-1 外，这几个区域都提供 AgentCore Web Search。</p>
 <h3 id="cloudformation">不用 CloudFormation<a class="headerlink" href="#cloudformation" title="Permanent link">¶</a></h3>
 <p>如果自己运行 BRConnector，可以给它设置 <code>CC_CONFIG_PARAM</code>（一个 SSM 参数的 ARN，参数值是 JSON <code>{"runtimeArn","workspaceRoleArn","bucket","prefix"}</code>），或者直接设置环境变量 <code>CC_RUNTIME_ARN</code>、<code>CC_WORKSPACE_ROLE_ARN</code>、<code>CC_WORKSPACE_BUCKET</code>，以及可选的 <code>CC_WORKSPACE_PREFIX</code>（默认 <code>user_data</code>）。两种都设置时，直接设置的环境变量优先。两种都没有时，<code>/cc</code> 返回 404。</p>
-<h2 id="_3">给用户开通<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
+<h2 id="_3">联网搜索<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
+<p><code>EnableWebSearch</code> 为 <code>true</code>（默认）时，stack 还会创建一个带 <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-web-search-tool.html">AgentCore Web Search</a> connector 的 AgentCore Gateway，供 Claude Code Web 联网搜索：</p>
+<ul>
+<li>这个 gateway 是一个只接受 SigV4（IAM）调用的 MCP server。它的地址是 stack 输出 <code>WebSearchGatewayUrl</code>，Runtime 通过环境变量 <code>AGENTCORE_WEB_SEARCH_GATEWAY_URL</code> 拿到它。</li>
+<li>gateway 自己的 IAM 角色只能调用这个 gateway 和 Web Search connector。</li>
+<li>只有 Runtime 角色可以调用这个 gateway（对它的 ARN 有 <code>bedrock-agentcore:InvokeGateway</code> 权限）。Runtime 里的联网搜索 MCP server 用 Runtime 角色给调用签名。访问工作区的角色和每个用户的 session policy 都没有 <code>bedrock-agentcore</code> 权限。</li>
+<li>因此 gateway 的调用记在 Runtime 角色名下，stack 的所有 Claude Code Web 用户都能联网搜索。</li>
+</ul>
+<p>AgentCore Web Search 只在 us-east-1、us-east-2、us-west-2、eu-west-1、ap-southeast-2、ap-northeast-1 提供。在其他区域（例如 us-west-1），stack 不会创建这些资源，Claude Code Web 照常可用，只是没有联网搜索。</p>
+<p>搜索按每 1,000 次查询 7 美元收费（<a href="https://aws.amazon.com/bedrock/agentcore/pricing/">价格</a>），<strong>由 AWS 向部署 stack 的账号收费，不计入 key</strong>。搜索不经过 BRConnector，所以不计入 key 的额度和余额。默认每个账号在每个区域每秒最多 10 次搜索，这个配额可以申请调整。不需要联网搜索时，把 <code>EnableWebSearch</code> 设为 <code>false</code>。</p>
+<h2 id="_4">给用户开通<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
 <p>Claude Code Web 只给普通 API key 使用，admin key 会被拒绝。</p>
 <p>key 本身或者它所在的组，至少绑定了一个 <a href="../../../providers/bedrock-runtime-anthropic/">bedrock-runtime-anthropic</a> provider 的模型，这个 key 才能使用 Claude Code Web。请给 key 或它的组绑定以下模型：</p>
 <ul>
@@ -2085,31 +2033,32 @@
 </ul>
 <p>这些模型在 BRConnector 里的名称必须包含 <code>claude</code>（或 <code>anthropic</code>），后台模型也一样。后端按名称判断：名称不含这两个词时，它会切换到 LiteLLM 代理模式，而本部署不支持这种模式，会话会失败。</p>
 <p>key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 402 和原因。</p>
-<h2 id="_4">登录<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
+<h2 id="_5">登录<a class="headerlink" href="#_5" title="Permanent link">¶</a></h2>
 <ol>
 <li>打开 <code>ClaudeCodeWebUrl</code>，例如 <code>https://d111111abcdef8.cloudfront.net/cc/</code>。</li>
 <li>输入自己的 BRConnector API key。页面会用 <code>/v1/models</code> 校验它。</li>
 <li>第一次请求要启动 microVM，可能要等几十秒。</li>
 </ol>
 <p>登出会停止你的 microVM。文件保存在 S3 里，下次登录时会恢复。</p>
-<h2 id="_5">费用<a class="headerlink" href="#_5" title="Permanent link">¶</a></h2>
+<h2 id="_6">费用<a class="headerlink" href="#_6" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>模型 token</strong>：按 BRConnector 里设置的价格计入用户的 key，和其他客户端一样。</li>
 <li><strong>其他费用</strong>都由部署 stack 的 AWS 账号承担，不计入任何 key：microVM 运行期间的 AgentCore Runtime 计算费用、每次构建镜像的 CodeBuild 时长、工作区的 S3 存储、镜像的 ECR 存储，以及 CloudWatch Logs。每个 key 最多一个 microVM，空闲 15 分钟后停止。</li>
+<li><strong>联网搜索</strong>（打开时，见「联网搜索」）：每 1,000 次查询 7 美元，同样由账号承担，不计入 key。gateway 上的每次 MCP <code>tools/list</code> 和 <code>tools/call</code> 还算一次 AgentCore Gateway 调用，每 1,000 次 0.005 美元，也由账号承担，和搜索费用相比可以忽略。</li>
 <li>打开并处于前台的 <code>/cc</code> 页面每 5 秒检查一次后端健康状态；打开的终端即使页面在后台也会持续拉取输出。这些调用都算作活动，所以只要页面开着，microVM 就一直运行，最长到 AgentCore 的 8 小时生命周期上限（之后 AgentCore 会换一个新的）。空闲 15 分钟停止的计时，要等页面关闭、或者页面隐藏且没有打开终端之后才开始。请提醒用户用完后关闭页面或登出。</li>
 <li>删除 stack 时会保留工作区 bucket。不再需要时请手动清空并删除。</li>
 </ul>
-<h2 id="_6">已知限制<a class="headerlink" href="#_6" title="Permanent link">¶</a></h2>
+<h2 id="_7">已知限制<a class="headerlink" href="#_7" title="Permanent link">¶</a></h2>
 <ul>
 <li>只支持在新建 stack 时打开开关。对已有 stack 打开开关不会生效：ec2 修改 UserData 不会重跑 cloud-init，SSM 自动升级重放的仍是第一次启动时的 <code>docker run</code> 行。</li>
 <li>microVM 的计算费用算在部署 stack 的账号上，不计入 key 的额度。key 的额度只管模型 token。每个 key 最多一个 microVM，空闲 15 分钟回收。</li>
-<li>ec2 每晚自动把 BRConnector 升级到 <code>latest</code>，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 <code>ClaudeCodeWebImageBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）：镜像会从 <code>SourceRepoUrl</code> 的 <code>SourceRef</code> 重新构建，<code>SourceRef</code> 是分支时会带上新提交，stack 里的其他资源不变。修改 <code>SourceRepoUrl</code>、<code>SourceRef</code> 或 <code>BRConnectorVersion</code> 也会重建镜像，但 BRConnector 本身也会跟着重建，因为它们是 EC2 实例 UserData 的一部分：<code>ec2</code> 形态下 BRConnector 实例会停止再启动；<code>lambda-web</code> 形态下辅助实例会重新构建部署包（<code>KeepEc2</code> 为 <code>false</code> 时更新会失败，因为该实例已经自行删除）。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。</li>
+<li>ec2 每晚自动把 BRConnector 升级到 <code>latest</code>，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 <code>ClaudeCodeWebImageBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）：镜像会从 <code>SourceRepoUrl</code> 的 <code>SourceRef</code> 重新构建，<code>SourceRef</code> 是分支时会带上新提交，stack 里的其他资源不变。修改 <code>SourceRepoUrl</code>、<code>SourceRef</code> 或 <code>BRConnectorVersion</code> 也会重建镜像，但 BRConnector 本身也会跟着重建，因为它们是 EC2 实例 UserData 的一部分：<code>ec2</code> 形态下 BRConnector 实例会停止再启动；<code>lambda-web</code> 形态下 BRConnector 部署包不会重新构建，因为它只在创建 stack 时构建（<code>KeepEc2</code> 为 <code>false</code> 时更新会失败，因为辅助实例已经自行删除）。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。</li>
 <li>在上游发布带 <code>/cc</code> 的 BRConnector 版本、维护者推送公开镜像之前，<code>ec2</code> 和 <code>ecs</code> 形态用不了 Claude Code Web。</li>
 <li><code>lambda-web</code> 形态下，单次消息流最长 15 分钟（Lambda 超时 900 秒）；<code>ec2</code> 和 <code>ecs</code> 下受 AgentCore 同步请求 15 分钟的限制。</li>
 <li>microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。</li>
 <li>microVM 里的 AWS 凭证每次请求都会更新，有效期最长 1 小时。终端以及从终端启动的进程会一直用启动时拿到的凭证，这些凭证会在 15 分钟到 1 小时之后过期，此后访问 S3 等 AWS 服务会报凭证过期。请新开一个终端。</li>
 <li><code>/cc</code> 和 <code>/manager</code> 共用 BRConnector 的同一个 origin，两者都把 key 存在浏览器的 localStorage 里，所以一边的页面能读到另一边的 key。尽量不要在使用 <code>/cc</code> 的同一个浏览器 profile 里使用 admin key。</li>
-<li>用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标，以及获取这个 Runtime 的 workload access token，没有任何 Bedrock 或 S3 权限。</li>
+<li>用户在自己的 shell 里能看到自己的 key 和自己的 AWS 临时凭证。这些凭证只能访问自己的工作区前缀。shell 也能使用 Runtime 自己的角色，但这个角色只能拉取镜像、写这个 Runtime 的日志、trace 和指标、获取这个 Runtime 的 workload access token，以及在打开联网搜索时调用联网搜索 gateway，没有任何 Bedrock 或 S3 权限。因此用户可以在 shell 里直接发起联网搜索，费用由账号承担。</li>
 <li>第一次进入要冷启动 microVM，可能要等几十秒。</li>
 <li>不支持 GitHub OAuth，也不支持 <code>lambda</code> 计算形态。</li>
 </ul>
@@ -2135,7 +2084,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月19日 14:31:03 CST"><span class="timeago" datetime="2026-10-19T14:31:03+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月19日 14:31:03 CST">2026-10-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月22日 15:38:20 CST"><span class="timeago" datetime="2026-10-22T15:38:20+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月22日 15:38:20 CST">2026-10-22</span>
   </span>
 
     

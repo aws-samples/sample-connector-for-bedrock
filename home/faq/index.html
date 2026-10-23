@@ -620,7 +620,7 @@
   <a href="#model-wildcard" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Model Wildcard
+        Model Names That Contain a Slash
       
     </span>
   </a>
@@ -1171,12 +1171,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1237,34 +1231,6 @@
     
   
     Using Provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/aws-executor/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    aws-executor
   
 
     
@@ -1782,62 +1748,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/urls-reader/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    urls-reader
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/web-miner/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    web-miner
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1914,7 +1824,7 @@
   <a href="#model-wildcard" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Model Wildcard
+        Model Names That Contain a Slash
       
     </span>
   </a>
@@ -1981,32 +1891,9 @@
 <p>You just need to create a new model named <code>default</code>.</p>
 <h3 id="can-you-draw-diagrams">Can You Draw Diagrams?<a class="headerlink" href="#can-you-draw-diagrams" title="Permanent link">¶</a></h3>
 <p>Yes, you can draw diagrams by configuring and using models with providers such as <code>painter</code> or <code>nova-canvas</code>.</p>
-<h2 id="model-wildcard">Model Wildcard<a class="headerlink" href="#model-wildcard" title="Permanent link">¶</a></h2>
-<p>You can now configure a custom model and use slashes in the model name within API calls.</p>
-<p>Here is an example of an API call:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="err">POST</span><span class="w"> </span><span class="p">{{</span><span class="err">baseURL</span><span class="p">}}</span><span class="err">/cha</span><span class="kc">t</span><span class="err">/comple</span><span class="kc">t</span><span class="err">io</span><span class="kc">ns</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="err">Au</span><span class="kc">t</span><span class="err">horiza</span><span class="kc">t</span><span class="err">io</span><span class="kc">n</span><span class="p">:</span><span class="w"> </span><span class="err">Bearer</span><span class="w"> </span><span class="p">{{</span><span class="err">key</span><span class="p">}}</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="err">Co</span><span class="kc">ntent</span><span class="mi">-</span><span class="err">Type</span><span class="p">:</span><span class="w"> </span><span class="err">applica</span><span class="kc">t</span><span class="err">io</span><span class="kc">n</span><span class="err">/jso</span><span class="kc">n</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">{</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">"model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bedrock/us.amazon.nova-micro-v1:0"</span><span class="p">,</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">"messages"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="p">{</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">            </span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"user"</span><span class="p">,</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">            </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Tell me a joke that only programmers would understand"</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="p">],</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">"max_tokens"</span><span class="p">:</span><span class="w"> </span><span class="mi">5120</span><span class="p">,</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="nt">"stream"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">}</span>
-</code></pre></div>
-<p>To use this method, you must:</p>
-<ol>
-<li>Configure a custom model with the model name <code>bedrock</code> in the backend.</li>
-<li>The model name after the slash can be customized but must match the original vendor’s model name.</li>
-<li>The provider will prioritize the model name after the slash, then consider the model name configured in the backend, and finally fall back to the original name if necessary.</li>
-</ol>
-<p>Currently, providers that support this usage include: <code>bedrock_converse</code>, <code>openai_compatiable</code>.</p>
+<h2 id="model-wildcard">Model Names That Contain a Slash<a class="headerlink" href="#model-wildcard" title="Permanent link">¶</a></h2>
+<p>Configure one model in BRConnector for each upstream model id you want to offer, and call it by its name. A configured model name may itself contain <code>/</code>, for example <code>team/nova-micro</code>, and is used as it is.</p>
+<p>Since 0.0.43, a model string <code>&lt;name&gt;/&lt;model id&gt;</code> that is not itself a configured model name gets HTTP 400; the part after the slash no longer selects the upstream model id.</p>
 
 
 
@@ -2029,7 +1916,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 20, 2026 08:06:29 CST"><span class="timeago" datetime="2026-10-20T08:06:29+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 08:06:29 CST">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 22, 2026 15:18:35 CST"><span class="timeago" datetime="2026-10-22T15:18:35+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 22, 2026 15:18:35 CST">2026-10-22</span>
   </span>
 
     

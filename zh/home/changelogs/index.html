@@ -636,6 +636,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0043" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.43
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0042" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1222,12 +1233,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1288,34 +1293,6 @@
     
   
     使用 Provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/aws-executor/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    aws-executor
   
 
     
@@ -1833,62 +1810,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/urls-reader/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    urls-reader
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/web-miner/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    web-miner
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1921,6 +1842,17 @@
       目录
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#0043" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.43
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#0042" class="md-nav__link">
@@ -2042,6 +1974,60 @@
 
 
 <h1 id="_1">更新日志<a class="headerlink" href="#_1" title="Permanent link">¶</a></h1>
+<h2 id="0043">0.0.43<a class="headerlink" href="#0043" title="Permanent link">¶</a></h2>
+<p><strong>升级警告</strong> - 升级前请先给数据库做快照：这次升级会删除已下线 provider 的模型（第 4 条），并添加预置模型（第 2 条）。<code>AutoUpdateBRConnector</code> 为 <code>true</code> 的 stack（<code>ec2</code> 和 <code>lambda</code> 计算形态）会在 UTC 00:00 自动拉取新的 <code>latest</code> 镜像。</p>
+<ol>
+<li>
+<p><strong>Claude Code Web</strong> - 在浏览器里使用 Claude Code，由 BRConnector 在 <code>/cc</code> 提供，运行在 Amazon Bedrock AgentCore Runtime 上，每个 API key 有自己的 microVM 和 S3 工作区。它的模型调用用该用户的 key 打回 <code>/v1/messages</code>，额度和计费照常生效。在 CloudFormation 模板里用 <code>EnableClaudeCodeWeb</code> 打开，见 <a href="../../user-manual/scenarios/claude-code-web/">Claude Code Web</a>。<a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/155">#155</a><br>
+   - 用户的 <code>~/.claude/settings.json</code> 里没有 <code>skipWebFetchPreflight</code> 时，会写入 <code>"skipWebFetchPreflight": true</code>；用户自己设置的值会保留。<br>
+   - 新参数 <code>EnableWebSearch</code> 默认 <code>true</code>，更新已有 stack 时也是如此。打开 Claude Code Web、且区域为 us-east-1、us-east-2、us-west-2、eu-west-1、ap-southeast-2 或 ap-northeast-1 时，会创建一个带 Web Search target 的 AgentCore Gateway。只有 Runtime 角色可以调用这个 gateway。<br>
+   - 搜索由 AWS 向部署 stack 的账号收费（约每 1,000 次查询 7 美元），不计入 BRConnector 的额度。建议设置 AWS Budgets 告警，或者把 <code>EnableWebSearch</code> 设为 <code>false</code>。<br>
+   - 配置了 gateway 时，Claude Code 内置的 WebSearch 工具会被隐藏。</p>
+</li>
+<li>
+<p><strong>已有数据库也会获得预置模型</strong> - BRConnector 启动时（<code>lambda-web</code> 形态除外，见第 4 条）会执行 <code>src/scripts/migrations/</code> 中该数据库还没有执行过的 SQL migration。已有数据库缺少的预置模型会被添加并绑定到 group 1；已经存在的同名模型保持不变。<a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/153">#153</a></p>
+</li>
+<li>
+<p><strong>预置模型</strong> - bedrock-runtime-openai 新增 7 个 GPT-6、GPT-5.6 预置模型 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/152">#152</a>。bedrock-converse 新增 <code>claude-opus-5-5-chat</code>、<code>claude-sonnet-5-5-chat</code>、<code>claude-haiku-5-5-chat</code>，NoDB 模式和知识库摘要改用它们。移除 Claude 3.x 预置模型和 NoDB 默认模型，已有的模型保持不变。<a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/154">#154</a></p>
+</li>
+<li>
+<p><strong>下线的 Provider</strong> - 移除 <code>aws-executor</code>、<code>urls-reader</code>、<code>web-miner</code>，请改用 Claude Code Web（<code>/cc</code>）。<br>
+   - 升级时的 migration 会删除这些 provider 上的模型，以及它们与 key、group 的绑定。历史记录（threads 和 sessions）会保留。<br>
+   - 请求这些 provider 上的模型会返回 HTTP 400，并提示改用 Claude Code Web（<code>/cc</code>）。模型删除之后，这类请求会得到通常的模型不存在的回答，引用该模型的 smart-router 规则、<code>localLlmModel</code> 和机器人连接器也一样。<br>
+   - <code>lambda-web</code> 形态不同。更新 stack 不会部署 0.0.43：部署包只在创建 stack 时构建，函数启动时也不执行 migration。要运行 0.0.43，请新建一个 <code>lambda-web</code> stack，它的数据库会在创建 stack 时按 0.0.43 初始化。如果要手动把已有数据库升级到最新，请先做快照，再按文件名顺序执行 <code>src/scripts/migrations/</code> 中的文件：<code>2026-10-20-preset-models.sql</code>、<code>2026-10-20b-claude-chat-presets.sql</code>、<code>2026-10-22-retire-providers.sql</code>。最后一个文件执行的语句是：</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">BEGIN</span><span class="p">;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">eiai_key_model</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">model_id</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">eiai_model</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">provider</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">'aws-executor'</span><span class="p">,</span><span class="w"> </span><span class="s1">'urls-reader'</span><span class="p">,</span><span class="w"> </span><span class="s1">'web-miner'</span><span class="p">));</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">eiai_group_model</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">model_id</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">eiai_model</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">provider</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">'aws-executor'</span><span class="p">,</span><span class="w"> </span><span class="s1">'urls-reader'</span><span class="p">,</span><span class="w"> </span><span class="s1">'web-miner'</span><span class="p">));</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">eiai_model</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">provider</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">'aws-executor'</span><span class="p">,</span><span class="w"> </span><span class="s1">'urls-reader'</span><span class="p">,</span><span class="w"> </span><span class="s1">'web-miner'</span><span class="p">);</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">COMMIT</span><span class="p">;</span>
+</code></pre></div>
+</li>
+<li>
+<p><strong>移除模型 id 覆盖</strong> - 模型字符串 <code>name/&lt;id&gt;</code> 如果本身不是已配置的模型名称，现在对所有 key 都返回 HTTP 400。飞书机器人、知识库和 smart-router 中包含 <code>/</code> 的模型 id，以及 azure-openai 模型，同样如此。请求体里的 <code>model_id</code> 字段会被忽略。需要使用某个上游模型 id 时，请为它配置一个模型；配置的模型名称本身可以包含 <code>/</code>（见 <a href="../faq/#model-wildcard">FAQ</a>）。</p>
+</li>
+<li>
+<p><strong>计费</strong><br>
+   - 超出月度额度的花费现在从余额中扣除。<br>
+   - 余额最多因最后几次调用变为负数。之后调用会被拒绝，直到充值，或者到下个月（月度额度大于 0 时）。<br>
+   - 扣费是原子操作，充值会加到数据库中保存的余额上。<br>
+   - 充值通过缓存在 60 秒内同步到所有实例。<br>
+   - key 显示的 <code>month_fee</code> 在新月份第一次扣费之前，仍是上个月的值。</p>
+</li>
+<li>
+<p><strong>Session-Id</strong> - 在所有路由上，超过 128 个字符的 <code>Session-Id</code> 都返回 HTTP 400。</p>
+</li>
+<li>
+<p><strong>用户 API</strong><br>
+   - <code>/user/model/list</code> 只返回 <code>name</code>、<code>provider</code>、<code>price_in</code>、<code>price_out</code>、<code>multiple</code>、<code>group_name</code>。<br>
+   - <code>/user/thread/list</code> 只返回调用者自己的 threads，<code>limit</code> 最大为 100（<code>/admin/thread/list</code> 也一样）。<br>
+   - 会话列表和充值记录列表的 <code>orderBy</code> 只接受固定的几个值，其他值按默认顺序排序。</p>
+</li>
+<li>
+<p><strong>API key 与日志</strong><br>
+   - 新的 API key 使用密码学随机源生成。<br>
+   - 除 debug 模式外，日志不再记录 SQL 参数和完整的错误对象。</p>
+</li>
+</ol>
 <h2 id="0042">0.0.42<a class="headerlink" href="#0042" title="Permanent link">¶</a></h2>
 <ol>
 <li>
@@ -2196,7 +2182,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月17日 12:08:48 CST"><span class="timeago" datetime="2026-10-17T12:08:48+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月17日 12:08:48 CST">2026-10-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月22日 15:38:20 CST"><span class="timeago" datetime="2026-10-22T15:38:20+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月22日 15:38:20 CST">2026-10-22</span>
   </span>
 
     

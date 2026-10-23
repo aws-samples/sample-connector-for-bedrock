@@ -1278,12 +1278,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1344,34 +1338,6 @@
     
   
     使用 Provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/aws-executor/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    aws-executor
   
 
     
@@ -1889,62 +1855,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/urls-reader/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    urls-reader
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/web-miner/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    web-miner
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -2182,16 +2092,16 @@
 <ul>
 <li>在 EC2 上部署带有集成数据库（或独立数据库）的 BRConnector，在 EC2 前面配置 Cloudfront</li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-16.png" data-desc-position="bottom"><img alt="600" src="../../../home/attachments/deployment/IMG-deployment-16.png" title="600"></a></p>
 <ul>
 <li>在 Lambda 上部署带有独立数据库（或无数据库）的 BRConnector，在公共 Lambda 函数 URL 前面配置 Cloudfront</li>
 <li>在 Lambda 上部署带有独立数据库（或无数据库）的 BRConnector，在具有 AWS_IAM 授权类型的 Lambda 函数 URL 前面配置 Cloudfront</li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-17.png" data-desc-position="bottom"><img alt="600" src="../../../home/attachments/deployment/IMG-deployment-17.png" title="600"></a></p>
 <ul>
 <li>在 ECS 集群上部署带有独立数据库（或无数据库）的 BRConnector，在暴露 ECS 服务的 ALB 前面配置 Cloudfront</li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-20.png" data-desc-position="bottom"><img alt="600" src="../../../home/attachments/deployment/IMG-deployment-20.png" title="600"></a></p>
 <h2 id="_6">部署指南<a class="headerlink" href="#_6" title="Permanent link">¶</a></h2>
 <ul>
 <li>（如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB86CA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark></li>
@@ -2206,7 +2116,7 @@
 <li>首先部署 VPC 堆栈，并在此处填写堆栈名称。</li>
 <li>为 EC2/ECS 选择 2 个公有子网，为 Lambda 和 RDS 选择 2 个私有子网（子网组至少需要 2 个可用区）</li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-18.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-18.png" src="../../../home/attachments/deployment/IMG-deployment-18.png" title="attachments/deployment/IMG-deployment-18.png"></a></p>
 <ul>
 <li>计算参数</li>
 <li>为 BRConnector 选择计算类型，Lambda 或 EC2</li>
@@ -2229,7 +2139,7 @@
 </ul>
 </li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-19.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-19.png" src="../../../home/attachments/deployment/IMG-deployment-19.png" title="attachments/deployment/IMG-deployment-19.png"></a></p>
 <ul>
 <li>PostgreSQL 参数</li>
 <li>DatabaseMode 选择：<ul>
@@ -2241,18 +2151,18 @@
 <li>将 PerformanceMode 设置为 <code>true</code>，聊天历史将不会保存。</li>
 <li>默认 PostgreSQL 密码为 <code>mysecretpassword</code></li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-13.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-13.png" src="../../../home/attachments/deployment/IMG-deployment-13.png"></a></p>
 <ul>
 <li>调试参数</li>
 <li>如果您选择 Lambda 作为计算类型，可以选择在所有资源部署成功后删除 EC2。此 EC2 用于临时编译和构建 BRConnector 容器。</li>
 <li>如果您选择 EC2 作为计算类型，请不要删除 EC2</li>
 <li>如果您将 AutoUpdateBRConnector 设置为 <code>true</code>，将在 ec2 crontab 中添加一个脚本</li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-14.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-14.png" src="../../../home/attachments/deployment/IMG-deployment-14.png"></a></p>
 <ul>
 <li>部署成功后，转到输出页面并复制 Cloudfront URL 和第一个用户密钥到您的 bedrock 客户端设置页面。</li>
 </ul>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-11.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-11.png" src="../../../home/attachments/deployment/IMG-deployment-11.png"></a></p>
 <ul>
 <li>您还可以使用 SSM 会话管理器连接到 <code>BRConnector</code> EC2 实例 (<a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console">docs</a>)</li>
 </ul>

@@ -613,10 +613,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#model-wildcard" class="md-nav__link">
     <span class="md-ellipsis">
       
-        模型通配
+        模型名称中的斜杠
       
     </span>
   </a>
@@ -1167,12 +1167,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1233,34 +1227,6 @@
     
   
     使用 Provider
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/aws-executor/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    aws-executor
   
 
     
@@ -1778,62 +1744,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/urls-reader/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    urls-reader
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../providers/web-miner/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    web-miner
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1901,10 +1811,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#model-wildcard" class="md-nav__link">
     <span class="md-ellipsis">
       
-        模型通配
+        模型名称中的斜杠
       
     </span>
   </a>
@@ -1972,32 +1882,9 @@
 <p>您只要创建一个新的模型，名称为 default 即可。</p>
 <h2 id="_2">可以画图吗？<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
 <p>可以，配置并使用 painter 或者 nova-canvas 为提供器的模型即可。</p>
-<h2 id="_3">模型通配<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
-<p>现在你可以配置一个自定义模型，并且在 API 的调用中的模型名字中使用斜杠。</p>
-<p>如下的 API 调用示例。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>POST  {{hostLcoal}}/chat/completions
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Authorization: Bearer {{key}}
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Content-Type: application/json
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>{
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    "model":"bedrock/us.amazon.nova-micro-v1:0",
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    "messages": [
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        {
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            "role": "user",
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>            "content": "来一个只有程序员能听懂的笑话"
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        }
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    ],
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    "max_tokens": 5120,
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    "stream": true
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>}
-</code></pre></div>
-<p>要使用上述方法，你必须：</p>
-<ol>
-<li>需要你在后台定一个 model name 为 <code>bedrock</code> 的自定义模型。</li>
-<li>斜杠后面的模型名字可以自定义，必须与原厂商的 模型名字一致。</li>
-<li>Provider 会首选考虑斜杠后面的模型名字，然后考虑后台配置中的模型名字，最后会考虑原样传输。</li>
-</ol>
-<p>当前有支持这个用法的 Provider 有：<code>bedrock_converse</code>, <code>openai_compatiable</code></p>
+<h2 id="model-wildcard">模型名称中的斜杠<a class="headerlink" href="#model-wildcard" title="Permanent link">¶</a></h2>
+<p>请为每个要提供的上游模型 id 在 BRConnector 里配置一个模型，调用时使用模型名称。配置的模型名称本身可以包含 <code>/</code>，例如 <code>team/nova-micro</code>，这样的名称会原样使用。</p>
+<p>从 0.0.43 起，<code>&lt;名称&gt;/&lt;模型 id&gt;</code> 形式的模型字符串如果本身不是已配置的模型名称，会返回 HTTP 400；斜杠后面的部分不再用来选择上游模型 id。</p>
 
 
 
@@ -2020,7 +1907,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月20日 08:06:29 CST"><span class="timeago" datetime="2026-10-20T08:06:29+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月20日 08:06:29 CST">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月22日 15:18:35 CST"><span class="timeago" datetime="2026-10-22T15:18:35+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月22日 15:18:35 CST">2026-10-22</span>
   </span>
 
     
