@@ -27,7 +27,7 @@
    - 0.0.44 之前创建的 stack 如果有其他用户能登录实例或读取它的控制台输出，管理员可以轮换 admin key（保存在 SSM 参数 `/brconnector/admin-key-<stack name>`）。见[快速部署](deployment.md#admin-key-before-0-0-44)中的“0.0.44 之前创建的 stack 的 admin key”一节。
    - `PGPassword` 参数改为 NoEcho。
 
-4. **区域** - 所有计算形态现在都可以用在 17 个区域：us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。Claude Code Web 需要 AgentCore Runtime，因此不能在 ap-northeast-3 使用。见[快速部署](deployment.md#supported-region)中的“支持的区域”一节。
+4. **区域** - `ec2`、`lambda`、`ecs` 现在可以用在 17 个区域：us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。`lambda-web` 只能用在提供 Lambda Web Functions 的区域：us-east-1、us-east-2、us-west-2、ap-northeast-1、eu-west-1（最新列表见 [AWS Capabilities by Region](https://builder.aws.com/build/capabilities)），模板会在其他区域拒绝它。Claude Code Web 需要 AgentCore Runtime，因此不能在 ap-northeast-3 使用。见[快速部署](deployment.md#supported-region)中的“支持的区域”一节。
 
 5. **IAM 角色与安全组**
    - 辅助 EC2 角色、清理函数角色和 lambda 夜间更新角色只保留各自实际调用所需的权限。已移除宽泛的托管策略：ECR、Lambda、ECS、EC2 的 FullAccess，EC2 只读，CloudWatch Logs FullAccess，以及 CodeBuild 管理员。

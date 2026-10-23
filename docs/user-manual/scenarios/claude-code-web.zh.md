@@ -44,7 +44,7 @@ Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](h
 
 stack 输出 `ClaudeCodeWebUrl` 就是访问地址。
 
-模板可用于 us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。Claude Code Web 需要 AgentCore Runtime，除 ap-northeast-3 外这些区域都提供，所以它不能在 ap-northeast-3 运行。AgentCore Web Search 只在「联网搜索」一节列出的区域提供。
+模板的 `ec2`、`lambda`、`ecs` 可用于 us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1，`lambda-web` 可用于 us-east-1、us-east-2、us-west-2、ap-northeast-1、eu-west-1（最新列表见 [AWS Capabilities by Region](https://builder.aws.com/build/capabilities)）。Claude Code Web 需要 AgentCore Runtime，除 ap-northeast-3 外这些区域都提供，所以它不能在 ap-northeast-3 运行。AgentCore Web Search 只在「联网搜索」一节列出的区域提供。
 
 ### 不用 CloudFormation
 
