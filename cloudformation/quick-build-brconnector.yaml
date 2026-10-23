@@ -571,6 +571,7 @@ Resources:
               Sid: CleanupFunction
               Action:
               - 'lambda:UpdateFunctionConfiguration'
+              - 'lambda:GetFunctionConfiguration'
               - 'lambda:InvokeFunction'
               Resource: !GetAtt DeleteEC2Lambda.Arn
             # ecs creates its cluster and service after this instance signals, and they need
@@ -859,6 +860,8 @@ Resources:
           # call back to cfn
           /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
           if [[ ${KeepEc2} != "true" && ( ${ComputeType} == "lambda" || ${ComputeType} == "lambda-web" ) ]]; then
+            # the invoke must not run the old configuration, which has no INSTANCE_ID
+            aws lambda wait function-updated --function-name ${DeleteEC2Lambda} || echo "cleanup function update did not finish"
             aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
           fi
         - CcEnvArg: !If
@@ -1210,6 +1213,19 @@ Resources:
       Principal: "*"
       FunctionUrlAuthType: NONE
 
+  # Function URLs created since October 2025 need lambda:InvokeFunction as well as
+  # lambda:InvokeFunctionUrl; InvokedViaFunctionUrl limits it to calls through the URL.
+  BRConnectorLambdaInvokePermission1:
+    Condition: IsPublicLambdaPermission
+    DependsOn:
+      - LambdaCloudFrontDistribution
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref BRConnectorLambda
+      Action: lambda:InvokeFunction
+      Principal: "*"
+      InvokedViaFunctionUrl: true
+
   BRConnectorLambdaPermission2:
     Condition: IsPrivateLambdaPermission
     DependsOn:
@@ -1221,6 +1237,18 @@ Resources:
       Principal: cloudfront.amazonaws.com
       SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${LambdaCloudFrontDistribution}"
       FunctionUrlAuthType: AWS_IAM
+
+  BRConnectorLambdaInvokePermission2:
+    Condition: IsPrivateLambdaPermission
+    DependsOn:
+      - LambdaCloudFrontDistribution
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref BRConnectorLambda
+      Action: lambda:InvokeFunction
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${LambdaCloudFrontDistribution}"
+      InvokedViaFunctionUrl: true
 
   BRConnectorLambdaVersion:
     Condition: IsLambda	

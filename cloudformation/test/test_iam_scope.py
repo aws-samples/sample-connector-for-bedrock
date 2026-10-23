@@ -82,6 +82,8 @@ CALLS = {
         (['iam:CreateServiceLinkedRole'], ECS_SERVICE_LINKED_ROLE, ECS_SERVICE_NAME)],
     ('lambda update-function-configuration', '${DeleteEC2Lambda}'): [
         (['lambda:UpdateFunctionConfiguration'], CLEANUP_FUNCTION, None)],
+    # The waiter polls GetFunctionConfiguration.
+    ('lambda wait', '${DeleteEC2Lambda}'): [(['lambda:GetFunctionConfiguration'], CLEANUP_FUNCTION, None)],
     ('lambda invoke', '${DeleteEC2Lambda}'): [(['lambda:InvokeFunction'], CLEANUP_FUNCTION, None)],
     ('regctl image copy', '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA'): [
         (ECR_PUSH, LAMBDA_REPO, None)],
