@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import PGClient from '../src/util/postgres';
 
 function recorder() {
@@ -28,17 +28,17 @@ describe('PGClient.update', () => {
 describe('PGClient.transaction', () => {
     function pooled(failOn?: RegExp) {
         const log: string[] = [];
-        let released = 0;
+        const releases: any[][] = [];
         const client = {
             query: async (sql: string) => {
                 log.push(sql);
                 if (failOn && failOn.test(sql)) throw new Error('boom');
                 return { rows: [], rowCount: 0 };
             },
-            release: () => { released++; },
+            release: (...args: any[]) => { releases.push(args); },
         };
         const db = Object.assign(new PGClient(), { pool: { connect: async () => client } });
-        return { db, log, released: () => released, client };
+        return { db, log, released: () => releases.length, releases, client };
     }
 
     it('commits on success and releases the client', async () => {
@@ -54,9 +54,22 @@ describe('PGClient.transaction', () => {
     });
 
     it('rolls back, rethrows and releases on error', async () => {
-        const { db, log, released } = pooled();
+        const { db, log, released, releases } = pooled();
         await expect(db.transaction(async () => { throw new Error('nope'); })).rejects.toThrow('nope');
         expect(log).toEqual(['BEGIN', 'ROLLBACK']);
         expect(released()).toBe(1);
+        expect(releases[0][0]).toBeUndefined();
+    });
+
+    // node-pg discards a client released with an error instead of returning it to the pool.
+    it('releases the client with the rollback error when ROLLBACK fails', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const { db, log, releases } = pooled(/^ROLLBACK$/);
+        await expect(db.transaction(async () => { throw new Error('nope'); })).rejects.toThrow('nope');
+        expect(log).toEqual(['BEGIN', 'ROLLBACK']);
+        expect(releases).toHaveLength(1);
+        expect(releases[0][0]).toBeInstanceOf(Error);
+        expect(releases[0][0].message).toBe('boom');
+        vi.restoreAllMocks();
     });
 });

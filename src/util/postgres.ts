@@ -118,12 +118,14 @@ export default class PGClient {
     return rows[0];
   }
 
-  // Runs fn on one pooled connection inside BEGIN/COMMIT; any error rolls back and is rethrown.
+  // Runs fn on one pooled connection inside BEGIN/COMMIT; any error rolls back and is rethrown. A connection whose
+  // ROLLBACK failed is released with that error, so the pool discards it instead of handing it out again.
   public async transaction<T>(fn: (tx: PGClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     const tx = new PGClient();
     tx.pool = client;
     tx.debug = this.debug;
+    let rollbackError: Error | undefined;
     try {
       await client.query("BEGIN");
       const result = await fn(tx);
@@ -134,10 +136,11 @@ export default class PGClient {
         await client.query("ROLLBACK");
       } catch (rollbackErr) {
         console.error("Postgres rollback error:", rollbackErr);
+        rollbackError = rollbackErr instanceof Error ? rollbackErr : new Error(String(rollbackErr));
       }
       throw err;
     } finally {
-      client.release();
+      client.release(rollbackError);
     }
   }
 
