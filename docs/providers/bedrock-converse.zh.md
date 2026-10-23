@@ -95,10 +95,19 @@ Converse 把从提示词缓存读取和写入缓存的 token 与其他输入 tok
 
 - 输入 token（不含缓存读取和缓存写入的部分）按 `price_in` 计；
 - 缓存读取 token 按 `price_cache_read` 计；
-- 缓存写入 token 按 `price_cache_write` 计，不区分缓存时长；
+- 缓存写入 token 按 `price_cache_write` 计。1 小时缓存写入也按这个价格计，与 5 分钟缓存写入相同；
 - 输出 token 按 `price_out` 计。
 
-记录的输入 token 数等于输入、缓存读取和缓存写入 token 之和。缓存价格缺失、为空或不是有限数字时，按 `price_in` 计。`claude-*-5-5-chat` 预置模型没有配置缓存价格，在它们的 config 里设置 `price_cache_read` 和 `price_cache_write` 之前，缓存 token 按 `price_in` 计。对应 `claude-*-5-5` 预置模型的缓存价格见 [bedrock-runtime-anthropic](bedrock-runtime-anthropic.md) 的预置模型表。
+记录的输入 token 数等于输入、缓存读取和缓存写入 token 之和。
+
+自己创建的 converse 模型如果使用提示词缓存，请在 config 里设置 `price_cache_read` 和 `price_cache_write`。不设置时，缓存 token 按 `price_in` 计。缓存价格缺失、为空或不是有限数字时，视为未设置。
+
+对 `claude-opus-5-5-chat`、`claude-sonnet-5-5-chat` 和 `claude-haiku-5-5-chat` 这三个预置模型，新建数据库和升级时，启动时的迁移都会补上 config 里还没有的缓存价格。价格由各模型自己的 `price_in` 按 Bedrock 对这些模型的费率算出：
+
+- 缓存读取：Opus 和 Sonnet 为 `price_in` 的 0.05 倍，Haiku 为 0.1 倍；
+- 缓存写入：`price_in` 的 1.25 倍。
+
+已经设置过的价格保持不变。按预置价格算出的缓存价格与 [bedrock-runtime-anthropic](bedrock-runtime-anthropic.md) 预置模型表里对应的 `claude-*-5-5` 模型相同。
 
 > **两类价格的单位不同。** 管理页面里的提示词价格（Price-In）和输出价格（Price-Out）按每**百万** token 填写；config 里的 `price_cache_read` 和 `price_cache_write` 按每 **token** 填写。如果把缓存价格按每百万 token 填写，例如填了 `0.1` 而不是 `0.0000001`，缓存 token 的费用会多算一百万倍。
 

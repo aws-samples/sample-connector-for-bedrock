@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import fs, { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, resolve } from 'path';
+import { PGlite } from '@electric-sql/pglite';
 import { fakePg } from './helpers/fakes';
 
 const scripts = join(__dirname, '../src/scripts');
@@ -199,4 +200,129 @@ describe('runMigrations', () => {
         await expect(runMigrations(new fake.Client() as any, join(dir, 'missing'))).resolves.toBeUndefined();
         expect(error.mock.calls.join('\n')).toMatch(/❌ \[migration\]/);
     });
+});
+
+describe('the converse cache-price migration', () => {
+    const NAME = '2026-10-23-converse-cache-prices.sql';
+    const sql = migrations.includes(NAME) ? read(join('migrations', NAME)) : '';
+    // Bedrock's global cross-Region prices for Claude 5.5 (us-east-1): a cache read is 0.05 of the input price for
+    // Opus and Sonnet and 0.1 for Haiku; a 5-minute cache write is 1.25 of it.
+    const PRESETS: Record<string, { read: number; write: number }> = {
+        'claude-opus-5-5-chat': { read: 0.05, write: 1.25 },
+        'claude-sonnet-5-5-chat': { read: 0.05, write: 1.25 },
+        'claude-haiku-5-5-chat': { read: 0.1, write: 1.25 },
+    };
+
+    let db: PGlite;
+    let queries: string[] = [];
+    // pg's Client.query on PGlite: parameterised statements go through query(), scripts through exec().
+    const run = async (text: string, params?: any[]) => {
+        queries.push(text);
+        if (params?.length) {
+            const r = await db.query(text, params);
+            return { rows: r.rows as any[], rowCount: r.affectedRows ?? r.rows.length };
+        }
+        const results = await db.exec(text);
+        const last = results[results.length - 1];
+        return { rows: (last?.rows ?? []) as any[], rowCount: last?.affectedRows ?? 0 };
+    };
+    // The real src/install.ts against PGlite. withMigration=false is the install from before this migration.
+    const install = async (withMigration: boolean) => {
+        vi.resetModules();
+        for (const [k, v] of Object.entries({ PGSQL_HOST: 'h', PGSQL_DATABASE: 'd', SKIP_DB_INSTALL: '', ADMIN_API_KEY: 'k' })) vi.stubEnv(k, v);
+        vi.doMock('pg', () => ({ Client: class { async connect() {} async end() {} query(text: string, params?: any[]) { return run(text, params); } } }));
+        const real = fs.readdirSync;
+        const hide = withMigration ? null : vi.spyOn(fs, 'readdirSync').mockImplementation(((p: any, ...a: any[]) => {
+            const listed = (real as any)(p, ...a);
+            return resolve(String(p)) === resolve(migrationDir) ? listed.filter((f: string) => f !== NAME) : listed;
+        }) as any);
+        const start = queries.length;
+        try {
+            await (await import('../src/install')).default();
+        } finally {
+            hide?.mockRestore();
+            vi.doUnmock('pg');
+        }
+        return queries.slice(start);
+    };
+    const reset = () => db.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
+    const models = async () => (await db.query<any>('SELECT id, name, provider, config, price_in, price_out FROM eiai_model ORDER BY id')).rows;
+    const model = async (name: string) => (await models()).find((m) => m.name === name);
+    const ledger = async () => (await db.query<any>('SELECT name FROM eiai_migration ORDER BY name')).rows.map((r) => r.name);
+
+    beforeAll(async () => { db = await PGlite.create(); }, 30000);
+    afterAll(async () => { await db?.close(); });
+
+    it('is a plain script', () => {
+        expect(migrations).toContain(NAME);
+        expect(sql).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK|CONCURRENTLY|DELETE|INSERT)\b/i);
+    });
+
+    it('a fresh install gets per-token cache prices for the three presets, from their own price_in', async () => {
+        await reset();
+        await install(true);
+        for (const [name, ratio] of Object.entries(PRESETS)) {
+            const m = await model(name);
+            expect(m.provider, name).toBe('bedrock-converse');
+            expect(m.config.price_cache_read, name).toBeCloseTo(Number(m.price_in) * ratio.read, 15);
+            expect(m.config.price_cache_write, name).toBeCloseTo(Number(m.price_in) * ratio.write, 15);
+            // The same cache prices as the matching bedrock-runtime-anthropic preset.
+            const runtime = await model(name.replace(/-chat$/, ''));
+            expect(m.config.price_cache_read, name).toBeCloseTo(runtime.config.price_cache_read, 15);
+            expect(m.config.price_cache_write, name).toBeCloseTo(runtime.config.price_cache_write, 15);
+        }
+        expect((await model('claude-sonnet-5-5-chat')).config).toEqual({ modelId: 'global.anthropic.claude-sonnet-5-5', price_cache_read: 0.0000001, price_cache_write: 0.0000025 });
+        expect(await ledger()).toContain(NAME);
+    }, 30000);
+
+    it('an existing database keeps the cache prices an admin set, and changes no other model', async () => {
+        await reset();
+        await install(false);
+        await db.exec(`
+            UPDATE eiai_model SET config = config || '{"price_cache_read": 0.123e-6}' WHERE name = 'claude-sonnet-5-5-chat';
+            UPDATE eiai_model SET config = config || '{"price_cache_write": 0}' WHERE name = 'claude-haiku-5-5-chat';
+            UPDATE eiai_model SET price_in = 5e-6 WHERE name = 'claude-opus-5-5-chat';
+            INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) VALUES
+                ('my-converse', 1, 'bedrock-converse', '{"modelId": "amazon.nova-micro-v1:0"}', 0.035e-6, 0.14e-6),
+                ('claude-x-5-5-chat', 1, 'bedrock-converse', '{"modelId": "global.anthropic.claude-sonnet-5-5"}', 2e-6, 10e-6);
+        `);
+        const before = await models();
+        expect(await ledger()).not.toContain(NAME);
+
+        const sent = await install(true);
+        const after = await models();
+        const at = sent.indexOf(sql);
+        expect(sent.slice(at - 1, at + 3)).toEqual(['BEGIN', sql, 'INSERT INTO eiai_migration (name) VALUES ($1)', 'COMMIT']);
+        expect(await ledger()).toContain(NAME);
+
+        const sonnet = await model('claude-sonnet-5-5-chat');
+        expect(sonnet.config.price_cache_read).toBe(0.000000123);
+        expect(sonnet.config.price_cache_write).toBeCloseTo(2.5e-6, 15);
+        const haiku = await model('claude-haiku-5-5-chat');
+        expect(haiku.config.price_cache_write).toBe(0);
+        expect(haiku.config.price_cache_read).toBeCloseTo(0.01e-6, 15);
+        const opus = await model('claude-opus-5-5-chat');
+        expect(opus.config.price_cache_read).toBeCloseTo(0.25e-6, 15);
+        expect(opus.config.price_cache_write).toBeCloseTo(6.25e-6, 15);
+        // Every other model, and every other column, is as it was.
+        const rest = (rows: any[]) => rows.filter((m) => !(m.name in PRESETS));
+        expect(rest(after)).toEqual(rest(before));
+        const withoutConfig = (rows: any[]) => rows.map(({ config, ...m }) => m);
+        expect(withoutConfig(after)).toEqual(withoutConfig(before));
+    }, 30000);
+
+    it('running it twice is a no-op', async () => {
+        await reset();
+        await install(true);
+        const once = await models();
+        // A second start applies nothing.
+        const again = await install(true);
+        expect(again).toContain('SELECT name FROM eiai_migration');
+        expect(again).not.toContain('BEGIN');
+        expect(again).not.toContain(sql);
+        expect(await models()).toEqual(once);
+        // The script itself changes nothing a second time.
+        await db.exec(sql);
+        expect(await models()).toEqual(once);
+    }, 30000);
 });
