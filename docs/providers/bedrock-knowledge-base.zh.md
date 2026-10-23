@@ -37,7 +37,7 @@ Amazon Bedrock 知识库。
 ## 计费
 
 - 配置 `bedrockModelArn` 时，RetrieveAndGenerate 不报告 token 用量，所以 token 数是按每 4 个字符 1 个 token 算出的**估算值**：输入按问题和回答所引用的每个检索结果的文本计算，输出按回答计算。费用按这个知识库模型的 `price_in` 和 `price_out` 计，所以请把它们设为 `bedrockModelArn` 所指模型的价格。
-- 配置 `summaryModel` 时，总结调用按 Converse 报告的 token 数计费（包括提示词缓存 token），价格用这个知识库模型的价格，与 [bedrock-converse](bedrock-converse.md) 相同。
+- 配置 `summaryModel` 时，总结调用按 Converse 报告的输入和输出 token 数计费，价格用这个知识库模型的价格（不是总结模型的价格）。
 
 ## API 调用
 

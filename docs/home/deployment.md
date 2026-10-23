@@ -128,8 +128,56 @@ Updating a stack to the 0.0.44 template changes the instance's UserData, so:
 
 - An `ec2` instance is stopped and started once, which is a short outage.
 - `lambda` and `lambda-web` stacks created with `KeepEc2` set to `false` cannot take the update, because the helper instance deleted itself. Recreate them.
-- `lambda-web` applies the database migrations when it starts. Take a database snapshot before you update.
+- `lambda-web` applies the database migrations when it starts, including the 0.0.43 migrations if they were never applied, which delete the models of retired providers (see 0.0.43 in the [changelog](changelogs.md)). Take a database snapshot before you update.
 - Set `LambdaEdgeVersionArn` to the output of the new Lambda@Edge stack (version `v2`) when you use AWS_IAM authorization on the function URL.
+
+## Admin key on stacks created before 0.0.44 {#admin-key-before-0-0-44}
+
+On stacks created before 0.0.44, the admin key was written to the boot log (`/var/log/cloud-init-output.log`) and the console output of the stack's EC2 instance: the BRConnector instance on `ec2`, the helper instance on `lambda`, `lambda-web` and `ecs`. Rotate the admin key if anyone other than the stack's admins can log in to that instance or read its console output.
+
+If the stack has a database, the same log also holds the API key of the first user the stack created (`/brconnector/first-user-key-<stack name>`). If that key is still in use, reset it in the admin console: **API Keys**, then **Reset**.
+
+After the template update, the nightly update of `ec2` stacks with `AutoUpdateBRConnector` set to `true` makes the boot log and the key files in `/root` readable by root only. On any other instance that is still running, do it once by hand:
+
+```sh
+sudo sh -c 'chmod 600 /var/log/cloud-init-output.log /root/*.txt'
+```
+
+### ec2
+
+BRConnector gets the key from its `docker run` command. Unless `/root/brconnector-run.sh` exists, the nightly update of these stacks replays the command logged at first boot, which holds the old key. So:
+
+1. If `AutoUpdateBRConnector` is `true`, update the stack to the 0.0.44 template first: the nightly update of earlier templates always replays the logged command.
+2. Connect to the instance with Session Manager and run the commands below, with your stack name in place of `<stack name>`. They write `/root/brconnector-run.sh` from the logged command with a new key, restart BRConnector on the image tag it runs now, and store the new key in the SSM parameter. BRConnector is unavailable for a few seconds.
+
+    ```sh
+    sudo -i
+    NEW_KEY=$(uuidgen)
+    umask 077
+    {
+      echo '#!/bin/bash -e'
+      egrep -o 'docker run .* --name brconnector .*' /var/log/cloud-init-output.log | tail -n 1 |
+        sed -e "s/ADMIN_API_KEY=[^ ]*/ADMIN_API_KEY=$NEW_KEY/" -e 's/:[^:]*$/:"${1:-latest}"/'
+    } > /root/brconnector-run.sh
+    chmod 700 /root/brconnector-run.sh
+    echo "$NEW_KEY" > /root/admin-api-key.txt
+    TAG=$(docker inspect -f '{{.Config.Image}}' brconnector | sed 's/.*://')
+    docker rm -f brconnector && bash /root/brconnector-run.sh "$TAG"
+    aws ssm put-parameter --name /brconnector/admin-key-<stack name> --value "$NEW_KEY" --type String --overwrite
+    ```
+
+3. Sign in to the admin console with the new key. From then on, the nightly update and the [manual update](#brconnector-on-ec2) run the new script.
+
+### lambda, lambda-web and ecs
+
+BRConnector reads the key from `ADMIN_API_KEY` in its environment: the function's environment variables on `lambda`, the Web Function revision on `lambda-web`, the task definition on `ecs`. CloudFormation set it from the SSM parameter when it created that resource, so writing a new value to the parameter does not change it.
+
+1. If the helper instance is still running (`KeepEc2` set to `true`), it also runs BRConnector, with the old key and the stack's database. Run step 2 of the `ec2` steps on it; that also stores the new key in the parameter. Without a helper instance, generate a new key, for example with `uuidgen`, and store it with `aws ssm put-parameter --name /brconnector/admin-key-<stack name> --value <new key> --type String --overwrite`.
+2. Set `ADMIN_API_KEY` to the new key. Read it with `aws ssm get-parameter --name /brconnector/admin-key-<stack name> --query Parameter.Value --output text`.
+    - `lambda`: in the Lambda console, open the function named in the `MyFunctionName` output, choose **Configuration**, **Environment variables**, **Edit**, change `ADMIN_API_KEY` and save. New requests use the new key.
+    - `ecs`: in the Amazon ECS console, create a new revision of the task definition `<stack name>-task` with the new `ADMIN_API_KEY` on the `brconnector` container, then update the service `<stack name>-service` in the cluster `<stack name>-cluster` to that revision. The service replaces its tasks.
+    - `lambda-web`: this page has no procedure yet. A Web Function revision cannot be changed, and it has not been verified whether the revision that a stack update creates takes the new value from the parameter.
+3. These changes are made outside CloudFormation. A later stack update that changes the function, the task definition or the service can set the old value again, so check `ADMIN_API_KEY` after such an update.
 
 ## CloudFront to origin
 
@@ -169,9 +217,10 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 
 ### BRConnector on EC2
 
-- login to ec2 to update local image and restart brconnector container. Stacks created before 0.0.44 have no `/root/brconnector-run.sh`; replay the logged line instead: `cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh`
+- login to ec2 to update local image and restart brconnector container. Run the commands as root (`sudo -i`): the run script and the boot log are readable by root only. Stacks created before 0.0.44 have no `/root/brconnector-run.sh` unless you wrote one (see [Admin key on stacks created before 0.0.44](#admin-key-before-0-0-44)); replay the logged line instead: `cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh`
 
 ```sh
+sudo -i
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
 docker rm -f brconnector

@@ -18,7 +18,7 @@ It is recommended to use this provider to connect to Azure OpenAI deployments.
 | --- | --- | --- | --- | --- |
 | apiKey | string | Y | | Your Azure OpenAI API key |
 | baseURL | string | Y | | The base URL for your Azure OpenAI deployment, including the deployment name (e.g., "<https://your-resource-name.openai.azure.com/openai/deployments/your-deployment-name>") |
-| apiVersion | string | Y | | The Azure OpenAI API version to use (e.g., "2023-05-15" or "2025-01-01-preview") |
+| apiVersion | string | Y | | The Azure OpenAI API version to use (e.g., "2025-01-01-preview"). Streams send `stream_options`; for an API version that rejects it, set `streamUsage` to `false` |
 | streamUsage | boolean | N | true | Ask Azure OpenAI for usage on streams (`stream_options.include_usage`), so that streamed calls are billed. Set `false` only for an API version that rejects `stream_options`. |
 
 The configuration example:

@@ -19,7 +19,7 @@ Azure OpenAI 服务接口。
 | --- | --- | --- | --- | --- |
 | apiKey | string | 是 | | 您的 Azure OpenAI API 密钥 |
 | baseURL | string | 是 | | Azure OpenAI 部署的基础 URL，包括部署名称（例如："<https://your-resource-name.openai.azure.com/openai/deployments/your-deployment-name"）> |
-| apiVersion | string | 是 | | 要使用的 Azure OpenAI API 版本（例如："2023-05-15" 或 "2025-01-01-preview"） |
+| apiVersion | string | 是 | | 要使用的 Azure OpenAI API 版本（例如："2025-01-01-preview"）。流式调用会发送 `stream_options`，所用 API 版本不接受它时，请把 `streamUsage` 设为 `false` |
 | streamUsage | boolean | 否 | true | 流式调用时向 Azure OpenAI 要求返回 usage（`stream_options.include_usage`），用于计费。只有所用 API 版本不接受 `stream_options` 时才设为 `false`。 |
 
 配置示例：

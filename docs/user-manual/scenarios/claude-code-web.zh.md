@@ -50,7 +50,7 @@ stack 输出 `ClaudeCodeWebUrl` 就是访问地址。
 
 如果自己运行 BRConnector，可以给它设置 `CC_CONFIG_PARAM`（一个 SSM 参数的 ARN，参数值是 JSON `{"runtimeArn","workspaceRoleArn","bucket","prefix"}`），或者直接设置环境变量 `CC_RUNTIME_ARN`、`CC_WORKSPACE_ROLE_ARN`、`CC_WORKSPACE_BUCKET`，以及可选的 `CC_WORKSPACE_PREFIX`（默认 `user_data`）。两种都设置时，直接设置的环境变量优先。两种都没有时，`/cc` 返回 404。
 
-## 联网搜索
+## 联网搜索 {#web-search}
 
 `EnableWebSearch` 为 `true`（默认）时，stack 还会创建一个带 [AgentCore Web Search](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-web-search-tool.html) connector 的 AgentCore Gateway，供 Claude Code Web 联网搜索：
 
@@ -114,11 +114,11 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 - 打开并处于前台的 `/cc` 页面每 5 秒检查一次后端健康状态；打开的终端即使页面在后台也会持续拉取输出。这些调用都算作活动，所以只要页面开着，microVM 就一直运行，最长到 AgentCore 的 8 小时生命周期上限（之后 AgentCore 会换一个新的）。空闲 15 分钟停止的计时，要等页面关闭、或者页面隐藏且没有打开终端之后才开始。请提醒用户用完后关闭页面或登出。
 - 删除 stack 时会保留工作区 bucket。不再需要时请手动清空并删除。
 
-## 已知限制
+## 已知限制 {#known-limitations}
 
 - 只支持在新建 stack 时打开开关。对已有 stack 打开开关不会生效：ec2 修改 UserData 不会重跑 cloud-init，每晚的 SSM 升级执行的是 `/root/brconnector-run.sh`（0.0.44 之前创建的 stack 重放第一次启动时记录的 `docker run` 行），而这个脚本是实例第一次部署时写下的。
 - microVM 的计算费用算在部署 stack 的账号上，不计入 key 的额度。key 的额度只管模型 token。每个 key 最多一个 microVM，空闲 15 分钟回收。
-- ec2 每晚自动把 BRConnector 升级到 `latest`，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）：镜像会从 `SourceRepoUrl` 的 `SourceRef` 重新构建，`SourceRef` 是分支时会带上新提交，stack 里的其他资源不变。修改 `SourceRepoUrl` 或 `SourceRef` 也会重建镜像。`lambda-web` 形态下，更新 stack 还会从同一个仓库和 ref 重新构建 BRConnector 部署包（更新失败时通过重新构建上一个 `SourceRef` 回滚，所以更新完成前请保留它，见 [AutoUpdate](../../home/deployment.zh.md#autoupdate)）。`ec2` 形态下，`SourceRepoUrl` 和 `SourceRef` 不会动实例；修改 `BRConnectorVersion` 会改变 UserData，实例会停止再启动一次。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。
+- ec2 每晚自动把 BRConnector 升级到 `latest`，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）：镜像会从 `SourceRepoUrl` 的 `SourceRef` 重新构建，`SourceRef` 是分支时会带上新提交，stack 里的其他资源不变。修改 `SourceRepoUrl` 或 `SourceRef` 也会重建镜像。`lambda-web` 形态下，更新 stack 还会从同一个仓库和 ref 重新构建 BRConnector 部署包（更新失败时通过重新构建上一个 `SourceRef` 回滚，所以更新完成前请保留它，见 [AutoUpdate](../../home/deployment.md#autoupdate)）。`ec2` 形态下，`SourceRepoUrl` 和 `SourceRef` 不会动实例；修改 `BRConnectorVersion` 会改变 UserData，实例会停止再启动一次。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。
 - 在上游发布带 `/cc` 的 BRConnector 版本、维护者推送公开镜像之前，`ec2` 和 `ecs` 形态用不了 Claude Code Web。
 - `lambda-web` 形态下，单次消息流最长 15 分钟（Lambda 超时 900 秒）；`ec2` 和 `ecs` 下受 AgentCore 同步请求 15 分钟的限制。
 - microVM 空闲 15 分钟会被回收。工作区会从 S3 恢复，但终端里正在运行的进程会丢失。

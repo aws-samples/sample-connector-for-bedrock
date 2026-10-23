@@ -60,11 +60,13 @@ Once defined, models can be bound to groups or API Keys.
 
 - Take a database snapshot before you upgrade: this release adds a migration (item 9). Stacks with `AutoUpdateBRConnector` set to `true` (`ec2` and `lambda` compute types) pick up the new `latest` image automatically at 00:00 UTC.
 - Updating a stack to the 0.0.44 `quick-build-brconnector.yaml` template changes the UserData: an `ec2` instance is stopped and started once, and `lambda` and `lambda-web` stacks created with `KeepEc2` set to `false` must be recreated. See [Template updates of existing stacks](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#template-updates-of-existing-stacks).
-- `lambda-web` stacks now build the deployment package on a stack update and run the migrations at start-up (item 2).
+- `lambda-web` stacks now build the deployment package on a stack update and run the migrations at start-up (item 2), including the 0.0.43 migrations if they were never applied, which delete the models of retired providers (see 0.0.43).
 - The alternative ECS template issues a new admin key on update; read it from the SSM parameter `/brconnector/admin-key-<stack name>`. Direct access to its ALB stops; use `CloudFrontURL` (item 6).
 - The Lambda@Edge ARN changes: set `LambdaEdgeVersionArn` to the new output (item 6).
 - Image models stay unbilled until `price_per_image` is set in their config (item 9).
 - bedrock-converse prompt-cache tokens are now billed (item 9).
+- openai-compatible and azure-openai streams now send `stream_options`. If your upstream or Azure API version rejects it, set `"streamUsage": false` in the model config (item 9).
+- Claude Code Web stacks: the template update does not rebuild the backend image. To get item 11, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`) in the stack update; see [Known limitations](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/#known-limitations).
 
 1. **CI** - Unit tests, the build and the template checks now run on every pull request.
 
@@ -76,7 +78,7 @@ Once defined, models can be bound to groups or API Keys.
 3. **EC2 Boot Log and Run Script**
    - The stack's EC2 instance no longer writes keys or passwords to its boot log or console. New stacks write the BRConnector start command to the root-only `/root/brconnector-run.sh` (mode 0700), and the nightly update runs `bash /root/brconnector-run.sh latest`. Stacks created before 0.0.44 keep updating from the command recorded at first boot.
    - After the template update, the nightly update on existing ec2 stacks also makes the boot log and the generated key files readable by root only.
-   - Admins of stacks created before 0.0.44 may rotate the admin key, stored in the SSM parameter `/brconnector/admin-key-<stack name>`, if other users have shell access to the instance.
+   - Admins of stacks created before 0.0.44 may rotate the admin key, stored in the SSM parameter `/brconnector/admin-key-<stack name>`, if other users can log in to the instance or read its console output. See [Admin key on stacks created before 0.0.44](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#admin-key-before-0-0-44).
    - The `PGPassword` parameter is now NoEcho.
 
 4. **Regions** - Every compute type now works in 17 Regions: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2, ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1. Claude Code Web needs AgentCore Runtime, so it is not available in ap-northeast-3. See [Supported Region](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#supported-region).
@@ -112,7 +114,7 @@ Once defined, models can be bound to groups or API Keys.
 
 10. **Feishu Bots** - Feishu bots now keep a single WebSocket client per connector and close replaced or removed ones.
 
-11. **Claude Code Web** - `/ping` now reports the time of the last real activity, so the AgentCore idle timeout can fire, and `serve` delivers SIGTERM to the server for a clean shutdown.
+11. **Claude Code Web** - `/ping` now reports the time of the last real activity, so the AgentCore idle timeout can fire, and `serve` delivers SIGTERM to the server for a clean shutdown. Existing stacks get this once a stack update changes `ClaudeCodeWebImageBuildId` (see the upgrade notes).
 
 12. **Docs** - AutoUpdate per compute type, how to update existing stacks, and a web search budget example in [Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/#web-search).
 

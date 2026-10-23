@@ -89,7 +89,7 @@ bedrock-converse 的配置示例如下：
 
 使用这个模型时，在管理页面里把提示词价格（Price-In）填 `2`，输出价格（Price-Out）填 `10`。
 
-## 计费
+## 计费 {#billing}
 
 Converse 把从提示词缓存读取和写入缓存的 token 与其他输入 token 分开报告。一次调用的费用是：
 
@@ -107,7 +107,7 @@ Converse 把从提示词缓存读取和写入缓存的 token 与其他输入 tok
 - 缓存读取：Opus 和 Sonnet 为 `price_in` 的 0.05 倍，Haiku 为 0.1 倍；
 - 缓存写入：`price_in` 的 1.25 倍。
 
-已经设置过的价格保持不变。按预置价格算出的缓存价格与 [bedrock-runtime-anthropic](bedrock-runtime-anthropic.md) 预置模型表里对应的 `claude-*-5-5` 模型相同。
+已经设置过的价格保持不变。按预置价格算出的缓存价格与 [bedrock-runtime-anthropic](bedrock-runtime-anthropic.md#preset-models) 预置模型表里对应的 `claude-*-5-5` 模型相同。
 
 > **两类价格的单位不同。** 管理页面里的提示词价格（Price-In）和输出价格（Price-Out）按每**百万** token 填写；config 里的 `price_cache_read` 和 `price_cache_write` 按每 **token** 填写。如果把缓存价格按每百万 token 填写，例如填了 `0.1` 而不是 `0.0000001`，缓存 token 的费用会多算一百万倍。
 
