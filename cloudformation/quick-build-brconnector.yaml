@@ -1692,6 +1692,9 @@ Resources:
           inputs:
             runCommand:
             - "#!/bin/bash"
+            # Keep the boot log and the key files root-only; stacks created before 0.0.44 wrote
+            # the key files with mode 0644. Root still reads the log for the replay below.
+            - chmod 600 /var/log/cloud-init-output.log /root/*.txt 2>/dev/null || true
             - BRC_DIGEST=$(docker images --digests public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock |grep -v -e DIGEST -e grep |awk '{print $3}')
             - BRC_REG_DIGEST=$(regctl image digest public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock:latest)
             - |

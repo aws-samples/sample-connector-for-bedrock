@@ -118,13 +118,29 @@ def run_script_block(root, cc=False):
     return text[start:end].replace('/root/', f'{root}/')
 
 
+def ssm_commands():
+    return res('EC2AutoUpdateSSMDocument')['Properties']['Content']['mainSteps'][0]['inputs']['runCommand']
+
+
 def ssm_script(tmp_path):
-    step = res('EC2AutoUpdateSSMDocument')['Properties']['Content']['mainSteps'][0]
-    text = '\n'.join(step['inputs']['runCommand'])
+    """The SSM document's script, with /root/ mapped to tmp_path/root/ and the cloud-init log to tmp_path."""
     return (
-        text.replace('/root/brconnector-run.sh', str(tmp_path / 'root/brconnector-run.sh'))
+        '\n'.join(ssm_commands())
+        .replace('/root/', f'{tmp_path}/root/')
         .replace('/var/log/cloud-init-output.log', str(tmp_path / 'cloud-init-output.log'))
     )
+
+
+def old_stack_files(tmp_path):
+    """The key files a stack created before 0.0.44 left world-readable, next to its boot log."""
+    root = tmp_path / 'root'
+    root.mkdir(exist_ok=True)
+    files = [tmp_path / 'cloud-init-output.log'] + [root / n for n in ('admin-api-key.txt', 'first-user-key.txt', 'pg-default-password.txt')]
+    for f in files:
+        if not f.exists():
+            f.write_text('KEY-MARKER\n')
+        f.chmod(0o644)
+    return files
 
 
 # docker records every call as \037-separated arguments, one \036-terminated record per call.
@@ -256,8 +272,7 @@ def test_docker_run_check_reads_the_run_script():
 
 
 def test_ssm_update_traces_nothing():
-    step = res('EC2AutoUpdateSSMDocument')['Properties']['Content']['mainSteps'][0]
-    commands = step['inputs']['runCommand']
+    commands = ssm_commands()
     assert commands[0] == '#!/bin/bash'
     assert not re.search(r'-x\b|set -[a-z]*x|xtrace', '\n'.join(commands))
 
@@ -283,8 +298,7 @@ def test_ssm_update_falls_back_to_the_logged_line(tmp_path):
     sed = gnu_sed()
     if not sed:
         pytest.skip('the logged-line replay needs GNU sed; CI runs this')
-    step = res('EC2AutoUpdateSSMDocument')['Properties']['Content']['mainSteps'][0]
-    assert LOGGED_LINE_REPLAY in '\n'.join(step['inputs']['runCommand'])
+    assert LOGGED_LINE_REPLAY in '\n'.join(ssm_commands())
     stub_dir = stubs(tmp_path, sed)
     # First boot of a 0.0.43 stack, Claude Code Web on: bash -x traces the docker run line.
     boot = tmp_path / 'boot.sh'
@@ -297,6 +311,7 @@ def test_ssm_update_falls_back_to_the_logged_line(tmp_path):
         + proc.stderr
         + '4f0c0ffee\n+ sleep 60\n'
     )
+    files = old_stack_files(tmp_path)
     (first,) = docker_calls(stub_dir)
     assert first[-1] == f'{IMAGE}:0.0.19' and CC_CONFIG in first
     (tmp_path / 'ssm.sh').write_text(ssm_script(tmp_path))
@@ -304,8 +319,9 @@ def test_ssm_update_falls_back_to_the_logged_line(tmp_path):
     assert proc.returncode == 0, proc.stdout + proc.stderr
     calls = docker_calls(stub_dir)[1:]
     assert [c[0] for c in calls] == ['images', 'login', 'pull', 'rm', 'run']
-    # The same container, environment included, from latest.
+    # The same container, environment included, from latest, read from a log that is now root-only.
     assert calls[-1] == first[:-1] + [f'{IMAGE}:latest']
+    assert {f.name: stat.S_IMODE(f.stat().st_mode) for f in files} == {f.name: 0o600 for f in files}
 
 
 def test_ssm_update_does_nothing_when_digests_match(tmp_path):
@@ -320,6 +336,28 @@ def test_ssm_update_does_nothing_when_digests_match(tmp_path):
     assert [c[0] for c in docker_calls(stub_dir)] == ['images']
     assert not (tmp_path / 'run-args').exists()
     assert 'Bootstrap Complete' in proc.stdout
+
+
+RESTRICT_STEP = 'chmod 600 /var/log/cloud-init-output.log /root/*.txt 2>/dev/null || true'
+
+
+def test_ssm_update_restricts_the_boot_log_and_key_files(tmp_path):
+    commands = ssm_commands()
+    assert RESTRICT_STEP in commands
+    assert commands.index(RESTRICT_STEP) < [n for n, c in enumerate(commands) if 'BRC_REG_DIGEST' in c][0]
+    stub_dir = stubs(tmp_path)
+    files = old_stack_files(tmp_path)
+    (tmp_path / 'ssm.sh').write_text(ssm_script(tmp_path))
+    # It runs on every night, also when there is nothing to update.
+    proc = bash([tmp_path / 'ssm.sh'], stub_dir, LOCAL_DIGEST='sha256:same', REG_DIGEST='sha256:same')
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert {f.name: stat.S_IMODE(f.stat().st_mode) for f in files} == {f.name: 0o600 for f in files}
+    assert [f.read_text() for f in files] == ['KEY-MARKER\n'] * len(files)
+    # A stack without the key files (NoDB, or created by 0.0.44) is fine too.
+    for f in files[1:]:
+        f.unlink()
+    proc = bash([tmp_path / 'ssm.sh'], stub_dir, LOCAL_DIGEST='sha256:same', REG_DIGEST='sha256:same')
+    assert proc.returncode == 0 and proc.stderr == '', proc.stderr
 
 
 # --- parameters, resources and Regions ---------------------------------------------------------
