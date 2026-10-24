@@ -58,11 +58,21 @@ directory must be listed here.
   uv is copied with `COPY --from` instead of `curl | sh`; `apt` installs only
   `git git-lfs curl ca-certificates vim` (no `gh`, no `wget`).
 - Claude Code versions in the image: the global `@anthropic-ai/claude-code@2.1.303` is what `claude`
-  runs in the terminal. The chat agent does not use it: `claude-agent-sdk` (0.1.19 in `uv.lock`)
-  starts the CLI bundled in its wheel before looking on `PATH`, and that CLI is 2.1.1
-  (`claude_agent_sdk/_cli_version.py`, checked on 2026-10-19 in the locked
-  `manylinux_2_17_aarch64` wheel). Upgrading the chat agent's Claude Code means upgrading
+  runs in the terminal. The chat agent does not use it: `claude-agent-sdk` (0.2.174 in `uv.lock`)
+  starts the CLI bundled in its wheel before looking on `PATH`, and that CLI is 2.1.310
+  (`claude_agent_sdk/_cli_version.py`; checked on 2026-10-24, also with `claude --version` on the
+  bundled binary in the arm64 image). Upgrading the chat agent's Claude Code means upgrading
   `claude-agent-sdk` in `uv.lock`.
+- `pyproject.toml`, `uv.lock`: `claude-agent-sdk>=0.1.19` -> `>=0.2.174`, locked with
+  `uv lock --upgrade-package claude-agent-sdk` (uv 0.13.5); no other locked version changes. CLI 2.1.1 did not run
+  headless-capable commands such as `/mcp` in SDK mode: it answered `Unknown slash command: mcp` without tags, and the
+  next prompt was merged with it (`/mcp` then `whoareu` reached the model as `/mcpwhoareu`). CLI 2.1.310 runs them and
+  returns their output as an `AssistantMessage` with model `<synthetic>`, which the backend already forwards as text.
+  The new CLI also sends mid-conversation `role: "system"` messages inside `messages[]` (supported on Bedrock for the
+  Claude 5.5 models), no longer makes the three Warmup calls at session start, and reports a cost that matches
+  BRConnector's bill. The SDK now warns (`CanUseToolShadowedWarning`) that whole-tool `allowed_tools` entries are
+  approved before `can_use_tool` runs; the default `ALLOWED_TOOLS` and `AUTO_ALLOW_TOOLS` lists allow the same tools,
+  so the default behaviour is unchanged.
 - `Dockerfile` user: reuses the node image's `node` user (UID 1000) instead of
   creating `cc`; `HOME=/home/node`; `/app`, `/workspace` and `/opt/uv-python` are
   owned by it, and `USER node` applies to the build `uv sync --frozen --no-dev`
