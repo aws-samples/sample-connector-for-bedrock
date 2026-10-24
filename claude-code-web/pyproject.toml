@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "awscli>=1.44.14",
     "boto3>=1.42.24",
-    "claude-agent-sdk>=0.1.19",
+    "claude-agent-sdk>=0.2.174",
     "fastapi>=0.120.0",
     "httpx>=0.28.1",
     "langfuse>=2,<3",
