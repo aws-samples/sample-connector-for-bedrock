@@ -34,6 +34,11 @@ Or retrieving relevant text first, then using a model in BRConnector for summari
 - summaryModel: supports claude-sonnet-5-5-chat, claude-haiku-5-5-chat or claude-opus-5-5-chat models
 - bedrockModelArn: the ARN of the foundation model or inference profile in the current region, used for integrated streaming
 
+## Billing
+
+- With `bedrockModelArn`, RetrieveAndGenerate reports no token usage, so the tokens are **estimates** at 4 characters a token: the input from the question and the text of every retrieved reference cited in the answer, the output from the answer. They are billed at `price_in` and `price_out` of this knowledge-base model, so set those to the prices of the model in `bedrockModelArn`.
+- With `summaryModel`, the summary call is billed from the input and output tokens Converse reports, at the prices of this knowledge-base model, not the summary model's.
+
 ## API Calls
 
 You can use normal API calls. In multi-turn conversations, the Bedrock connector will use the last message to interact with the knowledge base.

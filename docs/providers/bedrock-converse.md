@@ -28,6 +28,8 @@ It is recommended to use this provider to support Bedrock's large language model
 | thinkBudget  |  number   | N     | 1024 | When thinking is enabled, the maximum number of tokens allowed for the reasoning part |
 | promptCache.fields  |  string[]   | N     |  | Where to enable prompt caching, supports three strings: "system", "messages", "tools" |
 | promptCache.messagePositions  |  int[]   | N     |  | In multi-turn conversations, you can specify the loading positions for messages caching |
+| price_cache_read  |  number   | N     | `price_in` | Price **per token** (not per million tokens) for prompt-cache reads |
+| price_cache_write  |  number   | N     | `price_in` | Price **per token** (not per million tokens) for prompt-cache writes |
 
 Claude preset models on this provider: `claude-opus-5-5-chat`, `claude-sonnet-5-5-chat` and `claude-haiku-5-5-chat` (`modelId` `global.anthropic.claude-<opus|sonnet|haiku>-5-5`, same prices as the matching `claude-*-5-5` presets). Use these for Chat Completions clients. The `claude-*-5-5` presets on [bedrock-runtime-anthropic](bedrock-runtime-anthropic.md) are `/v1/messages` passthrough only, for Claude Code. They are added to existing databases too, by a migration at startup.
 
@@ -43,6 +45,8 @@ The configuration example:
   ],
   "thinking": true,
   "maxTokens": 32000,
+  "price_cache_read": 0.0000001,
+  "price_cache_write": 0.0000025,
   "promptCache": {
     "fields": [
       "system",
@@ -57,6 +61,30 @@ The configuration example:
   "thinkBudget": 2000
 }
 ```
+
+With this model, set `Price-In` to `2` and `Price-Out` to `10` in the admin page.
+
+## Billing
+
+Converse reports the tokens read from and written to the prompt cache apart from the other input tokens. The fee of a call is:
+
+- input tokens (those that were not read from or written to the cache) at `price_in`;
+- cache-read tokens at `price_cache_read`;
+- cache-write tokens at `price_cache_write`. 1-hour cache writes are billed at this rate too, the same as 5-minute ones;
+- output tokens at `price_out`.
+
+The recorded input tokens are the sum of input, cache-read and cache-write tokens.
+
+Set `price_cache_read` and `price_cache_write` on each of your own converse models that uses prompt caching. Without them, its cache tokens bill at `price_in`. A cache price that is missing, blank or not a finite number counts as not set.
+
+For the `claude-opus-5-5-chat`, `claude-sonnet-5-5-chat` and `claude-haiku-5-5-chat` presets, a migration at startup, on a new database and on an upgrade, fills in whichever of the two prices their config does not have, from each model's own `price_in`, at Bedrock's rates for these models:
+
+- a cache read at 0.05 of `price_in` for Opus and Sonnet, and 0.1 for Haiku;
+- a cache write at 1.25 of `price_in`.
+
+A price you have set is kept. With the preset prices, these are the same cache prices as the matching `claude-*-5-5` presets on [bedrock-runtime-anthropic](bedrock-runtime-anthropic.md#preset-models).
+
+> **The two kinds of price use different units.** The admin page takes `Price-In` and `Price-Out` per **million** tokens. The config takes `price_cache_read` and `price_cache_write` per **token**. A cache price entered per million tokens, for example `0.1` instead of `0.0000001`, bills cache tokens a million times too much.
 
 ## Output Results
 

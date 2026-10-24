@@ -31,6 +31,7 @@ Draw using the bedrock paint model.
 | s3Prefix  | string   | N    | "" |   The S3 prefix combined with the date will ultimately form the S3 key.  |
 | s3Region  | string   | Y     | | S3 bucket region  |
 | regions  | string   | N     | ["us-east-1"] |   If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.  |
+| price_per_image  | number   | N     | 0 |   The price of one image, in the model's currency. Set it so that drawing is billed; see [Billing](#billing).  |
 
 paintModelId options:
 
@@ -43,6 +44,12 @@ paintModelId options:
 - amazon.titan-image-generator-v2:0
 
 Then grant this model to  group or apikey.
+
+## Billing
+
+- Each drawing is billed at `price_per_image` for each image it returns, in the model's currency. For example, `"price_per_image": 0.04` bills 0.04 per image. A drawing that fails is recorded with 0 images.
+- `price_per_image` is per **image**, not per token. When it is missing, blank, negative or not a number, images are recorded at 0, so set it to bill image generation, for example to the price of `paintModelId` in your Region on the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/).
+- The call that writes the drawing prompt goes to `localLlmModel` and is billed as a call to that model, at its prices.
 
 ## Features and Screenshots in BRClient
 

@@ -1,21 +1,6 @@
 // This is a middleware that helps auto login to the BRClient web ui
-import service from "../service/key"
-
 const autoLoginHandler = async (ctx: any, next: any) => {
-    let pathName = ctx.path;
-    if (pathName == "/open/get-shared-api-key") {
-        const sharedKey = await service.loadByName(ctx.db, "__shared-api-key__");
-        if (!sharedKey) {
-            ctx.body = "404";
-            ctx.status = 404;
-            return;
-        }
-        ctx.body = {
-            "success": true,
-            data: sharedKey.api_key
-        };
-        return;
-    }
+    const pathName = ctx.path;
 
     if (pathName == "/portal-for-brclient.html") {
         ctx.body = `
@@ -50,18 +35,6 @@ const autoLoginHandler = async (ctx: any, next: any) => {
                             // before it has an API key. Otherwise it calls Bedrock directly and asks for AWS keys.
                             existingConfig.state.BRProxyUrl = BRProxyUrl;
                             existingConfig.state.useBRProxy = "True";
-
-                            try {
-                                const response = await fetch('/open/get-shared-api-key');
-                                if (response.status !== 404) {
-                                    const result = await response.json();
-                                    if (result.success) {
-                                        existingConfig.state.openaiApiKey = result.data;
-                                    }
-                                }
-                            } catch (error) {
-                                console.error('Error fetching API key:', error);
-                            }
 
                                 existingConfig.state.lastUpdateTime = Date.now();
                                 localStorage.setItem('access-control', JSON.stringify(existingConfig));

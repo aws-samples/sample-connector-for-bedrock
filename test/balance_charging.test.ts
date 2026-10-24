@@ -58,7 +58,7 @@ let afterKeyLoad: (() => Promise<void>) | null = null;
 // A time as Postgres stores it from a Date.
 const pgTime = async (d: Date) => (await pg.query<any>('SELECT $1::timestamp AS t', [prepareValue(d)])).rows[0].t;
 // The app's PG client with PGlite in place of the pg pool.
-const appDb = () => Object.assign(new PGClient(), { pool: { query: run } });
+const appDb = () => Object.assign(new PGClient(), { pool: { query: run, connect: async () => ({ query: run, release: () => {} }) } });
 const keyWrites = () => statements.filter((s) => /^\s*update\s+eiai_key\b/i.test(s.sql));
 
 let keys = 0;

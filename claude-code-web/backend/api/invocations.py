@@ -10,6 +10,9 @@ from collections.abc import Mapping
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
+from starlette.responses import StreamingResponse
+
+from ..core.activity import mark_activity
 
 from ..models import (
     CreateSessionRequest,
@@ -164,8 +167,29 @@ def require_session_user(user_id: Optional[str]) -> str:
     return user_id
 
 
+async def _mark_when_stream_ends(iterator):
+    try:
+        async for chunk in iterator:
+            yield chunk
+    finally:
+        mark_activity()
+
+
 @router.post("/invocations")
 async def invocations(http_request: Request, request: dict[str, Any]):
+    """Run the invocation and record it as activity, except for /ping and /health."""
+    counts = request.get("path") not in ("/ping", "/health")
+    if counts:
+        mark_activity()
+    response = await _route_invocation(http_request, request)
+    if counts:
+        mark_activity()
+        if isinstance(response, StreamingResponse):
+            response.body_iterator = _mark_when_stream_ends(response.body_iterator)
+    return response
+
+
+async def _route_invocation(http_request: Request, request: dict[str, Any]):
     """
     Unified invocation endpoint that routes to other API endpoints.
 

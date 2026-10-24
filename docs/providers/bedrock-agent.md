@@ -30,6 +30,12 @@ The configuration example:
 }
 ```
 
+## Billing
+
+The agent is invoked with its trace turned on, because the trace is where Bedrock reports the tokens of each model invocation. A call is billed for the sum of `inputTokens` and `outputTokens` over every step that invokes the model: pre-processing, orchestration, post-processing and the routing classifier. Input tokens are billed at `price_in` and output tokens at `price_out` of this model, on stream and non-stream calls. Only model tokens are billed, not what the agent's action groups or knowledge bases cost.
+
+The trace is read for billing only. It is not sent to the client and not logged.
+
 ## Usage Example
 
 Here's an example of how to call a Bedrock Agent using the Sample Connector for Bedrock:

@@ -41,8 +41,13 @@ interface ImageRequest {
 
 interface ResponseData {
     text: string;
+    // Billed at price_in. Cache-read and cache-write tokens, when a provider reports them, are not included.
     input_tokens: number;
     output_tokens: number;
+    cache_read_tokens?: number;
+    cache_write_tokens?: number;
+    // Images returned by an image model, billed at price_per_image from the model config.
+    images?: number;
     invocation_latency?: number;
     first_byte_latency?: number;
 }

@@ -5,7 +5,7 @@ import path from 'path';
 
 const MIGRATIONS_DIR = path.join(__dirname, "./scripts/migrations");
 
-// Arbitrary fixed key: serializes runMigrations across instances that start at the same time.
+// Arbitrary fixed key: serializes install and runMigrations across instances that start at the same time.
 const MIGRATION_LOCK_ID = 727463001;
 
 /**
@@ -82,6 +82,27 @@ export default async function () {
         return;
     }
     console.log("Postgres connected.");
+    try {
+        // Session-level lock around the whole install, so instances that start together on an empty
+        // database do not run create.sql and the patches at the same time. runMigrations takes it
+        // again; a session can hold it more than once, and each lock needs its own unlock.
+        await client.query(`select pg_advisory_lock(${MIGRATION_LOCK_ID})`);
+        try {
+            await installTables(client);
+        } finally {
+            await client.query(`select pg_advisory_unlock(${MIGRATION_LOCK_ID})`).catch(() => {});
+        }
+    } finally {
+        await client.end().catch(() => {});
+    }
+    const adminKey = config.admin_api_key;
+    if (!adminKey) {
+        console.error("❌ Admin API key not set, please set 'ADMIN_API_KEY' in env.");
+    }
+}
+
+/** create.sql and the old patches, each skipped when its table exists, then the migrations. */
+async function installTables(client: Pick<Client, "query">): Promise<void> {
     console.log("[init] Check database status...");
     const sql = "SELECT to_regclass('public.eiai_key')";
     const res = await client.query(sql);
@@ -128,10 +149,4 @@ export default async function () {
     }
 
     await runMigrations(client);
-
-    await client.end();
-    const adminKey = config.admin_api_key;
-    if (!adminKey) {
-        console.error("❌ Admin API key not set, please set 'ADMIN_API_KEY' in env.");
-    }
 }

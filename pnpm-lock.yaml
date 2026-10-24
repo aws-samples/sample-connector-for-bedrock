@@ -81,8 +81,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       nodemailer:
-        specifier: ^7.0.13
-        version: 7.0.13
+        specifier: ^10.2.1
+        version: 10.2.1
       ollama:
         specifier: ^0.5.18
         version: 0.5.18
@@ -123,18 +123,15 @@ importers:
       '@types/node':
         specifier: ^25.2.0
         version: 25.2.0
-      '@types/nodemailer':
-        specifier: ^7.0.9
-        version: 7.0.9
       '@types/pg':
         specifier: ^8.16.0
         version: 8.16.0
       '@vitejs/plugin-vue':
         specifier: ^6.0.4
-        version: 6.0.4(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
+        version: 6.0.4(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
       '@vitejs/plugin-vue-jsx':
         specifier: ^5.1.4
-        version: 5.1.4(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
+        version: 5.1.4(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^14.2.0
         version: 14.2.0(vue@3.5.27(typescript@5.9.3))
@@ -178,11 +175,11 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
       vite:
-        specifier: ^6.3.3
-        version: 6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
+        specifier: ^6.4.5
+        version: 6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
       vitest:
         specifier: ^5.0.3
-        version: 5.0.3(@types/node@25.2.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))
+        version: 5.0.3(@types/node@25.2.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))
       vue:
         specifier: ^3.5.27
         version: 3.5.27(typescript@5.9.3)
@@ -1560,9 +1557,6 @@ packages:
   '@types/node@25.9.4':
     resolution: {integrity: sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g==}
 
-  '@types/nodemailer@7.0.9':
-    resolution: {integrity: sha512-vI8oF1M+8JvQhsId0Pc38BdUP2evenIIys7c7p+9OZXSPOH5c1dyINP1jT8xQ2xPuBUXmIC87s+91IZMDjH8Ow==}
-
   '@types/pg@8.16.0':
     resolution: {integrity: sha512-RmhMd/wD+CF8Dfo+cVIy3RR5cl8CyfXQ0tGgW6XBL8L4LM/UTEbNXYRbLwU6w+CgrKBNbrQWt4FUtTfaU5jSYQ==}
 
@@ -2884,9 +2878,9 @@ packages:
     resolution: {integrity: sha512-J6l92tKHX6w8Jy5nO1Vuc01NoIiRGi/d6qBKVxh+IQ8Cr3b6HbVNfKiF8ZpFKufTwpwxMmce2W3iQZ861ZRyTg==}
     engines: {node: '>=18'}
 
-  nodemailer@7.0.13:
-    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
-    engines: {node: '>=6.0.0'}
+  nodemailer@10.2.1:
+    resolution: {integrity: sha512-ZrDNsPFoDMwefNs7sJwrYiEJ/CG4ClJWDZv05iNJsEBWa8GRDry1QJHTJxsuTAY9eDDKjX4k+q3SxslXJOao7w==}
+    engines: {node: '>=20.0.0'}
 
   nodemon@3.1.11:
     resolution: {integrity: sha512-is96t8F/1//UHAjNPHpbsNY46ELPpftGUoSVNXwUfMk/qdjSylYrWSu1XavVTBOn526kFiOR733ATgNBCQyH0g==}
@@ -3538,8 +3532,8 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  vite@6.4.3:
-    resolution: {integrity: sha512-NTKlcQjlAK7MlQoyb6LgaqHc8sso/pVyUJYWMws3jg21uTJw/LddqIFPcPqP6PzpgbIcZyKI85sFE4HBrQDA8A==}
+  vite@6.4.5:
+    resolution: {integrity: sha512-4enwjFfi4IwtEh0w+jPzpLVOFQiPHmmzPxcHXQOyEur47o6u0jE573DmGpjA+7irXoMLYRZD5ZaFUEneS3abPg==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -5758,10 +5752,6 @@ snapshots:
       undici-types: 7.24.6
     optional: true
 
-  '@types/nodemailer@7.0.9':
-    dependencies:
-      '@types/node': 25.2.0
-
   '@types/pg@8.16.0':
     dependencies:
       '@types/node': 25.2.0
@@ -5793,32 +5783,32 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-vue-jsx@5.1.4(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))':
+  '@vitejs/plugin-vue-jsx@5.1.4(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@babel/core': 7.29.6
       '@babel/plugin-syntax-typescript': 7.28.6(@babel/core@7.29.6)
       '@babel/plugin-transform-typescript': 7.28.6(@babel/core@7.29.6)
       '@rolldown/pluginutils': 1.0.0-rc.2
       '@vue/babel-plugin-jsx': 2.0.1(@babel/core@7.29.6)
-      vite: 6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
+      vite: 6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
       vue: 3.5.27(typescript@5.9.3)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-vue@6.0.4(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))':
+  '@vitejs/plugin-vue@6.0.4(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.2
-      vite: 6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
+      vite: 6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
       vue: 3.5.27(typescript@5.9.3)
 
-  '@vitest/mocker@5.0.3(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))':
+  '@vitest/mocker@5.0.3(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.3
       estree-walker: 3.0.3
       magic-string: 1.4.3
     optionalDependencies:
-      vite: 6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
+      vite: 6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
 
   '@vitest/spy@5.0.3': {}
 
@@ -6593,6 +6583,10 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.4
 
+  fdir@6.5.0(picomatch@4.0.7):
+    optionalDependencies:
+      picomatch: 4.0.7
+
   fecha@4.2.3: {}
 
   file-entry-cache@8.0.0:
@@ -7214,7 +7208,7 @@ snapshots:
 
   node-releases@2.0.50: {}
 
-  nodemailer@7.0.13: {}
+  nodemailer@10.2.1: {}
 
   nodemon@3.1.11:
     dependencies:
@@ -7834,11 +7828,11 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2):
+  vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2):
     dependencies:
       esbuild: 0.25.12
-      fdir: 6.5.0(picomatch@4.0.4)
-      picomatch: 4.0.4
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
       postcss: 8.5.16
       rollup: 4.62.2
       tinyglobby: 0.2.17
@@ -7850,10 +7844,10 @@ snapshots:
       terser: 5.46.0
       yaml: 2.8.2
 
-  vitest@5.0.3(@types/node@25.2.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)):
+  vitest@5.0.3(@types/node@25.2.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.3(vite@6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))
+      '@vitest/mocker': 5.0.3(vite@6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -7864,7 +7858,7 @@ snapshots:
       tinybench: 6.2.2
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 6.4.3(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
+      vite: 6.4.5(@types/node@25.2.0)(less@4.5.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@types/node': 25.2.0

@@ -26,6 +26,7 @@
 | s3Prefix | string | 否 | - | S3 前缀，与日期组合形成最终的 S3 键 |
 | s3Region | string | 是 | - | S3 存储桶所在区域 |
 | regions | string[] | 否 | ["us-east-1"] | paintModelId 可用的区域 |
+| price_per_image | number | 否 | 0 | 每张图片的价格，币种与模型相同。设置后图像生成才会计费，见下文“计费”一节 |
 
 ## 功能概述
 
@@ -44,6 +45,12 @@
 此外，您可以在对话中指定生成图片的数量和尺寸。
 
 详细示例请参考：<https://docs.aws.amazon.com/nova/latest/userguide/image-gen-access.html>
+
+## 计费
+
+- 每个图像任务按模型返回的图片数量，每张按 `price_per_image` 计费，币种与模型相同。例如 `"price_per_image": 0.04` 时，返回 2 张图片的任务计 0.08。
+- `price_per_image` 按每**张图片**计，不是按 token 计。它缺失、为空、为负数或不是数字时，图片按 0 记录，所以请设置它，图像生成才会计费，例如设为 `paintModelId` 在您所在区域的价格，见 [Amazon Bedrock 定价页面](https://aws.amazon.com/bedrock/pricing/)。
+- 选择任务和参数的调用发给 `localLlmModel`，按对该模型的调用以它的价格计费。
 
 ## 其他说明
 

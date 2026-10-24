@@ -87,11 +87,11 @@ describe('Feishu bot errors are logged as message and status only', () => {
     it('a bot that cannot connect', async () => {
         Cache.connectors = [] as any;
         const controller: any = (await import('../src/controller/bot/Feishu')).default({});
-        Cache.connectors = [connector] as any;
+        Cache.connectors = [{ ...connector, name: 'bot-2', config: { appId: 'app-2', appSecret: 'app-secret' } }] as any;
         const err = larkError();
         lark.wsError = err;
         const lines = captureOutput();
-        await expect(controller.routers({})).rejects.toBe(err);
+        await expect(controller.routers({})).resolves.toBeUndefined();
         expectMessageOnly(lines);
     });
 });

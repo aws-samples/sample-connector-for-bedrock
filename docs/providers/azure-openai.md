@@ -18,7 +18,8 @@ It is recommended to use this provider to connect to Azure OpenAI deployments.
 | --- | --- | --- | --- | --- |
 | apiKey | string | Y | | Your Azure OpenAI API key |
 | baseURL | string | Y | | The base URL for your Azure OpenAI deployment, including the deployment name (e.g., "<https://your-resource-name.openai.azure.com/openai/deployments/your-deployment-name>") |
-| apiVersion | string | Y | | The Azure OpenAI API version to use (e.g., "2023-05-15" or "2025-01-01-preview") |
+| apiVersion | string | Y | | The Azure OpenAI API version to use (e.g., "2025-01-01-preview"). Streams send `stream_options`; for an API version that rejects it, set `streamUsage` to `false` |
+| streamUsage | boolean | N | true | Ask Azure OpenAI for usage on streams (`stream_options.include_usage`), so that streamed calls are billed. Set `false` only for an API version that rejects `stream_options`. |
 
 The configuration example:
 
@@ -29,6 +30,14 @@ The configuration example:
   "apiVersion": "2025-01-01-preview"
 }
 ```
+
+## Billing
+
+- A non-stream call is billed from the `usage` in the response.
+- A stream sends `stream_options: {"include_usage": true}` to the upstream, unless `streamUsage` is `false`. The call is billed once, after the stream ends, from the last usage the upstream sent, whatever the finish reason (`stop`, `tool_calls`, `length` and so on).
+- The usage-only chunk (empty `choices`) is forwarded to the client only if the client asked for it with `stream_options.include_usage`.
+- If a stream ends without usage, for example with `streamUsage: false`, the call is recorded with 0 tokens and a warning naming the model is logged.
+- Input tokens are billed at `price_in` and output tokens at `price_out`.
 
 ## Output Results
 

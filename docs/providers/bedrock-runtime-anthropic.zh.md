@@ -35,7 +35,7 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-5-5
 export CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
 ```
 
-上面的模型名是[预置模型](#预置模型)。如果你自己添加了模型，请使用你在管理后台里起的名字。
+上面的模型名是[预置模型](#preset-models)。如果你自己添加了模型，请使用你在管理后台里起的名字。
 
 ### 模型名
 
@@ -88,7 +88,7 @@ Claude Code 根据模型名决定请求的写法。例如 Haiku 4.5 使用 `thin
 
 这个模型在管理页面里把提示词价格（Price-In）填 `2`，输出价格（Price-Out）填 `10`。
 
-## 预置模型
+## 预置模型 {#preset-models}
 
 这里的 `claude-*-5-5` 模型只做 `/v1/messages` 透传（Claude Code）。Chat Completions 客户端请使用 [bedrock-converse](bedrock-converse.md) 上的 `claude-*-5-5-chat` 预置模型。
 

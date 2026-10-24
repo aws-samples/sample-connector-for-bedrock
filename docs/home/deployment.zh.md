@@ -2,12 +2,13 @@
 
 使用 CloudFormation 进行快速部署。
 
-## 支持的区域
+## 支持的区域 {#supported-region}
 
-CloudFormation 模板已在以下区域进行验证：
+`ec2`、`lambda`、`ecs` 可以用在这些区域：us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。`lambda-web` 只能用在提供 Lambda Web Functions 的区域：us-east-1、us-east-2、us-west-2、ap-northeast-1、eu-west-1（最新列表见 [AWS Capabilities by Region](https://builder.aws.com/build/capabilities)）。模板会在其他区域拒绝 `lambda-web`。
 
-- us-east-1
-- us-west-2
+[Claude Code Web](../user-manual/scenarios/claude-code-web.md) 还需要 AgentCore Runtime，除 ap-northeast-3 外这些区域都提供，所以它不能在 ap-northeast-3 运行。
+
+`lambda` 使用 AWS_IAM 认证时所需的 Lambda@Edge stack 始终部署在 us-east-1。
 
 ## 前提条件
 
@@ -43,7 +44,7 @@ CloudFormation 模板已在以下区域进行验证：
 
 ## 部署指南
 
-- （如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。<mark style="background: #FFB86CA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark>
+- （如果需要带有 AWS_IAM 认证类型的 lambda 函数 URL，则必须执行此步骤）在 us-east-1 区域部署 lambda@edge 用于 Cloudfront Origin Request。部署成功后，从输出页面获取 lambda 版本 ARN。模板发布的版本是 `v2`；更新已有的 Lambda@Edge stack 后，把 BRConnector stack 的 `LambdaEdgeVersionArn` 参数设为新的 `LambdaEdgeVersionArn` 输出。<mark style="background: #FFB86CA6;">如果跳过此步骤，lambda 函数 URL 将是公开的。</mark>
 
 [![[attachments/deployment/IMG-deployment.png|200]]](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/template?stackName=lambda-edge-use1&templateURL=https://sample-connector-bedrock.s3.us-west-2.amazonaws.com/lambda-edge-use1.yaml)
 
@@ -87,7 +88,7 @@ CloudFormation 模板已在以下区域进行验证：
 - 调试参数
   - 如果您选择 Lambda 作为计算类型，可以选择在所有资源部署成功后删除 EC2。此 EC2 用于临时编译和构建 BRConnector 容器。
   - 如果您选择 EC2 作为计算类型，请不要删除 EC2
-  - 如果您将 AutoUpdateBRConnector 设置为 `true`，将在 ec2 crontab 中添加一个脚本
+  - 如果您将 AutoUpdateBRConnector 设置为 `true`，BRConnector 每晚自动更新，见 [AutoUpdate](#autoupdate)
 
 ![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
@@ -97,19 +98,89 @@ CloudFormation 模板已在以下区域进行验证：
 
 - 您还可以使用 SSM 会话管理器连接到 `BRConnector` EC2 实例 ([docs](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console))
 
-## 更新 BRConnector
+## AutoUpdate
 
-### AutoUpdate 为 true
+`AutoUpdateBRConnector` 为 `true` 时，stack 每晚 00:00 UTC 把 BRConnector 更新到 `latest`，即使 `BRConnectorVersion` 固定在其他版本也一样。
 
-- 检查您的 ECR 设置，如果在拉取缓存页面中有规则，则您已启用此功能以使用上游存储库自动更新 ECR 映像。
-- 转到 codebuild 页面，将触发一个项目定期构建以自动更新您的 lambda 映像
-- EC2 中的映像将使用 SSM 中的状态管理器自动更新。
+| ComputeType | 00:00 UTC 执行的内容 |
+| --- | --- |
+| `ec2` | 一个 SSM association 拉取 `latest` 镜像，镜像有变化时在实例上执行 `/root/brconnector-run.sh latest`。0.0.44 之前创建的 stack 没有这个脚本：association 改为重放第一次启动时记录的 `docker run` 行，并把标签换成 `latest`。每次执行还会把启动日志和 `/root` 下的密钥文件改为仅 root 可读。 |
+| `lambda` | 一条 EventBridge 规则启动 CodeBuild 项目，项目把 `-lambda:latest` 镜像复制到您的私有 ECR 仓库并更新函数。 |
+| `ecs` | 没有夜间任务。 |
+| `lambda-web` | 没有夜间任务。`SourceRepoUrl`、`SourceRef` 或 `WebFnBuildId` 变化时，以及第一次更新到 0.0.44 模板时，更新 stack 会从 `SourceRepoUrl` 的 `SourceRef` 重新构建部署包并发布。只想重新构建时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）。 |
 
-### AutoUpdate 为 false
+`lambda-web` stack 更新失败时，CloudFormation 通过重新构建上一个 `SourceRef` 来回滚，所以在更新完成之前，请保留这个 ref（分支或提交）。如果回滚构建也失败，stack 会停在 `UPDATE_ROLLBACK_FAILED`。用下面的命令恢复：
 
-- 检查您的 ECR 设置，如果在拉取缓存页面中有规则，则您已启用此功能以使用上游存储库自动更新 ECR 映像。
-- 转到 codebuild 页面，可以触发一个项目来手动更新您的 lambda 映像。单击“开始构建”以更新 lambda 映像。
-- 由于未创建关联，EC2 中的映像将不会使用 SSM 中的状态管理器自动更新。参考 SSM 中的文档以手动在 EC2 中执行命令。
+```sh
+aws cloudformation continue-update-rollback --stack-name <stack name> --resources-to-skip WebFnPackage
+```
+
+`AutoUpdateBRConnector` 为 `false` 时：
+
+- 转到 CodeBuild 页面，可以触发一个项目来手动更新 lambda 映像。单击“开始构建”。
+- 由于没有创建 association，EC2 中的映像不会由 SSM State Manager 自动更新。请用 SSM 文档在 EC2 上手动执行更新。
+- 检查您的 ECR 设置：如果拉取缓存页面中有规则，则已启用用上游仓库自动更新 ECR 映像的功能。
+
+## 已有 stack 的模板更新 {#template-updates-of-existing-stacks}
+
+把 stack 更新到 0.0.44 模板会改变实例的 UserData，因此：
+
+- `ec2` 实例会停止再启动一次，有一次短暂的中断。
+- 创建时 `KeepEc2` 为 `false` 的 `lambda` 和 `lambda-web` stack 无法接受这次更新，因为辅助实例已经自行删除，需要重新创建。
+- `lambda-web` 启动时会执行数据库迁移，包括从未执行过的 0.0.43 迁移，它们会删除已下线 provider 的模型（见[更新日志](changelogs.md)中的 0.0.43）。更新前请先做数据库快照。
+- 函数 URL 使用 AWS_IAM 认证时，把 `LambdaEdgeVersionArn` 设为新 Lambda@Edge stack（版本 `v2`）的输出。
+
+## 0.0.44 之前创建的 stack 的 admin key {#admin-key-before-0-0-44}
+
+0.0.44 之前创建的 stack 会把 admin key 写进 EC2 实例的启动日志（`/var/log/cloud-init-output.log`）和控制台输出：`ec2` 形态下是运行 BRConnector 的实例，`lambda`、`lambda-web` 和 `ecs` 形态下是辅助实例。如果 stack 管理员以外的人能登录这台实例或读取它的控制台输出，请轮换 admin key。
+
+如果 stack 有数据库，这份日志里还有 stack 创建的第一个用户的 API key（`/brconnector/first-user-key-<stack name>`）。这个 key 如果还在使用，请在管理控制台的**接口密钥**页面点**重置**。
+
+模板更新之后，`AutoUpdateBRConnector` 为 `true` 的 `ec2` stack 每晚的更新会把启动日志和 `/root` 下的密钥文件改为仅 root 可读。其他仍在运行的实例，请手动执行一次：
+
+```sh
+sudo sh -c 'chmod 600 /var/log/cloud-init-output.log /root/*.txt'
+```
+
+### ec2
+
+BRConnector 从它的 `docker run` 命令里拿到 key。只要没有 `/root/brconnector-run.sh`，这些 stack 每晚的更新就会重放第一次启动时记录的命令，而其中是旧 key。因此：
+
+1. 如果 `AutoUpdateBRConnector` 为 `true`，先把 stack 更新到 0.0.44 模板：之前模板的每晚更新总是重放记录的命令。
+2. 用 Session Manager 连接实例，执行下面的命令，把 `<stack name>` 换成您的 stack 名称。这些命令用记录的命令和一个新 key 写出 `/root/brconnector-run.sh`，按当前运行的镜像标签重启 BRConnector，并把新 key 存进 SSM 参数。BRConnector 会有几秒钟不可用。
+
+    ```sh
+    sudo -i
+    NEW_KEY=$(uuidgen)
+    umask 077
+    {
+      echo '#!/bin/bash -e'
+      egrep -o 'docker run .* --name brconnector .*' /var/log/cloud-init-output.log | tail -n 1 |
+        sed -e "s/ADMIN_API_KEY=[^ ]*/ADMIN_API_KEY=$NEW_KEY/" -e 's/:[^:]*$/:"${1:-latest}"/'
+    } > /root/brconnector-run.sh
+    chmod 700 /root/brconnector-run.sh
+    echo "$NEW_KEY" > /root/admin-api-key.txt
+    TAG=$(docker inspect -f '{{.Config.Image}}' brconnector | sed 's/.*://')
+    docker rm -f brconnector && bash /root/brconnector-run.sh "$TAG"
+    aws ssm put-parameter --name /brconnector/admin-key-<stack name> --value "$NEW_KEY" --type String --overwrite
+    ```
+
+3. 用新 key 登录管理控制台确认。之后每晚的更新和[手动更新](#brconnector-on-ec2)都会执行这个新脚本。
+
+### lambda、lambda-web 和 ecs
+
+BRConnector 从环境变量 `ADMIN_API_KEY` 读取 key：`lambda` 形态下是函数的环境变量，`lambda-web` 形态下是 Web Function 的 revision，`ecs` 形态下是任务定义。CloudFormation 在创建这些资源时从 SSM 参数取值，所以之后向参数写入新值不会改变它。
+
+1. 如果辅助实例还在运行（`KeepEc2` 为 `true`），它也运行着 BRConnector，使用旧 key 和 stack 的数据库。请在它上面执行 `ec2` 步骤中的第 2 步，这一步也会把新 key 存进参数。没有辅助实例时，生成一个新 key（例如用 `uuidgen`），并用 `aws ssm put-parameter --name /brconnector/admin-key-<stack name> --value <new key> --type String --overwrite` 保存。
+2. 把 `ADMIN_API_KEY` 设为新 key。新 key 可以用 `aws ssm get-parameter --name /brconnector/admin-key-<stack name> --query Parameter.Value --output text` 读取。
+    - `lambda`：在 Lambda 控制台打开输出 `MyFunctionName` 所指的函数，依次选择 **Configuration**、**Environment variables**、**Edit**，修改 `ADMIN_API_KEY` 并保存。之后的请求使用新 key。
+    - `ecs`：在 Amazon ECS 控制台为任务定义 `<stack name>-task` 创建新 revision，把 `brconnector` 容器的 `ADMIN_API_KEY` 改为新 key，然后把集群 `<stack name>-cluster` 中的服务 `<stack name>-service` 更新到这个 revision。服务会替换它的任务。
+    - `lambda-web`：本页暂时没有步骤。Web Function 的 revision 不能修改，而 stack 更新创建的新 revision 是否会从参数取新值，还没有验证。
+3. 这些修改不经过 CloudFormation。之后修改函数、任务定义或服务的 stack 更新可能把旧值设回去，所以这类更新之后请检查 `ADMIN_API_KEY`。
+
+## CloudFront 到源站
+
+`ec2` 和 `ecs` 下，CloudFront 通过 HTTP 访问源站。`lambda-web` 从访问者到 Web Function 全程 HTTPS。
 
 ### 未启用拉取缓存的 ECR（仅适用于以前的 cfn 版本）
 
@@ -142,15 +213,16 @@ docker manifest push ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/$
 
 - 使用正确的架构更新 lambda 映像
 
-### 运行在 EC2 上的 BRConnector
+### 运行在 EC2 上的 BRConnector {#brconnector-on-ec2}
 
-- 登录到 ec2 以更新本地映像并重新启动 brconnector 容器
+- 登录到 ec2 以更新本地映像并重新启动 brconnector 容器。请以 root 身份（`sudo -i`）执行这些命令：启动脚本和启动日志只有 root 可读。0.0.44 之前创建的 stack 没有 `/root/brconnector-run.sh`（除非您按[0.0.44 之前创建的 stack 的 admin key](#admin-key-before-0-0-44)写过一个），请改为重放记录的那一行：`cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh`
 
 ```sh
+sudo -i
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 docker pull public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
 docker rm -f brconnector
-cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sh
+bash /root/brconnector-run.sh latest
 
 ```
 

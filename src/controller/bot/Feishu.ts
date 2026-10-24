@@ -7,6 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { selfBaseUrl } from "../../util/self";
 import { tempFilePath as tempPath } from "../../util/temp_file";
+import { syncFeishuClients } from "./feishu_clients";
 
 
 const WAITING_TITLE = '正在思考中';
@@ -16,40 +17,9 @@ const ONE_HOUR = 60 * 60 * 1000;
 class FeishuController extends AbstractController {
   async routers(router: any): Promise<void> {
     try {
-      // Use more specific type instead of 'any' for better type safety
-      const feishuConnectors = Cache.connectors.filter(({provider}) => provider === "feishu");
-
-      // Process connectors in parallel for better performance
-      await Promise.all(feishuConnectors.map(async (connector) => {
-        const {name, config: {appId, appSecret, encryptKey}} = connector;
-
-        console.log(`Feishu bot [${name}] connected...`);
-        const baseConfig = {
-          appId: process.env.FEISHU_APP_ID || appId,
-          appSecret: process.env.FEISHU_APP_SECRET || appSecret
-        };
-        const wsClient = new lark.WSClient(baseConfig);
-        const client = new lark.Client(baseConfig);
-
-        const params: Record<string, string> = encryptKey ? {encryptKey} : {};
-
-        // Create event dispatcher with proper error handling
-        const eventDispatcher = new lark.EventDispatcher({}).register({
-          'im.message.receive_v1': async (data) => {
-            try {
-              await receive(client, data, name);
-            } catch (error: any) {
-              console.error(`Error processing message for ${name}:`, error?.message, error?.response?.status);
-            }
-          },
-        });
-
-        wsClient.start({eventDispatcher});
-      }));
-
+      await syncFeishuClients(Cache.connectors.filter(({provider}) => provider === "feishu"));
     } catch (error: any) {
       console.error('Error in FeishuController routers:', error?.message, error?.response?.status);
-      throw error; // Re-throw to allow proper error handling upstream
     }
   }
 }
@@ -391,7 +361,7 @@ const updateCard = async (client: lark.Client, messageId: string, title: string,
   }
 };
 
-const receive = (client: lark.Client, data: any, connectorName: string): void => {
+export const receive = (client: lark.Client, data: any, connectorName: string): void => {
   const open_id = data.sender.sender_id.open_id;
   const jContent = JSON.parse(data.message.content);
   sendCard(client, open_id, WAITING_TITLE, "……").then(async res => {

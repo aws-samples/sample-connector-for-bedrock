@@ -11,7 +11,7 @@ let tmp: string;
 let server: ReturnType<Koa['listen']>;
 let port: number;
 
-beforeAll(() => {
+beforeAll(async () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mgr-static-'));
     const staticDir = path.join(tmp, 'frontend');
     fs.mkdirSync(path.join(staticDir, 'assets'), { recursive: true });
@@ -26,11 +26,13 @@ beforeAll(() => {
         ctx.status = 200;
         ctx.body = 'NEXT';
     });
-    server = app.listen(0);
+    server = app.listen(0, '127.0.0.1');
+    await new Promise<void>((resolve) => server.once('listening', () => resolve()));
     port = (server.address() as AddressInfo).port;
 });
-afterAll(() => {
-    server.close();
+afterAll(async () => {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
     fs.rmSync(tmp, { recursive: true, force: true });
 });
 

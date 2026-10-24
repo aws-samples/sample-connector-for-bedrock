@@ -2,13 +2,8 @@
 import { AzureOpenAI as OpenAI } from 'openai';
 import { ChatRequest, ResponseData } from "../entity/chat_request"
 import AbstractProvider from "./abstract_provider";
+import { pipeOpenAIStream } from "./openai_stream";
 // import helper from '../util/helper';
-
-
-interface ExtendedDelta {
-  content?: string;
-  reasoning_content?: string;
-}
 
 export default class AzureOpenAI extends AbstractProvider {
 
@@ -56,6 +51,10 @@ export default class AzureOpenAI extends AbstractProvider {
   }
 
   async chatStream(ctx: any, chatRequest: ChatRequest, session_id: string) {
+    // The upstream is asked for usage so the call can be billed, unless the model config turns that off for an
+    // API version that rejects stream_options.
+    const streamUsage = this.modelData.config?.streamUsage !== false;
+
     const chatResponse = await this.client.chat.completions.create({
       model: chatRequest.model_id,
       messages: JSON.parse(JSON.stringify(chatRequest.messages)),
@@ -65,39 +64,24 @@ export default class AzureOpenAI extends AbstractProvider {
       max_completion_tokens: chatRequest.max_tokens,
       tools: chatRequest.tools,
       tool_choice: chatRequest.tool_choice,
-      stream: true
+      stream: true,
+      ...(streamUsage && { stream_options: { include_usage: true } })
     });
 
-
-    let responseText = "";
-    // let i = 0;
-    for await (const part of chatResponse) {
-      // console.log(JSON.stringify(part));
-      const reasoning_content = (part.choices[0]?.delta as ExtendedDelta)?.reasoning_content || '';
-      // process.stdout.write(reasoning_content);
-      responseText += reasoning_content;
-      const content = part.choices[0]?.delta?.content || '';
-      responseText += content;
-      // console.log("part", part);
-      // i++;
-      if (part.choices[0]?.finish_reason === "stop") {
-        const {
-          completion_tokens = 0,
-          prompt_tokens = 0
-        } = part.usage ?? {};
-
-        // console.log("response:" + responseText);
-
-        const response: ResponseData = {
-          text: responseText,
-          input_tokens: prompt_tokens,
-          output_tokens: completion_tokens,
-        }
-        await this.saveThread(ctx, session_id, chatRequest, response);
-
-      }
-      ctx.res.write("data: " + JSON.stringify(part) + "\n\n");
+    const { text, usage } = await pipeOpenAIStream(ctx, chatResponse, {
+      forwardUsageChunk: chatRequest.stream_options?.include_usage === true,
+    });
+    // Billed once the stream has ended, whatever its finish reason.
+    if (!usage) {
+      ctx.logger.warn({ message: 'azure-openai stream had no usage, so it is billed as zero tokens', model: this.modelData.name, modelId: chatRequest.model_id });
     }
+    const response: ResponseData = {
+      text,
+      input_tokens: usage?.prompt_tokens ?? 0,
+      output_tokens: usage?.completion_tokens ?? 0,
+    }
+    await this.saveThread(ctx, session_id, chatRequest, response);
+
     ctx.res.write("data: [DONE]\n\n")
     ctx.res.end();
 

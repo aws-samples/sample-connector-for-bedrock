@@ -1,5 +1,75 @@
 # 更新日志
 
+## 0.0.44
+
+**升级提示**
+
+- 升级前请先给数据库做快照：这个版本新增了一个 migration（第 9 条）。`AutoUpdateBRConnector` 为 `true` 的 stack（`ec2` 和 `lambda` 计算形态）会在 UTC 00:00 自动拉取新的 `latest` 镜像。
+- 把 stack 更新到 0.0.44 的 `quick-build-brconnector.yaml` 模板会改变 UserData：`ec2` 实例会停止并重新启动一次；创建时 `KeepEc2` 为 `false` 的 `lambda` 和 `lambda-web` stack 必须重新创建。见[快速部署](deployment.md#template-updates-of-existing-stacks)中的“已有 stack 的模板更新”一节。
+- `lambda-web` stack 现在会在更新 stack 时构建部署包，并在启动时执行 migration（第 2 条），包括从未执行过的 0.0.43 migration，它们会删除已下线 provider 的模型（见 0.0.43）。
+- 备选 ECS 模板在更新时会签发新的管理员密钥，请从 SSM 参数 `/brconnector/admin-key-<stack name>` 读取。不能再直连它的 ALB，请使用 `CloudFrontURL`（第 6 条）。
+- Lambda@Edge 的 ARN 会变化：请把 `LambdaEdgeVersionArn` 设为新的输出（第 6 条）。
+- 图像模型在 config 里设置 `price_per_image` 之前仍然不计费（第 9 条）。
+- bedrock-converse 的提示词缓存 token 现在会计费（第 9 条）。
+- openai-compatible 和 azure-openai 的流式调用现在会发送 `stream_options`。如果上游或所用的 Azure API 版本不接受它，请在模型 config 里设置 `"streamUsage": false`（第 9 条）。
+- Claude Code Web stack：模板更新不会重建后端镜像。要用上第 11 条，请在更新 stack 时修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`），见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations) 中的“已知限制”。
+
+1. **CI** - 现在每个 pull request 都会运行单元测试、构建和模板检查。
+
+2. **lambda-web 更新** - 部署包改由 CodeBuild 构建。更新 stack 时修改 `SourceRepoUrl`、`SourceRef` 或新参数 `WebFnBuildId`，会重新构建部署包，并作为新的 Web Function revision 部署；第一次更新到 0.0.44 模板时也是如此。`SourceRef` 现在也可以是 commit。见 [AutoUpdate](deployment.md#autoupdate)。
+   - 构建失败时，更新失败并指出失败的步骤，正在运行的 revision 保持不变。
+   - 回滚时会重新构建上一个 `SourceRef`，所以在更新完成之前请保留这个 ref。如果回滚也失败，请执行 `aws cloudformation continue-update-rollback --stack-name <stack name> --resources-to-skip WebFnPackage`。
+   - Web Function 现在在启动时自己执行数据库迁移（不再设置 `SKIP_DB_INSTALL`），整个安装过程都在同一个锁内完成。
+
+3. **EC2 启动日志与启动脚本**
+   - stack 的 EC2 实例不再把密钥和密码写进启动日志或控制台输出。新建的 stack 把 BRConnector 的启动命令写在仅 root 可读的 `/root/brconnector-run.sh`（权限 0700），每晚的更新执行 `bash /root/brconnector-run.sh latest`。0.0.44 之前创建的 stack 仍按首次启动时记录的命令更新。
+   - 模板更新之后，已有 ec2 stack 的每晚更新还会把启动日志和生成的密钥文件改为仅 root 可读。
+   - 0.0.44 之前创建的 stack 如果有其他用户能登录实例或读取它的控制台输出，管理员可以轮换 admin key（保存在 SSM 参数 `/brconnector/admin-key-<stack name>`）。见[快速部署](deployment.md#admin-key-before-0-0-44)中的“0.0.44 之前创建的 stack 的 admin key”一节。
+   - `PGPassword` 参数改为 NoEcho。
+
+4. **区域** - `ec2`、`lambda`、`ecs` 现在可以用在 17 个区域：us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。`lambda-web` 只能用在提供 Lambda Web Functions 的区域：us-east-1、us-east-2、us-west-2、ap-northeast-1、eu-west-1（最新列表见 [AWS Capabilities by Region](https://builder.aws.com/build/capabilities)），模板会在其他区域拒绝它。Claude Code Web 需要 AgentCore Runtime，因此不能在 ap-northeast-3 使用。见[快速部署](deployment.md#supported-region)中的“支持的区域”一节。
+
+5. **IAM 角色与安全组**
+   - 辅助 EC2 角色、清理函数角色和 lambda 夜间更新角色只保留各自实际调用所需的权限。已移除宽泛的托管策略：ECR、Lambda、ECS、EC2 的 FullAccess，EC2 只读，CloudWatch Logs FullAccess，以及 CodeBuild 管理员。
+   - 清理函数只能终止本 stack 的实例。
+   - 夜间更新的输出仍然不写入 S3。
+   - ECS 负载均衡器的安全组只在 `ecs` 计算形态下创建。
+
+6. **备选 ECS 模板与 Lambda@Edge**
+   - 备选 ECS 模板的管理员密钥改用密码学随机源生成（32 位）。更新 stack 会签发新密钥，请用 `aws ssm get-parameter --name /brconnector/admin-key-<stack name> --query Parameter.Value --output text` 读取。输出 `AdminApiKey` 改为 `AdminApiKeyParameter`。
+   - 它的 ALB 只允许 CloudFront 访问，并移除了 `LoadBalancerURL` 输出，因此不能再直连 ALB，请使用 `CloudFrontURL`。
+   - Lambda@Edge 函数不再记录请求头，运行时升级到 nodejs24.x。它发布新版本 `v2`，ARN 随之变化：请把 BRConnector stack 的 `LambdaEdgeVersionArn` 参数设为新的 `LambdaEdgeVersionArn` 输出。
+
+7. **图片 URL** - 见 [FAQ](faq.md#image-urls)。
+   - 聊天请求中的图片 URL 由 BRConnector 所在主机直接下载，不经过 `HTTPS_PROXY` 或 `HTTP_PROXY`，并且只从公网地址下载。每次重定向都会重新检查，最多 3 次。响应的内容类型须为 `image/*`，大小不超过 10 MiB，并在 15 秒内下载完成。
+   - 没有直接互联网出口的部署，请以 `data:` URL 向聊天模型发送图片，`data:` URL 不受影响。
+   - 其他 URL，以及过去会发送空图片的不支持协议，现在返回 HTTP 400。
+   - `source` 含 `s3Location` 的内容块返回 HTTP 400，请内联发送内容。
+   - nova-canvas 接受 `http(s)` URL，或指向模型自己的 `s3Bucket` 的 `s3://` URL；被拒绝的图片 URL 返回 HTTP 400。
+
+8. **移除共享密钥接口** - 移除 `/open/get-shared-api-key`，BRClient 入口页不再自动填入密钥，BRClient 用户需自行输入密钥。名为 `__shared-api-key__` 的密钥现在是普通密钥。
+
+9. **计费**
+   - bedrock-converse 现在按模型 config 里的 `price_cache_read` 和 `price_cache_write`（按每 token 计；未设置时按 `price_in`）对提示词缓存的读取和写入计费，并计入记录的输入 token。1 小时缓存写入也按 `price_cache_write` 计。自己创建的 converse 模型如果使用提示词缓存，请设置这两个价格。见 [bedrock-converse](../providers/bedrock-converse.md#billing)。
+   - migration `2026-10-23-converse-cache-prices.sql` 为 `claude-opus-5-5-chat`、`claude-sonnet-5-5-chat`、`claude-haiku-5-5-chat` 预置模型补上缺少的这两个价格：缓存读取为 `price_in` 的 0.05 倍（Opus 和 Sonnet）或 0.1 倍（Haiku），缓存写入为 1.25 倍。管理员已设置的价格保持不变。
+   - openai-compatible 和 azure-openai 的流式调用现在会向上游要求返回 usage，并在流结束后计费一次，不论结束原因。只含 usage 的数据块只转发给要求了它的客户端。上游不接受 `stream_options` 时，可用新的 config 项 `streamUsage: false` 关闭。
+   - bedrock-agent 调用现在按 agent trace 里的 token 用量计费。trace 不会发给客户端，也不写入日志。
+   - 配置 `bedrockModelArn` 的知识库调用现在按问题、回答和回答所引用的检索结果，以每 4 个字符 1 个 token 估算计费；未被引用的检索结果不计入。
+   - painter、nova-canvas 和 azure-openai-image 现在会记录每次图像生成，并按新的 config 项 `price_per_image`（按每张图片计）计费。未设置时价格为 0，请设置它，图像生成才会计费。
+   - 充值金额超过两位小数时返回 HTTP 400，充值在同一事务中记录。
+
+10. **飞书机器人** - 飞书机器人现在每个连接器只保留一个 WebSocket 客户端，配置变更或删除时会关闭旧客户端。
+
+11. **Claude Code Web** - `/ping` 现在上报最近一次真实活动的时间，使 AgentCore 空闲超时能够生效；`serve` 将 SIGTERM 传递给服务进程以便正常关闭。已有 stack 要在更新 stack 时修改 `ClaudeCodeWebImageBuildId` 才会用上（见升级提示）。
+
+12. **文档** - 各计算形态的 AutoUpdate、已有 stack 的更新方法，以及 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#web-search) 中的联网搜索预算示例。
+
+13. **依赖** - nodemailer 10.2.1 [#165](https://github.com/aws-samples/sample-connector-for-bedrock/pull/165)、vite 6.4.5 [#166](https://github.com/aws-samples/sample-connector-for-bedrock/pull/166)。Claude Code Web：source-map-js 1.2.2 [#156](https://github.com/aws-samples/sample-connector-for-bedrock/pull/156)、nanoid 3.3.20 [#157](https://github.com/aws-samples/sample-connector-for-bedrock/pull/157)、postcss 8.5.31 [#158](https://github.com/aws-samples/sample-connector-for-bedrock/pull/158)、react-router 和 react-router-dom 7.18.4 [#159](https://github.com/aws-samples/sample-connector-for-bedrock/pull/159)、baseline-browser-mapping 2.11.31 [#160](https://github.com/aws-samples/sample-connector-for-bedrock/pull/160)、browserslist 4.29.4 [#161](https://github.com/aws-samples/sample-connector-for-bedrock/pull/161)、vite 7.3.7（随之引入 esbuild 0.28）[#162](https://github.com/aws-samples/sample-connector-for-bedrock/pull/162)、aiohttp 3.14.4 [#163](https://github.com/aws-samples/sample-connector-for-bedrock/pull/163)、pyjwt 2.15.0 [#167](https://github.com/aws-samples/sample-connector-for-bedrock/pull/167)。
+
+14. **lambda 计算形态修复**
+   - 新建的 `lambda` stack 无法访问：2025 年 10 月起创建的 function URL 还需要 `lambda:InvokeFunction` 权限。模板现在授予该权限，并限定只能通过 function URL 调用；更新已有的 `lambda` stack 会补上这条权限。
+   - `KeepEc2` 为 `false` 时，辅助实例现在会在安装完成后被终止。
+
 ## 0.0.43
 
 **升级警告** - 升级前请先给数据库做快照：这次升级会删除已下线 provider 的模型（第 4 条），并添加预置模型（第 2 条）。`AutoUpdateBRConnector` 为 `true` 的 stack（`ec2` 和 `lambda` 计算形态）会在 UTC 00:00 自动拉取新的 `latest` 镜像。
