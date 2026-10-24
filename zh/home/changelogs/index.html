@@ -636,6 +636,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0044" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.44
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0043" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1844,6 +1855,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0044" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.44
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0043" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1974,6 +1996,91 @@
 
 
 <h1 id="_1">更新日志<a class="headerlink" href="#_1" title="Permanent link">¶</a></h1>
+<h2 id="0044">0.0.44<a class="headerlink" href="#0044" title="Permanent link">¶</a></h2>
+<p><strong>升级提示</strong></p>
+<ul>
+<li>升级前请先给数据库做快照：这个版本新增了一个 migration（第 9 条）。<code>AutoUpdateBRConnector</code> 为 <code>true</code> 的 stack（<code>ec2</code> 和 <code>lambda</code> 计算形态）会在 UTC 00:00 自动拉取新的 <code>latest</code> 镜像。</li>
+<li>把 stack 更新到 0.0.44 的 <code>quick-build-brconnector.yaml</code> 模板会改变 UserData：<code>ec2</code> 实例会停止并重新启动一次；创建时 <code>KeepEc2</code> 为 <code>false</code> 的 <code>lambda</code> 和 <code>lambda-web</code> stack 必须重新创建。见<a href="../deployment/#template-updates-of-existing-stacks">快速部署</a>中的“已有 stack 的模板更新”一节。</li>
+<li><code>lambda-web</code> stack 现在会在更新 stack 时构建部署包，并在启动时执行 migration（第 2 条），包括从未执行过的 0.0.43 migration，它们会删除已下线 provider 的模型（见 0.0.43）。</li>
+<li>备选 ECS 模板在更新时会签发新的管理员密钥，请从 SSM 参数 <code>/brconnector/admin-key-&lt;stack name&gt;</code> 读取。不能再直连它的 ALB，请使用 <code>CloudFrontURL</code>（第 6 条）。</li>
+<li>Lambda@Edge 的 ARN 会变化：请把 <code>LambdaEdgeVersionArn</code> 设为新的输出（第 6 条）。</li>
+<li>图像模型在 config 里设置 <code>price_per_image</code> 之前仍然不计费（第 9 条）。</li>
+<li>bedrock-converse 的提示词缓存 token 现在会计费（第 9 条）。</li>
+<li>openai-compatible 和 azure-openai 的流式调用现在会发送 <code>stream_options</code>。如果上游或所用的 Azure API 版本不接受它，请在模型 config 里设置 <code>"streamUsage": false</code>（第 9 条）。</li>
+<li>Claude Code Web stack：模板更新不会重建后端镜像。要用上第 11 条，请在更新 stack 时修改 <code>ClaudeCodeWebImageBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>），见 <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Claude Code Web</a> 中的“已知限制”。</li>
+</ul>
+<ol>
+<li>
+<p><strong>CI</strong> - 现在每个 pull request 都会运行单元测试、构建和模板检查。</p>
+</li>
+<li>
+<p><strong>lambda-web 更新</strong> - 部署包改由 CodeBuild 构建。更新 stack 时修改 <code>SourceRepoUrl</code>、<code>SourceRef</code> 或新参数 <code>WebFnBuildId</code>，会重新构建部署包，并作为新的 Web Function revision 部署；第一次更新到 0.0.44 模板时也是如此。<code>SourceRef</code> 现在也可以是 commit。见 <a href="../deployment/#autoupdate">AutoUpdate</a>。<br>
+   - 构建失败时，更新失败并指出失败的步骤，正在运行的 revision 保持不变。<br>
+   - 回滚时会重新构建上一个 <code>SourceRef</code>，所以在更新完成之前请保留这个 ref。如果回滚也失败，请执行 <code>aws cloudformation continue-update-rollback --stack-name &lt;stack name&gt; --resources-to-skip WebFnPackage</code>。<br>
+   - Web Function 现在在启动时自己执行数据库迁移（不再设置 <code>SKIP_DB_INSTALL</code>），整个安装过程都在同一个锁内完成。</p>
+</li>
+<li>
+<p><strong>EC2 启动日志与启动脚本</strong><br>
+   - stack 的 EC2 实例不再把密钥和密码写进启动日志或控制台输出。新建的 stack 把 BRConnector 的启动命令写在仅 root 可读的 <code>/root/brconnector-run.sh</code>（权限 0700），每晚的更新执行 <code>bash /root/brconnector-run.sh latest</code>。0.0.44 之前创建的 stack 仍按首次启动时记录的命令更新。<br>
+   - 模板更新之后，已有 ec2 stack 的每晚更新还会把启动日志和生成的密钥文件改为仅 root 可读。<br>
+   - 0.0.44 之前创建的 stack 如果有其他用户能登录实例或读取它的控制台输出，管理员可以轮换 admin key（保存在 SSM 参数 <code>/brconnector/admin-key-&lt;stack name&gt;</code>）。见<a href="../deployment/#admin-key-before-0-0-44">快速部署</a>中的“0.0.44 之前创建的 stack 的 admin key”一节。<br>
+   - <code>PGPassword</code> 参数改为 NoEcho。</p>
+</li>
+<li>
+<p><strong>区域</strong> - <code>ec2</code>、<code>lambda</code>、<code>ecs</code> 现在可以用在 17 个区域：us-east-1、us-east-2、us-west-1、us-west-2、ca-central-1、sa-east-1、eu-west-1、eu-west-2、eu-west-3、eu-central-1、eu-north-1、ap-northeast-1、ap-northeast-2、ap-northeast-3、ap-southeast-1、ap-southeast-2、ap-south-1。<code>lambda-web</code> 只能用在提供 Lambda Web Functions 的区域：us-east-1、us-east-2、us-west-2、ap-northeast-1、eu-west-1（最新列表见 <a href="https://builder.aws.com/build/capabilities">AWS Capabilities by Region</a>），模板会在其他区域拒绝它。Claude Code Web 需要 AgentCore Runtime，因此不能在 ap-northeast-3 使用。见<a href="../deployment/#supported-region">快速部署</a>中的“支持的区域”一节。</p>
+</li>
+<li>
+<p><strong>IAM 角色与安全组</strong><br>
+   - 辅助 EC2 角色、清理函数角色和 lambda 夜间更新角色只保留各自实际调用所需的权限。已移除宽泛的托管策略：ECR、Lambda、ECS、EC2 的 FullAccess，EC2 只读，CloudWatch Logs FullAccess，以及 CodeBuild 管理员。<br>
+   - 清理函数只能终止本 stack 的实例。<br>
+   - 夜间更新的输出仍然不写入 S3。<br>
+   - ECS 负载均衡器的安全组只在 <code>ecs</code> 计算形态下创建。</p>
+</li>
+<li>
+<p><strong>备选 ECS 模板与 Lambda@Edge</strong><br>
+   - 备选 ECS 模板的管理员密钥改用密码学随机源生成（32 位）。更新 stack 会签发新密钥，请用 <code>aws ssm get-parameter --name /brconnector/admin-key-&lt;stack name&gt; --query Parameter.Value --output text</code> 读取。输出 <code>AdminApiKey</code> 改为 <code>AdminApiKeyParameter</code>。<br>
+   - 它的 ALB 只允许 CloudFront 访问，并移除了 <code>LoadBalancerURL</code> 输出，因此不能再直连 ALB，请使用 <code>CloudFrontURL</code>。<br>
+   - Lambda@Edge 函数不再记录请求头，运行时升级到 nodejs24.x。它发布新版本 <code>v2</code>，ARN 随之变化：请把 BRConnector stack 的 <code>LambdaEdgeVersionArn</code> 参数设为新的 <code>LambdaEdgeVersionArn</code> 输出。</p>
+</li>
+<li>
+<p><strong>图片 URL</strong> - 见 <a href="../faq/#image-urls">FAQ</a>。<br>
+   - 聊天请求中的图片 URL 由 BRConnector 所在主机直接下载，不经过 <code>HTTPS_PROXY</code> 或 <code>HTTP_PROXY</code>，并且只从公网地址下载。每次重定向都会重新检查，最多 3 次。响应的内容类型须为 <code>image/*</code>，大小不超过 10 MiB，并在 15 秒内下载完成。<br>
+   - 没有直接互联网出口的部署，请以 <code>data:</code> URL 向聊天模型发送图片，<code>data:</code> URL 不受影响。<br>
+   - 其他 URL，以及过去会发送空图片的不支持协议，现在返回 HTTP 400。<br>
+   - <code>source</code> 含 <code>s3Location</code> 的内容块返回 HTTP 400，请内联发送内容。<br>
+   - nova-canvas 接受 <code>http(s)</code> URL，或指向模型自己的 <code>s3Bucket</code> 的 <code>s3://</code> URL；被拒绝的图片 URL 返回 HTTP 400。</p>
+</li>
+<li>
+<p><strong>移除共享密钥接口</strong> - 移除 <code>/open/get-shared-api-key</code>，BRClient 入口页不再自动填入密钥，BRClient 用户需自行输入密钥。名为 <code>__shared-api-key__</code> 的密钥现在是普通密钥。</p>
+</li>
+<li>
+<p><strong>计费</strong><br>
+   - bedrock-converse 现在按模型 config 里的 <code>price_cache_read</code> 和 <code>price_cache_write</code>（按每 token 计；未设置时按 <code>price_in</code>）对提示词缓存的读取和写入计费，并计入记录的输入 token。1 小时缓存写入也按 <code>price_cache_write</code> 计。自己创建的 converse 模型如果使用提示词缓存，请设置这两个价格。见 <a href="../../providers/bedrock-converse/#billing">bedrock-converse</a>。<br>
+   - migration <code>2026-10-23-converse-cache-prices.sql</code> 为 <code>claude-opus-5-5-chat</code>、<code>claude-sonnet-5-5-chat</code>、<code>claude-haiku-5-5-chat</code> 预置模型补上缺少的这两个价格：缓存读取为 <code>price_in</code> 的 0.05 倍（Opus 和 Sonnet）或 0.1 倍（Haiku），缓存写入为 1.25 倍。管理员已设置的价格保持不变。<br>
+   - openai-compatible 和 azure-openai 的流式调用现在会向上游要求返回 usage，并在流结束后计费一次，不论结束原因。只含 usage 的数据块只转发给要求了它的客户端。上游不接受 <code>stream_options</code> 时，可用新的 config 项 <code>streamUsage: false</code> 关闭。<br>
+   - bedrock-agent 调用现在按 agent trace 里的 token 用量计费。trace 不会发给客户端，也不写入日志。<br>
+   - 配置 <code>bedrockModelArn</code> 的知识库调用现在按问题、回答和回答所引用的检索结果，以每 4 个字符 1 个 token 估算计费；未被引用的检索结果不计入。<br>
+   - painter、nova-canvas 和 azure-openai-image 现在会记录每次图像生成，并按新的 config 项 <code>price_per_image</code>（按每张图片计）计费。未设置时价格为 0，请设置它，图像生成才会计费。<br>
+   - 充值金额超过两位小数时返回 HTTP 400，充值在同一事务中记录。</p>
+</li>
+<li>
+<p><strong>飞书机器人</strong> - 飞书机器人现在每个连接器只保留一个 WebSocket 客户端，配置变更或删除时会关闭旧客户端。</p>
+</li>
+<li>
+<p><strong>Claude Code Web</strong> - <code>/ping</code> 现在上报最近一次真实活动的时间，使 AgentCore 空闲超时能够生效；<code>serve</code> 将 SIGTERM 传递给服务进程以便正常关闭。已有 stack 要在更新 stack 时修改 <code>ClaudeCodeWebImageBuildId</code> 才会用上（见升级提示）。</p>
+</li>
+<li>
+<p><strong>文档</strong> - 各计算形态的 AutoUpdate、已有 stack 的更新方法，以及 <a href="../../user-manual/scenarios/claude-code-web/#web-search">Claude Code Web</a> 中的联网搜索预算示例。</p>
+</li>
+<li>
+<p><strong>依赖</strong> - nodemailer 10.2.1 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/165">#165</a>、vite 6.4.5 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/166">#166</a>。Claude Code Web：source-map-js 1.2.2 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/156">#156</a>、nanoid 3.3.20 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/157">#157</a>、postcss 8.5.31 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/158">#158</a>、react-router 和 react-router-dom 7.18.4 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/159">#159</a>、baseline-browser-mapping 2.11.31 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/160">#160</a>、browserslist 4.29.4 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/161">#161</a>、vite 7.3.7（随之引入 esbuild 0.28）<a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/162">#162</a>、aiohttp 3.14.4 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/163">#163</a>、pyjwt 2.15.0 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/167">#167</a>。</p>
+</li>
+<li>
+<p><strong>lambda 计算形态修复</strong><br>
+   - 新建的 <code>lambda</code> stack 无法访问：2025 年 10 月起创建的 function URL 还需要 <code>lambda:InvokeFunction</code> 权限。模板现在授予该权限，并限定只能通过 function URL 调用；更新已有的 <code>lambda</code> stack 会补上这条权限。<br>
+   - <code>KeepEc2</code> 为 <code>false</code> 时，辅助实例现在会在安装完成后被终止。</p>
+</li>
+</ol>
 <h2 id="0043">0.0.43<a class="headerlink" href="#0043" title="Permanent link">¶</a></h2>
 <p><strong>升级警告</strong> - 升级前请先给数据库做快照：这次升级会删除已下线 provider 的模型（第 4 条），并添加预置模型（第 2 条）。<code>AutoUpdateBRConnector</code> 为 <code>true</code> 的 stack（<code>ec2</code> 和 <code>lambda</code> 计算形态）会在 UTC 00:00 自动拉取新的 <code>latest</code> 镜像。</p>
 <ol>
@@ -2182,7 +2289,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月22日 15:38:20 CST"><span class="timeago" datetime="2026-10-22T15:38:20+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月22日 15:38:20 CST">2026-10-22</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月23日 15:59:16 CST"><span class="timeago" datetime="2026-10-23T15:59:16+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月23日 15:59:16 CST">2026-10-23</span>
   </span>
 
     

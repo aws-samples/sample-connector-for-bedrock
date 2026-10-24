@@ -1241,6 +1241,17 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
+        计费
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         使用方法
       
     </span>
@@ -1792,6 +1803,17 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
+        计费
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         使用方法
       
     </span>
@@ -1867,6 +1889,13 @@
 <td></td>
 <td>要使用的 Azure OpenAI API 版本（例如：”2023-05-15” 或 “2025-01-01-preview”）</td>
 </tr>
+<tr>
+<td>price_per_image</td>
+<td>number</td>
+<td>否</td>
+<td>0</td>
+<td>每张图片的价格，币种与模型相同。设置后图像生成才会计费，见下文“计费”一节</td>
+</tr>
 </tbody>
 </table>
 <p>配置示例：</p>
@@ -1888,7 +1917,12 @@
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="p">]</span>
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">}</span>
 </code></pre></div>
-<h2 id="_3">使用方法<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
+<h2 id="_3">计费<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
+<ul>
+<li>每个请求按响应 <code>data</code> 里的图片数量，每张按 <code>price_per_image</code> 计费，币种与模型相同。例如 <code>"price_per_image": 0.04</code> 时，返回 2 张图片的响应计 0.08。</li>
+<li><code>price_per_image</code> 按每<strong>张图片</strong>计，不是按 token 计。它缺失、为空、为负数或不是数字时，图片按 0 记录，所以请设置它，图像生成才会计费，例如设为您的部署在所允许的尺寸和质量下的单张价格。</li>
+</ul>
+<h2 id="_4">使用方法<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
 <p>要生成图像，请发送一个包含描述您想要创建的图像的提示的请求。您还可以指定图像大小、质量和风格等参数。</p>
 <p>请求示例：</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>http://localhost:8866/v1/images/generations<span class="w"> </span><span class="se">\</span>
@@ -1923,7 +1957,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年5月18日 14:20:26 CST"><span class="timeago" datetime="2025-05-18T14:20:26+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年5月18日 14:20:26 CST">2025-05-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月23日 13:00:00 CST"><span class="timeago" datetime="2026-10-23T13:00:00+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月23日 13:00:00 CST">2026-10-23</span>
   </span>
 
     

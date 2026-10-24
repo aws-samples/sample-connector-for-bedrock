@@ -1566,6 +1566,17 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
+        计费
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         示例
       
     </span>
@@ -1770,6 +1781,17 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
+        计费
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         示例
       
     </span>
@@ -1841,9 +1863,24 @@
 <td></td>
 <td>第三方的模型名称</td>
 </tr>
+<tr>
+<td>streamUsage</td>
+<td>boolean</td>
+<td>否</td>
+<td>true</td>
+<td>流式调用时向上游要求返回 usage（<code>stream_options.include_usage</code>），用于计费。只有上游不接受 <code>stream_options</code> 时才设为 <code>false</code>。</td>
+</tr>
 </tbody>
 </table>
-<h2 id="_2">示例<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
+<h2 id="_2">计费<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
+<ul>
+<li>非流式调用按响应里的 <code>usage</code> 计费。</li>
+<li>流式调用会向上游发送 <code>stream_options: {"include_usage": true}</code>，除非 <code>streamUsage</code> 设为 <code>false</code>。流结束后按上游最后一次发来的 usage 计费一次，不论结束原因是什么（<code>stop</code>、<code>tool_calls</code>、<code>length</code> 等）。</li>
+<li>只有客户端通过 <code>stream_options.include_usage</code> 要求了，才会把只含 usage 的数据块（<code>choices</code> 为空）转发给客户端。</li>
+<li>如果流结束时没有 usage（例如设置了 <code>streamUsage: false</code>），这次调用按 0 token 记录，并记录一条带模型名称的警告日志。</li>
+<li>输入 token 按 <code>price_in</code> 计，输出 token 按 <code>price_out</code> 计。</li>
+</ul>
+<h2 id="_3">示例<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
 <ul>
 <li><a href="../../user-manual/scenarios/cursor/" title="cursor">cursor</a></li>
 </ul>
@@ -1869,7 +1906,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2025年3月20日 10:18:53 CST"><span class="timeago" datetime="2025-03-20T10:18:53+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2025年3月20日 10:18:53 CST">2025-03-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月23日 10:37:47 CST"><span class="timeago" datetime="2026-10-23T10:37:47+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月23日 10:37:47 CST">2026-10-23</span>
   </span>
 
     

@@ -627,6 +627,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#image-urls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image URLs in Chat Requests
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1831,6 +1842,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#image-urls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image URLs in Chat Requests
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1894,6 +1916,18 @@
 <h2 id="model-wildcard">Model Names That Contain a Slash<a class="headerlink" href="#model-wildcard" title="Permanent link">¶</a></h2>
 <p>Configure one model in BRConnector for each upstream model id you want to offer, and call it by its name. A configured model name may itself contain <code>/</code>, for example <code>team/nova-micro</code>, and is used as it is.</p>
 <p>Since 0.0.43, a model string <code>&lt;name&gt;/&lt;model id&gt;</code> that is not itself a configured model name gets HTTP 400; the part after the slash no longer selects the upstream model id.</p>
+<h2 id="image-urls">Image URLs in Chat Requests<a class="headerlink" href="#image-urls" title="Permanent link">¶</a></h2>
+<p>Chat models, for example <code>bedrock-converse</code>, take an image as a <code>data:</code> URL (<code>data:image/png;base64,...</code>) or as an <code>http(s)</code> URL. <code>bedrock-runtime-anthropic</code> and <code>bedrock-runtime-openai</code> pass the request to Bedrock as sent, so this section does not apply to them.</p>
+<p><code>nova-canvas</code> models take an image as an <code>http(s)</code> URL, or as an <code>s3://</code> URL in the bucket named by the model’s <code>s3Bucket</code> setting. They do not read <code>data:</code> URLs. An <code>s3://</code> URL in any other bucket gets HTTP 400 with <code>s3:// image URLs must point to the model's s3Bucket.</code></p>
+<p>BRConnector downloads an <code>http(s)</code> image itself and accepts the URL only when:</p>
+<ul>
+<li>the host is on a public address, checked again on every redirect; private, loopback, link-local and other reserved ranges are not accepted;</li>
+<li>the image arrives within 15 seconds, after at most 3 redirects;</li>
+<li>the response has an <code>image/*</code> content type and is at most 10 MiB.</li>
+</ul>
+<p>Any other <code>http(s)</code> URL gets HTTP 400 with <code>Image URL is not allowed: use an http(s) URL on a public address.</code> Chat models answer the same for a URL with a scheme other than <code>http</code>, <code>https</code> or <code>data</code>. For chat models, an image on a private network can be sent as a <code>data:</code> URL instead.</p>
+<p>Image URLs are fetched directly from the BRConnector host, not through a proxy: <code>HTTPS_PROXY</code> and <code>HTTP_PROXY</code> are not used for them. On a deployment without direct internet egress, send images to chat models as <code>data:</code> URLs.</p>
+<p>Content blocks sent in Bedrock’s own format, such as <code>image</code>, <code>document</code> and <code>video</code> (also inside <code>toolResult</code>), must carry their content inline. A <code>source</code> with <code>s3Location</code> gets HTTP 400 with <code>s3Location sources are not accepted; send the content inline.</code></p>
 
 
 
@@ -1916,7 +1950,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 22, 2026 15:18:35 CST"><span class="timeago" datetime="2026-10-22T15:18:35+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 22, 2026 15:18:35 CST">2026-10-22</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 23, 2026 10:21:52 CST"><span class="timeago" datetime="2026-10-23T10:21:52+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 23, 2026 10:21:52 CST">2026-10-23</span>
   </span>
 
     

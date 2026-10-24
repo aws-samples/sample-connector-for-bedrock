@@ -634,6 +634,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0044" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.44
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0043" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1842,6 +1853,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0044" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.44
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0043" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1972,6 +1994,91 @@
 
 
 <h1 id="changelogs">Changelogs<a class="headerlink" href="#changelogs" title="Permanent link">¶</a></h1>
+<h2 id="0044">0.0.44<a class="headerlink" href="#0044" title="Permanent link">¶</a></h2>
+<p><strong>Upgrade notes</strong></p>
+<ul>
+<li>Take a database snapshot before you upgrade: this release adds a migration (item 9). Stacks with <code>AutoUpdateBRConnector</code> set to <code>true</code> (<code>ec2</code> and <code>lambda</code> compute types) pick up the new <code>latest</code> image automatically at 00:00 UTC.</li>
+<li>Updating a stack to the 0.0.44 <code>quick-build-brconnector.yaml</code> template changes the UserData: an <code>ec2</code> instance is stopped and started once, and <code>lambda</code> and <code>lambda-web</code> stacks created with <code>KeepEc2</code> set to <code>false</code> must be recreated. See <a href="../deployment/#template-updates-of-existing-stacks">Template updates of existing stacks</a>.</li>
+<li><code>lambda-web</code> stacks now build the deployment package on a stack update and run the migrations at start-up (item 2), including the 0.0.43 migrations if they were never applied, which delete the models of retired providers (see 0.0.43).</li>
+<li>The alternative ECS template issues a new admin key on update; read it from the SSM parameter <code>/brconnector/admin-key-&lt;stack name&gt;</code>. Direct access to its ALB stops; use <code>CloudFrontURL</code> (item 6).</li>
+<li>The Lambda@Edge ARN changes: set <code>LambdaEdgeVersionArn</code> to the new output (item 6).</li>
+<li>Image models stay unbilled until <code>price_per_image</code> is set in their config (item 9).</li>
+<li>bedrock-converse prompt-cache tokens are now billed (item 9).</li>
+<li>openai-compatible and azure-openai streams now send <code>stream_options</code>. If your upstream or Azure API version rejects it, set <code>"streamUsage": false</code> in the model config (item 9).</li>
+<li>Claude Code Web stacks: the template update does not rebuild the backend image. To get item 11, change <code>ClaudeCodeWebImageBuildId</code> (for example from <code>1</code> to <code>2</code>) in the stack update; see <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Known limitations</a>.</li>
+</ul>
+<ol>
+<li>
+<p><strong>CI</strong> - Unit tests, the build and the template checks now run on every pull request.</p>
+</li>
+<li>
+<p><strong>lambda-web Updates</strong> - The deployment package is now built by CodeBuild. A stack update that changes <code>SourceRepoUrl</code>, <code>SourceRef</code> or the new <code>WebFnBuildId</code> parameter rebuilds it and deploys it as a new Web Function revision, and so does the first update to the 0.0.44 template. <code>SourceRef</code> may now be a commit. See <a href="../deployment/#autoupdate">AutoUpdate</a>.<br>
+   - A failed build fails the update, names the failing step and leaves the running revision in place.<br>
+   - The rollback builds the previous <code>SourceRef</code> again, so keep that ref available until the update completes. If the rollback fails too, run <code>aws cloudformation continue-update-rollback --stack-name &lt;stack name&gt; --resources-to-skip WebFnPackage</code>.<br>
+   - The Web Function now applies the database migrations at start-up (<code>SKIP_DB_INSTALL</code> is no longer set), under one lock that covers the whole install.</p>
+</li>
+<li>
+<p><strong>EC2 Boot Log and Run Script</strong><br>
+   - The stack’s EC2 instance no longer writes keys or passwords to its boot log or console. New stacks write the BRConnector start command to the root-only <code>/root/brconnector-run.sh</code> (mode 0700), and the nightly update runs <code>bash /root/brconnector-run.sh latest</code>. Stacks created before 0.0.44 keep updating from the command recorded at first boot.<br>
+   - After the template update, the nightly update on existing ec2 stacks also makes the boot log and the generated key files readable by root only.<br>
+   - Admins of stacks created before 0.0.44 may rotate the admin key, stored in the SSM parameter <code>/brconnector/admin-key-&lt;stack name&gt;</code>, if other users can log in to the instance or read its console output. See <a href="../deployment/#admin-key-before-0-0-44">Admin key on stacks created before 0.0.44</a>.<br>
+   - The <code>PGPassword</code> parameter is now NoEcho.</p>
+</li>
+<li>
+<p><strong>Regions</strong> - <code>ec2</code>, <code>lambda</code> and <code>ecs</code> now work in 17 Regions: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2, ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1. <code>lambda-web</code> works only where Lambda Web Functions are available: us-east-1, us-east-2, us-west-2, ap-northeast-1 and eu-west-1 (see <a href="https://builder.aws.com/build/capabilities">AWS Capabilities by Region</a> for the current list), and the template refuses it elsewhere. Claude Code Web needs AgentCore Runtime, so it is not available in ap-northeast-3. See <a href="../deployment/#supported-region">Supported Region</a>.</p>
+</li>
+<li>
+<p><strong>IAM Roles and Security Groups</strong><br>
+   - The helper EC2 role, the cleanup function’s role and the nightly lambda update role now grant only the calls they make. The broad managed policies are removed: ECR, Lambda, ECS and EC2 full access, EC2 read-only, CloudWatch Logs full access and CodeBuild admin.<br>
+   - The cleanup function can terminate only this stack’s instances.<br>
+   - The nightly update output is still not written to S3.<br>
+   - The ECS load-balancer security group is created only for the <code>ecs</code> compute type.</p>
+</li>
+<li>
+<p><strong>Alternative ECS Template and Lambda@Edge</strong><br>
+   - The alternative ECS template generates its admin key from a cryptographic random source (32 characters). A stack update issues a new key; read it with <code>aws ssm get-parameter --name /brconnector/admin-key-&lt;stack name&gt; --query Parameter.Value --output text</code>. The <code>AdminApiKey</code> output is replaced by <code>AdminApiKeyParameter</code>.<br>
+   - Its ALB admits only CloudFront, and the <code>LoadBalancerURL</code> output is removed, so direct ALB access stops; use <code>CloudFrontURL</code>.<br>
+   - The Lambda@Edge function no longer logs request headers and runs on nodejs24.x. It publishes version <code>v2</code> with a new ARN: set <code>LambdaEdgeVersionArn</code> of your BRConnector stack to the new <code>LambdaEdgeVersionArn</code> output.</p>
+</li>
+<li>
+<p><strong>Image URLs</strong> - See the <a href="../faq/#image-urls">FAQ</a>.<br>
+   - Image URLs in chat requests are fetched directly from the BRConnector host, not through <code>HTTPS_PROXY</code> or <code>HTTP_PROXY</code>, and only from public addresses. Every redirect is checked again, at most 3. The response must be <code>image/*</code>, at most 10 MiB, and arrive within 15 seconds.<br>
+   - Deployments without direct internet egress should send images to chat models as <code>data:</code> URLs, which work as before.<br>
+   - Other URLs, and unsupported schemes that used to send an empty image, now get HTTP 400.<br>
+   - Content blocks whose <code>source</code> has <code>s3Location</code> get HTTP 400; send the content inline.<br>
+   - nova-canvas takes <code>http(s)</code> URLs, or <code>s3://</code> URLs in the model’s own <code>s3Bucket</code>, and answers a rejected image URL with HTTP 400.</p>
+</li>
+<li>
+<p><strong>Shared-key Endpoint Removed</strong> - <code>/open/get-shared-api-key</code> is removed, so the BRClient portal no longer fills in a key: BRClient users enter their own key. A key named <code>__shared-api-key__</code> is now an ordinary key.</p>
+</li>
+<li>
+<p><strong>Billing</strong><br>
+   - bedrock-converse now bills prompt-cache reads and writes at <code>price_cache_read</code> and <code>price_cache_write</code> from the model config (per token; <code>price_in</code> when unset), and counts them in the recorded input tokens. 1-hour cache writes bill at <code>price_cache_write</code>. Set both prices on your own converse models that use prompt caching. See <a href="../../providers/bedrock-converse/#billing">bedrock-converse</a>.<br>
+   - The migration <code>2026-10-23-converse-cache-prices.sql</code> fills in the two prices on the <code>claude-opus-5-5-chat</code>, <code>claude-sonnet-5-5-chat</code> and <code>claude-haiku-5-5-chat</code> presets where they are absent: a cache read at 0.05 of <code>price_in</code> for Opus and Sonnet and 0.1 for Haiku, a cache write at 1.25 of it. A price an admin has set is kept.<br>
+   - openai-compatible and azure-openai streams now ask the upstream for usage and are billed once the stream ends, whatever the finish reason. The usage-only chunk reaches only clients that asked for it. The new config key <code>streamUsage: false</code> turns this off for an upstream that rejects <code>stream_options</code>.<br>
+   - bedrock-agent calls are now billed from the token usage in the agent’s trace. The trace is not sent to clients or logged.<br>
+   - Knowledge-base calls with <code>bedrockModelArn</code> are now billed from an estimate of 4 characters per token over the question, the answer and the references cited in the answer; references that are not cited are not counted.<br>
+   - painter, nova-canvas and azure-openai-image now record each image generation and bill it at the new config key <code>price_per_image</code> (per image). When it is unset the price is 0, so set it to bill image generation.<br>
+   - A recharge amount with more than 2 decimals gets HTTP 400, and a recharge is recorded in one transaction.</p>
+</li>
+<li>
+<p><strong>Feishu Bots</strong> - Feishu bots now keep a single WebSocket client per connector and close replaced or removed ones.</p>
+</li>
+<li>
+<p><strong>Claude Code Web</strong> - <code>/ping</code> now reports the time of the last real activity, so the AgentCore idle timeout can fire, and <code>serve</code> delivers SIGTERM to the server for a clean shutdown. Existing stacks get this once a stack update changes <code>ClaudeCodeWebImageBuildId</code> (see the upgrade notes).</p>
+</li>
+<li>
+<p><strong>Docs</strong> - AutoUpdate per compute type, how to update existing stacks, and a web search budget example in <a href="../../user-manual/scenarios/claude-code-web/#web-search">Claude Code Web</a>.</p>
+</li>
+<li>
+<p><strong>Dependencies</strong> - nodemailer 10.2.1 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/165">#165</a> and vite 6.4.5 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/166">#166</a>. Claude Code Web: source-map-js 1.2.2 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/156">#156</a>, nanoid 3.3.20 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/157">#157</a>, postcss 8.5.31 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/158">#158</a>, react-router and react-router-dom 7.18.4 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/159">#159</a>, baseline-browser-mapping 2.11.31 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/160">#160</a>, browserslist 4.29.4 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/161">#161</a>, vite 7.3.7 with esbuild 0.28 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/162">#162</a>, aiohttp 3.14.4 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/163">#163</a> and pyjwt 2.15.0 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/pull/167">#167</a>.</p>
+</li>
+<li>
+<p><strong>lambda Compute Type Fixes</strong><br>
+   - New <code>lambda</code> stacks could not be reached: function URLs created since October 2025 also need the <code>lambda:InvokeFunction</code> permission. The template now grants it, limited to calls through the function URL, and updating an existing <code>lambda</code> stack adds the permission.<br>
+   - With <code>KeepEc2</code> set to <code>false</code>, the helper instance is now terminated after setup.</p>
+</li>
+</ol>
 <h2 id="0043">0.0.43<a class="headerlink" href="#0043" title="Permanent link">¶</a></h2>
 <p><strong>Upgrade warning</strong> - Take a database snapshot before you upgrade: the upgrade deletes the models of the retired providers (item 4) and adds preset models (item 2). Stacks with <code>AutoUpdateBRConnector</code> set to <code>true</code> (<code>ec2</code> and <code>lambda</code> compute types) pick up the new <code>latest</code> image automatically at 00:00 UTC.</p>
 <ol>
@@ -2180,7 +2287,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 22, 2026 15:38:20 CST"><span class="timeago" datetime="2026-10-22T15:38:20+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 22, 2026 15:38:20 CST">2026-10-22</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 23, 2026 15:59:16 CST"><span class="timeago" datetime="2026-10-23T15:59:16+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 23, 2026 15:59:16 CST">2026-10-23</span>
   </span>
 
     
