@@ -60,7 +60,7 @@
 
 10. **飞书机器人** - 飞书机器人现在每个连接器只保留一个 WebSocket 客户端，配置变更或删除时会关闭旧客户端。
 
-11. **Claude Code Web** - `/ping` 现在上报最近一次真实活动的时间，使 AgentCore 空闲超时能够生效；`serve` 将 SIGTERM 传递给服务进程以便正常关闭。已有 stack 要在更新 stack 时修改 `ClaudeCodeWebImageBuildId` 才会用上（见升级提示）。
+11. **Claude Code Web** - `/ping` 现在上报最近一次真实活动的时间，使 AgentCore 空闲超时能够生效；`serve` 将 SIGTERM 传递给服务进程以便正常关闭。对话 agent 改用 Claude Code 2.1.310（claude-agent-sdk 0.2.174，原为 2.1.1）：`/mcp`、`/cost` 等命令会执行并显示输出，不再和下一条消息合并；新会话不再发三次 Warmup 调用；对话里显示的费用与 BRConnector 实际计费一致。恢复一个没有会话记录的 session id 时返回 404，不再是 500 [#169](https://github.com/aws-samples/sample-connector-for-bedrock/pull/169)。已有 stack 要在更新 stack 时修改 `ClaudeCodeWebImageBuildId` 才会用上（见升级提示）。
 
 12. **文档** - 各计算形态的 AutoUpdate、已有 stack 的更新方法，以及 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#web-search) 中的联网搜索预算示例。
 

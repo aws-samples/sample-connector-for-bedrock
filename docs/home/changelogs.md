@@ -60,7 +60,7 @@
 
 10. **Feishu Bots** - Feishu bots now keep a single WebSocket client per connector and close replaced or removed ones.
 
-11. **Claude Code Web** - `/ping` now reports the time of the last real activity, so the AgentCore idle timeout can fire, and `serve` delivers SIGTERM to the server for a clean shutdown. Existing stacks get this once a stack update changes `ClaudeCodeWebImageBuildId` (see the upgrade notes).
+11. **Claude Code Web** - `/ping` now reports the time of the last real activity, so the AgentCore idle timeout can fire, and `serve` delivers SIGTERM to the server for a clean shutdown. The chat agent now runs Claude Code 2.1.310 (claude-agent-sdk 0.2.174, was 2.1.1): commands such as `/mcp` and `/cost` run and show their output instead of being merged into the next message, new sessions no longer make three Warmup calls, and the cost shown in the chat matches the BRConnector bill. Resuming a session id that has no transcript returns 404 instead of 500 [#169](https://github.com/aws-samples/sample-connector-for-bedrock/pull/169). Existing stacks get this once a stack update changes `ClaudeCodeWebImageBuildId` (see the upgrade notes).
 
 12. **Docs** - AutoUpdate per compute type, how to update existing stacks, and a web search budget example in [Claude Code Web](../user-manual/scenarios/claude-code-web.md#web-search).
 
