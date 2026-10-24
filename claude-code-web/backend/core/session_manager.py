@@ -36,6 +36,9 @@ SYSTEM_MESSAGE_PATTERNS = [
 # Compiled regex for performance
 SYSTEM_MESSAGE_REGEX = re.compile("|".join(SYSTEM_MESSAGE_PATTERNS))
 
+# A Claude Code session id as used in transcript file names (no path separators or dots)
+SESSION_ID_REGEX = re.compile(r"[A-Za-z0-9_-]+")
+
 
 def _is_system_message(content: str) -> bool:
     """Check if a message content is a system message that should be filtered."""
@@ -199,6 +202,16 @@ class SessionManager:
         model_lower = model.lower()
         return "anthropic" in model_lower or "claude" in model_lower
 
+    def _find_session_file(self, session_id: str) -> Optional[Path]:
+        """The transcript ~/.claude/projects/<project>/<session_id>.jsonl, or None (also for ids that are not plain names)."""
+        if not SESSION_ID_REGEX.fullmatch(session_id) or not self.session_dir.exists():
+            return None
+        for project_dir in self.session_dir.iterdir():
+            candidate = project_dir / f"{session_id}.jsonl"
+            if project_dir.is_dir() and candidate.is_file():
+                return candidate
+        return None
+
     async def create_session(
         self,
         user_id: Optional[str] = None,
@@ -230,6 +243,10 @@ class SessionManager:
 
         if session_id in self.sessions:
             raise HTTPException(status_code=400, detail="Session already active")
+
+        # The bundled CLI exits when --resume names no transcript; answer 404 instead of a 500
+        if resume_session_id and not self._find_session_file(resume_session_id):
+            raise HTTPException(status_code=404, detail="Session not found")
 
         # Auto-detect if proxy is needed based on model names
         auto_enable_proxy = (

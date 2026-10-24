@@ -73,6 +73,9 @@ directory must be listed here.
   BRConnector's bill. The SDK now warns (`CanUseToolShadowedWarning`) that whole-tool `allowed_tools` entries are
   approved before `can_use_tool` runs; the default `ALLOWED_TOOLS` and `AUTO_ALLOW_TOOLS` lists allow the same tools,
   so the default behaviour is unchanged.
+- `backend/core/session_manager.py`: `create_session` answers HTTP 404 `Session not found` when `resume_session_id`
+  has no transcript under `~/.claude/projects/*/` (or is not a plain name), before the CLI starts. CLI 2.1.310 exits on
+  an unknown `--resume` id, which surfaced as a 500. Tests: `backend/tests/test_resume_unknown_session.py`.
 - `Dockerfile` user: reuses the node image's `node` user (UID 1000) instead of
   creating `cc`; `HOME=/home/node`; `/app`, `/workspace` and `/opt/uv-python` are
   owned by it, and `USER node` applies to the build `uv sync --frozen --no-dev`
