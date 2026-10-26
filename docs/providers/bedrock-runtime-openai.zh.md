@@ -80,6 +80,19 @@ GLM 5.3。只对符合条件的账号开放，请联系你的 AWS 账户团队�
 }
 ```
 
+GPT-6 Sol。提示词价格（Price-In）填 `2`，输出价格（Price-Out）填 `10`（即每 token `0.000002` 和 `0.00001`）。这与下面的预置模型 `gpt-6-sol` 一致，BRConnector 已经预置了这个模型。
+
+```json
+{
+  "modelId": "global.openai.gpt-6-sol",
+  "regions": ["us-east-1", "us-west-2"],
+  "price_cache_read": 0.0000002,
+  "price_cache_write": 0.0000025
+}
+```
+
+> **GPT 推理模型与 tools。** 请求里带有函数 `tools` 时，除非请求设置了 `"reasoning_effort": "none"`，否则 Bedrock 会在 `/v1/chat/completions` 上拒绝 GPT 推理模型。返回的 HTTP 400 错误信息里写着 `use /v1/responses or set reasoning_effort to 'none'`。这个 provider 原样透传请求体，所以这个字段要由客户端发送。总是带 tools 的 agent 工具（例如 opencode）需要设置它；在 opencode 里是模型选项 `reasoningEffort: "none"`。`gpt-6.1-sol` 不接受 `none`（只接受 `low`、`medium`、`high`、`xhigh` 和 `max`），所以无法通过这个 provider 配合 tools 使用，而 BRConnector 没有 `/v1/responses`。以上于 2026-10-26 对 Bedrock 实测确认。
+
 ## 预置模型
 
 BRConnector 会在这个 provider 上创建下面这些模型（`src/scripts/migrations/2026-10-20-preset-models.sql`）：新数据库安装时创建，已有数据库在升级时补上。新加入的模型会绑定到 group 1（如果该 group 存在）；同名模型已存在时保持不变。价格是 us-east-1 按需价格，单位是每 100 万 token。In-Region 的 model id 必须在 BRConnector 调用的 Region 里可用。
