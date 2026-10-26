@@ -80,6 +80,19 @@ GLM 5.3. It is available only to eligible accounts; ask your AWS account team.
 }
 ```
 
+GPT-6 Sol. Set `Price-In` to `2` and `Price-Out` to `10` (that is `0.000002` and `0.00001` per token). These match the `gpt-6-sol` preset model below, which BRConnector already creates.
+
+```json
+{
+  "modelId": "global.openai.gpt-6-sol",
+  "regions": ["us-east-1", "us-west-2"],
+  "price_cache_read": 0.0000002,
+  "price_cache_write": 0.0000025
+}
+```
+
+> **GPT reasoning models with tools.** When a request includes function `tools`, Bedrock rejects GPT reasoning models on `/v1/chat/completions` unless the request sets `"reasoning_effort": "none"`. The HTTP 400 message says `use /v1/responses or set reasoning_effort to 'none'`. This provider passes the request body through unchanged, so the client has to send this field. Agent tools that always send tools, such as opencode, need it; in opencode it is the model option `reasoningEffort: "none"`. `gpt-6.1-sol` does not accept `none` (only `low`, `medium`, `high`, `xhigh` and `max`), so it cannot be used with tools through this provider, and BRConnector has no `/v1/responses`. Checked against Bedrock on 2026-10-26.
+
 ## Preset models
 
 BRConnector creates these models on this provider (`src/scripts/migrations/2026-10-20-preset-models.sql`) on a new database, and adds them to an existing database on upgrade. Each model it adds is bound to group 1 if that group exists; a model whose name already exists is left unchanged. Prices are us-east-1 on-demand prices per 1 million tokens. The in-Region model ids must be available in the Region BRConnector calls.
