@@ -32,8 +32,6 @@ theme:
   features:
     - navigation.indexes
     - navigation.top
-    - navigation.tabs
-    - navigation.tabs.sticky
     # - navigation.sections
     - navigation.expand # auto expand folder in navi
     - search.suggest
