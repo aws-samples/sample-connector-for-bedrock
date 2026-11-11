@@ -132,6 +132,8 @@ The code sets `output_format`, never the chat model: `png` for `remove_backgroun
 
 Tool descriptions tell the chat model what each capability is for, because the choice is entirely the chat model's.
 
+One chat answer can hold several tool calls, for example two pictures in different colors. Each one is a step. The `bedrock-converse` provider used to keep only the last tool call of a non-stream answer; it now keeps every one, in order, so no requested step is dropped.
+
 ### Regions
 
 ```
@@ -165,7 +167,7 @@ Every picture that a step makes is billed at the price of the model of that step
 
 ### Keeping the stream alive
 
-CloudFront closes an origin connection that sends nothing for 30 seconds, its default origin read timeout, and one Stability call often takes 10 to 40 seconds. While painter waits for the chat model or for Bedrock, it writes an SSE comment line every 15 seconds. SSE clients ignore comment lines, so the user sees nothing. A code-side keep-alive reaches every deployed stack with the next image update. A change to the CloudFormation timeout would reach only new or updated stacks.
+CloudFront closes an origin connection that sends nothing for 30 seconds, its default origin read timeout, and one Stability call often takes 10 to 40 seconds. While painter waits for the chat model or for Bedrock, it writes a chunk with empty content every 15 seconds. The chunk is an ordinary `data:` line, so clients that parse every data line as JSON accept it, and the user sees nothing. An SSE comment line would also keep the connection open, but BRClient's parser passes comment lines to its JSON parser and logs an error for each one. A code-side keep-alive reaches every deployed stack with the next image update. A change to the CloudFormation timeout would reach only new or updated stacks.
 
 ### What the user sees when something goes wrong
 
@@ -187,7 +189,6 @@ A failed step ends the request. Pictures made by earlier steps were already stre
 - A wrong tool choice is hard to see. Each step line names the capability, the model and the input pictures so the user can tell.
 - Non-stream clients cannot draw.
 - On the `lambda` compute type the function stops after 60 seconds, which a chain of two or three steps can reach. Each picture is billed when it is made, so a request cut short still bills what it streamed. The `ec2`, `ecs` and `lambda-web` types allow longer requests.
-- Some chat providers return only the last of several parallel tool calls in one answer. Painter then runs one step per answer, which costs more chat calls but no extra pictures.
 - When the host is outside us-east-1, us-east-2 and us-west-2, pictures and prompts are sent to us-west-2. The `us.` inference profiles can also route a call to another of the three US Regions.
 
 ## Implementation decisions

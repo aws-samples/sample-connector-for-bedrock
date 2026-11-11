@@ -23,6 +23,7 @@
    - **Breaking:** a config with no price is now billed at the built-in list prices, not at 0. A config with `price_per_image` keeps that one price for every capability until `image_prices` is set.
    - **Breaking:** presigned picture URLs now last up to 4 hours instead of 1. A URL signed with temporary credentials stops working when the credentials expire, so older pictures can stop loading sooner.
    - Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. BRConnector sets no lifecycle rule, so pictures stay until you delete them.
+   - **Fix:** a non-stream answer from a `bedrock-converse` model now keeps every tool call, in order. It kept only the last one before.
 
 ## 0.0.44
 
