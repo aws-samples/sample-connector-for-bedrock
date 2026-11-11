@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import Painter from '../src/providers/painter';
+import BedrockConverse from '../src/providers/bedrock_converse';
 import { ADD_KEY_FEE_SQL } from '../src/providers/key_fee';
 import { S3PictureStore } from '../src/providers/painter_pictures';
 import logger from '../src/util/logger';
@@ -402,6 +403,35 @@ describe('painter steps', () => {
         expect(text).toBe('Hello there.');
         expect(aws.invoked).toEqual([]);
         expect(charges(ctx)).toEqual([]);
+    });
+});
+
+describe('painter behind the bedrock-converse chat provider', () => {
+    it('makes both pictures when one converse answer holds two tool calls', async () => {
+        const converter = new BedrockConverse();
+        const prompts = ['red lighthouse', 'blue lighthouse'];
+        let asked = 0;
+        vi.stubGlobal('fetch', vi.fn(async (_url: string, init: any) => {
+            asked += 1;
+            if (asked > 1) return new Response(JSON.stringify({ choices: [{ message: { content: 'Both are ready.' } }] }), { status: 200 });
+            const body = converter.chatSyncBody({
+                output: { message: { role: 'assistant', content: [
+                    { text: 'Drawing both.' },
+                    ...prompts.map((prompt, i) => ({ toolUse: { toolUseId: `tool-${i}`, name: 'txt2img', input: { prompt } } })),
+                ] } },
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+                $metadata: { requestId: 'req-1' },
+            } as any, JSON.parse(init.body));
+            return new Response(JSON.stringify(body), { status: 200 });
+        }));
+        const aws = stubAws();
+        const { text, ctx } = await paint([{ role: 'user', content: 'a red lighthouse and a blue lighthouse' }]);
+
+        expect(aws.invoked.map((call) => call.body.prompt)).toEqual(prompts);
+        expect(text).toContain('![image_1](');
+        expect(text).toContain('![image_2](');
+        expect(text).toContain('Both are ready.');
+        expect(charges(ctx)).toHaveLength(2);
     });
 });
 
