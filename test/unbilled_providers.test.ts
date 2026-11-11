@@ -6,7 +6,6 @@ import { BedrockRuntimeClient, ConverseStreamCommand, InvokeModelCommand } from 
 import { S3Client } from '@aws-sdk/client-s3';
 import BedrockAgent, { agentTraceUsage } from '../src/providers/bedrock_agent';
 import BedrockKnowledgeBase from '../src/providers/bedrock_knowledge_base';
-import NovaCanvas from '../src/providers/nova_canvas';
 import Painter from '../src/providers/painter';
 import AzureOpenAIImage from '../src/providers/azure_openai_image';
 import { legacyFee } from '../src/providers/legacy_fee';
@@ -214,26 +213,6 @@ const paintConfig = (paintModelId: string, extra: any = {}) => ({
     paintModelId, localLlmModel: 'claude-haiku-5-5-chat', s3Bucket: 'images-bucket', s3Region: 'us-east-1', s3Prefix: 'out', regions: ['us-east-1'], ...extra,
 });
 const userRequest = (stream: boolean) => ({ model: 'paint', stream, currency: 'USD', messages: [{ role: 'user', content: 'two cats' }] });
-
-describe('nova-canvas', () => {
-    it.each([true, false])('bills nova-canvas per image (stream %s)', async (stream) => {
-        const fetchMock = stubPromptCall('txt2img', { prompt: 'two cats', width: 512, height: 512, quantity: 2 });
-        const { sent, uploads } = stubImageModel(['aGk=', 'aGk=']);
-        const ctx = fakeCtx();
-        await provider(NovaCanvas, model('nova-canvas', paintConfig('amazon.nova-canvas-v1:0', { price_per_image: 0.04 }), { price_in: 0, price_out: 0 }))
-            .chat(userRequest(stream), 's-1', ctx);
-
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(sent[0].imageGenerationConfig.numberOfImages).toBe(2);
-        expect(uploads).toHaveBeenCalledTimes(2);
-        expect(charged(ctx)).toBeCloseTo(0.08, 10);
-        expect(thread(ctx)).toMatchObject({ tokens_in: 0, tokens_out: 0, session_key: 's-1', prompt: JSON.stringify('two cats') });
-        expect(thread(ctx).fee).toBeCloseTo(0.08, 10);
-        if (!stream) {
-            expect(ctx.body.images).toHaveLength(2);
-        }
-    });
-});
 
 describe('azure-openai-image', () => {
     const azureConfig = (extra: any = {}) => ({ baseURL: 'https://example.openai.azure.com/openai/deployments/img', apiKey: 'k', apiVersion: '2025-01-01-preview', model: 'gpt-image-1', ...extra });

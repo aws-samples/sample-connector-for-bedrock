@@ -126,7 +126,7 @@ describe('provider registry', () => {
     it('keeps the registered provider names and their order', () => {
         expect(Object.keys(providers)).toEqual([
             'bedrock-converse', 'bedrock-runtime-openai', 'bedrock-runtime-anthropic', 'smart-router', 'sagemaker-lmi',
-            'bedrock-knowledge-base', 'bedrock-agent', 'painter', 'nova-canvas', 'ollama',
+            'bedrock-knowledge-base', 'bedrock-agent', 'painter', 'ollama',
             'continue-coder', 'titan-embeddings',
             'openai-compatible', 'bedrock-deepseek', 'sagemaker-deepseek', 'azure-openai',
             'azure-openai-image', 'gemini-converse',

@@ -14,26 +14,28 @@ import PGClient from '../src/util/postgres';
 import threadService from '../src/service/thread';
 import sessionService from '../src/service/session';
 
-const RETIRED = ['aws-executor', 'urls-reader', 'web-miner'];
+const RETIRED_TO_CC = ['aws-executor', 'urls-reader', 'web-miner'];
 const retiredMessage = (name: string) => `Provider ${name} has been retired; use Claude Code Web (/cc) instead.`;
+const NOVA_CANVAS_RETIRED = 'Provider nova-canvas has been retired; use painter with a Stability model instead.';
 const user = { id: 1, group_id: 1, api_key: 'k', month_fee: '0', month_quota: '10', balance: '0', updated_at: new Date() };
 const oldModel = (provider: string) => ({ id: 40, name: 'old-model', provider, multiple: 1, model_type: 1, price_in: 0, price_out: 0, config: {} });
 
 describe('RETIRED_PROVIDERS', () => {
-    it('maps each retired provider to Claude Code Web', () => {
+    it('maps each retired provider to what replaces it', () => {
         expect(RETIRED_PROVIDERS).toEqual({
             'aws-executor': 'Claude Code Web (/cc)',
             'urls-reader': 'Claude Code Web (/cc)',
             'web-miner': 'Claude Code Web (/cc)',
+            'nova-canvas': 'painter with a Stability model',
         });
     });
-    it.each(RETIRED)('createProvider(%s) answers with the retired message as a 400', (name) => {
+    it.each(RETIRED_TO_CC)('createProvider(%s) answers with the retired message as a 400', (name) => {
         let thrown: any;
         try { providers.createProvider(name); } catch (ex) { thrown = ex; }
         expect(thrown).toMatchObject({ message: retiredMessage(name), anthropicType: 'invalid_request_error' });
     });
     it('is not listed among the providers an admin can pick', () => {
-        for (const name of RETIRED) expect(Object.keys(providers)).not.toContain(name);
+        for (const name of Object.keys(RETIRED_PROVIDERS)) expect(Object.keys(providers)).not.toContain(name);
         expect(Object.keys(providers)).not.toContain('RETIRED_PROVIDERS');
     });
 });
@@ -88,7 +90,17 @@ describe('a request for a model on a retired provider', () => {
         expect(res.body.error.message).toBe(retiredMessage('web-miner'));
     });
 
-    it.each(RETIRED)('answers %s the same way on every OpenAI-format endpoint', async (name) => {
+    it('answers a model whose provider is nova-canvas with a 400 that points to painter', async () => {
+        models = [{ ...oldModel('nova-canvas'), name: 'old-canvas' }];
+        const res = await post('/v1/chat/completions', { model: 'old-canvas', ...chat });
+        expect(res.status).toBe(400);
+        expect(res.body.error.message).toBe(NOVA_CANVAS_RETIRED);
+        const msg = await post('/v1/messages', { model: 'old-canvas', max_tokens: 10, ...chat });
+        expect(msg.status).toBe(400);
+        expect(msg.body).toEqual({ type: 'error', error: { type: 'invalid_request_error', message: NOVA_CANVAS_RETIRED } });
+    });
+
+    it.each(RETIRED_TO_CC)('answers %s the same way on every OpenAI-format endpoint', async (name) => {
         models = [oldModel(name)];
         for (const [path, extra] of [['/v1/chat/completions', chat], ['/v1/completions', chat], ['/v1/embeddings', { input: 'hi' }], ['/v1/images/generations', { prompt: 'a cat' }]] as const) {
             const res = await post(path, { model: 'old-model', ...extra });
@@ -97,7 +109,7 @@ describe('a request for a model on a retired provider', () => {
         }
     });
 
-    it.each(RETIRED)('answers %s on /v1/messages with an Anthropic invalid_request_error', async (name) => {
+    it.each(RETIRED_TO_CC)('answers %s on /v1/messages with an Anthropic invalid_request_error', async (name) => {
         models = [oldModel(name)];
         const res = await post('/v1/messages', { model: 'old-model', max_tokens: 10, ...chat });
         expect(res.status).toBe(400);
@@ -123,7 +135,7 @@ describe('the retire migration', () => {
     // The statements, without comments.
     const statements = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n')
         .split(';').map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
-    const providerList = RETIRED.map((p) => `'${p}'`).join(', ');
+    const providerList = RETIRED_TO_CC.map((p) => `'${p}'`).join(', ');
 
     it("pins the retire migration's statements", () => {
         expect(files.indexOf(NAME)).toBeGreaterThan(files.indexOf('2026-10-20b-claude-chat-presets.sql'));
@@ -132,7 +144,7 @@ describe('the retire migration', () => {
             `DELETE FROM eiai_group_model WHERE model_id IN (SELECT id FROM eiai_model WHERE provider IN (${providerList}))`,
             `DELETE FROM eiai_model WHERE provider IN (${providerList})`,
         ]);
-        expect(Object.keys(RETIRED_PROVIDERS).sort()).toEqual(RETIRED);
+        expect(Object.keys(RETIRED_PROVIDERS).filter((p) => !RETIRED_TO_CC.includes(p))).toEqual(['nova-canvas']);
         expect(sql).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK|CONCURRENTLY|eiai_thread|eiai_session)\b/i);
     });
 
@@ -247,8 +259,8 @@ describe('the retire migration', () => {
             expect(sent.slice(at - 1, at + 3)).toEqual(['BEGIN', sql, 'INSERT INTO eiai_migration (name) VALUES ($1)', 'COMMIT']);
             expect(after.ledger).toEqual([...before.ledger, NAME].sort());
             // Retired models and their bindings are gone; everything else is as it was.
-            expect(after.eiai_model.filter((m) => RETIRED.includes(m.provider))).toEqual([]);
-            expect(after.eiai_model).toEqual(before.eiai_model.filter((m) => !RETIRED.includes(m.provider)));
+            expect(after.eiai_model.filter((m) => RETIRED_TO_CC.includes(m.provider))).toEqual([]);
+            expect(after.eiai_model).toEqual(before.eiai_model.filter((m) => !RETIRED_TO_CC.includes(m.provider)));
             expect(after.eiai_model.map((m) => m.name)).toContain('my-converse');
             expect(after.eiai_key_model).toEqual(kept(before.eiai_key_model));
             expect(after.eiai_group_model).toEqual(kept(before.eiai_group_model));
