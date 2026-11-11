@@ -48,6 +48,17 @@ export default {
     return Math.ceil(num / factor) * factor;
   },
 
+  // Reads an s3:// URL from the model's s3Bucket only. Any other bucket is refused with a 400.
+  async downloadS3Image(url: string, client: S3Client, bucket: string): Promise<Uint8Array> {
+    const urlParts = url.replace('s3://', '').split('/');
+    const bucketName = urlParts.shift();
+    if (!bucket || bucketName !== bucket) {
+      throw Object.assign(new Error(S3_IMAGE_OUTSIDE_BUCKET), { statusCode: 400 });
+    }
+    const response = await client.send(new GetObjectCommand({ Bucket: bucketName, Key: urlParts.join('/') }));
+    return await response.Body.transformToByteArray();
+  },
+
   // bucket is the model's s3Bucket: an s3:// URL is read only from that bucket.
   async downloadImageForNovaToBase64(url: string, client: S3Client, bucket: string): Promise<any> {
     if (url.indexOf('http://') >= 0 || url.indexOf('https://') >= 0) {
@@ -55,29 +66,9 @@ export default {
       let nbuffer = await this.scaleDownImage(bytes, 16, 2048);
       return nbuffer.toString('base64');
     } else if (url.indexOf('s3://') >= 0) {
-      const urlParts = url.replace('s3://', '').split('/');
-      const bucketName = urlParts.shift();
-      if (!bucket || bucketName !== bucket) {
-        throw Object.assign(new Error(S3_IMAGE_OUTSIDE_BUCKET), { statusCode: 400 });
-      }
-      const key = urlParts.join('/');
-      const params = {
-        Bucket: bucketName,
-        Key: key,
-      };
-
-      try {
-        const command = new GetObjectCommand(params);
-        const response = await client.send(command);
-        const byteArray = await response.Body.transformToByteArray();
-        let nbuffer = await this.scaleDownImage(byteArray, 16, 2048);
-        return nbuffer.toString('base64');
-
-      } catch (error) {
-        // console.error("Error downloading and converting image:", error);
-        throw error;
-      }
-
+      const byteArray = await this.downloadS3Image(url, client, bucket);
+      let nbuffer = await this.scaleDownImage(byteArray, 16, 2048);
+      return nbuffer.toString('base64');
     }
   },
 
