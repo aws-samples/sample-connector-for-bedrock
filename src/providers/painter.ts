@@ -18,7 +18,7 @@ const regionsIgnoredLogged = new Set<string>();
 type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
 type Message = NonNullable<ChatRequest["messages"]>[number];
 type PaintConfig = { paintModelId: string; localLlmModel: string; store: S3PictureStore };
-type MadePicture = { name: string; bytes: Buffer };
+type MadePicture = { name: string; bytes: Buffer; price: number };
 
 const clientGone = (ctx: any) => !!(ctx.res.destroyed || ctx.res.writableEnded);
 
@@ -109,13 +109,26 @@ export default class Painter extends AbstractProvider {
   private async chatStream(chatRequest: ChatRequest, session_id: string, ctx: any, config: PaintConfig) {
     const reqId = this.newRequestID();
     const streamed: string[] = [];
-    const prices: number[] = [];
+    let recorded = 0;
     let stepsRun = 0;
     let threadMessages: Message[] = chatRequest.messages;
 
     const emit = (text: string) => {
       streamed.push(text);
       ctx.res.write("data: " + WebResponse.wrap(0, null, text, null, null, null, reqId) + "\n\n");
+    };
+    // One thread record per picture, so a request cut short still charges the pictures it streamed.
+    const record = async (price: number) => {
+      const text = streamed.slice(recorded).join("");
+      recorded = streamed.length;
+      try {
+        await this.saveThread(
+          ctx, session_id, { ...chatRequest, messages: [...threadMessages] },
+          { text, input_tokens: 0, output_tokens: 0, image_prices: [price] },
+        );
+      } catch (e: any) {
+        logger.error(e?.message || String(e));
+      }
     };
     const clients = new Map<string, BedrockRuntimeClient>();
     const clientOf = (region: string) => {
@@ -141,7 +154,7 @@ export default class Painter extends AbstractProvider {
       const loopMessages: Message[] = [];
       let newestPicture: Message | undefined;
 
-      while (true) {
+      while (!clientGone(ctx)) {
         const { text, toolCalls } = await this.askChatModel(
           ctx, session_id, config.localLlmModel,
           [{ role: "system", content: systemPrompt(book) }, ...chatMessages, ...loopMessages],
@@ -157,7 +170,9 @@ export default class Painter extends AbstractProvider {
           }
           if (clientGone(ctx)) return;
           stepsRun += 1;
-          made.push(await this.runStep(call, stepsRun, { ctx, config, book, clientOf, emit, prices }));
+          const picture = await this.runStep(call, stepsRun, { ctx, config, book, clientOf, emit });
+          made.push(picture);
+          await record(picture.price);
         }
 
         loopMessages.push(
@@ -183,21 +198,11 @@ export default class Painter extends AbstractProvider {
       if (!(e instanceof PaintStepError)) logger.error(message);
       emit(`\n\n> Error: ${message}`);
     } finally {
-      if (stepsRun > 0) {
-        try {
-          await this.saveThread(
-            ctx, session_id, { ...chatRequest, messages: threadMessages },
-            { text: streamed.join(""), input_tokens: 0, output_tokens: 0, image_prices: prices },
-          );
-        } catch (e: any) {
-          logger.error(e?.message || String(e));
-        }
-      }
       ctx.res.write("data: [DONE]\n\n");
     }
   }
 
-  // The converse provider returns text and tool calls in separate choices, so every choice is merged.
+  // Some providers return the text and the tool calls in separate choices, so every choice is merged.
   private async askChatModel(ctx: any, session_id: string, model: string, messages: Message[]) {
     const body = { model, messages, tools: chatTools(), tool_choice: "auto" };
     const jRes: any = await withKeepAlive(ctx, (async () => {
@@ -240,11 +245,11 @@ export default class Painter extends AbstractProvider {
     call: ToolCall,
     n: number,
     run: {
-      ctx: any; config: PaintConfig; book: PictureBook; prices: number[];
+      ctx: any; config: PaintConfig; book: PictureBook;
       clientOf: (region: string) => BedrockRuntimeClient; emit: (text: string) => void;
     },
   ): Promise<MadePicture> {
-    const { ctx, config, book, clientOf, emit, prices } = run;
+    const { ctx, config, book, clientOf, emit } = run;
     const tool = Object.prototype.hasOwnProperty.call(PAINT_TOOLS, call.function.name) ? PAINT_TOOLS[call.function.name as keyof typeof PAINT_TOOLS] : undefined;
     if (!tool) throw new PaintStepError(`The chat model asked for an unknown tool, ${call.function.name}.`);
 
@@ -283,12 +288,11 @@ export default class Painter extends AbstractProvider {
 
     const priced = imagePrice(this.modelData.config, modelId);
     if (priced.source === "none") logger.warn(`No price for image model ${modelId}; the picture is recorded at 0.`);
-    prices.push(priced.price);
 
     const bytes = Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ""), "base64");
     const s3Url = await config.store.put(bytes, tool.outputFormat, "generated");
     const name = book.add("generated", s3Url);
     emit(`![${name}](${await config.store.presign(s3Url)})\n\n`);
-    return { name, bytes };
+    return { name, bytes, price: priced.price };
   }
 }

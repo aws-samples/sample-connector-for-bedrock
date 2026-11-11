@@ -131,7 +131,7 @@ describe('painter steps', () => {
         expect(text).not.toContain('![');
         expect(aws.invoked).toEqual([]);
         expect(aws.puts).toEqual([]);
-        expect(charges(ctx)).toEqual([0]);
+        expect(charges(ctx)).toEqual([]);
     });
 
     it('chains remove_background and style_guide, streams each picture when it exists and bills both', async () => {
@@ -185,21 +185,31 @@ describe('painter steps', () => {
         expect(assistant).toMatchObject({ content: 'Cutting it out.', tool_calls: [{ id: 'c10', type: 'function', function: { name: 'remove_background' } }] });
         expect(chat[1].messages.find((m: any) => m.role === 'tool').tool_call_id).toBe('c10');
 
-        expect(charges(ctx)).toHaveLength(1);
-        expect(charges(ctx)[0]).toBeCloseTo(0.14, 10);
-        const [thread] = threads(ctx);
-        expect(thread).toMatchObject({ tokens_in: 0, tokens_out: 0, session_key: 's-1' });
-        expect(thread.fee).toBeCloseTo(0.14, 10);
-        expect(thread.completion).toContain('> Step 2: style_guide');
-        expect(thread.whole_prompt).toContain('s3://images-bucket/out/uploads/');
-        expect(thread.whole_prompt).not.toContain('base64');
+        expect(charges(ctx)).toHaveLength(2);
+        expect(charges(ctx)[0]).toBeCloseTo(0.07, 10);
+        expect(charges(ctx)[1]).toBeCloseTo(0.07, 10);
+        const [first, second] = threads(ctx);
+        expect(threads(ctx)).toHaveLength(2);
+        expect(first).toMatchObject({ tokens_in: 0, tokens_out: 0, session_key: 's-1' });
+        expect(first.fee).toBeCloseTo(0.07, 10);
+        expect(second.fee).toBeCloseTo(0.07, 10);
+        expect(first.completion).toContain('> Step 1: remove_background');
+        expect(first.completion).not.toContain('> Step 2');
+        expect(second.completion).toContain('> Step 2: style_guide');
+        expect(second.completion).not.toContain('> Step 1');
+        expect(second.completion).not.toContain('All done.');
+        expect(first.whole_prompt).toContain('s3://images-bucket/out/uploads/');
+        expect(first.whole_prompt).not.toContain('base64');
+        expect(second.whole_prompt).toBe(first.whole_prompt);
     });
 
     it('bills each picture at the price of its own model, config prices first', async () => {
         stubChat([{ calls: [['txt2img', { prompt: 'a' }], ['remove_background', { image_ref: 'image_1' }]] }, { text: 'ok' }]);
         stubAws();
         const { ctx } = await paint([{ role: 'user', content: 'x' }], { config: { image_prices: { [REMOVE_BACKGROUND]: '0.03' }, price_per_image: 0.5 } });
-        expect(charges(ctx)[0]).toBeCloseTo(0.5 + 0.03, 10);
+        expect(charges(ctx)).toHaveLength(2);
+        expect(charges(ctx)[0]).toBeCloseTo(0.5, 10);
+        expect(charges(ctx)[1]).toBeCloseTo(0.03, 10);
     });
 
     it('uses a picture made in an earlier turn by its presigned URL', async () => {
@@ -236,8 +246,8 @@ describe('painter steps', () => {
             expect(text).not.toContain('![');
             expect(text).not.toContain('never asked');
             expect(aws.puts).toEqual([]);
-            expect(charges(ctx)).toEqual([0]);
-            expect(threads(ctx)[0].fee).toBe(0);
+            expect(charges(ctx)).toEqual([]);
+            expect(threads(ctx)).toEqual([]);
             expect(raw.endsWith('data: [DONE]\n\n')).toBe(true);
             vi.restoreAllMocks();
             vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
@@ -253,7 +263,8 @@ describe('painter steps', () => {
         expect(text).toContain('> Step 5:');
         expect(text).not.toContain('> Step 6:');
         expect(text.match(/!\[image_\d\]/g)).toHaveLength(5);
-        expect(charges(ctx)[0]).toBeCloseTo(0.7, 10);
+        expect(charges(ctx)).toHaveLength(5);
+        expect(charges(ctx).reduce((a: number, b: number) => a + b, 0)).toBeCloseTo(0.7, 10);
     });
 
     it('counts a step across rounds toward the limit', async () => {
@@ -274,7 +285,73 @@ describe('painter steps', () => {
         });
         const { ctx } = await paint([{ role: 'user', content: 'x' }], { ctx: (c) => { ctxRef = c; } });
         expect(aws.invoked).toHaveLength(1);
+        expect(charges(ctx)).toHaveLength(1);
         expect(charges(ctx)[0]).toBeCloseTo(0.14, 10);
+    });
+
+    it('makes no further chat call once the client has gone during a step', async () => {
+        const chat = stubChat([{ calls: [['txt2img', { prompt: 'a' }]] }, { text: 'never asked' }]);
+        let ctxRef: any;
+        stubAws(async () => {
+            ctxRef.res.destroyed = true;
+            return { images: [(await solid()).toString('base64')], finish_reasons: [null] };
+        });
+        const { ctx, text } = await paint([{ role: 'user', content: 'x' }], { ctx: (c) => { ctxRef = c; } });
+        expect(chat).toHaveLength(1);
+        expect(text).not.toContain('never asked');
+        expect(charges(ctx)).toHaveLength(1);
+        expect(threads(ctx)).toHaveLength(1);
+    });
+
+    it('makes no chat call when the client is gone before the first one', async () => {
+        const chat = stubChat([{ text: 'never asked' }]);
+        const { ctx } = await paint([{ role: 'user', content: 'x' }], { ctx: (c) => { c.res.destroyed = true; } });
+        expect(chat).toEqual([]);
+        expect(charges(ctx)).toEqual([]);
+    });
+
+    it('charges the first picture and not the filtered second one', async () => {
+        stubChat([{ text: 'Two steps.', calls: [['txt2img', { prompt: 'a' }], ['remove_background', { image_ref: 'image_1' }]] }]);
+        stubAws(async (modelId) => (modelId === REMOVE_BACKGROUND
+            ? { seeds: [1], finish_reasons: ['Filter reason: output image'] }
+            : { images: [(await solid()).toString('base64')], finish_reasons: [null] }));
+        const { ctx, text } = await paint([{ role: 'user', content: 'x' }]);
+        expect(text).toContain('![image_1](');
+        expect(text).toContain('> Error: The generated picture was filtered');
+        expect(charges(ctx)).toHaveLength(1);
+        expect(charges(ctx)[0]).toBeCloseTo(0.14, 10);
+        expect(threads(ctx)).toHaveLength(1);
+        expect(threads(ctx)[0].fee).toBeCloseTo(0.14, 10);
+        expect(threads(ctx)[0].completion).not.toContain('filtered');
+    });
+
+    it('keeps the first picture charged when the chat model fails after it', async () => {
+        let n = 0;
+        vi.stubGlobal('fetch', vi.fn(async () => {
+            n += 1;
+            if (n === 2) return new Response('model overloaded', { status: 503 });
+            const call = { id: 'a', type: 'function', function: { name: 'txt2img', arguments: '{"prompt":"a"}' } };
+            return new Response(JSON.stringify({ choices: [{ message: { content: 'Drawing.', tool_calls: [call] } }] }), { status: 200 });
+        }));
+        stubAws();
+        const { ctx, text, raw } = await paint([{ role: 'user', content: 'x' }]);
+        expect(text).toContain('![image_1](');
+        expect(text).toContain('> Error: model overloaded');
+        expect(charges(ctx)).toHaveLength(1);
+        expect(charges(ctx)[0]).toBeCloseTo(0.14, 10);
+        expect(threads(ctx)).toHaveLength(1);
+        expect(raw.endsWith('data: [DONE]\n\n')).toBe(true);
+    });
+
+    it('does not stop at a malformed URL in an assistant message of the history', async () => {
+        const chat = stubChat([{ text: 'Hello.' }]);
+        const { text } = await paint([
+            { role: 'user', content: 'hi' },
+            { role: 'assistant', content: 'see ![](https://example.com/%E0%A4%A?X-Amz-Signature=abc)' },
+            { role: 'user', content: 'draw a cat' },
+        ]);
+        expect(chat).toHaveLength(1);
+        expect(text).toBe('Hello.');
     });
 
     it('refuses an upload that breaks the limits before it calls the chat model', async () => {
@@ -296,7 +373,7 @@ describe('painter steps', () => {
         vi.stubEnv('AWS_REGION', 'eu-west-1');
         const { text, ctx } = await paint([await userWithPictures('cut it')]);
         expect(text).toContain('> Error: Access denied calling us.stability.stable-image-remove-background-v1:0. The role may lack bedrock:InvokeModel in us-west-2.');
-        expect(charges(ctx)).toEqual([0]);
+        expect(charges(ctx)).toEqual([]);
     });
 
     it('streams the error of a bad tool call instead of throwing', async () => {
@@ -351,6 +428,29 @@ describe('painter keep-alive', () => {
         release();
         const { raw } = await running;
         expect(raw.split(': keep-alive\n\n').length - 1).toBe(2);
+        expect(vi.getTimerCount()).toBe(0);
+    });
+});
+
+describe('painter keep-alive on the chat call', () => {
+    it('writes an SSE comment while the chat model is slow', async () => {
+        vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+        let release!: () => void;
+        const slow = new Promise<void>((resolve) => { release = resolve; });
+        let started = false;
+        vi.stubGlobal('fetch', vi.fn(async () => {
+            started = true;
+            await slow;
+            return new Response(JSON.stringify({ choices: [{ message: { content: 'Hi.' } }] }), { status: 200 });
+        }));
+
+        const running = paint([{ role: 'user', content: 'hi' }]);
+        await vi.waitFor(() => expect(started).toBe(true));
+        await vi.advanceTimersByTimeAsync(15_000);
+        release();
+        const { raw, text } = await running;
+        expect(raw.split(': keep-alive\n\n').length - 1).toBe(1);
+        expect(text).toBe('Hi.');
         expect(vi.getTimerCount()).toBe(0);
     });
 });

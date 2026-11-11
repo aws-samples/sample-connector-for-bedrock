@@ -316,7 +316,7 @@ describe('painter', () => {
         const ctx = fakeCtx();
         await painter(paintConfig('stability.stable-image-core-v1:1', { price_per_image: 0.04 })).chat(userRequest(true), 's-1', ctx);
         expect(ctx.chunks.join('')).toContain('> Error: model refused');
-        expect(charged(ctx)).toBe(0);
+        expect(charges(ctx)).toEqual([]);
     });
 
     it('does not draw or bill a request without stream', async () => {
