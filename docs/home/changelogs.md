@@ -5,12 +5,24 @@
 **Upgrade notes**
 
 - This is a breaking change for models that use an image model Amazon Bedrock no longer serves (item 1). Before you upgrade, check the provider and the `paintModelId` of each model on the `nova-canvas` or `painter` provider in the admin console. No migration changes these models.
+- Stacks with AutoUpdate pull the new image automatically (items 1 and 2). Before users rely on the new `painter`, check that `localLlmModel` can see images, and check `price_per_image` and `image_prices` (item 2). A `painter` config without a price is now billed at the built-in list prices.
+- `regions` no longer applies to `painter`; remove it from the model config (item 2). If BRConnector runs outside us-east-1, us-east-2 and us-west-2, uploaded pictures and prompts go to us-west-2.
 
 1. **End-of-life Image Models Removed** - Amazon Bedrock no longer serves Amazon Nova Canvas (`amazon.nova-canvas-v1:0`), Amazon Titan Image Generator (`amazon.titan-image-generator-v1`, `amazon.titan-image-generator-v2:0`), Stability SDXL (`stability.stable-diffusion-xl-v0`, `stability.stable-diffusion-xl-v1`), `stability.sd3-large-v1:0` and `stability.stable-image-ultra-v1:0`, so BRConnector no longer supports them.
    - The `nova-canvas` provider is removed. A request to a model on it gets HTTP 400 that points to `painter`. The model stays in the database for you to change or delete. To keep drawing, create a `painter` model with one of the models below.
-   - `painter` supports `stability.stable-image-ultra-v1:1`, `stability.stable-image-core-v1:1` and `stability.sd3-5-large-v1:0`. Amazon Bedrock serves them only in us-west-2, so set `"regions": ["us-west-2"]` in the model config. See [painter](../providers/painter.md).
+   - `painter` supports `stability.stable-image-ultra-v1:1`, `stability.stable-image-core-v1:1` and `stability.sd3-5-large-v1:0`. Amazon Bedrock serves them only in us-west-2, and `painter` calls that Region by itself. See [painter](../providers/painter.md).
    - A `painter` model whose `paintModelId` is not a Stability model now answers with an error that lists the three models, and does not call Bedrock. A `painter` model on a retired Stability model still fails at Bedrock.
-   - To fix a `painter` model, set its `paintModelId` to one of the three models and its `regions` to `["us-west-2"]`.
+   - To fix a `painter` model, set its `paintModelId` to one of the three models.
+
+2. **painter Image to Image** - Users can upload up to 5 pictures (10 MB each; JPEG, PNG or WebP) in BRClient with one sentence. The chat model chooses one of eight Stability capabilities: text to image, image to image, search and replace, remove background, style guide, style transfer, control structure and control sketch. See [painter](../providers/painter.md).
+   - One request can run up to 5 steps. Each step's picture streams back as soon as it is made, with a line that names the capability, the model and the input pictures. Later messages can refer to earlier pictures.
+   - Each picture is billed at the price of the model that made it. The new `image_prices` field sets a price for each model ID. Without a price, painter uses the built-in list prices.
+   - Non-stream requests do not draw. They go to the chat model as before.
+   - **Breaking:** `localLlmModel` must now support function calling and see images.
+   - **Breaking:** `regions` no longer applies to `painter`. Ultra, Core and SD3.5 Large run in us-west-2. The six `us.stability.*` image services run in the host Region when it is us-east-1, us-east-2 or us-west-2, and in us-west-2 otherwise. Outside those three Regions, pictures and prompts are sent to us-west-2, so do not use `painter` if you have data-residency requirements. The role needs `bedrock:InvokeModel` in the target Region, and an SCP that limits `aws:RequestedRegion` blocks calls to us-west-2.
+   - **Breaking:** a config with no price is now billed at the built-in list prices, not at 0. A config with `price_per_image` keeps that one price for every capability until `image_prices` is set.
+   - **Breaking:** presigned picture URLs now last up to 4 hours instead of 1. A URL signed with temporary credentials stops working when the credentials expire, so older pictures can stop loading sooner.
+   - Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. BRConnector sets no lifecycle rule, so pictures stay until you delete them.
 
 ## 0.0.44
 
