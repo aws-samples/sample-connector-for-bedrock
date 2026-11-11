@@ -96,13 +96,11 @@ POST /v1/chat/completions, stream: true
   │         · download each referenced picture from S3, fit it to the model's limits
   │         · InvokeModel
   │         · finish_reasons[0] is null → store the picture in <s3Prefix>/<date>/, stream
-  │           the step line and ![](presigned URL), record its price, name it image_N
+  │           the step line and ![](presigned URL), name it image_N, bill it and save a
+  │           thread record for it
   │         · anything else → stream the reason in plain words, end
   │    4. append the tool calls, their results and a small copy of the newest picture to
-  │       the messages, go to 1
-  │
-  └─ once a step has run: bill the pictures that were made and save the thread, even when a
-     later step fails
+  │       the messages, go to 1 unless the client has disconnected
 ```
 
 ### Picture names
@@ -161,6 +159,8 @@ The price of one picture is looked up in this order:
 3. The built-in table, which holds the prices in the table above.
 4. 0, with a warning in the log. A missing price never stops a call.
 
+The built-in prices are in USD.
+
 Every picture that a step makes is billed at the price of the model of that step. The calls to `localLlmModel` go through the chat API and are billed there, as before. See [ADR 0003](../../adr/0003-painter-billing-per-step.md) for how the fee is recorded.
 
 ### Keeping the stream alive
@@ -178,7 +178,7 @@ CloudFront closes an origin connection that sends nothing for 30 seconds, its de
 | `AccessDeniedException` | the role may lack `bedrock:InvokeModel` in the target Region, with the Region named |
 | The step limit | the limit was reached, and the pictures already made stay |
 
-A failed step ends the request. Pictures made by earlier steps were already streamed and billed; nothing is rolled back. When the client has disconnected, painter starts no further step.
+A failed step ends the request. Pictures made by earlier steps were already streamed and billed; nothing is rolled back. When the client has disconnected, painter makes no further chat call and starts no further step.
 
 ## Known limitations
 
@@ -186,10 +186,12 @@ A failed step ends the request. Pictures made by earlier steps were already stre
 - Uploaded pictures stay in the bucket. There is no lifecycle rule.
 - A wrong tool choice is hard to see. Each step line names the capability, the model and the input pictures so the user can tell.
 - Non-stream clients cannot draw.
+- On the `lambda` compute type the function stops after 60 seconds, which a chain of two or three steps can reach. Each picture is billed when it is made, so a request cut short still bills what it streamed. The `ec2`, `ecs` and `lambda-web` types allow longer requests.
+- Some chat providers return only the last of several parallel tool calls in one answer. Painter then runs one step per answer, which costs more chat calls but no extra pictures.
 - When the host is outside us-east-1, us-east-2 and us-west-2, pictures and prompts are sent to us-west-2. The `us.` inference profiles can also route a call to another of the three US Regions.
 
 ## Implementation decisions
 
 - [ADR 0001](../../adr/0001-painter-picture-names-and-step-loop.md): picture names, the step loop, the step limit and what ends a request.
 - [ADR 0002](../../adr/0002-painter-picture-sizing.md): sizes and formats of the chat model's copy and the Stability model's copy.
-- [ADR 0003](../../adr/0003-painter-billing-per-step.md): how per-step prices reach the fee and the thread record.
+- [ADR 0003](../../adr/0003-painter-billing-per-step.md): how per-step prices reach the fee and the thread records.

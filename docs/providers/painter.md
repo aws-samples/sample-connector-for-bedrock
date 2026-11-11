@@ -73,6 +73,8 @@ A later message can refer to earlier pictures, for example "remove the backgroun
 
 A request that is not streamed does not draw. It goes to the chat model as before. BRClient uses such requests to name conversations.
 
+On the `lambda` compute type, a request stops after 60 seconds, and a chain of two or three steps can reach that limit. Each picture is billed when it is made, so the pictures already shown stay billed. Use the `ec2`, `ecs` or `lambda-web` compute type for longer chains.
+
 ## Uploads
 
 - At most 5 pictures in one message, and at most 10 MB each.
@@ -110,7 +112,7 @@ painter looks up the price of one picture in this order:
 
 1. `image_prices[modelId]` in the model config.
 2. `price_per_image` in the model config.
-3. The built-in list prices in the table above.
+3. The built-in list prices in the table above. They are in USD, so set `image_prices` when the model's currency is not USD.
 4. 0, with a warning in the log. A missing price never blocks a call.
 
 Each picture is billed at the price of the model that made it. A request with a search-and-replace step and a remove-background step is billed for two pictures at 0.07 each. A step that fails makes no picture and is not billed.
