@@ -298,7 +298,7 @@ describe('painter', () => {
         const fetchMock = stubPromptCall('draw', { prompt: 'a cat', negative_prompt: 'nsfw', width: 512, height: 512 });
         const { sent, uploads } = stubImageModel(['aGk=']);
         const ctx = fakeCtx();
-        await provider(Painter, model('painter', paintConfig('amazon.nova-canvas-v1:0', { price_per_image: 0.04 }), { price_in: 0, price_out: 0 }))
+        await provider(Painter, model('painter', paintConfig('stability.stable-image-core-v1:1', { price_per_image: 0.04 }), { price_in: 0, price_out: 0 }))
             .chat(userRequest(true), 's-1', ctx);
 
         // The prompt call went to the chat API, which bills it; the image is billed here.
@@ -316,7 +316,7 @@ describe('painter', () => {
         vi.spyOn(BedrockRuntimeClient.prototype, 'send').mockRejectedValue(new Error('model refused'));
         vi.spyOn(logger, 'error').mockImplementation((() => logger) as any);
         const ctx = fakeCtx();
-        await provider(Painter, model('painter', paintConfig('amazon.nova-canvas-v1:0', { price_per_image: 0.04 }), { price_in: 0, price_out: 0 }))
+        await provider(Painter, model('painter', paintConfig('stability.stable-image-core-v1:1', { price_per_image: 0.04 }), { price_in: 0, price_out: 0 }))
             .chat(userRequest(true), 's-1', ctx);
         expect(ctx.chunks.join('')).toContain('> Error: model refused');
         expect(charged(ctx)).toBe(0);

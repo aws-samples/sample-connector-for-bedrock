@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import Painter from '../src/providers/painter';
+import logger from '../src/util/logger';
 import { fakeDb } from './helpers/fakes';
 import { HERMETIC_ENV } from './helpers/hermetic_env';
+
+const SUPPORTED = ['stability.stable-image-ultra-v1:1', 'stability.stable-image-core-v1:1', 'stability.sd3-5-large-v1:0'];
 
 function stubPromptCall(args: any) {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
@@ -70,5 +73,16 @@ describe('painter paint models', () => {
             expect(out).toContain('![](https://images-bucket.s3.us-west-2.amazonaws.com/out/');
             vi.restoreAllMocks();
         }
+    });
+
+    it.each(['amazon.titan-image-generator-v2:0', 'amazon.nova-canvas-v1:0', 'my-model'])('answers %s with the supported models and does not call Bedrock', async (modelId) => {
+        stubPromptCall({ prompt: 'a cat', width: 512, height: 512 });
+        const { sent, uploads } = stubBedrock();
+        vi.spyOn(logger, 'error').mockImplementation((() => logger) as any);
+        const out = await paint(modelId);
+        expect(out).toContain(`> Error: Unsupported paintModelId. Use one of ${SUPPORTED.join(', ')}.`);
+        expect(out).not.toContain('![](');
+        expect(sent).toEqual([]);
+        expect(uploads).toEqual([]);
     });
 });
