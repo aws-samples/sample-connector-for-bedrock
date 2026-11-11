@@ -314,6 +314,15 @@ describe('legacyFee images', () => {
         expect(legacyFee(data(price), { input_tokens: 0, output_tokens: 0, images: 2 }).fee).toBe(0);
     });
 
+    it('bills image_prices instead of images x price_per_image', () => {
+        expect(legacyFee(data(0.04), { input_tokens: 100, output_tokens: 10, images: 3, image_prices: [0.14, 0.07] }).fee).toBeCloseTo(0.21012, 10);
+        expect(legacyFee(data(0.04), { input_tokens: 0, output_tokens: 0, image_prices: [] }).fee).toBe(0);
+    });
+
+    it('counts a bad entry of image_prices as 0', () => {
+        expect(legacyFee(data(0.04), { input_tokens: 0, output_tokens: 0, image_prices: [0.07, -1, NaN, Infinity, 'x' as any] }).fee).toBeCloseTo(0.07, 10);
+    });
+
     it('counts a missing or bad image count as 0', () => {
         for (const images of [undefined, -1, NaN, 'x']) {
             expect(legacyFee(data(0.04), { input_tokens: 0, output_tokens: 0, images: images as any }).fee).toBe(0);
