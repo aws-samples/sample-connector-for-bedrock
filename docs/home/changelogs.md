@@ -1,5 +1,17 @@
 # Changelogs
 
+## Unreleased
+
+**Upgrade notes**
+
+- This is a breaking change for models that use an image model Amazon Bedrock no longer serves (item 1). Before you upgrade, check the provider and the `paintModelId` of each model on the `nova-canvas` or `painter` provider in the admin console. No migration changes these models.
+
+1. **End-of-life Image Models Removed** - Amazon Bedrock no longer serves Amazon Nova Canvas (`amazon.nova-canvas-v1:0`), Amazon Titan Image Generator (`amazon.titan-image-generator-v1`, `amazon.titan-image-generator-v2:0`), Stability SDXL (`stability.stable-diffusion-xl-v0`, `stability.stable-diffusion-xl-v1`), `stability.sd3-large-v1:0` and `stability.stable-image-ultra-v1:0`, so BRConnector no longer supports them.
+   - The `nova-canvas` provider is removed. A request to a model on it gets HTTP 400 that points to `painter`. The model stays in the database for you to change or delete. To keep drawing, create a `painter` model with one of the models below.
+   - `painter` supports `stability.stable-image-ultra-v1:1`, `stability.stable-image-core-v1:1` and `stability.sd3-5-large-v1:0`. Amazon Bedrock serves them only in us-west-2, so set `"regions": ["us-west-2"]` in the model config. See [painter](../providers/painter.md).
+   - A `painter` model whose `paintModelId` is not a Stability model now answers with an error that lists the three models, and does not call Bedrock. A `painter` model on a retired Stability model still fails at Bedrock.
+   - To fix a `painter` model, set its `paintModelId` to one of the three models and its `regions` to `["us-west-2"]`.
+
 ## 0.0.44
 
 **Upgrade notes**

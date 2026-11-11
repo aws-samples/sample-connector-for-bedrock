@@ -1,5 +1,17 @@
 # 更新日志
 
+## Unreleased
+
+**升级提示**
+
+- 对使用了 Amazon Bedrock 已停止提供的图像模型的模型，这是不兼容变更（第 1 条）。升级前，请在管理后台检查 provider 为 `nova-canvas` 或 `painter` 的每个模型的 provider 和 `paintModelId`。没有 migration 会修改这些模型。
+
+1. **下线已停止提供的图像模型** - Amazon Bedrock 已不再提供 Amazon Nova Canvas（`amazon.nova-canvas-v1:0`）、Amazon Titan Image Generator（`amazon.titan-image-generator-v1`、`amazon.titan-image-generator-v2:0`）、Stability SDXL（`stability.stable-diffusion-xl-v0`、`stability.stable-diffusion-xl-v1`）、`stability.sd3-large-v1:0` 和 `stability.stable-image-ultra-v1:0`，BRConnector 不再支持它们。
+   - 移除 `nova-canvas` provider。请求 provider 为它的模型会返回 HTTP 400，并提示改用 `painter`。原模型保留在数据库里，由您修改或删除。要继续画图，请用下面的模型之一新建一个 `painter` 模型。
+   - `painter` 支持 `stability.stable-image-ultra-v1:1`、`stability.stable-image-core-v1:1` 和 `stability.sd3-5-large-v1:0`。Amazon Bedrock 只在 us-west-2 提供它们，所以请在模型 config 里设置 `"regions": ["us-west-2"]`。见 [painter](../providers/painter.md)。
+   - `paintModelId` 不是 Stability 模型的 `painter` 模型，现在会返回一条列出这三个模型的错误，不调用 Bedrock。`paintModelId` 是已下线 Stability 模型的 `painter` 模型，仍会在调用 Bedrock 时失败。
+   - 修改 `painter` 模型时，把它的 `paintModelId` 设为这三个模型之一，`regions` 设为 `["us-west-2"]`。
+
 ## 0.0.44
 
 **升级提示**

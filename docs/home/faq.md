@@ -47,7 +47,7 @@ You just need to create a new model named `default`.
 
 ### Can You Draw Diagrams?
 
-Yes, you can draw diagrams by configuring and using models with providers such as `painter` or `nova-canvas`.
+Yes, you can draw diagrams by configuring and using models with the `painter` or `azure-openai-image` provider.
 
 
 ## Model Names That Contain a Slash {#model-wildcard}
@@ -59,8 +59,6 @@ Since 0.0.43, a model string `<name>/<model id>` that is not itself a configured
 ## Image URLs in Chat Requests {#image-urls}
 
 Chat models, for example `bedrock-converse`, take an image as a `data:` URL (`data:image/png;base64,...`) or as an `http(s)` URL. `bedrock-runtime-anthropic` and `bedrock-runtime-openai` pass the request to Bedrock as sent, so this section does not apply to them.
-
-`nova-canvas` models take an image as an `http(s)` URL, or as an `s3://` URL in the bucket named by the model's `s3Bucket` setting. They do not read `data:` URLs. An `s3://` URL in any other bucket gets HTTP 400 with `s3:// image URLs must point to the model's s3Bucket.`
 
 BRConnector downloads an `http(s)` image itself and accepts the URL only when:
 
