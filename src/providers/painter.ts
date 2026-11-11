@@ -22,10 +22,11 @@ type MadePicture = { name: string; bytes: Buffer; price: number };
 
 const clientGone = (ctx: any) => !!(ctx.res.destroyed || ctx.res.writableEnded);
 
-// SSE comment lines keep CloudFront from closing an origin connection that is silent for 30 seconds.
-async function withKeepAlive<T>(ctx: any, work: Promise<T>): Promise<T> {
+// CloudFront closes an origin connection that is silent for 30 seconds. The keep-alive is a normal chunk with
+// empty content, so clients that parse every data line accept it.
+async function withKeepAlive<T>(ctx: any, reqId: string, work: Promise<T>): Promise<T> {
   const timer = setInterval(() => {
-    if (!clientGone(ctx)) ctx.res.write(": keep-alive\n\n");
+    if (!clientGone(ctx)) ctx.res.write("data: " + WebResponse.wrap(0, null, "", null, null, null, reqId) + "\n\n");
   }, KEEP_ALIVE_MS);
   try {
     return await work;
@@ -156,7 +157,7 @@ export default class Painter extends AbstractProvider {
 
       while (!clientGone(ctx)) {
         const { text, toolCalls } = await this.askChatModel(
-          ctx, session_id, config.localLlmModel,
+          ctx, reqId, session_id, config.localLlmModel,
           [{ role: "system", content: systemPrompt(book) }, ...chatMessages, ...loopMessages],
         );
         if (text) emit(text);
@@ -170,7 +171,7 @@ export default class Painter extends AbstractProvider {
           }
           if (clientGone(ctx)) return;
           stepsRun += 1;
-          const picture = await this.runStep(call, stepsRun, { ctx, config, book, clientOf, emit });
+          const picture = await this.runStep(call, stepsRun, { ctx, reqId, config, book, clientOf, emit });
           made.push(picture);
           await record(picture.price);
         }
@@ -203,9 +204,9 @@ export default class Painter extends AbstractProvider {
   }
 
   // Some providers return the text and the tool calls in separate choices, so every choice is merged.
-  private async askChatModel(ctx: any, session_id: string, model: string, messages: Message[]) {
+  private async askChatModel(ctx: any, reqId: string, session_id: string, model: string, messages: Message[]) {
     const body = { model, messages, tools: chatTools(), tool_choice: "auto" };
-    const jRes: any = await withKeepAlive(ctx, (async () => {
+    const jRes: any = await withKeepAlive(ctx, reqId, (async () => {
       const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -245,11 +246,11 @@ export default class Painter extends AbstractProvider {
     call: ToolCall,
     n: number,
     run: {
-      ctx: any; config: PaintConfig; book: PictureBook;
+      ctx: any; reqId: string; config: PaintConfig; book: PictureBook;
       clientOf: (region: string) => BedrockRuntimeClient; emit: (text: string) => void;
     },
   ): Promise<MadePicture> {
-    const { ctx, config, book, clientOf, emit } = run;
+    const { ctx, reqId, config, book, clientOf, emit } = run;
     const tool = Object.prototype.hasOwnProperty.call(PAINT_TOOLS, call.function.name) ? PAINT_TOOLS[call.function.name as keyof typeof PAINT_TOOLS] : undefined;
     if (!tool) throw new PaintStepError(`The chat model asked for an unknown tool, ${call.function.name}.`);
 
@@ -267,7 +268,7 @@ export default class Painter extends AbstractProvider {
 
     let parsed: any;
     try {
-      const response = await withKeepAlive(ctx, clientOf(region).send(new InvokeModelCommand({
+      const response = await withKeepAlive(ctx, reqId, clientOf(region).send(new InvokeModelCommand({
         body: JSON.stringify(tool.body(args, pictures, modelId)),
         contentType: "application/json",
         accept: "application/json",

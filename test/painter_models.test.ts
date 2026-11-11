@@ -435,8 +435,14 @@ describe('painter behind the bedrock-converse chat provider', () => {
     });
 });
 
+// A keep-alive is a normal chunk that carries no text, so a client that parses every data line accepts it.
+const emptyChunks = (chunks: string[]) => chunks
+    .filter((c) => c.startsWith('data: {'))
+    .map((c) => JSON.parse(c.slice(6)))
+    .filter((chunk) => chunk.choices[0].delta.content === '');
+
 describe('painter keep-alive', () => {
-    it('writes an SSE comment every 15 seconds while Bedrock is slow, and stops afterwards', async () => {
+    it('writes an empty-content chunk every 15 seconds while Bedrock is slow, and stops afterwards', async () => {
         vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
         stubChat([{ calls: [['txt2img', { prompt: 'a cat' }]] }, { text: 'done' }]);
         let release!: () => void;
@@ -456,14 +462,18 @@ describe('painter keep-alive', () => {
         await vi.advanceTimersByTimeAsync(15_000);
         await vi.advanceTimersByTimeAsync(15_000);
         release();
-        const { raw } = await running;
-        expect(raw.split(': keep-alive\n\n').length - 1).toBe(2);
+        const { raw, chunks, ctx } = await running;
+        expect(emptyChunks(chunks)).toHaveLength(2);
+        expect(raw).not.toContain(': keep-alive');
+        const recorded = threads(ctx).map((t: any) => t.completion).join('');
+        expect(recorded).toContain('> Step 1');
+        expect(recorded).not.toContain('chatcmpl');
         expect(vi.getTimerCount()).toBe(0);
     });
 });
 
 describe('painter keep-alive on the chat call', () => {
-    it('writes an SSE comment while the chat model is slow', async () => {
+    it('writes an empty-content chunk while the chat model is slow', async () => {
         vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
         let release!: () => void;
         const slow = new Promise<void>((resolve) => { release = resolve; });
@@ -478,8 +488,9 @@ describe('painter keep-alive on the chat call', () => {
         await vi.waitFor(() => expect(started).toBe(true));
         await vi.advanceTimersByTimeAsync(15_000);
         release();
-        const { raw, text } = await running;
-        expect(raw.split(': keep-alive\n\n').length - 1).toBe(1);
+        const { raw, text, chunks } = await running;
+        expect(emptyChunks(chunks)).toHaveLength(1);
+        expect(raw).not.toContain(': keep-alive');
         expect(text).toBe('Hi.');
         expect(vi.getTimerCount()).toBe(0);
     });
