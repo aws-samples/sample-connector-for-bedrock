@@ -168,7 +168,13 @@ export async function fitForStability(name: string, bytes: Uint8Array): Promise<
     let image = sharp(bytes).rotate();
     if (tooBig) {
       const factor = Math.sqrt(maxPixels / (width * height));
-      image = image.resize(Math.floor(width * factor), Math.floor(height * factor), { fit: "fill" });
+      let w = Math.floor(width * factor);
+      let h = Math.floor(height * factor);
+      while (Math.max(w, h) / Math.min(w, h) > maxRatio) {
+        if (w >= h) w -= 1;
+        else h -= 1;
+      }
+      image = image.resize(w, h, { fit: "fill" });
     }
     return (await image.toFormat(format).toBuffer()).toString("base64");
   } catch {
@@ -185,12 +191,16 @@ export function presignedS3Url(url: string, bucket: string, region: string): str
     return undefined;
   }
   if (parsed.protocol !== "https:" || !parsed.searchParams.has("X-Amz-Signature")) return undefined;
-  const path = decodeURIComponent(parsed.pathname.slice(1));
-  if (parsed.hostname === `${bucket}.s3.${region}.amazonaws.com`) return path ? `s3://${bucket}/${path}` : undefined;
-  if (parsed.hostname === `s3.${region}.amazonaws.com` && path.startsWith(`${bucket}/`) && path.length > bucket.length + 1) {
-    return `s3://${path}`;
+  const virtualHosted = parsed.hostname === `${bucket}.s3.${region}.amazonaws.com`;
+  if (!virtualHosted && parsed.hostname !== `s3.${region}.amazonaws.com`) return undefined;
+  let path: string;
+  try {
+    path = decodeURIComponent(parsed.pathname.slice(1));
+  } catch {
+    return undefined;
   }
-  return undefined;
+  if (virtualHosted) return path ? `s3://${bucket}/${path}` : undefined;
+  return path.startsWith(`${bucket}/`) && path.length > bucket.length + 1 ? `s3://${path}` : undefined;
 }
 
 function imageUrlOf(part: any): string | undefined {

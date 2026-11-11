@@ -203,6 +203,7 @@ describe('S3PictureStore', () => {
         expect(presignedS3Url(url, 'other-bucket', REGION)).toBeUndefined();
         expect(presignedS3Url(url, BUCKET, 'us-east-1')).toBeUndefined();
         expect(presignedS3Url('not a url', BUCKET, REGION)).toBeUndefined();
+        expect(presignedS3Url(`https://${BUCKET}.s3.${REGION}.amazonaws.com/%E0%A4%A?X-Amz-Signature=abc`, BUCKET, REGION)).toBeUndefined();
     });
 
     it('refuses to read from another bucket with a 400 and sends nothing', async () => {
@@ -255,6 +256,12 @@ describe('fitForStability', () => {
         expect(meta.format).toBe('jpeg');
         expect(meta.width! * meta.height!).toBeLessThanOrEqual(4_194_304);
         expect(meta.width!).toBeGreaterThan(2000);
+    });
+
+    it('keeps the ratio at or under 2.5:1 when it scales a wide picture down', async () => {
+        const meta = await decode(await fitForStability('image_1', await solid(5000, 2000, 'jpeg'))).metadata();
+        expect(meta.width! / meta.height!).toBeLessThanOrEqual(STABILITY_LIMITS.maxRatio);
+        expect(meta.width! * meta.height!).toBeLessThanOrEqual(STABILITY_LIMITS.maxPixels);
     });
 
     it('turns a readable format Stability does not take into PNG', async () => {
