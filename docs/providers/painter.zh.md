@@ -53,7 +53,7 @@ painter 现在忽略 `regions` 字段，设置了它会在日志里记一条消�
 | 能力 | 模型 ID | 每张图片价格（美元） | 用户可以这样说 |
 | --- | --- | --- | --- |
 | 文生图 | `paintModelId` | 0.14（Ultra）、0.04（Core）、0.08（SD3.5 Large） | “画一座黎明时的灯塔” |
-| 图生图 | Ultra 或 SD3.5 Large | 0.14（Ultra）、0.08（SD3.5 Large） | “把这张草图变成水彩画” |
+| 图生图 | Ultra 或 SD3.5 Large | 0.14（Ultra）、0.08（SD3.5 Large） | “把这张街景照片改成秋天的样子” |
 | 搜索并替换 | `us.stability.stable-image-search-replace-v1:0` | 0.07 | “把猫换成狗” |
 | 去除背景 | `us.stability.stable-image-remove-background-v1:0` | 0.07 | “去掉这张照片的背景” |
 | 风格引导 | `us.stability.stable-image-style-guide-v1:0` | 0.07 | “照这幅画的风格画一个港口” |

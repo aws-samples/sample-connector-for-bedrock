@@ -53,7 +53,7 @@ Users do not need tool names or a fixed format. They write what they want, and t
 | Capability | Model ID | Price per picture (USD) | A user might say |
 | --- | --- | --- | --- |
 | Text to image | `paintModelId` | 0.14 (Ultra), 0.04 (Core), 0.08 (SD3.5 Large) | "Draw a lighthouse at dawn" |
-| Image to image | Ultra or SD3.5 Large | 0.14 (Ultra), 0.08 (SD3.5 Large) | "Turn this sketch into a watercolor" |
+| Image to image | Ultra or SD3.5 Large | 0.14 (Ultra), 0.08 (SD3.5 Large) | "Make this street photo look like autumn" |
 | Search and replace | `us.stability.stable-image-search-replace-v1:0` | 0.07 | "Replace the cat with a dog" |
 | Remove background | `us.stability.stable-image-remove-background-v1:0` | 0.07 | "Remove the background of this photo" |
 | Style guide | `us.stability.stable-image-style-guide-v1:0` | 0.07 | "Draw a harbor in the style of this painting" |
