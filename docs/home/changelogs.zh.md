@@ -33,6 +33,8 @@
 
 3. **lambda-web 提供 BRClient** - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient，之前 `lambda-web` 的 `/brclient/` 返回 404。构建时从 `scripts/brclient.pin` 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient v1.2.4，下载的内容和 digest 不一致时构建失败。见 [AutoUpdate](deployment.md#autoupdate)。
 
+3. **不属于任何组的 key 的模型列表** - 不属于任何组的 key，在 `GET /v1/models`、`/user/model/list`、`/user/model/list-for-brclient` 和 Claude Code Web（`/cc`）的模型菜单里，现在只列出绑定给它的模型。以前这些列表还会列出所有组的模型，调用其中的模型会被拒绝。属于某个组的 key 仍然列出组的模型和它自己的模型。admin key 不能调用这些模型，现在从 `/user/model/list-for-brclient` 得到空列表。
+
 ## 0.0.44
 
 **升级提示**

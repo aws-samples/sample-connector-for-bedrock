@@ -33,6 +33,8 @@
 
 3. **BRClient on lambda-web** - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`. The build takes BRClient v1.2.4 from the layer of the public BRConnector image 0.0.44 that `scripts/brclient.pin` names by sha256 digest, and fails when the download does not match the digest. See [AutoUpdate](deployment.md#autoupdate).
 
+3. **Model Lists for Keys Without a Group** - A key that is not in a group now lists only the models bound to it in `GET /v1/models`, `/user/model/list`, `/user/model/list-for-brclient` and the Claude Code Web (`/cc`) model menu. Before, these lists also showed the models of every group, and a call to one of those models was refused. A key in a group still lists its group's models and its own. The admin key, which cannot call these models, now gets an empty list from `/user/model/list-for-brclient`.
+
 ## 0.0.44
 
 **Upgrade notes**
