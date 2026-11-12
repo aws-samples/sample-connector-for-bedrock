@@ -19,6 +19,7 @@
    - 一次请求最多执行 5 步。每一步的图片一做好就流式返回，并附一行说明能力、模型和输入图片。后面的消息可以引用之前的图片。
    - 每张图片按生成它的模型的价格计费。新增的 `image_prices` 字段为每个模型 ID 设置价格。没有设置价格时，painter 使用内置标价。
    - 非流式请求不会画图，它们像以前一样转发给对话模型。
+   - painter 用用户最新一条消息的语言回复，前面的消息用了别的语言也一样。
    - **不兼容变更：** `localLlmModel` 现在必须支持 function calling，并且能看懂图片。
    - 请使用 Claude Sonnet 作为 `localLlmModel`。配置示例现在使用 `claude-sonnet-5-5-chat`。测试中，Amazon Nova Pro 执行了用户没有要求的额外计费步骤，并在回复里显示了它的 `<thinking>` 文字。见[选择对话模型](../providers/painter.md#choose-chat-model)。
    - **不兼容变更：** `regions` 不再对 `painter` 生效。Ultra、Core 和 SD3.5 Large 在 us-west-2 运行。六个 `us.stability.*` 图像服务，在所在区域是 us-east-1、us-east-2 或 us-west-2 时就在该区域运行，否则在 us-west-2 运行。在这三个区域之外，图片和提示词会发送到 us-west-2，有数据驻留要求时请不要使用 `painter`。角色需要目标区域的 `bedrock:InvokeModel`，用 `aws:RequestedRegion` 限制区域的 SCP 会拦截对 us-west-2 的调用。

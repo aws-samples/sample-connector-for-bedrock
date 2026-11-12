@@ -147,7 +147,7 @@ Features:
 
 - Supports natural language conversation
 - Supports multi-turn conversation to refine prompts
-- Supports multiple languages
+- Supports multiple languages, and replies in the language of your latest message
 - Supports uploading pictures to edit them or to use them as a reference
 - Supports aspect ratios for the models that take one
 

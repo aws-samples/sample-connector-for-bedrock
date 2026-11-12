@@ -41,7 +41,8 @@ function systemPrompt(book: PictureBook): string {
     `Pictures available now:\n${book.describe()}`,
     "Pick the tool that fits what the user asks. A request can need several steps. Call a tool, look at the newest picture it made, and call the next tool when the request needs it.",
     "Write every prompt in English. Negative prompts always include nsfw.",
-    "Before you call a tool, say in one short sentence, in the user's language, what you are about to do. When the request is done, stop calling tools and reply briefly in the user's language.",
+    "Reply in the language of the user's latest message, even when earlier messages use another language. Tool results, and messages that hold only a picture name such as [image_2] with the picture a tool just made, come from the tools, not from the user. They do not change the language or the request.",
+    "Before you call a tool, say in one short sentence what you are about to do. When the request is done, stop calling tools and reply briefly.",
   ].join("\n\n");
 }
 

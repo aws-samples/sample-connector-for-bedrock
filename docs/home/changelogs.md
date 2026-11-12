@@ -19,6 +19,7 @@
    - One request can run up to 5 steps. Each step's picture streams back as soon as it is made, with a line that names the capability, the model and the input pictures. Later messages can refer to earlier pictures.
    - Each picture is billed at the price of the model that made it. The new `image_prices` field sets a price for each model ID. Without a price, painter uses the built-in list prices.
    - Non-stream requests do not draw. They go to the chat model as before.
+   - painter replies in the language of the user's latest message, also when earlier messages use another language.
    - **Breaking:** `localLlmModel` must now support function calling and see images.
    - Use Claude Sonnet as `localLlmModel`. The configuration example now uses `claude-sonnet-5-5-chat`. In tests, Amazon Nova Pro ran extra billed steps the user did not ask for and showed its `<thinking>` text in the reply. See [Choosing the chat model](../providers/painter.md#choose-chat-model).
    - **Breaking:** `regions` no longer applies to `painter`. Ultra, Core and SD3.5 Large run in us-west-2. The six `us.stability.*` image services run in the host Region when it is us-east-1, us-east-2 or us-west-2, and in us-west-2 otherwise. Outside those three Regions, pictures and prompts are sent to us-west-2, so do not use `painter` if you have data-residency requirements. The role needs `bedrock:InvokeModel` in the target Region, and an SCP that limits `aws:RequestedRegion` blocks calls to us-west-2.
