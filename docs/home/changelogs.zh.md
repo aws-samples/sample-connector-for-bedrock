@@ -28,6 +28,8 @@
    - 上传的图片保存在 `<s3Prefix>/uploads/<date>/`。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。
    - **修复：** `bedrock-converse` 模型的非流式回答现在按顺序保留全部 tool call，以前只保留最后一个。
    - **修复：** Bedrock 返回 `AccessDeniedException` 时，回复现在会引用 Bedrock 的原始消息，并说明是这个模型的 AWS Marketplace 订阅还没有完成，还是角色在哪个区域缺少 `bedrock:InvokeModel`。以前所有拒绝都只给 IAM 提示。日志现在会记下每次拒绝，不记录提示词和图片。见 [IAM 权限](../providers/painter.md#iam)。
+   - **修复：** `painter` 的流现在在 `[DONE]` 之前以一个带 `finish_reason` 的 chunk 结束：达到 5 步上限时是 `length`，图像模型过滤了提示词或图片时是 `content_filter`，其他情况是 `stop`。以前每个 chunk 的 `finish_reason` 都是 `null`，检查它的客户端判断不出回复已经完整结束。
+
 
 3. **lambda-web 提供 BRClient** - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient，之前 `lambda-web` 的 `/brclient/` 返回 404。构建时从 `scripts/brclient.pin` 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient v1.2.4，下载的内容和 digest 不一致时构建失败。见 [AutoUpdate](deployment.md#autoupdate)。
 

@@ -8,7 +8,7 @@ import logger from "../util/logger";
 import { selfBaseUrl } from "../util/self";
 import { PictureBook, S3PictureStore, chatCopy, collectPictures, fitForStability } from "./painter_pictures";
 import {
-  PAINT_TOOLS, PaintStepError, accessDeniedMessage, chatTools, finishReasonMessage, imagePrice, invokeRegion, parseToolArgs,
+  FinishReason, PAINT_TOOLS, PaintStepError, accessDeniedMessage, chatTools, finishReasonMessage, imagePrice, invokeRegion, parseToolArgs,
 } from "./painter_tools";
 
 const MAX_STEPS = 5;
@@ -114,6 +114,8 @@ export default class Painter extends AbstractProvider {
     let recorded = 0;
     let stepsRun = 0;
     let threadMessages: Message[] = chatRequest.messages;
+    // OpenAI has no finish reason for an error, so a failure ends with "stop" after its error text.
+    let finish: FinishReason = "stop";
 
     const emit = (text: string) => {
       streamed.push(text);
@@ -168,6 +170,7 @@ export default class Painter extends AbstractProvider {
         for (const call of toolCalls) {
           if (stepsRun >= MAX_STEPS) {
             emit(`\n\nReached the limit of ${MAX_STEPS} picture steps for one request. The pictures above are kept.`);
+            finish = "length";
             return;
           }
           if (clientGone(ctx)) return;
@@ -197,9 +200,11 @@ export default class Painter extends AbstractProvider {
       }
     } catch (e: any) {
       const message = e?.message || String(e);
-      if (!(e instanceof PaintStepError)) logger.error(message);
+      if (e instanceof PaintStepError) finish = e.finishReason;
+      else logger.error(message);
       emit(`\n\n> Error: ${message}`);
     } finally {
+      if (!clientGone(ctx)) ctx.res.write("data: " + WebResponse.wrap(0, null, "", finish, null, null, reqId) + "\n\n");
       ctx.res.write("data: [DONE]\n\n");
     }
   }
@@ -285,7 +290,9 @@ export default class Painter extends AbstractProvider {
     }
 
     const reason = parsed.finish_reasons?.[0];
-    if (reason !== null && reason !== undefined) throw new PaintStepError(finishReasonMessage(reason));
+    if (reason !== null && reason !== undefined) {
+      throw new PaintStepError(finishReasonMessage(reason), String(reason).startsWith("Filter reason:") ? "content_filter" : "stop");
+    }
     const base64 = parsed.images?.[0];
     if (!base64) throw new PaintStepError("The image model returned no picture.");
 

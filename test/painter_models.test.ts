@@ -445,6 +445,97 @@ describe('painter steps', () => {
     });
 });
 
+const finishReasons = (chunks: string[]) => chunks
+    .filter((c) => c.startsWith('data: {'))
+    .map((c) => JSON.parse(c.slice(6)).choices[0].finish_reason)
+    .filter((reason) => reason !== null);
+
+function expectEnd(chunks: string[], reason: string) {
+    expect(chunks.at(-1)).toBe('data: [DONE]\n\n');
+    expect(JSON.parse(chunks.at(-2)!.slice(6)).choices).toEqual([{ index: 0, delta: {}, finish_reason: reason, logprobs: null }]);
+    expect(finishReasons(chunks)).toEqual([reason]);
+}
+
+describe('painter stream end', () => {
+    it('ends a plain answer with finish_reason stop right before [DONE]', async () => {
+        stubChat([{ text: 'Hello there.' }]);
+        stubAws();
+        const { chunks, text } = await paint([{ role: 'user', content: 'hi' }]);
+        expectEnd(chunks, 'stop');
+        expect(text).toBe('Hello there.');
+    });
+
+    it('ends with stop after the pictures and the closing reply', async () => {
+        stubChat([{ text: 'Drawing.', calls: [['txt2img', { prompt: 'a cat' }]] }, { text: 'Here it is.' }]);
+        stubAws();
+        const { chunks, text } = await paint([{ role: 'user', content: 'a cat' }]);
+        expectEnd(chunks, 'stop');
+        expect(text.endsWith('Here it is.')).toBe(true);
+    });
+
+    it('ends with length when the step limit stops the request', async () => {
+        stubChat([{ calls: [['txt2img', { prompt: 'a cat' }]] }]);
+        stubAws();
+        const { chunks, text } = await paint([{ role: 'user', content: 'cats' }]);
+        expect(text).toContain('Reached the limit of 5 picture steps');
+        expectEnd(chunks, 'length');
+    });
+
+    it.each([
+        ['Filter reason: prompt', 'content_filter'],
+        ['Filter reason: input image', 'content_filter'],
+        ['Filter reason: output image', 'content_filter'],
+        ['Inference error', 'stop'],
+    ])('ends a step that returns %s with %s', async (stabilityReason, reason) => {
+        stubChat([{ calls: [['txt2img', { prompt: 'a cat' }]] }]);
+        stubAws(async () => ({ seeds: [1], finish_reasons: [stabilityReason] }));
+        const { chunks } = await paint([{ role: 'user', content: 'a cat' }]);
+        expectEnd(chunks, reason);
+    });
+
+    it('ends with content_filter when a later step is filtered after a picture was made', async () => {
+        stubChat([{ calls: [['txt2img', { prompt: 'a' }], ['txt2img', { prompt: 'b' }]] }]);
+        let calls = 0;
+        stubAws(async () => (++calls === 1
+            ? { images: [(await solid()).toString('base64')], finish_reasons: [null] }
+            : { seeds: [1], finish_reasons: ['Filter reason: output image'] }));
+        const { chunks, text } = await paint([{ role: 'user', content: 'two cats' }]);
+        expect(text.match(/!\[image_\d\]/g)).toHaveLength(1);
+        expectEnd(chunks, 'content_filter');
+    });
+
+    it('ends a failed chat call, a bad tool call and an unsupported paint model with stop', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => new Response('model overloaded', { status: 500 })));
+        expectEnd((await paint([{ role: 'user', content: 'a cat' }])).chunks, 'stop');
+
+        stubChat([{ calls: [['draw', { prompt: 'a cat' }]] }]);
+        stubAws();
+        expectEnd((await paint([{ role: 'user', content: 'a cat' }])).chunks, 'stop');
+
+        stubChat([{ calls: [['txt2img', { prompt: 'a cat' }]] }]);
+        expectEnd((await paint([{ role: 'user', content: 'a cat' }], { config: { paintModelId: 'my-model' } })).chunks, 'stop');
+    });
+
+    it('ends a refused upload with stop', async () => {
+        stubChat([{ text: 'should not be asked' }]);
+        stubAws();
+        const { chunks, text } = await paint([await userWithPictures('too many', 6)]);
+        expect(text).toBe('At most 5 pictures in one message; this one has 6.');
+        expectEnd(chunks, 'stop');
+    });
+
+    it('writes no finish reason once the client has gone', async () => {
+        stubChat([{ calls: [['txt2img', { prompt: 'a' }], ['txt2img', { prompt: 'b' }]] }]);
+        let ctxRef: any;
+        stubAws(async () => {
+            ctxRef.res.destroyed = true;
+            return { images: [(await solid()).toString('base64')], finish_reasons: [null] };
+        });
+        const { chunks } = await paint([{ role: 'user', content: 'x' }], { ctx: (c) => { ctxRef = c; } });
+        expect(finishReasons(chunks)).toEqual([]);
+    });
+});
+
 describe('painter behind the bedrock-converse chat provider', () => {
     it('makes both pictures when one converse answer holds two tool calls', async () => {
         const converter = new BedrockConverse();

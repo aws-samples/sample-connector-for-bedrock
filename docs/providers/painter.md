@@ -81,6 +81,8 @@ One request can run up to 5 steps. For example, "take the style of the first pic
 
 A later message can refer to earlier pictures, for example "remove the background of the last one". If a step fails, the request stops. Pictures from earlier steps stay in the reply and stay billed. If the 5-step limit is reached, the reply says so and keeps the pictures already made.
 
+The last chunk of the stream, before `[DONE]`, has a `finish_reason`. It is `length` when the 5-step limit stopped the request, and `content_filter` when the image model filtered the prompt or a picture. In all other cases it is `stop`. This includes a failed step, whose reply ends with the error message.
+
 A request that is not streamed does not draw. It goes to the chat model as before. BRClient uses such requests to name conversations.
 
 On the `lambda` compute type, a request stops after 60 seconds, and a chain of two or three steps can reach that limit. Each picture is billed when it is made, so the pictures already shown stay billed. Use the `ec2`, `ecs` or `lambda-web` compute type for longer chains.

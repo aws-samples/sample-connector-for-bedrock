@@ -27,8 +27,14 @@ const MAX_PROMPT_LENGTH = 10_000;
 // Picture arguments hold picture names; the other arguments are clamped numbers or strings.
 export type ToolArgs = Record<string, string | number>;
 
+export type FinishReason = "stop" | "length" | "content_filter";
+
 // A user-facing failure of one step. Its message is shown to the user as is, and it ends the request.
-export class PaintStepError extends Error {}
+export class PaintStepError extends Error {
+  constructor(message: string, readonly finishReason: FinishReason = "stop") {
+    super(message);
+  }
+}
 
 type Param =
   | { kind: "text"; description: string }
