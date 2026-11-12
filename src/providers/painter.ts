@@ -8,7 +8,7 @@ import logger from "../util/logger";
 import { selfBaseUrl } from "../util/self";
 import { PictureBook, S3PictureStore, chatCopy, collectPictures, fitForStability } from "./painter_pictures";
 import {
-  PAINT_TOOLS, PaintStepError, chatTools, finishReasonMessage, imagePrice, invokeRegion, parseToolArgs,
+  PAINT_TOOLS, PaintStepError, accessDeniedMessage, chatTools, finishReasonMessage, imagePrice, invokeRegion, parseToolArgs,
 } from "./painter_tools";
 
 const MAX_STEPS = 5;
@@ -277,7 +277,8 @@ export default class Painter extends AbstractProvider {
       parsed = JSON.parse(new TextDecoder().decode(response.body));
     } catch (e: any) {
       if (e?.name === "AccessDeniedException") {
-        throw new PaintStepError(`Access denied calling ${modelId}. The role may lack bedrock:InvokeModel in ${region}.`);
+        logger.error({ message: "painter was denied access to the image model", modelId, region, name: e.name, error: e.message, requestId: e.$metadata?.requestId });
+        throw new PaintStepError(accessDeniedMessage(modelId, region, e.message));
       }
       throw e;
     }

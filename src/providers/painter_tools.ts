@@ -327,3 +327,12 @@ export function finishReasonMessage(reason: unknown): string {
       return `The image model stopped without a picture (${String(reason)}).`;
   }
 }
+
+// Bedrock throws AccessDeniedException both for a missing IAM permission and for an incomplete AWS Marketplace
+// subscription, so only its message tells the two apart.
+export function accessDeniedMessage(modelId: string, region: string, bedrockMessage: string): string {
+  const hint = /marketplace/i.test(bedrockMessage)
+    ? `Access denied calling ${modelId}. The AWS Marketplace subscription for this model is not complete. Allow aws-marketplace:Subscribe and aws-marketplace:ViewSubscriptions for the role that runs BRConnector, or invoke the model once in the Amazon Bedrock console, then try again in a few minutes.`
+    : `Access denied calling ${modelId} in ${region}. Check that the role that runs BRConnector, and any service control policy, allow bedrock:InvokeModel there.`;
+  return `${hint} Bedrock says: ${bedrockMessage}`;
+}
