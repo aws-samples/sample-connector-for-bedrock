@@ -109,6 +109,8 @@
 | `ecs` | 没有夜间任务。 |
 | `lambda-web` | 没有夜间任务。`SourceRepoUrl`、`SourceRef` 或 `WebFnBuildId` 变化时，以及第一次更新到 0.0.44 模板时，更新 stack 会从 `SourceRepoUrl` 的 `SourceRef` 重新构建部署包并发布。只想重新构建时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）。 |
 
+`lambda-web` 部署包和 `ec2`、`ecs` 的镜像一样，在 `/brclient/` 提供 BRClient。BRClient 的 release 里只有 v1.2.1 带网页版构建，而镜像里的 BRClient 更新。所以构建部署包时从 BRConnector 公开镜像的一个层里取出 `app/brclient` 目录。`SourceRef` 里的 `scripts/brclient.pin` 用 sha256 digest 指定这个层。构建时从 `public.ecr.aws` 下载这个层（约 8 MB），和 pin 比对 sha256，不一致就停止构建。从没有 `scripts/brclient.pin` 的 `SourceRef` 构建的部署包不含 BRClient，`/brclient/` 返回 404。
+
 `lambda-web` stack 更新失败时，CloudFormation 通过重新构建上一个 `SourceRef` 来回滚，所以在更新完成之前，请保留这个 ref（分支或提交）。如果回滚构建也失败，stack 会停在 `UPDATE_ROLLBACK_FAILED`。用下面的命令恢复：
 
 ```sh
