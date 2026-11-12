@@ -1915,6 +1915,7 @@
    - 一次请求最多执行 5 步。每一步的图片一做好就流式返回，并附一行说明能力、模型和输入图片。后面的消息可以引用之前的图片。<br>
    - 每张图片按生成它的模型的价格计费。新增的 <code>image_prices</code> 字段为每个模型 ID 设置价格。没有设置价格时，painter 使用内置标价。<br>
    - 非流式请求不会画图，它们像以前一样转发给对话模型。<br>
+   - painter 用用户最新一条消息的语言回复，前面的消息用了别的语言也一样。<br>
    - <strong>不兼容变更：</strong> <code>localLlmModel</code> 现在必须支持 function calling，并且能看懂图片。<br>
    - 请使用 Claude Sonnet 作为 <code>localLlmModel</code>。配置示例现在使用 <code>claude-sonnet-5-5-chat</code>。测试中，Amazon Nova Pro 执行了用户没有要求的额外计费步骤，并在回复里显示了它的 <code>&lt;thinking&gt;</code> 文字。见<a href="../../providers/painter/#choose-chat-model">选择对话模型</a>。<br>
    - <strong>不兼容变更：</strong> <code>regions</code> 不再对 <code>painter</code> 生效。Ultra、Core 和 SD3.5 Large 在 us-west-2 运行。六个 <code>us.stability.*</code> 图像服务，在所在区域是 us-east-1、us-east-2 或 us-west-2 时就在该区域运行，否则在 us-west-2 运行。在这三个区域之外，图片和提示词会发送到 us-west-2，有数据驻留要求时请不要使用 <code>painter</code>。角色需要目标区域的 <code>bedrock:InvokeModel</code>，用 <code>aws:RequestedRegion</code> 限制区域的 SCP 会拦截对 us-west-2 的调用。<br>
@@ -2221,7 +2222,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 13:03:40 CST"><span class="timeago" datetime="2026-11-12T13:03:40+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 13:03:40 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 13:49:29 CST"><span class="timeago" datetime="2026-11-12T13:49:29+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 13:49:29 CST">2026-11-12</span>
   </span>
 
     
