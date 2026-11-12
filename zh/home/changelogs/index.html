@@ -24,7 +24,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -549,6 +549,17 @@
       目录
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#0044" class="md-nav__link">
@@ -1151,8 +1162,6 @@
       
         
       
-        
-      
     
     
     
@@ -1510,34 +1519,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../providers/nova-canvas/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    nova-canvas
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../providers/ollama/" class="md-nav__link">
         
   
@@ -1761,6 +1742,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0044" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1902,6 +1894,18 @@
 
 
 <h1 id="_1">更新日志<a class="headerlink" href="#_1" title="Permanent link">¶</a></h1>
+<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
+<p><strong>升级提示</strong></p>
+<ul>
+<li>对使用了 Amazon Bedrock 已停止提供的图像模型的模型，这是不兼容变更（第 1 条）。升级前，请在管理后台检查 provider 为 <code>nova-canvas</code> 或 <code>painter</code> 的每个模型的 provider 和 <code>paintModelId</code>。没有 migration 会修改这些模型。</li>
+</ul>
+<ol>
+<li><strong>下线已停止提供的图像模型</strong> - Amazon Bedrock 已不再提供 Amazon Nova Canvas（<code>amazon.nova-canvas-v1:0</code>）、Amazon Titan Image Generator（<code>amazon.titan-image-generator-v1</code>、<code>amazon.titan-image-generator-v2:0</code>）、Stability SDXL（<code>stability.stable-diffusion-xl-v0</code>、<code>stability.stable-diffusion-xl-v1</code>）、<code>stability.sd3-large-v1:0</code> 和 <code>stability.stable-image-ultra-v1:0</code>，BRConnector 不再支持它们。<br>
+   - 移除 <code>nova-canvas</code> provider。请求 provider 为它的模型会返回 HTTP 400，并提示改用 <code>painter</code>。原模型保留在数据库里，由您修改或删除。要继续画图，请用下面的模型之一新建一个 <code>painter</code> 模型。<br>
+   - <code>painter</code> 支持 <code>stability.stable-image-ultra-v1:1</code>、<code>stability.stable-image-core-v1:1</code> 和 <code>stability.sd3-5-large-v1:0</code>。Amazon Bedrock 只在 us-west-2 提供它们，所以请在模型 config 里设置 <code>"regions": ["us-west-2"]</code>。见 <a href="../../providers/painter/">painter</a>。<br>
+   - <code>paintModelId</code> 不是 Stability 模型的 <code>painter</code> 模型，现在会返回一条列出这三个模型的错误，不调用 Bedrock。<code>paintModelId</code> 是已下线 Stability 模型的 <code>painter</code> 模型，仍会在调用 Bedrock 时失败。<br>
+   - 修改 <code>painter</code> 模型时，把它的 <code>paintModelId</code> 设为这三个模型之一，<code>regions</code> 设为 <code>["us-west-2"]</code>。</li>
+</ol>
 <h2 id="0044">0.0.44<a class="headerlink" href="#0044" title="Permanent link">¶</a></h2>
 <p><strong>升级提示</strong></p>
 <ul>
@@ -2195,7 +2199,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月24日 11:03:51 CST"><span class="timeago" datetime="2026-10-24T11:03:51+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月24日 11:03:51 CST">2026-10-24</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月11日 23:55:23 CST"><span class="timeago" datetime="2026-11-11T23:55:23+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月11日 23:55:23 CST">2026-11-11</span>
   </span>
 
     
@@ -2263,7 +2267,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.indexes", "navigation.top", "navigation.expand", "search.suggest", "search.highlight", "toc.follow", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../../js/timeago.min.js"></script>
       
