@@ -1473,6 +1473,67 @@ Updated in Docker image version 0.0.19">
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
+        用户可以怎么说
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="用户可以怎么说">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一次请求里的多个步骤
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        上传
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        区域与数据驻留
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM 权限
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#billing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         计费
       
     </span>
@@ -1660,6 +1721,67 @@ Updated in Docker image version 0.0.19">
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
+        用户可以怎么说
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="用户可以怎么说">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一次请求里的多个步骤
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        上传
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        区域与数据驻留
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM 权限
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#billing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
         计费
       
     </span>
@@ -1705,17 +1827,18 @@ Updated in Docker image version 0.0.12<br>
 Updated in Docker image version 0.0.13<br>
 Updated in Docker image version 0.0.19</p>
 </blockquote>
-<p>使用 Bedrock 画图模型</p>
+<p>使用 Amazon Bedrock 上的 Stability AI 模型画图和改图。</p>
+<p>用户在 BRClient 里可以只写一句话，也可以上传最多 5 张图片再写一句话。对话模型理解请求，从八种能力中选一种并调用。每张图片一做好就显示在回复里。</p>
 <h2 id="_1">配置<a class="headerlink" href="#_1" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"regions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="s2">"us-west-2"</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"s3Bucket"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-bucket&gt;"</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"s3Prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-prefix&gt;"</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">"s3Region"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us-east-1"</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">"paintModelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stability.stable-image-ultra-v1:1"</span><span class="p">,</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-haiku-5-5-chat"</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"s3Bucket"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-bucket&gt;"</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"s3Prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-prefix&gt;"</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"s3Region"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us-east-1"</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"paintModelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stability.stable-image-ultra-v1:1"</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-haiku-5-5-chat"</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">"image_prices"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">"stability.stable-image-ultra-v1:1"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.14</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">}</span>
 </code></pre></div>
 <table>
@@ -1734,65 +1857,168 @@ Updated in Docker image version 0.0.19</p>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>You should choose a native model for <strong>function calling</strong></td>
+<td>理解请求并决定画什么的对话模型。它必须支持 <strong>function calling</strong>，并且能<strong>看懂图片</strong>。看不懂图片的模型分不清用户指的是哪一张。</td>
 </tr>
 <tr>
 <td>paintModelId</td>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>Bedrock image gen model id. 可选值见下文。</td>
+<td>文生图模型，可选值见下文。</td>
 </tr>
 <tr>
 <td>s3Bucket</td>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>S3 is for storing the generated images, please set the IAM permissions to meet access requirements.</td>
+<td>保存上传图片和生成图片的存储桶。请按<a href="./#iam">IAM 权限</a>授予访问权限。</td>
 </tr>
 <tr>
 <td>s3Prefix</td>
 <td>string</td>
 <td>N</td>
-<td></td>
-<td>The S3 prefix combined with the date will ultimately form the S3 key.</td>
+<td>”“</td>
+<td>S3 key 前缀。生成的图片放在 <code>&lt;s3Prefix&gt;/&lt;date&gt;/</code>，上传的图片放在 <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>。</td>
 </tr>
 <tr>
 <td>s3Region</td>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>S3 bucket region</td>
+<td>存储桶所在的区域。</td>
 </tr>
 <tr>
-<td>regions</td>
-<td>string</td>
+<td>image_prices</td>
+<td>object</td>
 <td>N</td>
-<td>[“us-east-1”]</td>
-<td>If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.</td>
+<td></td>
+<td>每个模型 ID 对应的单张图片价格，币种与模型相同。见<a href="./#billing">计费</a>。</td>
 </tr>
 <tr>
 <td>price_per_image</td>
 <td>number</td>
 <td>N</td>
-<td>0</td>
-<td>每张图片的价格，币种与模型相同。设置后画图才会计费，见下文“计费”一节。</td>
+<td></td>
+<td>所有图片共用的单张价格，币种与模型相同。<code>image_prices</code> 里没有的模型 ID 使用它。见<a href="./#billing">计费</a>。</td>
 </tr>
 </tbody>
 </table>
-<p>paintModelId 可以是如下的参数:</p>
+<p><code>paintModelId</code> 可以是如下的参数:</p>
 <ul>
-<li>stability.stable-image-ultra-v1:1</li>
-<li>stability.stable-image-core-v1:1</li>
-<li>stability.sd3-5-large-v1:0</li>
+<li><code>stability.stable-image-ultra-v1:1</code></li>
+<li><code>stability.stable-image-core-v1:1</code></li>
+<li><code>stability.sd3-5-large-v1:0</code></li>
 </ul>
-<p>这些模型只在 us-west-2 提供，所以请把 <code>regions</code> 设为 <code>["us-west-2"]</code>。最新的列表见 <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html">Model support by AWS Region</a>。</p>
+<p><code>paintModelId</code> 决定文生图用的模型。它是 Ultra 或 SD3.5 Large 时，也决定图生图用的模型。Core 不能接收图片作为输入，所以选 Core 时，图生图使用 SD3.5 Large。</p>
+<p>painter 现在忽略 <code>regions</code> 字段，设置了它会在日志里记一条消息。painter 为每个模型自己选区域，见<a href="./#regions">区域与数据驻留</a>。请把已有 config 里的 <code>regions</code> 删掉。</p>
 <p>然后将此模型授予组或 api key。</p>
-<h2 id="_2">计费<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
+<h2 id="_2">用户可以怎么说<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
+<p>用户不需要知道工具名，也不需要固定格式。直接写想要什么，由对话模型选择能力。选错了，用户可以说明后再要求一次。</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>模型 ID</th>
+<th>每张图片价格（美元）</th>
+<th>用户可以这样说</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文生图</td>
+<td><code>paintModelId</code></td>
+<td>0.14（Ultra）、0.04（Core）、0.08（SD3.5 Large）</td>
+<td>“画一座黎明时的灯塔”</td>
+</tr>
+<tr>
+<td>图生图</td>
+<td>Ultra 或 SD3.5 Large</td>
+<td>0.14（Ultra）、0.08（SD3.5 Large）</td>
+<td>“把这张街景照片改成秋天的样子”</td>
+</tr>
+<tr>
+<td>搜索并替换</td>
+<td><code>us.stability.stable-image-search-replace-v1:0</code></td>
+<td>0.07</td>
+<td>“把猫换成狗”</td>
+</tr>
+<tr>
+<td>去除背景</td>
+<td><code>us.stability.stable-image-remove-background-v1:0</code></td>
+<td>0.07</td>
+<td>“去掉这张照片的背景”</td>
+</tr>
+<tr>
+<td>风格引导</td>
+<td><code>us.stability.stable-image-style-guide-v1:0</code></td>
+<td>0.07</td>
+<td>“照这幅画的风格画一个港口”</td>
+</tr>
+<tr>
+<td>风格迁移</td>
+<td><code>us.stability.stable-style-transfer-v1:0</code></td>
+<td>0.08</td>
+<td>“让我的照片看起来像这幅画”</td>
+</tr>
+<tr>
+<td>结构控制</td>
+<td><code>us.stability.stable-image-control-structure-v1:0</code></td>
+<td>0.07</td>
+<td>“保留这张照片的布局，改成冬天的场景”</td>
+</tr>
+<tr>
+<td>草图控制</td>
+<td><code>us.stability.stable-image-control-sketch-v1:0</code></td>
+<td>0.07</td>
+<td>“把我手绘的草图做成一张完整的海报”</td>
+</tr>
+</tbody>
+</table>
+<p>价格是撰写时的标价。当前价格见 <a href="https://aws.amazon.com/bedrock/pricing/">Amazon Bedrock 定价页面</a>。</p>
+<p>painter 不支持蒙版，所以不能做局部重绘、擦除物体或扩图。</p>
+<h3 id="_3">一次请求里的多个步骤<a class="headerlink" href="#_3" title="Permanent link">¶</a></h3>
+<p>一次请求最多执行 5 步。例如“取第一张图的风格，用在第二张上，再去掉背景”会执行两步。每一步的图片一做好就显示出来。每张图片前，流里会有一行，写明这一步的能力、模型和输入图片，用户可以据此检查对话模型有没有选对。</p>
+<p>后面的消息可以引用之前的图片，例如“去掉最后一张的背景”。某一步失败时，请求停止。前面步骤的图片留在回复里，也已经计费。达到 5 步上限时，回复会说明，已经做好的图片保留。</p>
+<p>非流式请求不会画图，它像以前一样转发给对话模型。BRClient 用这种请求给对话起标题。</p>
+<p>在 <code>lambda</code> 计算类型上，一次请求最长 60 秒，两三步的链式请求就可能达到这个上限。每张图片一生成就计费，所以已经显示的图片仍然计费。需要更长的链式请求时，请使用 <code>ec2</code>、<code>ecs</code> 或 <code>lambda-web</code> 计算类型。</p>
+<h2 id="_4">上传<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
 <ul>
-<li>每次画图按返回的图片数量，每张按 <code>price_per_image</code> 计费，币种与模型相同。例如 <code>"price_per_image": 0.04</code> 表示每张图片计 0.04。画图失败时按 0 张图片记录。</li>
-<li><code>price_per_image</code> 按每<strong>张图片</strong>计，不是按 token 计。它缺失、为空、为负数或不是数字时，图片按 0 记录，所以请设置它，图像生成才会计费，例如设为 <code>paintModelId</code> 在您所在区域的价格，见 <a href="https://aws.amazon.com/bedrock/pricing/">Amazon Bedrock 定价页面</a>。</li>
-<li>生成画图提示词的调用发给 <code>localLlmModel</code>，按对该模型的调用以它的价格计费。</li>
+<li>一条消息最多 5 张图片，每张最多 10 MB。</li>
+<li>支持 JPEG、PNG 或 WebP。HEIC 无法读取，请先转换格式。</li>
+<li>图片超出所选模型的限制时，会返回错误，写明违反的规则和图片的实际值。</li>
+<li>Bedrock 过滤了提示词、输入图片或输出图片时，回复会说明是哪一个，不会显示错误堆栈。</li>
+</ul>
+<p>上传的图片保存在 <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>，生成的图片保存在 <code>&lt;s3Prefix&gt;/&lt;date&gt;/</code>。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。</p>
+<p>回复里生成的图片是 S3 预签名 URL 链接。URL 最长有效 4 小时。用临时凭证签名的 URL 在凭证过期时就失效。EC2 实例角色的凭证约 6 小时有效，所以对话里较早的图片可能不到 4 小时就打不开。</p>
+<h2 id="regions">区域与数据驻留<a class="headerlink" href="#regions" title="Permanent link">¶</a></h2>
+<p>painter 为每个模型选择区域。</p>
+<ul>
+<li>Ultra、Core 和 SD3.5 Large 始终在 us-west-2 运行。</li>
+<li>六个 <code>us.stability.*</code> 图像服务，在 BRConnector 所在区域是 us-east-1、us-east-2 或 us-west-2 时，就在该区域运行；在其他区域时，在 us-west-2 运行。</li>
+</ul>
+<p><code>us.stability.*</code> 是跨区域推理配置文件，所以 Bedrock 可能把调用路由到另外两个美国区域之一。</p>
+<p>BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，提示词和上传的图片会发送到 us-west-2。有数据驻留要求的客户，请不要使用 painter。</p>
+<h2 id="iam">IAM 权限<a class="headerlink" href="#iam" title="Permanent link">¶</a></h2>
+<p>运行 BRConnector 的角色需要：</p>
+<ul>
+<li>目标区域的 <code>bedrock:InvokeModel</code>，覆盖基础模型和 <code>us.stability.*</code> 推理配置文件。</li>
+<li>存储桶和前缀上的 <code>s3:PutObject</code> 和 <code>s3:GetObject</code>。</li>
+</ul>
+<p>用 <code>aws:RequestedRegion</code> 限制区域的服务控制策略（SCP）会拦截对 us-west-2 的调用。调用返回 <code>AccessDeniedException</code> 时，回复会写明 BRConnector 调用的区域。</p>
+<h2 id="billing">计费<a class="headerlink" href="#billing" title="Permanent link">¶</a></h2>
+<p>painter 按如下顺序查找单张图片的价格：</p>
+<ol>
+<li>模型 config 里的 <code>image_prices[modelId]</code>。</li>
+<li>模型 config 里的 <code>price_per_image</code>。</li>
+<li>上表里的内置标价。内置标价以美元计，模型的币种不是美元时，请设置 <code>image_prices</code>。</li>
+<li>0，并在日志里记一条警告。缺少价格不会阻止调用。</li>
+</ol>
+<p>每张图片按生成它的模型的价格计费。一次请求里有一步搜索并替换和一步去除背景，就按两张图片计费，每张 0.07。失败的步骤没有生成图片，不计费。</p>
+<ul>
+<li>完全没有设置价格的 config，现在按内置标价计费。以前按 0 计费。</li>
+<li>设置了 <code>price_per_image</code> 的 config，在设置 <code>image_prices</code> 之前，所有能力都沿用这一个价格。要让每种能力按自己的价格计费，请设置 <code>image_prices</code>。</li>
+<li>对 <code>localLlmModel</code> 的调用，按对该模型的调用以它的价格计费。</li>
+<li>价格仅供参考。painter 不会在调用前扣费，也不会因为额度而停止请求。</li>
 </ul>
 <h2 id="brclient">BRClient 中的功能和截图<a class="headerlink" href="#brclient" title="Permanent link">¶</a></h2>
 <p>您可以在对话中包含如下信息：</p>
@@ -1800,7 +2026,8 @@ Updated in Docker image version 0.0.19</p>
 <li>支持自然语言对话</li>
 <li>支持多轮对话以细化提示</li>
 <li>支持多种语言</li>
-<li>支持图像大小和宽高比</li>
+<li>支持上传图片，用来修改或作为参考</li>
+<li>支持宽高比（对支持宽高比的模型）</li>
 </ul>
 <p>BRClient 中的截图：</p>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../providers/screenshots/sd-ultra.webp" data-desc-position="bottom"><img alt="Wukong" src="../../../providers/screenshots/sd-ultra.webp"></a></p>
@@ -1828,7 +2055,7 @@ Updated in Docker image version 0.0.19</p>
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月11日 23:55:23 CST"><span class="timeago" datetime="2026-11-11T23:55:23+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月11日 23:55:23 CST">2026-11-11</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 01:23:14 CST"><span class="timeago" datetime="2026-11-12T01:23:14+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 01:23:14 CST">2026-11-12</span>
   </span>
 
     

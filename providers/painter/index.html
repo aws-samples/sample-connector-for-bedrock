@@ -1468,6 +1468,67 @@ Updated in Docker image version 0.0.19">
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-users-can-say" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What users can say
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What users can say">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#steps-in-one-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps in one request
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uploads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regions-and-data-residency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regions and data residency
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iam-permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#billing" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1655,6 +1716,67 @@ Updated in Docker image version 0.0.19">
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-users-can-say" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What users can say
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What users can say">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#steps-in-one-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps in one request
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uploads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regions-and-data-residency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regions and data residency
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iam-permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#billing" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1703,17 +1825,18 @@ Updated in Docker image version 0.0.12<br>
 Updated in Docker image version 0.0.13<br>
 Updated in Docker image version 0.0.19</p>
 </blockquote>
-<p>Draw using the bedrock paint model.</p>
+<p>Draw and edit pictures with Stability AI models on Amazon Bedrock.</p>
+<p>A user can type a sentence, or upload up to 5 pictures and type a sentence, in BRClient. The chat model reads the request, chooses one of eight capabilities, and calls it. Each picture appears in the reply as soon as it is made.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"regions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="s2">"us-west-2"</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"s3Bucket"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-bucket&gt;"</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"s3Prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-prefix&gt;"</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">"s3Region"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us-east-1"</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">"paintModelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stability.stable-image-ultra-v1:1"</span><span class="p">,</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-haiku-5-5-chat"</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"s3Bucket"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-bucket&gt;"</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"s3Prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-prefix&gt;"</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"s3Region"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us-east-1"</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"paintModelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stability.stable-image-ultra-v1:1"</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-haiku-5-5-chat"</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">"image_prices"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">"stability.stable-image-ultra-v1:1"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.14</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">}</span>
 </code></pre></div>
 <table>
@@ -1732,65 +1855,168 @@ Updated in Docker image version 0.0.19</p>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>You should choose a native model for <strong>function calling</strong></td>
+<td>The chat model that reads the request and chooses what to draw. It must support <strong>function calling</strong> and be able to <strong>see images</strong>. A model that cannot see images cannot tell which picture the user means.</td>
 </tr>
 <tr>
 <td>paintModelId</td>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>Bedrock image gen model id. See the options below.</td>
+<td>The text-to-image model. See the options below.</td>
 </tr>
 <tr>
 <td>s3Bucket</td>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>S3 is for storing the generated images, please set the IAM permissions to meet access requirements.</td>
+<td>The bucket that stores uploaded and generated pictures. Grant the access described in <a href="./#iam-permissions">IAM permissions</a>.</td>
 </tr>
 <tr>
 <td>s3Prefix</td>
 <td>string</td>
 <td>N</td>
 <td>”“</td>
-<td>The S3 prefix combined with the date will ultimately form the S3 key.</td>
+<td>The S3 key prefix. Generated pictures go to <code>&lt;s3Prefix&gt;/&lt;date&gt;/</code> and uploaded pictures go to <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>.</td>
 </tr>
 <tr>
 <td>s3Region</td>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>S3 bucket region</td>
+<td>The Region of the bucket.</td>
 </tr>
 <tr>
-<td>regions</td>
-<td>string</td>
+<td>image_prices</td>
+<td>object</td>
 <td>N</td>
-<td>[“us-east-1”]</td>
-<td>If you have applied and specified multiple regions, then a region will be randomly selected for the call. This feature can effectively alleviate performance bottlenecks.</td>
+<td></td>
+<td>The price of one picture for each model ID, in the model’s currency. See <a href="./#billing">Billing</a>.</td>
 </tr>
 <tr>
 <td>price_per_image</td>
 <td>number</td>
 <td>N</td>
-<td>0</td>
-<td>The price of one image, in the model’s currency. Set it so that drawing is billed; see <a href="./#billing">Billing</a>.</td>
+<td></td>
+<td>One price for every picture, in the model’s currency. It is used for a model ID that is not in <code>image_prices</code>. See <a href="./#billing">Billing</a>.</td>
 </tr>
 </tbody>
 </table>
-<p>paintModelId options:</p>
+<p><code>paintModelId</code> options:</p>
 <ul>
-<li>stability.stable-image-ultra-v1:1</li>
-<li>stability.stable-image-core-v1:1</li>
-<li>stability.sd3-5-large-v1:0</li>
+<li><code>stability.stable-image-ultra-v1:1</code></li>
+<li><code>stability.stable-image-core-v1:1</code></li>
+<li><code>stability.sd3-5-large-v1:0</code></li>
 </ul>
-<p>These models are available only in us-west-2, so set <code>regions</code> to <code>["us-west-2"]</code>. For the current list, see <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html">Model support by AWS Region</a>.</p>
-<p>Then grant this model to  group or apikey.</p>
-<h2 id="billing">Billing<a class="headerlink" href="#billing" title="Permanent link">¶</a></h2>
+<p><code>paintModelId</code> sets the model for text to image. It also sets the model for image to image when it is Ultra or SD3.5 Large. Core cannot take a picture as input, so with Core, image to image uses SD3.5 Large.</p>
+<p>painter ignores the <code>regions</code> field and logs a message when it is set. It picks the Region for each model. See <a href="./#regions-and-data-residency">Regions and data residency</a>. Remove <code>regions</code> from existing configs.</p>
+<p>Then grant this model to a group or an API key.</p>
+<h2 id="what-users-can-say">What users can say<a class="headerlink" href="#what-users-can-say" title="Permanent link">¶</a></h2>
+<p>Users do not need tool names or a fixed format. They write what they want, and the chat model chooses the capability. If the choice is wrong, the user can say so and ask again.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Model ID</th>
+<th>Price per picture (USD)</th>
+<th>A user might say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Text to image</td>
+<td><code>paintModelId</code></td>
+<td>0.14 (Ultra), 0.04 (Core), 0.08 (SD3.5 Large)</td>
+<td>“Draw a lighthouse at dawn”</td>
+</tr>
+<tr>
+<td>Image to image</td>
+<td>Ultra or SD3.5 Large</td>
+<td>0.14 (Ultra), 0.08 (SD3.5 Large)</td>
+<td>“Make this street photo look like autumn”</td>
+</tr>
+<tr>
+<td>Search and replace</td>
+<td><code>us.stability.stable-image-search-replace-v1:0</code></td>
+<td>0.07</td>
+<td>“Replace the cat with a dog”</td>
+</tr>
+<tr>
+<td>Remove background</td>
+<td><code>us.stability.stable-image-remove-background-v1:0</code></td>
+<td>0.07</td>
+<td>“Remove the background of this photo”</td>
+</tr>
+<tr>
+<td>Style guide</td>
+<td><code>us.stability.stable-image-style-guide-v1:0</code></td>
+<td>0.07</td>
+<td>“Draw a harbor in the style of this painting”</td>
+</tr>
+<tr>
+<td>Style transfer</td>
+<td><code>us.stability.stable-style-transfer-v1:0</code></td>
+<td>0.08</td>
+<td>“Make my photo look like this painting”</td>
+</tr>
+<tr>
+<td>Control structure</td>
+<td><code>us.stability.stable-image-control-structure-v1:0</code></td>
+<td>0.07</td>
+<td>“Keep the layout of this photo and make it a winter scene”</td>
+</tr>
+<tr>
+<td>Control sketch</td>
+<td><code>us.stability.stable-image-control-sketch-v1:0</code></td>
+<td>0.07</td>
+<td>“Turn my hand-drawn sketch into a finished poster”</td>
+</tr>
+</tbody>
+</table>
+<p>The prices are list prices at the time of writing. Check the <a href="https://aws.amazon.com/bedrock/pricing/">Amazon Bedrock pricing page</a> for the current ones.</p>
+<p>Painter does not support masks, so it cannot inpaint, erase an object or outpaint.</p>
+<h3 id="steps-in-one-request">Steps in one request<a class="headerlink" href="#steps-in-one-request" title="Permanent link">¶</a></h3>
+<p>One request can run up to 5 steps. For example, “take the style of the first picture, apply it to the second, then remove the background” runs two steps. Each step’s picture appears as it is made. Before each picture, the stream shows a line that names the step’s capability, the model and the input pictures, so the user can check that the chat model made the right choice.</p>
+<p>A later message can refer to earlier pictures, for example “remove the background of the last one”. If a step fails, the request stops. Pictures from earlier steps stay in the reply and stay billed. If the 5-step limit is reached, the reply says so and keeps the pictures already made.</p>
+<p>A request that is not streamed does not draw. It goes to the chat model as before. BRClient uses such requests to name conversations.</p>
+<p>On the <code>lambda</code> compute type, a request stops after 60 seconds, and a chain of two or three steps can reach that limit. Each picture is billed when it is made, so the pictures already shown stay billed. Use the <code>ec2</code>, <code>ecs</code> or <code>lambda-web</code> compute type for longer chains.</p>
+<h2 id="uploads">Uploads<a class="headerlink" href="#uploads" title="Permanent link">¶</a></h2>
 <ul>
-<li>Each drawing is billed at <code>price_per_image</code> for each image it returns, in the model’s currency. For example, <code>"price_per_image": 0.04</code> bills 0.04 per image. A drawing that fails is recorded with 0 images.</li>
-<li><code>price_per_image</code> is per <strong>image</strong>, not per token. When it is missing, blank, negative or not a number, images are recorded at 0, so set it to bill image generation, for example to the price of <code>paintModelId</code> in your Region on the <a href="https://aws.amazon.com/bedrock/pricing/">Amazon Bedrock pricing page</a>.</li>
-<li>The call that writes the drawing prompt goes to <code>localLlmModel</code> and is billed as a call to that model, at its prices.</li>
+<li>At most 5 pictures in one message, and at most 10 MB each.</li>
+<li>JPEG, PNG or WebP. HEIC cannot be read, so convert it first.</li>
+<li>A picture outside the limits of the chosen model gets an error that names the rule and the picture’s actual value.</li>
+<li>If Bedrock filters the prompt, an input picture or the output picture, the reply says which one. The reply does not show an error trace.</li>
+</ul>
+<p>Uploaded pictures are stored in <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>. Generated pictures are stored in <code>&lt;s3Prefix&gt;/&lt;date&gt;/</code>. BRConnector sets no lifecycle rule, so the pictures stay until you delete them.</p>
+<p>The generated pictures in a reply are links to S3 presigned URLs. A URL lasts at most 4 hours. A URL signed with temporary credentials stops working when the credentials expire. The credentials of an EC2 instance role last about 6 hours, so older pictures in a conversation can stop loading sooner than 4 hours.</p>
+<h2 id="regions-and-data-residency">Regions and data residency<a class="headerlink" href="#regions-and-data-residency" title="Permanent link">¶</a></h2>
+<p>painter picks the Region for each model.</p>
+<ul>
+<li>Ultra, Core and SD3.5 Large always run in us-west-2.</li>
+<li>The six <code>us.stability.*</code> image services run in the Region where BRConnector runs when it is us-east-1, us-east-2 or us-west-2. In any other Region they run in us-west-2.</li>
+</ul>
+<p><code>us.stability.*</code> are cross-Region inference profiles, so Bedrock may route a call to another of the three US Regions.</p>
+<p>When BRConnector runs outside us-east-1, us-east-2 and us-west-2, the prompts and uploaded pictures go to us-west-2. If you have data-residency requirements, do not use painter.</p>
+<h2 id="iam-permissions">IAM permissions<a class="headerlink" href="#iam-permissions" title="Permanent link">¶</a></h2>
+<p>The role that runs BRConnector needs:</p>
+<ul>
+<li><code>bedrock:InvokeModel</code> in the target Region, on the foundation models and on the <code>us.stability.*</code> inference profiles.</li>
+<li><code>s3:PutObject</code> and <code>s3:GetObject</code> on the bucket and prefix.</li>
+</ul>
+<p>A service control policy that limits <code>aws:RequestedRegion</code> blocks calls to us-west-2. If a call returns <code>AccessDeniedException</code>, the reply names the Region that BRConnector called.</p>
+<h2 id="billing">Billing<a class="headerlink" href="#billing" title="Permanent link">¶</a></h2>
+<p>painter looks up the price of one picture in this order:</p>
+<ol>
+<li><code>image_prices[modelId]</code> in the model config.</li>
+<li><code>price_per_image</code> in the model config.</li>
+<li>The built-in list prices in the table above. They are in USD, so set <code>image_prices</code> when the model’s currency is not USD.</li>
+<li>0, with a warning in the log. A missing price never blocks a call.</li>
+</ol>
+<p>Each picture is billed at the price of the model that made it. A request with a search-and-replace step and a remove-background step is billed for two pictures at 0.07 each. A step that fails makes no picture and is not billed.</p>
+<ul>
+<li>A config with no price at all is billed at the built-in list prices. Before, it was billed at 0.</li>
+<li>A config with <code>price_per_image</code> keeps that one price for every capability until you set <code>image_prices</code>. Set <code>image_prices</code> to bill each capability at its own price.</li>
+<li>The calls to <code>localLlmModel</code> are billed as calls to that model, at its prices.</li>
+<li>The prices are for reference. painter does not charge before a call and does not stop a request on a quota.</li>
 </ul>
 <h2 id="features-and-screenshots-in-brclient">Features and Screenshots in BRClient<a class="headerlink" href="#features-and-screenshots-in-brclient" title="Permanent link">¶</a></h2>
 <p>Features:</p>
@@ -1798,7 +2024,8 @@ Updated in Docker image version 0.0.19</p>
 <li>Supports natural language conversation</li>
 <li>Supports multi-turn conversation to refine prompts</li>
 <li>Supports multiple languages</li>
-<li>Supports image size and aspect ratio ratio</li>
+<li>Supports uploading pictures to edit them or to use them as a reference</li>
+<li>Supports aspect ratios for the models that take one</li>
 </ul>
 <p>Screenshots in BRClient:</p>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../screenshots/sd-ultra.webp" data-desc-position="bottom"><img alt="Wukong" src="../screenshots/sd-ultra.webp"></a></p>
@@ -1826,7 +2053,7 @@ Updated in Docker image version 0.0.19</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 11, 2026 23:55:23 CST"><span class="timeago" datetime="2026-11-11T23:55:23+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 11, 2026 23:55:23 CST">2026-11-11</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 12, 2026 01:23:14 CST"><span class="timeago" datetime="2026-11-12T01:23:14+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 12, 2026 01:23:14 CST">2026-11-12</span>
   </span>
 
     
