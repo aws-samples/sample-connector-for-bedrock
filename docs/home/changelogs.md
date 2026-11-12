@@ -7,6 +7,7 @@
 - This is a breaking change for models that use an image model Amazon Bedrock no longer serves (item 1). Before you upgrade, check the provider and the `paintModelId` of each model on the `nova-canvas` or `painter` provider in the admin console. No migration changes these models.
 - Stacks with AutoUpdate pull the new image automatically (items 1 and 2). Before users rely on the new `painter`, check that `localLlmModel` can see images, and check `price_per_image` and `image_prices` (item 2). A `painter` config without a price is now billed at the built-in list prices.
 - `regions` no longer applies to `painter`; remove it from the model config (item 2). If BRConnector runs outside us-east-1, us-east-2 and us-west-2, uploaded pictures and prompts go to us-west-2.
+- `lambda-web` stacks serve BRClient at `/brclient/` once the package is rebuilt from a `SourceRef` that includes item 3. When `SourceRef` is a branch, change `WebFnBuildId` (for example from `1` to `2`) to rebuild. The build now downloads BRClient from `public.ecr.aws` (item 3).
 
 1. **End-of-life Image Models Removed** - Amazon Bedrock no longer serves Amazon Nova Canvas (`amazon.nova-canvas-v1:0`), Amazon Titan Image Generator (`amazon.titan-image-generator-v1`, `amazon.titan-image-generator-v2:0`), Stability SDXL (`stability.stable-diffusion-xl-v0`, `stability.stable-diffusion-xl-v1`), `stability.sd3-large-v1:0` and `stability.stable-image-ultra-v1:0`, so BRConnector no longer supports them.
    - The `nova-canvas` provider is removed. A request to a model on it gets HTTP 400 that points to `painter`. The model stays in the database for you to change or delete. To keep drawing, create a `painter` model with one of the models below.
@@ -24,6 +25,8 @@
    - **Breaking:** presigned picture URLs now last up to 4 hours instead of 1. A URL signed with temporary credentials stops working when the credentials expire, so older pictures can stop loading sooner.
    - Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. BRConnector sets no lifecycle rule, so pictures stay until you delete them.
    - **Fix:** a non-stream answer from a `bedrock-converse` model now keeps every tool call, in order. It kept only the last one before.
+
+3. **BRClient on lambda-web** - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`. The build takes BRClient from the layer of the public BRConnector image 0.0.44 that `scripts/brclient.pin` names by sha256 digest, and fails when the download does not match the digest. See [AutoUpdate](deployment.md#autoupdate).
 
 ## 0.0.44
 

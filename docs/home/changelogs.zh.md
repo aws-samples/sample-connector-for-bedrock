@@ -7,6 +7,7 @@
 - 对使用了 Amazon Bedrock 已停止提供的图像模型的模型，这是不兼容变更（第 1 条）。升级前，请在管理后台检查 provider 为 `nova-canvas` 或 `painter` 的每个模型的 provider 和 `paintModelId`。没有 migration 会修改这些模型。
 - 开启 AutoUpdate 的 stack 会自动拉取新镜像（第 1、2 条）。在用户使用新的 `painter` 之前，请确认 `localLlmModel` 能看懂图片，并检查 `price_per_image` 和 `image_prices`（第 2 条）。没有设置价格的 `painter` config 现在按内置标价计费。
 - `regions` 不再对 `painter` 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。
+- `lambda-web` stack 要从包含第 3 条的 `SourceRef` 重新构建部署包后，才会在 `/brclient/` 提供 BRClient。`SourceRef` 是分支时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）来重新构建。构建时会从 `public.ecr.aws` 下载 BRClient（第 3 条）。
 
 1. **下线已停止提供的图像模型** - Amazon Bedrock 已不再提供 Amazon Nova Canvas（`amazon.nova-canvas-v1:0`）、Amazon Titan Image Generator（`amazon.titan-image-generator-v1`、`amazon.titan-image-generator-v2:0`）、Stability SDXL（`stability.stable-diffusion-xl-v0`、`stability.stable-diffusion-xl-v1`）、`stability.sd3-large-v1:0` 和 `stability.stable-image-ultra-v1:0`，BRConnector 不再支持它们。
    - 移除 `nova-canvas` provider。请求 provider 为它的模型会返回 HTTP 400，并提示改用 `painter`。原模型保留在数据库里，由您修改或删除。要继续画图，请用下面的模型之一新建一个 `painter` 模型。
@@ -24,6 +25,8 @@
    - **不兼容变更：** 图片预签名 URL 现在最长有效 4 小时，以前是 1 小时。用临时凭证签名的 URL 在凭证过期时就失效，所以较早的图片可能更早打不开。
    - 上传的图片保存在 `<s3Prefix>/uploads/<date>/`。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。
    - **修复：** `bedrock-converse` 模型的非流式回答现在按顺序保留全部 tool call，以前只保留最后一个。
+
+3. **lambda-web 提供 BRClient** - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient，之前 `lambda-web` 的 `/brclient/` 返回 404。构建时从 `scripts/brclient.pin` 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient，下载的内容和 digest 不一致时构建失败。见 [AutoUpdate](deployment.md#autoupdate)。
 
 ## 0.0.44
 

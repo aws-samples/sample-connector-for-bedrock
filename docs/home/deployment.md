@@ -110,6 +110,8 @@ With `AutoUpdateBRConnector` set to `true`, the stack moves BRConnector to `late
 | `ecs` | No nightly job. |
 | `lambda-web` | No nightly job. A stack update rebuilds the package from `SourceRepoUrl` at `SourceRef` and deploys it when `SourceRepoUrl`, `SourceRef` or `WebFnBuildId` changes, and on the first update to a 0.0.44 template. Change `WebFnBuildId` (for example from `1` to `2`) to rebuild without changing anything else. |
 
+The `lambda-web` package serves BRClient at `/brclient/`, like the `ec2` and `ecs` images. BRClient publishes no web build of its own, so the package build takes the `app/brclient` directory from one layer of the public BRConnector image. `scripts/brclient.pin` at `SourceRef` names that layer by its sha256 digest. The build downloads the layer (about 8 MB) from `public.ecr.aws`, compares its sha256 with the pin, and stops when they differ. A package built from a `SourceRef` without `scripts/brclient.pin` has no BRClient, and `/brclient/` returns 404.
+
 If the update of a `lambda-web` stack fails, CloudFormation rolls it back by building the previous `SourceRef` again, so keep that ref (branch or commit) available in the repository until the update completes. If the rollback build fails too, the stack ends in `UPDATE_ROLLBACK_FAILED`. Recover with:
 
 ```sh
