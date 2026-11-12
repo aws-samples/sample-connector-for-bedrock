@@ -2018,6 +2018,7 @@ Updated in Docker image version 0.0.19</p>
 <h3 id="_3">一次请求里的多个步骤<a class="headerlink" href="#_3" title="Permanent link">¶</a></h3>
 <p>一次请求最多执行 5 步。例如“取第一张图的风格，用在第二张上，再去掉背景”会执行两步。每一步的图片一做好就显示出来。每张图片前，流里会有一行，写明这一步的能力、模型和输入图片，用户可以据此检查对话模型有没有选对。</p>
 <p>后面的消息可以引用之前的图片，例如“去掉最后一张的背景”。某一步失败时，请求停止。前面步骤的图片留在回复里，也已经计费。达到 5 步上限时，回复会说明，已经做好的图片保留。</p>
+<p>流的最后一个 chunk（在 <code>[DONE]</code> 之前）带有 <code>finish_reason</code>。5 步上限让请求停止时是 <code>length</code>，图像模型过滤了提示词或图片时是 <code>content_filter</code>。其他情况都是 <code>stop</code>，包括某一步失败的情况，这时回复以错误信息结尾。</p>
 <p>非流式请求不会画图，它像以前一样转发给对话模型。BRClient 用这种请求给对话起标题。</p>
 <p>在 <code>lambda</code> 计算类型上，一次请求最长 60 秒，两三步的链式请求就可能达到这个上限。每张图片一生成就计费，所以已经显示的图片仍然计费。需要更长的链式请求时，请使用 <code>ec2</code>、<code>ecs</code> 或 <code>lambda-web</code> 计算类型。</p>
 <h2 id="_4">上传<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
@@ -2101,7 +2102,7 @@ Updated in Docker image version 0.0.19</p>
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 13:49:29 CST"><span class="timeago" datetime="2026-11-12T13:49:29+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 13:49:29 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 13:26:50 CST"><span class="timeago" datetime="2026-11-12T13:26:50+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 13:26:50 CST">2026-11-12</span>
   </span>
 
     

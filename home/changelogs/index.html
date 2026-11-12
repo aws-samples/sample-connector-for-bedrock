@@ -1921,7 +1921,8 @@
    - <strong>Breaking:</strong> presigned picture URLs now last up to 4 hours instead of 1. A URL signed with temporary credentials stops working when the credentials expire, so older pictures can stop loading sooner.<br>
    - Uploaded pictures are stored in <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>. BRConnector sets no lifecycle rule, so pictures stay until you delete them.<br>
    - <strong>Fix:</strong> a non-stream answer from a <code>bedrock-converse</code> model now keeps every tool call, in order. It kept only the last one before.<br>
-   - <strong>Fix:</strong> when Bedrock returns <code>AccessDeniedException</code>, the reply now quotes the message from Bedrock. It also says if the AWS Marketplace subscription for the model is not complete, or else names the Region where the role needs <code>bedrock:InvokeModel</code>. Before, every denial got the IAM hint. The log now records each denial, without the prompt or the pictures. See <a href="../../providers/painter/#iam-permissions">IAM permissions</a>.</p>
+   - <strong>Fix:</strong> when Bedrock returns <code>AccessDeniedException</code>, the reply now quotes the message from Bedrock. It also says if the AWS Marketplace subscription for the model is not complete, or else names the Region where the role needs <code>bedrock:InvokeModel</code>. Before, every denial got the IAM hint. The log now records each denial, without the prompt or the pictures. See <a href="../../providers/painter/#iam-permissions">IAM permissions</a>.<br>
+   - <strong>Fix:</strong> a <code>painter</code> stream now ends with a chunk that has a <code>finish_reason</code> before <code>[DONE]</code>: <code>length</code> at the 5-step limit, <code>content_filter</code> when the image model filtered the prompt or a picture, and <code>stop</code> otherwise. Before, every chunk had <code>finish_reason: null</code>, so a client that checks it could not tell that the reply was complete.</p>
 </li>
 <li>
 <p><strong>BRClient on lambda-web</strong> - The <code>lambda-web</code> package now serves BRClient at <code>/brclient/</code>. Before, <code>/brclient/</code> returned 404 on <code>lambda-web</code>. The build takes BRClient v1.2.4 from the layer of the public BRConnector image 0.0.44 that <code>scripts/brclient.pin</code> names by sha256 digest, and fails when the download does not match the digest. See <a href="../deployment/#autoupdate">AutoUpdate</a>.</p>
@@ -2220,7 +2221,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 12, 2026 13:49:29 CST"><span class="timeago" datetime="2026-11-12T13:49:29+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 12, 2026 13:49:29 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 12, 2026 13:26:50 CST"><span class="timeago" datetime="2026-11-12T13:26:50+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 12, 2026 13:26:50 CST">2026-11-12</span>
   </span>
 
     
