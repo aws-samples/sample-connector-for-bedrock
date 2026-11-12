@@ -19,7 +19,6 @@ import ContinueCoder from "./continue_coder";
 import SmartRouter from "./smart_router";
 // import SimpleAction from "./simple_action";
 import TitanEmbeddings from "./titan_embedings";
-import NovaCanvas from "./nova_canvas";
 import OpenAICompatible from "./openai_compatible";
 import BedrockDeepSeek from "./bedrock_deepseek";
 import SagemakerDeepSeek from "./sagemaker-deepseek";
@@ -33,6 +32,7 @@ export const RETIRED_PROVIDERS: Record<string, string> = {
     "aws-executor": "Claude Code Web (/cc)",
     "urls-reader": "Claude Code Web (/cc)",
     "web-miner": "Claude Code Web (/cc)",
+    "nova-canvas": "painter with a Stability model",
 };
 
 // Fields the gateway sets from the model configuration; whatever the client sent for them is dropped.
@@ -56,7 +56,6 @@ class Provider {
         this["bedrock-knowledge-base"] = BedrockKnowledgeBase;
         this["bedrock-agent"] = BedrockAgent;
         this["painter"] = Painter;
-        this["nova-canvas"] = NovaCanvas;
         this["ollama"] = OllamaAProvider;
         this["continue-coder"] = ContinueCoder;
         // this["bedrock-claude3"] = BedrockClaude;

@@ -5,9 +5,9 @@ import sharp from 'sharp';
 import { S3Client } from '@aws-sdk/client-s3';
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { isPublicAddress, fetchPublicImage, PUBLIC_FETCH_LIMITS } from '../src/util/public_fetch';
+import preprocess from '../src/util/preprocess';
 import BedrockConverse from '../src/providers/bedrock_converse';
 import ChatMessageConverter from '../src/providers/chat_message';
-import NovaCanvas from '../src/providers/nova_canvas';
 import providers from '../src/providers/provider';
 import { errorHandler } from '../src/middleware/handlers';
 import logger from '../src/util/logger';
@@ -371,55 +371,42 @@ describe('image URLs in the shared message converter', () => {
     });
 });
 
-describe('image URLs in nova-canvas', () => {
-    const bedrockAnswer = { send: vi.fn(async () => ({ body: new TextEncoder().encode(JSON.stringify({ images: ['out'] })) })) };
-    const nova = (s3Send: any) => {
-        const provider: any = new NovaCanvas();
-        provider.s3Bucket = 'model-bucket';
-        provider.paintModelId = 'amazon.nova-canvas-v1:0';
-        provider.client = bedrockAnswer;
-        provider.s3Client = { send: s3Send };
-        return provider;
+describe('image URLs downloaded for image models', () => {
+    const download = (url: string, s3Send: any = vi.fn()) => preprocess.downloadImageForNovaToBase64(url, { send: s3Send } as any, 'model-bucket');
+    const jpegOf = async (base64: string) => {
+        const { format, width, height } = await sharp(Buffer.from(base64, 'base64')).metadata();
+        return { format, width, height };
     };
 
-    it('nova-canvas rejects an s3:// URL outside its bucket', async () => {
+    it("rejects an s3:// URL outside the model's s3Bucket with a 400", async () => {
         const s3Send = vi.fn(async () => ({ Body: { transformToByteArray: async () => new Uint8Array(png) } }));
-        const provider = nova(s3Send);
         for (const url of ['s3://other-bucket/a.png', 's3://model-bucket-2/a.png', 's3://model-bucket.example/a.png', 's3:///a.png']) {
-            const ex = await rejection(() => provider.colorize({ image_url: url, prompt: 'p' }));
+            const ex = await rejection(() => download(url, s3Send));
             expect(ex.message).toBe(OUTSIDE_BUCKET);
             expect(ex.statusCode).toBe(400);
         }
-        await expect(provider.variate({ image_urls: ['s3://model-bucket/a.png', 's3://other-bucket/b.png'], prompt: 'p' })).rejects.toThrow(OUTSIDE_BUCKET);
-        expect(s3Send).toHaveBeenCalledTimes(1);
+        expect(s3Send).not.toHaveBeenCalled();
 
-        s3Send.mockClear();
-        expect(await provider.colorize({ image_url: 's3://model-bucket/dir/a.png', prompt: 'p' })).toEqual(['out']);
+        expect(await jpegOf(await download('s3://model-bucket/dir/a.png', s3Send))).toEqual({ format: 'jpeg', width: 32, height: 32 });
         expect(s3Send).toHaveBeenCalledTimes(1);
         expect((s3Send.mock.calls[0] as any[])[0].input).toEqual({ Bucket: 'model-bucket', Key: 'dir/a.png' });
     });
 
     it('fetches http(s) image URLs only from public addresses', async () => {
         server.routes.set('/img.png', image());
-        const provider = nova(vi.fn());
-        const ex = await rejection(() => provider.rembg({ image_url: at('/img.png') }));
+        const ex = await rejection(() => download(at('/img.png')));
         expect(ex.message).toBe(NOT_ALLOWED);
         expect(server.requests).toBe(0);
 
         vi.mocked(fetchPublicImage).mockResolvedValueOnce({ bytes: png, contentType: 'image/png' });
-        expect(await provider.rembg({ image_url: 'https://images.example/cat.png' })).toEqual(['out']);
+        expect(await jpegOf(await download('https://images.example/cat.png'))).toEqual({ format: 'jpeg', width: 32, height: 32 });
+        expect(fetchPublicImage).toHaveBeenCalledWith('https://images.example/cat.png');
     });
 
-    it('answers a rejected image with its own message', async () => {
-        const provider: any = new NovaCanvas();
-        provider.setModelData({ config: { paintModelId: 'amazon.nova-canvas-v1:0', localLlmModel: 'llm', s3Bucket: 'model-bucket', s3Region: 'us-east-1' } });
-        provider.toPaintPrompt = async () => ({
-            choices: [{ message: { content: 'ok', tool_calls: [{ function: { name: 'colorize', arguments: JSON.stringify({ image_url: 's3://other-bucket/a.png' }) } }] } }],
-        });
-        const ctx: any = { status: 0, headers: {}, set() {}, res: { write() {} } };
-        const ex = await rejection(() => provider.chat({ model: 'paint', messages: [] }, 's', ctx));
-        expect(ex.message).toBe(OUTSIDE_BUCKET);
-        expect(s3Send).not.toHaveBeenCalled();
-        expect((await handled('/v1/chat/completions', ex)).status).toBe(400);
+    it('answers a rejected image URL with a 400 and its own message', async () => {
+        const ex = await rejection(() => download('s3://other-bucket/a.png'));
+        const ctx = await handled('/v1/chat/completions', ex);
+        expect(ctx.status).toBe(400);
+        expect(JSON.stringify(ctx.body)).toContain(OUTSIDE_BUCKET);
     });
 });

@@ -49,7 +49,7 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ## 可以画图吗？
 
-可以，配置并使用 painter 或者 nova-canvas 为提供器的模型即可。
+可以，配置并使用 painter 或者 azure-openai-image 为提供器的模型即可。
 
 ## 模型名称中的斜杠 {#model-wildcard}
 
@@ -60,8 +60,6 @@ Authorization: Bearer br_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ## 聊天请求中的图片 URL {#image-urls}
 
 聊天模型（例如 `bedrock-converse`）接受 `data:` URL（`data:image/png;base64,...`）或 `http(s)` URL 形式的图片。`bedrock-runtime-anthropic` 和 `bedrock-runtime-openai` 会把请求原样转发给 Bedrock，本节内容不适用于它们。
-
-`nova-canvas` 模型接受 `http(s)` URL，或指向模型 `s3Bucket` 配置中存储桶的 `s3://` URL；不读取 `data:` URL。指向其他存储桶的 `s3://` URL 会返回 HTTP 400，消息为 `s3:// image URLs must point to the model's s3Bucket.`。
 
 BRConnector 自行下载 `http(s)` 图片，只接受满足以下条件的 URL：
 

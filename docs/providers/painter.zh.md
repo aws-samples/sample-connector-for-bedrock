@@ -12,13 +12,12 @@
 ```json
 {
   "regions": [
-    "us-east-1",
     "us-west-2"
   ],
   "s3Bucket": "<your-bucket>",
   "s3Prefix": "<your-prefix>",
   "s3Region": "us-east-1",
-  "paintModelId": "amazon.titan-image-generator-v2:0",
+  "paintModelId": "stability.stable-image-ultra-v1:1",
   "localLlmModel": "claude-haiku-5-5-chat"
 }
 ```
@@ -26,7 +25,7 @@
 | Key     | Type      | Required     | Default value | Description |
 | ------------- | -------| ------------- | ------------- | ------------- |
 | localLlmModel  | string   | Y    |   | You should choose a native model for **function calling** |
-| paintModelId  | string   | Y    | "stability.stable-diffusion-xl-v1" |  Bedrock image gen model id.   |
+| paintModelId  | string   | Y    |  |  Bedrock image gen model id. 可选值见下文。   |
 | s3Bucket  | string   | Y    |  | S3 is for storing the generated images, please set the IAM permissions to meet access requirements.  |
 | s3Prefix  | string   | N    |  |   The S3 prefix combined with the date will ultimately form the S3 key.  |
 | s3Region  | string   | Y     | | S3 bucket region  |
@@ -35,13 +34,11 @@
 
 paintModelId 可以是如下的参数:
 
-- amazon.nova-canvas-v1:0
-- stability.stable-image-core-v1:0
-- stability.sd3-large-v1:0
-- stability.stable-image-ultra-v1:0
-- stability.stable-diffusion-xl-v1
-- amazon.titan-image-generator-v1
-- amazon.titan-image-generator-v2:0
+- stability.stable-image-ultra-v1:1
+- stability.stable-image-core-v1:1
+- stability.sd3-5-large-v1:0
+
+这些模型只在 us-west-2 提供，所以请把 `regions` 设为 `["us-west-2"]`。最新的列表见 [Model support by AWS Region](https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html)。
 
 然后将此模型授予组或 api key。
 

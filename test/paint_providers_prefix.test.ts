@@ -10,14 +10,12 @@ describe('paint providers', () => {
         for (const [name, value] of Object.entries(HERMETIC_ENV)) vi.stubEnv(name, value);
     });
 
-    for (const name of ['painter', 'nova-canvas']) {
-        it(`${name} trims a trailing slash from s3Prefix`, async () => {
-            const provider: any = providers.createProvider(name);
-            provider.setModelData(modelData);
-            provider.toPaintPrompt = vi.fn().mockRejectedValue(new Error('stop before network'));
-            const request: any = { model: 'paint', stream: true, messages: [{ role: 'user', content: 'a cat' }] };
-            await expect(provider.chat(request, undefined, makeCtx())).rejects.toThrow('stop before network');
-            expect(provider.s3Prefix).toBe('images');
-        });
-    }
+    it('painter trims a trailing slash from s3Prefix', async () => {
+        const provider: any = providers.createProvider('painter');
+        provider.setModelData(modelData);
+        provider.toPaintPrompt = vi.fn().mockRejectedValue(new Error('stop before network'));
+        const request: any = { model: 'paint', stream: true, messages: [{ role: 'user', content: 'a cat' }] };
+        await expect(provider.chat(request, undefined, makeCtx())).rejects.toThrow('stop before network');
+        expect(provider.s3Prefix).toBe('images');
+    });
 });

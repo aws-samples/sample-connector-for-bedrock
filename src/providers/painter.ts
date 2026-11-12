@@ -13,9 +13,8 @@ import AbstractProvider from "./abstract_provider";
 import logger from "../util/logger";
 import { selfBaseUrl } from "../util/self";
 
-/**
-* Use llm and sdxl to chat with openai completions api
-*/
+const PAINT_MODELS = ["stability.stable-image-ultra-v1:1", "stability.stable-image-core-v1:1", "stability.sd3-5-large-v1:0"];
+
 export default class Painter extends AbstractProvider {
   s3Client: S3Client;
   client: BedrockRuntimeClient;
@@ -263,58 +262,6 @@ export default class Painter extends AbstractProvider {
     return closestRatio.ratio;
   }
 
-  scaleTitanRatio(width: number, height: number) {
-    const allowedSizes = [
-      { width: 1024, height: 1024, ratio: "1:1", price: "1024 x 1024" },
-      { width: 768, height: 768, ratio: "1:1", price: "512 x 512" },
-      { width: 512, height: 512, ratio: "1:1", price: "512 x 512" },
-      { width: 768, height: 1152, ratio: "2:3", price: "1024 x 1024" },
-      { width: 384, height: 576, ratio: "2:3", price: "512 x 512" },
-      { width: 1152, height: 768, ratio: "3:2", price: "1024 x 1024" },
-      { width: 576, height: 384, ratio: "3:2", price: "512 x 512" },
-      { width: 768, height: 1280, ratio: "3:5", price: "1024 x 1024" },
-      { width: 384, height: 640, ratio: "3:5", price: "512 x 512" },
-      { width: 1280, height: 768, ratio: "5:3", price: "1024 x 1024" },
-      { width: 640, height: 384, ratio: "5:3", price: "512 x 512" },
-      { width: 896, height: 1152, ratio: "7:9", price: "1024 x 1024" },
-      { width: 448, height: 576, ratio: "7:9", price: "512 x 512" },
-      { width: 1152, height: 896, ratio: "9:7", price: "1024 x 1024" },
-      { width: 576, height: 448, ratio: "9:7", price: "512 x 512" },
-      { width: 768, height: 1408, ratio: "6:11", price: "1024 x 1024" },
-      { width: 384, height: 704, ratio: "6:11", price: "512 x 512" },
-      { width: 1408, height: 768, ratio: "11:6", price: "1024 x 1024" },
-      { width: 704, height: 384, ratio: "11:6", price: "512 x 512" },
-      { width: 640, height: 1408, ratio: "5:11", price: "1024 x 1024" },
-      { width: 320, height: 704, ratio: "5:11", price: "512 x 512" },
-      { width: 1408, height: 640, ratio: "11:5", price: "1024 x 1024" },
-      { width: 704, height: 320, ratio: "11:5", price: "512 x 512" },
-      { width: 1152, height: 640, ratio: "9:5", price: "1024 x 1024" },
-      { width: 1173, height: 640, ratio: "16:9", price: "1024 x 1024" }
-    ];
-
-    let nearestSize = null;
-    let minDifference = Infinity;
-
-    for (const size of allowedSizes) {
-      const difference = Math.abs(size.width - width) + Math.abs(size.height - height);
-      if (difference < minDifference) {
-        minDifference = difference;
-        nearestSize = size;
-      }
-    }
-
-    return nearestSize;
-  }
-
-
-  // scaleTitanRatio(width: number, height: number) {
-  //   //TODO: fit the titan's ratio: https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-image.html
-  //   return {
-  //     width: 768,
-  //     height: 768
-  //   };
-  // }
-
   nearestMultiplesOf64AndScaleDown(num1: number, num2: number) {
 
     const max = Math.max(num1, num2);
@@ -337,73 +284,6 @@ export default class Painter extends AbstractProvider {
     return diff < 32 ? lowerMultiple : lowerMultiple + 64;
   }
 
-  async drawByTitan(modelId: string, input: any): Promise<string> {
-    const size = this.scaleTitanRatio(input.width, input.height);
-    const inputBody = {
-      taskType: "TEXT_IMAGE",
-      textToImageParams: {
-        text: input.prompt,
-        negativeText: input.negative_prompt
-      },
-      imageGenerationConfig: {
-        "numberOfImages": 1,
-        "quality": "standard",
-        "cfgScale": 8.0,
-        "width": size.width,
-        "height": size.height,
-      }
-    }
-
-    const req = {
-      body: JSON.stringify(inputBody),
-      contentType: "application/json",
-      accept: "application/json",
-      modelId: modelId
-    };
-    const command = new InvokeModelCommand(req);
-    const response = await this.client.send(command);
-    const jsonString = new TextDecoder().decode(response.body);
-    const parsedResponse = JSON.parse(jsonString);
-    const base64ImageData = parsedResponse.images[0];
-    const base64Data = base64ImageData.replace(/^data:image\/\w+;base64,/, "");
-    return base64Data;
-  }
-
-  async drawByNova(modelId: string, input: any): Promise<string> {
-    let inputBody: any = {
-      "taskType": "TEXT_IMAGE",
-      "textToImageParams": {
-        "text": input.prompt,
-        "negativeText": input.negative_prompt
-      },
-      "imageGenerationConfig": {
-        "width": input.width,
-        "height": input.height,
-        "quality": "standard",
-        "numberOfImages": 1,
-        "seed": Math.ceil(Math.random() * 858993459),
-      }
-    }
-
-    const req = {
-      body: JSON.stringify(inputBody),
-      contentType: "application/json",
-      accept: "application/json",
-      modelId: modelId
-    };
-    const command = new InvokeModelCommand(req);
-    const response = await this.client.send(command);
-    const jsonString = new TextDecoder().decode(response.body);
-    const parsedResponse = JSON.parse(jsonString);
-
-    let base64ImageData = parsedResponse.images && parsedResponse.images[0];
-    if (!base64ImageData) {
-      base64ImageData = parsedResponse.images[0];
-    }
-    const base64Data = base64ImageData.replace(/^data:image\/\w+;base64,/, "");
-    return base64Data;
-  }
-
   async drawBySD(modelId: string, input: any): Promise<string> {
     // console.log(modelId, input);
     const aspect_ratio = this.getImageRatio(input.width, input.height);
@@ -416,25 +296,6 @@ export default class Painter extends AbstractProvider {
       inputBody.negative_prompt = input.negative_prompt;
     } else if (modelId.indexOf("stable-image-core") > 0) {
       inputBody.mode = "text-to-image";
-    } else if (modelId.indexOf("sd3-large") > 0) {
-      inputBody.mode = "text-to-image";
-    } else if (modelId.indexOf("stable-diffusion-xl") > 0) {
-      inputBody = {
-        "cfg_scale": 7,
-        width: input.width,
-        height: input.height,
-        "steps": 30,
-        "text_prompts": [
-          {
-            "text": input.prompt,
-            "weight": 1
-          },
-          {
-            "text": input.negative_prompt,
-            "weight": -1
-          },
-        ]
-      }
     }
     // console.log(JSON.stringify(inputBody, null, 2))
     const req = {
@@ -448,16 +309,16 @@ export default class Painter extends AbstractProvider {
     const jsonString = new TextDecoder().decode(response.body);
     const parsedResponse = JSON.parse(jsonString);
     // console.log("xxxx", parsedResponse);
-    let base64ImageData = parsedResponse.artifacts && parsedResponse.artifacts[0].base64;
-    if (!base64ImageData) {
-      base64ImageData = parsedResponse.images[0];
-    }
-    const base64Data = base64ImageData.replace(/^data:image\/\w+;base64,/, "");
+    const base64Data = parsedResponse.images[0].replace(/^data:image\/\w+;base64,/, "");
     return base64Data;
   }
 
   // Returns the markdown to show and the number of images drawn, which is 0 when the drawing failed.
   async draw(modelId: string, input: any): Promise<{ markdown: string; images: number }> {
+    if (!modelId.startsWith("stability.")) {
+      return { markdown: `> Error: Unsupported paintModelId. Use one of ${PAINT_MODELS.join(", ")}.`, images: 0 };
+    }
+
     let [width, height] = this.nearestMultiplesOf64AndScaleDown(input.width || 768, input.height || 768);
     width = width < 256 ? 256 : width;
     height = height < 256 ? 256 : height;
@@ -465,18 +326,10 @@ export default class Painter extends AbstractProvider {
     input.width = width;
     input.height = height;
 
-    let base64Data: any;
+    let base64Data: string;
 
     try {
-      if (modelId.startsWith("stability.")) {
-        base64Data = await this.drawBySD(modelId, input);
-      } else if (modelId.startsWith("amazon.titan-image-generator")) {
-        base64Data = await this.drawByTitan(modelId, input);
-      } else if (modelId.startsWith("amazon.nova-canvas")) {
-        base64Data = await this.drawByNova(modelId, input);
-      } else {
-        return { markdown: "> Error: Unsupported paint modelId", images: 0 };
-      }
+      base64Data = await this.drawBySD(modelId, input);
     } catch (e) {
       logger.error((e as any)?.message ?? String(e));
       return { markdown: "> Error: " + (e['message'] || e), images: 0 };
