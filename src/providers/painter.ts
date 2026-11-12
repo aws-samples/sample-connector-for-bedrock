@@ -1,35 +1,56 @@
+import crypto from "crypto";
 import { ChatRequest } from "../entity/chat_request";
-import {
-  BedrockRuntimeClient,
-  InvokeModelCommand
-} from "@aws-sdk/client-bedrock-runtime";
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-// const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import helper from "../util/helper";
-// import config from "../config";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { S3Client } from "@aws-sdk/client-s3";
 import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import logger from "../util/logger";
 import { selfBaseUrl } from "../util/self";
+import { PictureBook, S3PictureStore, chatCopy, collectPictures, fitForStability } from "./painter_pictures";
+import {
+  PAINT_TOOLS, PaintStepError, chatTools, finishReasonMessage, imagePrice, invokeRegion, parseToolArgs,
+} from "./painter_tools";
 
-const PAINT_MODELS = ["stability.stable-image-ultra-v1:1", "stability.stable-image-core-v1:1", "stability.sd3-5-large-v1:0"];
+const MAX_STEPS = 5;
+const KEEP_ALIVE_MS = 15_000;
+const regionsIgnoredLogged = new Set<string>();
+
+type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+type Message = NonNullable<ChatRequest["messages"]>[number];
+type PaintConfig = { paintModelId: string; localLlmModel: string; store: S3PictureStore };
+type MadePicture = { name: string; bytes: Buffer; price: number };
+
+const clientGone = (ctx: any) => !!(ctx.res.destroyed || ctx.res.writableEnded);
+
+// CloudFront closes an origin connection that is silent for 30 seconds. The keep-alive is a normal chunk with
+// empty content, so clients that parse every data line accept it.
+async function withKeepAlive<T>(ctx: any, reqId: string, work: Promise<T>): Promise<T> {
+  const timer = setInterval(() => {
+    if (!clientGone(ctx)) ctx.res.write("data: " + WebResponse.wrap(0, null, "", null, null, null, reqId) + "\n\n");
+  }, KEEP_ALIVE_MS);
+  try {
+    return await work;
+  } finally {
+    clearInterval(timer);
+  }
+}
+
+function systemPrompt(book: PictureBook): string {
+  return [
+    "You plan the work of an AI painter. You can see the user's pictures. Each picture is named like [image_1], and every tool argument that takes a picture takes that name, for example image_1.",
+    `Pictures available now:\n${book.describe()}`,
+    "Pick the tool that fits what the user asks. A request can need several steps. Call a tool, look at the newest picture it made, and call the next tool when the request needs it.",
+    "Write every prompt in English. Negative prompts always include nsfw.",
+    "Before you call a tool, say in one short sentence, in the user's language, what you are about to do. When the request is done, stop calling tools and reply briefly in the user's language.",
+  ].join("\n\n");
+}
 
 export default class Painter extends AbstractProvider {
-  s3Client: S3Client;
-  client: BedrockRuntimeClient;
-  llmModelId: string;
-  s3Bucket: string;
-  s3Region: string;
-  s3Prefix: string;
-  localLlmModel: string;
-
   constructor() {
     super();
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    // console.log("--------------｜｜chatreq-", chatRequest);
     let { paintModelId, localLlmModel, s3Bucket, s3Region, s3Prefix } = this.modelData.config;
 
     if (!localLlmModel) {
@@ -46,103 +67,22 @@ export default class Painter extends AbstractProvider {
     }
     if (!s3Prefix) {
       s3Prefix = "";
-      // throw new Error("You must specify the parameter 's3Prefix'.")
     }
     if (s3Prefix.endsWith("/")) {
       s3Prefix = s3Prefix.slice(0, -1);
     }
 
-    let regions: any = this.modelData.config && this.modelData.config.regions;
-    const region = helper.selectRandomRegion(regions);
-    this.client = new BedrockRuntimeClient({ region });
-    this.s3Client = new S3Client({
-      region: s3Region
-    });
-
-    this.s3Bucket = s3Bucket;
-    this.s3Prefix = s3Prefix;
-    this.s3Region = s3Region;
+    if (this.modelData.config.regions && !regionsIgnoredLogged.has(this.modelData.name)) {
+      regionsIgnoredLogged.add(this.modelData.name);
+      logger.warn(`The 'regions' setting of model ${this.modelData.name} is ignored by painter.`);
+    }
 
     chatRequest.model = localLlmModel;
     ctx.status = 200;
 
-    const reqId = this.newRequestID();
-
     if (chatRequest.stream) {
-      // The user's messages, before toPaintPrompt appends its system prompt, for the image call's thread.
-      const userRequest: ChatRequest = { ...chatRequest, messages: [...chatRequest.messages] };
-      const promptResult = await this.toPaintPrompt(chatRequest, session_id, ctx);
-
-      const { choices } = promptResult;
-
-      let content: string;
-      let prompt: string;
-      let negative_prompt: string;
-      let width: number;
-      let height: number;
-
-      for (const choice of choices) {
-        const { message } = choice;
-
-        if (message.content) {
-          content = message.content;
-        }
-
-        if (message.tool_calls) {
-          const drawTool = message.tool_calls.find(tool => tool["function"]["name"] === "draw");
-
-          if (drawTool) {
-            const args = JSON.parse(drawTool["function"]["arguments"]);
-            prompt = args.prompt;
-            negative_prompt = args.negative_prompt;
-            width = args.width;
-            height = args.height;
-          }
-        }
-      }
-
-
-
-      // let content: string, prompt: string, negative_prompt: string, width: number, height: number;
-
-      // for (const c of promptResult.choices) {
-      //   if (c.message.content) {
-      //     content = c.message.content;
-      //   }
-      //   if (c.message.tool_calls) {
-      //     for (const tool of c.message.tool_calls) {
-      //       if (tool["function"]["name"] == "draw") {
-      //         const jArgs = JSON.parse(tool["function"]["arguments"]);
-      //         prompt = tool["function"]["arguments"]["prompt"];
-      //         negative_prompt = jArgs["negative_prompt"];
-      //         width = jArgs["width"];
-      //         height = jArgs["height"];
-      //       }
-      //     }
-      //   }
-      // }
-
-      ctx.set({
-        'Connection': 'keep-alive',
-        'Cache-Control': 'no-cache',
-        'Content-Type': 'text/event-stream',
-      });
-      ctx.res.write("data: " + WebResponse.wrap(0, null, content || "No content found in the prompt.", null, null, null, reqId) + "\n\n");
-      prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nPrompt:\n\n```" + prompt + "```", null, null, null, reqId) + "\n\n");
-      negative_prompt && ctx.res.write("data: " + WebResponse.wrap(0, null, "\n\nNegative prompt:\n\n ```" + negative_prompt + "```", null, null, null, reqId) + "\n\n");
-
-      if (prompt) {
-        const { markdown, images } = await this.draw(paintModelId, {
-          prompt,
-          negative_prompt,
-          width,
-          height
-        });
-        ctx.res.write("data: " + WebResponse.wrap(0, "painter", `\n\n${markdown}`, null, null, null, reqId) + "\n\n");
-        // The prompt call is billed by the chat API it went to. The drawing is billed here, per image returned.
-        await this.saveThread(ctx, session_id, userRequest, { text: content ?? "", input_tokens: 0, output_tokens: 0, images });
-      }
-      ctx.res.write("data: [DONE]\n\n")
+      const store = new S3PictureStore(new S3Client({ region: s3Region }), s3Bucket, s3Region, s3Prefix);
+      await this.chatStream(chatRequest, session_id, ctx, { paintModelId, localLlmModel, store });
     } else {
       ctx.set({
         'Content-Type': 'application/json',
@@ -150,7 +90,6 @@ export default class Painter extends AbstractProvider {
       ctx.body = await this.chatSync(ctx, chatRequest, session_id);
     }
   }
-
 
   async chatSync(ctx: any, chatRequest: ChatRequest, session_id: string) {
 
@@ -168,188 +107,193 @@ export default class Painter extends AbstractProvider {
     return await response.json();
   }
 
-  async toPaintPrompt(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    const tools = [
-      {
-        type: "function",
-        function: {
-          name: "draw",
-          description: `Draw a picture in AI mode.`,
-          parameters: {
-            type: "object",
-            properties: {
-              prompt: {
-                type: "string",
-                description: "Positive prompt. Translate it to English.",
-              },
-              negative_prompt: {
-                type: "string",
-                description: "Negative English prompt. Translate it to English. Please add nsfw always."
-              },
-              width: {
-                type: "number",
-                description: "Round the number to an integer, must be devided by 64, less than 3840, default is 768. "
-              },
-              height: {
-                type: "number",
-                description: "Round the number to an integer, must be devided by 64, less than 3840, default is 768. "
-              }
-            },
-            required: [
-              "prompt",
-              "width",
-              "height"
-            ],
-          }
-        }
+  private async chatStream(chatRequest: ChatRequest, session_id: string, ctx: any, config: PaintConfig) {
+    const reqId = this.newRequestID();
+    const streamed: string[] = [];
+    let recorded = 0;
+    let stepsRun = 0;
+    let threadMessages: Message[] = chatRequest.messages;
+
+    const emit = (text: string) => {
+      streamed.push(text);
+      ctx.res.write("data: " + WebResponse.wrap(0, null, text, null, null, null, reqId) + "\n\n");
+    };
+    // One thread record per picture, so a request cut short still charges the pictures it streamed.
+    const record = async (price: number) => {
+      const text = streamed.slice(recorded).join("");
+      recorded = streamed.length;
+      try {
+        await this.saveThread(
+          ctx, session_id, { ...chatRequest, messages: [...threadMessages] },
+          { text, input_tokens: 0, output_tokens: 0, image_prices: [price] },
+        );
+      } catch (e: any) {
+        logger.error(e?.message || String(e));
       }
-    ];
+    };
+    const clients = new Map<string, BedrockRuntimeClient>();
+    const clientOf = (region: string) => {
+      if (!clients.has(region)) clients.set(region, new BedrockRuntimeClient({ region }));
+      return clients.get(region)!;
+    };
 
-    const kRequest = {
-      model: chatRequest.model,
-      messages: chatRequest.messages,
-      tools,
-      tool_choice: "auto"
-    }
-
-    chatRequest.messages.push({
-      role: "system",
-      content: `You're a great AI painter and a master of semantic understanding, and you'll need to listen to your customers' input, find out the positive and negative keywords and size information, and I'll give you tips in the tool. Please note that the keywords you extract must be in English. In response to a user question, please include the following meaning: Wait a minute, I'm sorting out the keywords and starting to draw`
+    ctx.set({
+      'Connection': 'keep-alive',
+      'Cache-Control': 'no-cache',
+      'Content-Type': 'text/event-stream',
     });
 
-    const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ctx.user.api_key,
-        'Session-Id': session_id
-      },
-      body: JSON.stringify(kRequest)
-    });
-    if (!response.ok) {
-      throw new Error(await response.text());
+    try {
+      const collected = await collectPictures(chatRequest.messages, config.store);
+      if ("refusal" in collected) {
+        emit(collected.refusal);
+        return;
+      }
+      const { book, chatMessages } = collected;
+      threadMessages = collected.threadMessages;
+
+      const loopMessages: Message[] = [];
+      let newestPicture: Message | undefined;
+
+      while (!clientGone(ctx)) {
+        const { text, toolCalls } = await this.askChatModel(
+          ctx, reqId, session_id, config.localLlmModel,
+          [{ role: "system", content: systemPrompt(book) }, ...chatMessages, ...loopMessages],
+        );
+        if (text) emit(text);
+        if (!toolCalls.length) return;
+
+        const made: MadePicture[] = [];
+        for (const call of toolCalls) {
+          if (stepsRun >= MAX_STEPS) {
+            emit(`\n\nReached the limit of ${MAX_STEPS} picture steps for one request. The pictures above are kept.`);
+            return;
+          }
+          if (clientGone(ctx)) return;
+          stepsRun += 1;
+          const picture = await this.runStep(call, stepsRun, { ctx, reqId, config, book, clientOf, emit });
+          made.push(picture);
+          await record(picture.price);
+        }
+
+        loopMessages.push(
+          { role: "assistant", content: text || null, tool_calls: toolCalls },
+          ...toolCalls.map((call, i): Message => ({
+            role: "tool",
+            tool_call_id: call.id,
+            content: `${made[i].name} is ready`,
+          })),
+        );
+        if (newestPicture) {
+          newestPicture.content = newestPicture.content.filter((part: any) => part.type !== "image_url");
+        }
+        const latest = made[made.length - 1];
+        newestPicture = {
+          role: "user",
+          content: [{ type: "text", text: `[${latest.name}]` }, { type: "image_url", image_url: { url: await chatCopy(latest.bytes) } }],
+        };
+        loopMessages.push(newestPicture);
+      }
+    } catch (e: any) {
+      const message = e?.message || String(e);
+      if (!(e instanceof PaintStepError)) logger.error(message);
+      emit(`\n\n> Error: ${message}`);
+    } finally {
+      ctx.res.write("data: [DONE]\n\n");
     }
+  }
 
-    const jRes: any = await response.json();
-
-    // console.log(JSON.stringify(jRes, null, 2));
-
+  // Some providers return the text and the tool calls in separate choices, so every choice is merged.
+  private async askChatModel(ctx: any, reqId: string, session_id: string, model: string, messages: Message[]) {
+    const body = { model, messages, tools: chatTools(), tool_choice: "auto" };
+    const jRes: any = await withKeepAlive(ctx, reqId, (async () => {
+      const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + ctx.user.api_key,
+          'Session-Id': session_id
+        },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return await response.json();
+    })());
     if ("success" in jRes && jRes.success === false) {
       throw new Error(jRes.data);
     }
-    return jRes;
-  }
-  getImageRatio(width: number, height: number) {
-    const aspectRatios = [
-      { ratio: '16:9', value: 16 / 9 },
-      { ratio: '1:1', value: 1 },
-      { ratio: '21:9', value: 21 / 9 },
-      { ratio: '2:3', value: 2 / 3 },
-      { ratio: '3:2', value: 3 / 2 },
-      { ratio: '4:5', value: 4 / 5 },
-      { ratio: '5:4', value: 5 / 4 },
-      { ratio: '9:16', value: 9 / 16 },
-      { ratio: '9:21', value: 9 / 21 },
-    ];
 
-    const aspectRatio = width / height;
-
-    const closestRatio = aspectRatios.reduce((prev, curr) =>
-      Math.abs(curr.value - aspectRatio) < Math.abs(prev.value - aspectRatio) ? curr : prev
-    );
-
-    return closestRatio.ratio;
-  }
-
-  nearestMultiplesOf64AndScaleDown(num1: number, num2: number) {
-
-    const max = Math.max(num1, num2);
-
-    if (max > 1536) {
-      const scaleFactor = 1536 / max;
-      return [
-        this.nearestMultipleOf64(Math.round(num1 * scaleFactor)),
-        this.nearestMultipleOf64(Math.round(num2 * scaleFactor))
-      ];
+    let text = "";
+    const toolCalls: ToolCall[] = [];
+    for (const choice of jRes.choices ?? []) {
+      const message = choice?.message;
+      if (typeof message?.content === "string") text += message.content;
+      for (const call of message?.tool_calls ?? []) {
+        toolCalls.push({
+          id: call.id || `call_${crypto.randomUUID()}`,
+          type: "function",
+          function: { name: call.function?.name, arguments: call.function?.arguments ?? "" },
+        });
+      }
     }
-    const nearest1 = this.nearestMultipleOf64(num1);
-    const nearest2 = this.nearestMultipleOf64(num2);
-    return [nearest1, nearest2];
+    return { text, toolCalls };
   }
 
-  nearestMultipleOf64(num: number) {
-    const lowerMultiple = Math.floor(num / 64) * 64;
-    const diff = num - lowerMultiple;
-    return diff < 32 ? lowerMultiple : lowerMultiple + 64;
-  }
+  private async runStep(
+    call: ToolCall,
+    n: number,
+    run: {
+      ctx: any; reqId: string; config: PaintConfig; book: PictureBook;
+      clientOf: (region: string) => BedrockRuntimeClient; emit: (text: string) => void;
+    },
+  ): Promise<MadePicture> {
+    const { ctx, reqId, config, book, clientOf, emit } = run;
+    const tool = Object.prototype.hasOwnProperty.call(PAINT_TOOLS, call.function.name) ? PAINT_TOOLS[call.function.name as keyof typeof PAINT_TOOLS] : undefined;
+    if (!tool) throw new PaintStepError(`The chat model asked for an unknown tool, ${call.function.name}.`);
 
-  async drawBySD(modelId: string, input: any): Promise<string> {
-    // console.log(modelId, input);
-    const aspect_ratio = this.getImageRatio(input.width, input.height);
-    let inputBody: any = {
-      prompt: input.prompt,
-      aspect_ratio,
-      output_format: "jpg"
-    };
-    if (modelId.indexOf("stable-image-ultra") > 0) {
-      inputBody.negative_prompt = input.negative_prompt;
-    } else if (modelId.indexOf("stable-image-core") > 0) {
-      inputBody.mode = "text-to-image";
-    }
-    // console.log(JSON.stringify(inputBody, null, 2))
-    const req = {
-      body: JSON.stringify(inputBody),
-      contentType: "application/json",
-      accept: "application/json",
-      modelId: modelId
-    };
-    const command = new InvokeModelCommand(req);
-    const response = await this.client.send(command);
-    const jsonString = new TextDecoder().decode(response.body);
-    const parsedResponse = JSON.parse(jsonString);
-    // console.log("xxxx", parsedResponse);
-    const base64Data = parsedResponse.images[0].replace(/^data:image\/\w+;base64,/, "");
-    return base64Data;
-  }
+    const args = parseToolArgs(tool, call.function.arguments);
+    const modelId = tool.modelId(config.paintModelId);
+    const region = invokeRegion(modelId, process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION);
+    const inputs = tool.pictures.map(({ arg }) => String(args[arg]));
+    emit(`\n\n> Step ${n}: ${tool.name} with \`${modelId}\`, from ${inputs.length ? inputs.join(", ") : "text only"}\n\n`);
 
-  // Returns the markdown to show and the number of images drawn, which is 0 when the drawing failed.
-  async draw(modelId: string, input: any): Promise<{ markdown: string; images: number }> {
-    if (!modelId.startsWith("stability.")) {
-      return { markdown: `> Error: Unsupported paintModelId. Use one of ${PAINT_MODELS.join(", ")}.`, images: 0 };
+    const pictures: Record<string, string> = {};
+    for (const [i, { field }] of tool.pictures.entries()) {
+      const s3Url = await book.resolve(inputs[i]);
+      pictures[field] = await fitForStability(inputs[i], await config.store.get(s3Url));
     }
 
-    let [width, height] = this.nearestMultiplesOf64AndScaleDown(input.width || 768, input.height || 768);
-    width = width < 256 ? 256 : width;
-    height = height < 256 ? 256 : height;
-
-    input.width = width;
-    input.height = height;
-
-    let base64Data: string;
-
+    let parsed: any;
     try {
-      base64Data = await this.drawBySD(modelId, input);
-    } catch (e) {
-      logger.error((e as any)?.message ?? String(e));
-      return { markdown: "> Error: " + (e['message'] || e), images: 0 };
+      const response = await withKeepAlive(ctx, reqId, clientOf(region).send(new InvokeModelCommand({
+        body: JSON.stringify(tool.body(args, pictures, modelId)),
+        contentType: "application/json",
+        accept: "application/json",
+        modelId,
+      })));
+      parsed = JSON.parse(new TextDecoder().decode(response.body));
+    } catch (e: any) {
+      if (e?.name === "AccessDeniedException") {
+        throw new PaintStepError(`Access denied calling ${modelId}. The role may lack bedrock:InvokeModel in ${region}.`);
+      }
+      throw e;
     }
 
-    const now = new Date();
-    const key = `${this.s3Prefix}/${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}/${now.getTime()}.jpg`;
+    const reason = parsed.finish_reasons?.[0];
+    if (reason !== null && reason !== undefined) throw new PaintStepError(finishReasonMessage(reason));
+    const base64 = parsed.images?.[0];
+    if (!base64) throw new PaintStepError("The image model returned no picture.");
 
-    const bufferData = Buffer.from(base64Data, 'base64');
+    const priced = imagePrice(this.modelData.config, modelId);
+    if (priced.source === "none") logger.warn(`No price for image model ${modelId}; the picture is recorded at 0.`);
 
-    const inputS3 = {
-      "Body": bufferData,
-      "Bucket": this.s3Bucket,
-      "Key": key
-    };
-    const commandPut = new PutObjectCommand(inputS3);
-    await this.s3Client.send(commandPut);
-    const commandGet = new GetObjectCommand(inputS3);
-    const url = await getSignedUrl(this.s3Client, commandGet, { expiresIn: 3600 });
-
-    return { markdown: `![](${url})`, images: 1 };
+    const bytes = Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+    const s3Url = await config.store.put(bytes, tool.outputFormat, "generated");
+    const name = book.add("generated", s3Url);
+    emit(`![${name}](${await config.store.presign(s3Url)})\n\n`);
+    return { name, bytes, price: priced.price };
   }
 }

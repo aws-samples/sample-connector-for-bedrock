@@ -4,6 +4,11 @@ site_url: https://aws-samples.github.io/sample-connector-for-bedrock/ # Change t
 repo_name: aws-samples/sample-connector-for-bedrock
 repo_url: https://github.com/aws-samples/sample-connector-for-bedrock
 
+# Design records live next to the code and are not part of the published site.
+exclude_docs: |
+  superpowers/
+  adr/
+
 theme:
   name: material
   # logo: attachments/AWS_Logo.png #favicons.png

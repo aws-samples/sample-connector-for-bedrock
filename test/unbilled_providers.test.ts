@@ -4,6 +4,7 @@ import {
 } from '@aws-sdk/client-bedrock-agent-runtime';
 import { BedrockRuntimeClient, ConverseStreamCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { S3Client } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 import BedrockAgent, { agentTraceUsage } from '../src/providers/bedrock_agent';
 import BedrockKnowledgeBase from '../src/providers/bedrock_knowledge_base';
 import Painter from '../src/providers/painter';
@@ -48,6 +49,7 @@ function provider<T>(Kind: new () => T, modelData: any): any {
     return p;
 }
 
+const aPicture = async () => (await sharp({ create: { width: 80, height: 80, channels: 3, background: '#c81e1e' } }).png().toBuffer()).toString('base64');
 const encode = (value: any) => new TextEncoder().encode(typeof value === 'string' ? value : JSON.stringify(value));
 
 beforeEach(() => {
@@ -187,15 +189,16 @@ describe('bedrock-knowledge-base', () => {
     });
 });
 
-// The prompt call is a request to this server's own chat API, which bills it there.
+// The chat calls go to this server's own chat API, which bills them. The first answer picks a tool, the next ones
+// only talk, so the request ends after one step.
 function stubPromptCall(toolName: string, args: any, content = 'Drawing it now.') {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-        choices: [
-            { message: { role: 'assistant', content } },
-            { message: { tool_calls: [{ type: 'function', function: { name: toolName, arguments: JSON.stringify(args) } }] } },
-        ],
-        usage: { prompt_tokens: 10, completion_tokens: 5 },
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    let calls = 0;
+    const fetchMock = vi.fn(async () => {
+        calls += 1;
+        const choices: any[] = [{ message: { role: 'assistant', content: calls === 1 ? content : 'Done.' } }];
+        if (calls === 1) choices.push({ message: { tool_calls: [{ id: 't1', type: 'function', function: { name: toolName, arguments: JSON.stringify(args) } }] } });
+        return new Response(JSON.stringify({ choices, usage: { prompt_tokens: 10, completion_tokens: 5 } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
     vi.stubGlobal('fetch', fetchMock);
     return fetchMock;
 }
@@ -273,32 +276,57 @@ describe('session title', () => {
 });
 
 describe('painter', () => {
-    it('bills painter per image on top of its prompt call', async () => {
-        const fetchMock = stubPromptCall('draw', { prompt: 'a cat', negative_prompt: 'nsfw', width: 512, height: 512 });
-        const { sent, uploads } = stubImageModel(['aGk=']);
-        const ctx = fakeCtx();
-        await provider(Painter, model('painter', paintConfig('stability.stable-image-core-v1:1', { price_per_image: 0.04 }), { price_in: 0, price_out: 0 }))
-            .chat(userRequest(true), 's-1', ctx);
+    const painter = (config: any) => provider(Painter, model('painter', config, { price_in: 0, price_out: 0 }));
 
-        // The prompt call went to the chat API, which bills it; the image is billed here.
-        expect(fetchMock).toHaveBeenCalledTimes(1);
+    it('bills painter per image on top of its chat calls', async () => {
+        const fetchMock = stubPromptCall('txt2img', { prompt: 'a cat', negative_prompt: 'nsfw' });
+        const { sent, uploads } = stubImageModel([await aPicture()]);
+        const ctx = fakeCtx();
+        await painter(paintConfig('stability.stable-image-core-v1:1', { price_per_image: 0.03 })).chat(userRequest(true), 's-1', ctx);
+
+        // The chat calls went to the chat API, which bills them; the image is billed here.
+        expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(String((fetchMock.mock.calls[0] as any[])[0])).toMatch(/\/v1\/chat\/completions$/);
         expect(sent).toHaveLength(1);
         expect(uploads).toHaveBeenCalledTimes(1);
-        expect(charged(ctx)).toBeCloseTo(0.04, 10);
+        expect(charged(ctx)).toBeCloseTo(0.03, 10);
         expect(thread(ctx)).toMatchObject({ tokens_in: 0, tokens_out: 0, session_key: 's-1', prompt: JSON.stringify('two cats') });
-        expect(ctx.chunks.join('')).toContain('![](');
+        expect(ctx.chunks.join('')).toContain('![image_1](');
+    });
+
+    it('prices a picture from image_prices, then price_per_image, then the built-in table', async () => {
+        for (const [extra, expected] of [
+            [{ image_prices: { 'stability.stable-image-core-v1:1': '0.09' }, price_per_image: 0.03 }, 0.09],
+            [{ price_per_image: 0.03 }, 0.03],
+            [{}, 0.04],
+        ] as const) {
+            stubPromptCall('txt2img', { prompt: 'a cat' });
+            stubImageModel([await aPicture()]);
+            const ctx = fakeCtx();
+            await painter(paintConfig('stability.stable-image-core-v1:1', extra)).chat(userRequest(true), 's-1', ctx);
+            expect(charged(ctx)).toBeCloseTo(expected, 10);
+            vi.restoreAllMocks();
+        }
     });
 
     it('records no image when the drawing fails', async () => {
-        stubPromptCall('draw', { prompt: 'a cat', width: 512, height: 512 });
+        stubPromptCall('txt2img', { prompt: 'a cat' });
         vi.spyOn(BedrockRuntimeClient.prototype, 'send').mockRejectedValue(new Error('model refused'));
         vi.spyOn(logger, 'error').mockImplementation((() => logger) as any);
         const ctx = fakeCtx();
-        await provider(Painter, model('painter', paintConfig('stability.stable-image-core-v1:1', { price_per_image: 0.04 }), { price_in: 0, price_out: 0 }))
-            .chat(userRequest(true), 's-1', ctx);
+        await painter(paintConfig('stability.stable-image-core-v1:1', { price_per_image: 0.04 })).chat(userRequest(true), 's-1', ctx);
         expect(ctx.chunks.join('')).toContain('> Error: model refused');
-        expect(charged(ctx)).toBe(0);
+        expect(charges(ctx)).toEqual([]);
+    });
+
+    it('does not draw or bill a request without stream', async () => {
+        const fetchMock = stubPromptCall('txt2img', { prompt: 'a cat' });
+        const { sent } = stubImageModel([await aPicture()]);
+        const ctx = fakeCtx();
+        await painter(paintConfig('stability.stable-image-core-v1:1')).chat(userRequest(false), 's-1', ctx);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(sent).toEqual([]);
+        expect(charges(ctx)).toEqual([]);
     });
 });
 
@@ -312,6 +340,15 @@ describe('legacyFee images', () => {
 
     it.each([undefined, null, '', '  ', 'abc', Infinity, NaN, -0.04, '-0.04', -Infinity])('counts price_per_image %s as 0', (price) => {
         expect(legacyFee(data(price), { input_tokens: 0, output_tokens: 0, images: 2 }).fee).toBe(0);
+    });
+
+    it('bills image_prices instead of images x price_per_image', () => {
+        expect(legacyFee(data(0.04), { input_tokens: 100, output_tokens: 10, images: 3, image_prices: [0.14, 0.07] }).fee).toBeCloseTo(0.21012, 10);
+        expect(legacyFee(data(0.04), { input_tokens: 0, output_tokens: 0, image_prices: [] }).fee).toBe(0);
+    });
+
+    it('counts a bad entry of image_prices as 0', () => {
+        expect(legacyFee(data(0.04), { input_tokens: 0, output_tokens: 0, image_prices: [0.07, -1, NaN, Infinity, 'x' as any] }).fee).toBeCloseTo(0.07, 10);
     });
 
     it('counts a missing or bad image count as 0', () => {

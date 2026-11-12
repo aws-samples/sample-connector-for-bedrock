@@ -2,13 +2,15 @@ import { ModelData } from '../entity/chat_request';
 import { cachePrice } from './bedrock_openai/usage';
 
 // The token counts of one call billed through saveThread. input_tokens does not include the cache-read and
-// cache-write tokens. images is the number of images an image model returned.
+// cache-write tokens. images is the number of images an image model returned, billed at price_per_image. When a
+// provider priced its images itself, image_prices holds the price of each one and replaces images x price_per_image.
 export type LegacyUsage = {
     input_tokens: number;
     output_tokens: number;
     cache_read_tokens?: number;
     cache_write_tokens?: number;
     images?: number;
+    image_prices?: number[];
 };
 
 // A count that is missing, negative or not a finite number is 0, so a field the upstream left out cannot make the
@@ -35,7 +37,9 @@ export function legacyFee(modelData: ModelData, usage: LegacyUsage): { fee: numb
     const output = tokenCount(usage.output_tokens);
     const cacheRead = tokenCount(usage.cache_read_tokens);
     const cacheWrite = tokenCount(usage.cache_write_tokens);
-    const images = tokenCount(usage.images);
+    const imageFee = Array.isArray(usage.image_prices)
+        ? usage.image_prices.reduce((sum, price) => sum + tokenCount(price), 0)
+        : tokenCount(usage.images) * imagePrice(modelData.config?.price_per_image);
 
     // Postgres returns decimal columns as strings.
     const priceIn = Number(modelData.price_in);
@@ -44,7 +48,7 @@ export function legacyFee(modelData: ModelData, usage: LegacyUsage): { fee: numb
         cacheRead * cachePrice(modelData.config?.price_cache_read, priceIn) +
         cacheWrite * cachePrice(modelData.config?.price_cache_write, priceIn) +
         output * Number(modelData.price_out) +
-        images * imagePrice(modelData.config?.price_per_image);
+        imageFee;
 
     return { fee, tokens_in: input + cacheRead + cacheWrite };
 }

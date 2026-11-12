@@ -48,6 +48,8 @@ interface ResponseData {
     cache_write_tokens?: number;
     // Images returned by an image model, billed at price_per_image from the model config.
     images?: number;
+    // The price of each image, when the provider priced its images itself. It replaces images x price_per_image.
+    image_prices?: number[];
     invocation_latency?: number;
     first_byte_latency?: number;
 }

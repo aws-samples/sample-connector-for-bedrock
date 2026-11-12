@@ -507,6 +507,7 @@ export default class BedrockConverse extends AbstractProvider {
 
             if (c.toolUse) {
                 assistantMessage.tool_calls = [
+                    ...(assistantMessage.tool_calls ?? []),
                     {
                         id: c.toolUse.toolUseId,
                         type: "function",

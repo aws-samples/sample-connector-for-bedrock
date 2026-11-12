@@ -5,12 +5,25 @@
 **升级提示**
 
 - 对使用了 Amazon Bedrock 已停止提供的图像模型的模型，这是不兼容变更（第 1 条）。升级前，请在管理后台检查 provider 为 `nova-canvas` 或 `painter` 的每个模型的 provider 和 `paintModelId`。没有 migration 会修改这些模型。
+- 开启 AutoUpdate 的 stack 会自动拉取新镜像（第 1、2 条）。在用户使用新的 `painter` 之前，请确认 `localLlmModel` 能看懂图片，并检查 `price_per_image` 和 `image_prices`（第 2 条）。没有设置价格的 `painter` config 现在按内置标价计费。
+- `regions` 不再对 `painter` 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。
 
 1. **下线已停止提供的图像模型** - Amazon Bedrock 已不再提供 Amazon Nova Canvas（`amazon.nova-canvas-v1:0`）、Amazon Titan Image Generator（`amazon.titan-image-generator-v1`、`amazon.titan-image-generator-v2:0`）、Stability SDXL（`stability.stable-diffusion-xl-v0`、`stability.stable-diffusion-xl-v1`）、`stability.sd3-large-v1:0` 和 `stability.stable-image-ultra-v1:0`，BRConnector 不再支持它们。
    - 移除 `nova-canvas` provider。请求 provider 为它的模型会返回 HTTP 400，并提示改用 `painter`。原模型保留在数据库里，由您修改或删除。要继续画图，请用下面的模型之一新建一个 `painter` 模型。
-   - `painter` 支持 `stability.stable-image-ultra-v1:1`、`stability.stable-image-core-v1:1` 和 `stability.sd3-5-large-v1:0`。Amazon Bedrock 只在 us-west-2 提供它们，所以请在模型 config 里设置 `"regions": ["us-west-2"]`。见 [painter](../providers/painter.md)。
+   - `painter` 支持 `stability.stable-image-ultra-v1:1`、`stability.stable-image-core-v1:1` 和 `stability.sd3-5-large-v1:0`。Amazon Bedrock 只在 us-west-2 提供它们，`painter` 会自己调用该区域。见 [painter](../providers/painter.md)。
    - `paintModelId` 不是 Stability 模型的 `painter` 模型，现在会返回一条列出这三个模型的错误，不调用 Bedrock。`paintModelId` 是已下线 Stability 模型的 `painter` 模型，仍会在调用 Bedrock 时失败。
-   - 修改 `painter` 模型时，把它的 `paintModelId` 设为这三个模型之一，`regions` 设为 `["us-west-2"]`。
+   - 修改 `painter` 模型时，把它的 `paintModelId` 设为这三个模型之一。
+
+2. **painter 图生图** - 用户可以在 BRClient 里上传最多 5 张图片（每张 10 MB，JPEG、PNG 或 WebP）并写一句话。对话模型从八种 Stability 能力中选一种：文生图、图生图、搜索并替换、去除背景、风格引导、风格迁移、结构控制和草图控制。见 [painter](../providers/painter.md)。
+   - 一次请求最多执行 5 步。每一步的图片一做好就流式返回，并附一行说明能力、模型和输入图片。后面的消息可以引用之前的图片。
+   - 每张图片按生成它的模型的价格计费。新增的 `image_prices` 字段为每个模型 ID 设置价格。没有设置价格时，painter 使用内置标价。
+   - 非流式请求不会画图，它们像以前一样转发给对话模型。
+   - **不兼容变更：** `localLlmModel` 现在必须支持 function calling，并且能看懂图片。
+   - **不兼容变更：** `regions` 不再对 `painter` 生效。Ultra、Core 和 SD3.5 Large 在 us-west-2 运行。六个 `us.stability.*` 图像服务，在所在区域是 us-east-1、us-east-2 或 us-west-2 时就在该区域运行，否则在 us-west-2 运行。在这三个区域之外，图片和提示词会发送到 us-west-2，有数据驻留要求时请不要使用 `painter`。角色需要目标区域的 `bedrock:InvokeModel`，用 `aws:RequestedRegion` 限制区域的 SCP 会拦截对 us-west-2 的调用。
+   - **不兼容变更：** 没有设置价格的 config 现在按内置标价计费，不再按 0。设置了 `price_per_image` 的 config，在设置 `image_prices` 之前，所有能力都沿用这一个价格。
+   - **不兼容变更：** 图片预签名 URL 现在最长有效 4 小时，以前是 1 小时。用临时凭证签名的 URL 在凭证过期时就失效，所以较早的图片可能更早打不开。
+   - 上传的图片保存在 `<s3Prefix>/uploads/<date>/`。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。
+   - **修复：** `bedrock-converse` 模型的非流式回答现在按顺序保留全部 tool call，以前只保留最后一个。
 
 ## 0.0.44
 
