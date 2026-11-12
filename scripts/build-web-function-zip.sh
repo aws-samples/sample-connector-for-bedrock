@@ -24,7 +24,8 @@ cp -R dist/frontend "$STAGE/frontend"
 cp -R dist/cc "$STAGE/cc"
 cp dist/package.json "$STAGE/package.json"
 
-# BRClient publishes no static web build, so take app/brclient from an image layer.
+# The only BRClient web release (v1.2.1) is older than the BRClient the images serve, so take
+# app/brclient from an image layer.
 . scripts/brclient.pin
 REGISTRY="https://public.ecr.aws"
 TOKEN="$(curl -fsS --max-time 30 --retry 2 "$REGISTRY/token/?scope=repository:$BRCLIENT_IMAGE_REPOSITORY:pull" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"

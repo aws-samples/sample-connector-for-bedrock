@@ -6,7 +6,7 @@ Status: Accepted
 
 The server serves `./brclient` at `/brclient/`. The `ec2` and `ecs` compute types run the public image, and the image's `app/brclient` directory comes from the release pipeline, outside this repository. `scripts/build-web-function-zip.sh` builds the `lambda-web` package from the repository alone. It copied a repository-root `brclient/` when one existed, and nothing created one, so every `lambda-web` package returned 404 at `/brclient/`.
 
-BRClient publishes no web build of its own. Its releases carry desktop and mobile installers only. The only published web build is the `COPY ./dist /app` layer of `public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock`, which holds `app/brclient`.
+Of the BRClient releases, only app-v1.2.1 includes a web build (`sample-client-for-amazon-bedrock_1.2.1_web.zip`). Later releases carry desktop and mobile installers only. The public image `public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock` serves BRClient v1.2.4 from its `COPY ./dist /app` layer, which holds `app/brclient`.
 
 `WebFnPackage` rebuilds the package only when `SourceRepoUrl`, `SourceRef` or `WebFnBuildId` changes. A rollback builds the previous `SourceRef` again.
 
@@ -27,6 +27,7 @@ BRClient publishes no web build of its own. Its releases carry desktop and mobil
 ## Alternatives considered
 
 - **Fetch and pin in the buildspec, or a template parameter.** A change to either does not rebuild `WebFnPackage`, so the stack would keep the old package. A later `WebFnBuildId` change would build the old `SourceRef` with the new BRClient. Local builds would still have no BRClient.
+- **Download the BRClient v1.2.1 web release.** It is BRClient's own artifact and half the size, but it is older than the v1.2.4 build that the images serve, so `lambda-web` would serve a different BRClient from `ec2` and `ecs`. No later release has a web build to move to.
 - **Pin the image index or manifest digest and find the layer at build time.** It adds two fetches, JSON parsing and a rule for which layer holds BRClient, and it still ends at one layer digest.
 - **Build BRClient from source at a pinned commit.** It adds a second toolchain and minutes of build time, and the result would differ from what the images serve.
 - **Commit the BRClient build to the repository.** It adds 18 MB of third-party build output to the history.

@@ -26,7 +26,7 @@
    - Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. BRConnector sets no lifecycle rule, so pictures stay until you delete them.
    - **Fix:** a non-stream answer from a `bedrock-converse` model now keeps every tool call, in order. It kept only the last one before.
 
-3. **BRClient on lambda-web** - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`. The build takes BRClient from the layer of the public BRConnector image 0.0.44 that `scripts/brclient.pin` names by sha256 digest, and fails when the download does not match the digest. See [AutoUpdate](deployment.md#autoupdate).
+3. **BRClient on lambda-web** - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`. The build takes BRClient v1.2.4 from the layer of the public BRConnector image 0.0.44 that `scripts/brclient.pin` names by sha256 digest, and fails when the download does not match the digest. See [AutoUpdate](deployment.md#autoupdate).
 
 ## 0.0.44
 

@@ -26,7 +26,7 @@
    - 上传的图片保存在 `<s3Prefix>/uploads/<date>/`。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。
    - **修复：** `bedrock-converse` 模型的非流式回答现在按顺序保留全部 tool call，以前只保留最后一个。
 
-3. **lambda-web 提供 BRClient** - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient，之前 `lambda-web` 的 `/brclient/` 返回 404。构建时从 `scripts/brclient.pin` 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient，下载的内容和 digest 不一致时构建失败。见 [AutoUpdate](deployment.md#autoupdate)。
+3. **lambda-web 提供 BRClient** - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient，之前 `lambda-web` 的 `/brclient/` 返回 404。构建时从 `scripts/brclient.pin` 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient v1.2.4，下载的内容和 digest 不一致时构建失败。见 [AutoUpdate](deployment.md#autoupdate)。
 
 ## 0.0.44
 
