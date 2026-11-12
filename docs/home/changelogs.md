@@ -26,6 +26,7 @@
    - **Breaking:** presigned picture URLs now last up to 4 hours instead of 1. A URL signed with temporary credentials stops working when the credentials expire, so older pictures can stop loading sooner.
    - Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. BRConnector sets no lifecycle rule, so pictures stay until you delete them.
    - **Fix:** a non-stream answer from a `bedrock-converse` model now keeps every tool call, in order. It kept only the last one before.
+   - **Fix:** when Bedrock returns `AccessDeniedException`, the reply now quotes the message from Bedrock. It also says if the AWS Marketplace subscription for the model is not complete, or else names the Region where the role needs `bedrock:InvokeModel`. Before, every denial got the IAM hint. The log now records each denial, without the prompt or the pictures. See [IAM permissions](../providers/painter.md#iam-permissions).
 
 3. **BRClient on lambda-web** - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`. The build takes BRClient v1.2.4 from the layer of the public BRConnector image 0.0.44 that `scripts/brclient.pin` names by sha256 digest, and fails when the download does not match the digest. See [AutoUpdate](deployment.md#autoupdate).
 
