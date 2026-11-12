@@ -114,7 +114,16 @@ BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，提示词�
 - 目标区域的 `bedrock:InvokeModel`，覆盖基础模型和 `us.stability.*` 推理配置文件。
 - 存储桶和前缀上的 `s3:PutObject` 和 `s3:GetObject`。
 
-用 `aws:RequestedRegion` 限制区域的服务控制策略（SCP）会拦截对 us-west-2 的调用。调用返回 `AccessDeniedException` 时，回复会写明 BRConnector 调用的区域。
+Stability 模型是通过 AWS Marketplace 销售的第三方模型。一个 AWS 账号第一次调用某个模型时，会为账号订阅这个模型。这次调用需要 `aws-marketplace:Subscribe` 和 `aws-marketplace:ViewSubscriptions` 权限，账号也需要有可用于 AWS Marketplace 的有效付款方式。请把这两个权限授予角色，或者请有这两个权限的人在 Amazon Bedrock 控制台里把每个模型调用一次。订阅完成后，角色只需要 `bedrock:InvokeModel`。订阅最多可能需要 15 分钟。
+
+用 `aws:RequestedRegion` 限制区域的服务控制策略（SCP）会拦截对 us-west-2 的调用。
+
+调用返回 `AccessDeniedException` 时，回复会引用 Bedrock 的原始消息，并附一条提示：
+
+- 消息里提到 AWS Marketplace 时，说明这个模型的订阅还没有完成。请用上面两种方法之一完成订阅，几分钟后再试。
+- 其他情况下，回复会写明 BRConnector 调用的区域。请确认角色和所有服务控制策略都允许在该区域调用 `bedrock:InvokeModel`。
+
+Bedrock 的消息里可能包含运行 BRConnector 的角色的 ARN。日志会记下每次拒绝的模型 ID、区域、错误名称、Bedrock 的消息和请求 ID，不记录提示词和图片。
 
 ## 计费 {#billing}
 

@@ -114,7 +114,16 @@ The role that runs BRConnector needs:
 - `bedrock:InvokeModel` in the target Region, on the foundation models and on the `us.stability.*` inference profiles.
 - `s3:PutObject` and `s3:GetObject` on the bucket and prefix.
 
-A service control policy that limits `aws:RequestedRegion` blocks calls to us-west-2. If a call returns `AccessDeniedException`, the reply names the Region that BRConnector called.
+Stability models are third-party models that AWS Marketplace sells. The first call to a model in an AWS account subscribes the account to that model. This call needs `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions`, and the account needs a valid payment method for AWS Marketplace. Give these permissions to the role, or ask someone who has them to invoke each model once in the Amazon Bedrock console. After the subscription is complete, the role needs only `bedrock:InvokeModel`. A subscription can take up to 15 minutes.
+
+A service control policy that limits `aws:RequestedRegion` blocks calls to us-west-2.
+
+If a call returns `AccessDeniedException`, the reply quotes the message from Bedrock and adds a hint:
+
+- If the message names AWS Marketplace, the subscription for the model is not complete. Complete it in one of the two ways above, and try again after a few minutes.
+- Otherwise, the reply names the Region that BRConnector called. Make sure that the role and all service control policies allow `bedrock:InvokeModel` in that Region.
+
+The message from Bedrock can include the ARN of the role that runs BRConnector. The log records each denial with the model ID, the Region, the error name, the message from Bedrock and the request ID. The log does not record the prompt or the pictures.
 
 ## Billing
 
