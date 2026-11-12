@@ -2043,7 +2043,14 @@ Updated in Docker image version 0.0.19</p>
 <li>目标区域的 <code>bedrock:InvokeModel</code>，覆盖基础模型和 <code>us.stability.*</code> 推理配置文件。</li>
 <li>存储桶和前缀上的 <code>s3:PutObject</code> 和 <code>s3:GetObject</code>。</li>
 </ul>
-<p>用 <code>aws:RequestedRegion</code> 限制区域的服务控制策略（SCP）会拦截对 us-west-2 的调用。调用返回 <code>AccessDeniedException</code> 时，回复会写明 BRConnector 调用的区域。</p>
+<p>Stability 模型是通过 AWS Marketplace 销售的第三方模型。一个 AWS 账号第一次调用某个模型时，会为账号订阅这个模型。这次调用需要 <code>aws-marketplace:Subscribe</code> 和 <code>aws-marketplace:ViewSubscriptions</code> 权限，账号也需要有可用于 AWS Marketplace 的有效付款方式。请把这两个权限授予角色，或者请有这两个权限的人在 Amazon Bedrock 控制台里把每个模型调用一次。订阅完成后，角色只需要 <code>bedrock:InvokeModel</code>。订阅最多可能需要 15 分钟。</p>
+<p>用 <code>aws:RequestedRegion</code> 限制区域的服务控制策略（SCP）会拦截对 us-west-2 的调用。</p>
+<p>调用返回 <code>AccessDeniedException</code> 时，回复会引用 Bedrock 的原始消息，并附一条提示：</p>
+<ul>
+<li>消息里提到 AWS Marketplace 时，说明这个模型的订阅还没有完成。请用上面两种方法之一完成订阅，几分钟后再试。</li>
+<li>其他情况下，回复会写明 BRConnector 调用的区域。请确认角色和所有服务控制策略都允许在该区域调用 <code>bedrock:InvokeModel</code>。</li>
+</ul>
+<p>Bedrock 的消息里可能包含运行 BRConnector 的角色的 ARN。日志会记下每次拒绝的模型 ID、区域、错误名称、Bedrock 的消息和请求 ID，不记录提示词和图片。</p>
 <h2 id="billing">计费<a class="headerlink" href="#billing" title="Permanent link">¶</a></h2>
 <p>painter 按如下顺序查找单张图片的价格：</p>
 <ol>
@@ -2094,7 +2101,7 @@ Updated in Docker image version 0.0.19</p>
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 12:49:40 CST"><span class="timeago" datetime="2026-11-12T12:49:40+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 12:49:40 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 13:03:40 CST"><span class="timeago" datetime="2026-11-12T13:03:40+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 13:03:40 CST">2026-11-12</span>
   </span>
 
     
