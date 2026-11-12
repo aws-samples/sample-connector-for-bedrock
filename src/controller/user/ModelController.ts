@@ -1,5 +1,4 @@
 import service from "../../service/key";
-import serviceGroup from "../../service/group";
 import models from "../../models_data"
 import AbstractController from "../AbstractController";
 
@@ -13,20 +12,9 @@ class ModelController extends AbstractController {
         const id = ctx.user.id;
         const myself = await service.loadById(ctx.db, id);
 
-        const keyModels = await service.listModels(ctx.db, { key_id: id, limit: 200 });
-        const groupModels = await serviceGroup.listModels(ctx.db, { group_id: myself.group_id, limit: 200 });
-
-        const keyItems = keyModels.items;
-        const groupItems = groupModels.items;
-
-        keyItems.map((kmd: any) => {
-            const contains = groupItems.some((gmd: any) => gmd.model_id == kmd.model_id);
-            if (!contains) {
-                groupItems.push(kmd);
-            }
-        });
+        const rows = await service.listUsableModels(ctx.db, myself, 200);
         // Public fields only: model config holds provider credentials.
-        const items = groupItems.map((item: any) => ({
+        const items = rows.map((item: any) => ({
             name: item.model_name,
             provider: item.provider,
             price_in: item.price_in,
@@ -42,10 +30,6 @@ class ModelController extends AbstractController {
         // const myself = await service.loadById(ctx.db, id);
         let customModels = [];
         if (myself && ctx.db) {
-            const keyModels = await service.listModels(ctx.db, { key_id: myself.id, limit: 1000 });
-            const groupModels = await serviceGroup.listModels(ctx.db, { group_id: myself.group_id, limit: 1000 });
-            const keyItems = keyModels.items;
-            const groupItems = groupModels.items;
             const mapFun = (item: any) => ({
                 name: item.model_name,
                 available: true,
@@ -58,14 +42,7 @@ class ModelController extends AbstractController {
                     providerName: "BRConnector"
                 }
             });
-
-            keyItems.map((kmd: any) => {
-                const contains = groupItems.some((gmd: any) => gmd.model_id == kmd.model_id);
-                if (!contains) {
-                    groupItems.push(kmd);
-                }
-            });
-            customModels = groupItems.map(mapFun);
+            customModels = (await service.listUsableModels(ctx.db, myself, 1000)).map(mapFun);
         } else {
             const mapFun = (item: any) => ({
                 name: item.id,
