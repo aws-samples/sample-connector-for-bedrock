@@ -367,13 +367,34 @@ describe('painter steps', () => {
         expect(raw.endsWith('data: [DONE]\n\n')).toBe(true);
     });
 
-    it('says which Region may lack bedrock:InvokeModel when access is denied', async () => {
+    const denied = (message: string) => Object.assign(new Error(message), { name: 'AccessDeniedException', $metadata: { httpStatusCode: 403, requestId: 'req-42' } });
+
+    it('passes on the IAM denial of Bedrock with the Region and an IAM hint, and logs it', async () => {
+        const bedrockSays = 'User: arn:aws:sts::123456789012:assumed-role/BRConnectorRole/i-0abc is not authorized to perform: bedrock:InvokeModel on resource: arn:aws:bedrock:us-west-2::foundation-model/stability.stable-image-remove-background-v1:0 because no identity-based policy allows the bedrock:InvokeModel action';
         stubChat([{ calls: [['remove_background', { image_ref: 'image_1' }]] }]);
-        const error = Object.assign(new Error('not allowed'), { name: 'AccessDeniedException' });
-        stubAws(async () => { throw error; });
+        stubAws(async () => { throw denied(bedrockSays); });
         vi.stubEnv('AWS_REGION', 'eu-west-1');
-        const { text, ctx } = await paint([await userWithPictures('cut it')]);
-        expect(text).toContain('> Error: Access denied calling us.stability.stable-image-remove-background-v1:0. The role may lack bedrock:InvokeModel in us-west-2.');
+        const { text, ctx } = await paint([await userWithPictures('cut the secret cat out')]);
+        expect(text).toContain(`> Error: Access denied calling ${REMOVE_BACKGROUND} in us-west-2. Check that the role that runs BRConnector, and any service control policy, allow bedrock:InvokeModel there. Bedrock says: ${bedrockSays}`);
+        expect(text).not.toContain('Marketplace');
+        expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({
+            modelId: REMOVE_BACKGROUND, region: 'us-west-2', name: 'AccessDeniedException', error: bedrockSays, requestId: 'req-42',
+        }));
+        expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toMatch(/secret cat|base64/);
+        expect(charges(ctx)).toEqual([]);
+    });
+
+    it('tells a missing AWS Marketplace subscription apart from an IAM denial, and logs it', async () => {
+        const bedrockSays = 'Model access is denied due to IAM user or service role is not authorized to perform the required AWS Marketplace actions (aws-marketplace:ViewSubscriptions, aws-marketplace:Subscribe) to enable access to this model. Refer to the Amazon Bedrock documentation for further details. Your AWS Marketplace subscription for this model cannot be completed at this time. If you recently fixed this issue, try again after 15 minutes.';
+        stubChat([{ calls: [['txt2img', { prompt: 'a secret cat' }]] }]);
+        stubAws(async () => { throw denied(bedrockSays); });
+        const { text, ctx } = await paint([{ role: 'user', content: 'a secret cat' }]);
+        expect(text).toContain(`> Error: Access denied calling ${ULTRA}. The AWS Marketplace subscription for this model is not complete. Allow aws-marketplace:Subscribe and aws-marketplace:ViewSubscriptions for the role that runs BRConnector, or invoke the model once in the Amazon Bedrock console, then try again in a few minutes. Bedrock says: ${bedrockSays}`);
+        expect(text).not.toContain('allow bedrock:InvokeModel');
+        expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({
+            modelId: ULTRA, region: 'us-west-2', name: 'AccessDeniedException', error: bedrockSays,
+        }));
+        expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toContain('secret cat');
         expect(charges(ctx)).toEqual([]);
     });
 
