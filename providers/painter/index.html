@@ -1465,6 +1465,23 @@ Updated in Docker image version 0.0.19">
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#choose-chat-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the chat model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1713,6 +1730,23 @@ Updated in Docker image version 0.0.19">
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#choose-chat-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the chat model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1833,7 +1867,7 @@ Updated in Docker image version 0.0.19</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"s3Prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-prefix&gt;"</span><span class="p">,</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"s3Region"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us-east-1"</span><span class="p">,</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"paintModelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stability.stable-image-ultra-v1:1"</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-haiku-5-5-chat"</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-sonnet-5-5-chat"</span><span class="p">,</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">"image_prices"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">"stability.stable-image-ultra-v1:1"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.14</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="p">}</span>
@@ -1855,7 +1889,7 @@ Updated in Docker image version 0.0.19</p>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>The chat model that reads the request and chooses what to draw. It must support <strong>function calling</strong> and be able to <strong>see images</strong>. A model that cannot see images cannot tell which picture the user means.</td>
+<td>The chat model that reads the request and chooses what to draw. It must support <strong>function calling</strong> and be able to <strong>see images</strong>. A model that cannot see images cannot tell which picture the user means. Use a Claude Sonnet model. See <a href="./#choose-chat-model">Choosing the chat model</a>.</td>
 </tr>
 <tr>
 <td>paintModelId</td>
@@ -1910,6 +1944,11 @@ Updated in Docker image version 0.0.19</p>
 <p><code>paintModelId</code> sets the model for text to image. It also sets the model for image to image when it is Ultra or SD3.5 Large. Core cannot take a picture as input, so with Core, image to image uses SD3.5 Large.</p>
 <p>painter ignores the <code>regions</code> field and logs a message when it is set. It picks the Region for each model. See <a href="./#regions-and-data-residency">Regions and data residency</a>. Remove <code>regions</code> from existing configs.</p>
 <p>Then grant this model to a group or an API key.</p>
+<h3 id="choose-chat-model">Choosing the chat model<a class="headerlink" href="#choose-chat-model" title="Permanent link">¶</a></h3>
+<p>Use a Claude Sonnet model, such as <code>claude-sonnet-5-5-chat</code>, as <code>localLlmModel</code>. The chat model decides how many steps a request runs, and every step makes a picture that is billed.</p>
+<p>In tests with Amazon Nova Pro (<code>us.amazon.nova-pro-v1:0</code>) as <code>localLlmModel</code>, a text-only request for one picture ran more steps than the user asked for. After the first picture, the model called style transfer or image to image on that picture by itself. Each extra step was billed. Nova Pro also wrote its <code>&lt;thinking&gt;...&lt;/thinking&gt;</code> text into the reply, so the user saw it.</p>
+<p>With Claude Sonnet, the same request ran one step, and the reply had no such text.</p>
+<p>To use a different model, create the model config yourself and test it with your own requests before users rely on it.</p>
 <h2 id="what-users-can-say">What users can say<a class="headerlink" href="#what-users-can-say" title="Permanent link">¶</a></h2>
 <p>Users do not need tool names or a fixed format. They write what they want, and the chat model chooses the capability. If the choice is wrong, the user can say so and ask again.</p>
 <table>
@@ -2053,7 +2092,7 @@ Updated in Docker image version 0.0.19</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 12, 2026 01:23:14 CST"><span class="timeago" datetime="2026-11-12T01:23:14+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 12, 2026 01:23:14 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 12, 2026 12:49:40 CST"><span class="timeago" datetime="2026-11-12T12:49:40+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 12, 2026 12:49:40 CST">2026-11-12</span>
   </span>
 
     

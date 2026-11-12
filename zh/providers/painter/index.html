@@ -1467,6 +1467,23 @@ Updated in Docker image version 0.0.19">
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="配置">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#choose-chat-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        选择对话模型
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1715,6 +1732,23 @@ Updated in Docker image version 0.0.19">
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="配置">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#choose-chat-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        选择对话模型
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1835,7 +1869,7 @@ Updated in Docker image version 0.0.19</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"s3Prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your-prefix&gt;"</span><span class="p">,</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"s3Region"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us-east-1"</span><span class="p">,</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"paintModelId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stability.stable-image-ultra-v1:1"</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-haiku-5-5-chat"</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"localLlmModel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"claude-sonnet-5-5-chat"</span><span class="p">,</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">"image_prices"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="nt">"stability.stable-image-ultra-v1:1"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.14</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="p">}</span>
@@ -1857,7 +1891,7 @@ Updated in Docker image version 0.0.19</p>
 <td>string</td>
 <td>Y</td>
 <td></td>
-<td>理解请求并决定画什么的对话模型。它必须支持 <strong>function calling</strong>，并且能<strong>看懂图片</strong>。看不懂图片的模型分不清用户指的是哪一张。</td>
+<td>理解请求并决定画什么的对话模型。它必须支持 <strong>function calling</strong>，并且能<strong>看懂图片</strong>。看不懂图片的模型分不清用户指的是哪一张。请使用 Claude Sonnet 模型，见<a href="./#choose-chat-model">选择对话模型</a>。</td>
 </tr>
 <tr>
 <td>paintModelId</td>
@@ -1912,6 +1946,11 @@ Updated in Docker image version 0.0.19</p>
 <p><code>paintModelId</code> 决定文生图用的模型。它是 Ultra 或 SD3.5 Large 时，也决定图生图用的模型。Core 不能接收图片作为输入，所以选 Core 时，图生图使用 SD3.5 Large。</p>
 <p>painter 现在忽略 <code>regions</code> 字段，设置了它会在日志里记一条消息。painter 为每个模型自己选区域，见<a href="./#regions">区域与数据驻留</a>。请把已有 config 里的 <code>regions</code> 删掉。</p>
 <p>然后将此模型授予组或 api key。</p>
+<h3 id="choose-chat-model">选择对话模型<a class="headerlink" href="#choose-chat-model" title="Permanent link">¶</a></h3>
+<p>请使用 Claude Sonnet 模型作为 <code>localLlmModel</code>，例如 <code>claude-sonnet-5-5-chat</code>。对话模型决定一次请求执行多少步，而每一步都会生成一张要计费的图片。</p>
+<p>测试中，用 Amazon Nova Pro（<code>us.amazon.nova-pro-v1:0</code>）作为 <code>localLlmModel</code> 时，一条只有文字、只要一张图片的请求，执行的步骤比用户要求的多。第一张图片画完后，模型自己对这张图片调用了风格迁移或图生图。多出来的每一步都会计费。Nova Pro 还把它的 <code>&lt;thinking&gt;...&lt;/thinking&gt;</code> 文字写进了回复，用户能看到。</p>
+<p>用 Claude Sonnet 时，同样的请求只执行一步，回复里也没有这类文字。</p>
+<p>要使用其他模型，请自己新建模型 config，并在用户使用之前用自己的请求测试。</p>
 <h2 id="_2">用户可以怎么说<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
 <p>用户不需要知道工具名，也不需要固定格式。直接写想要什么，由对话模型选择能力。选错了，用户可以说明后再要求一次。</p>
 <table>
@@ -2055,7 +2094,7 @@ Updated in Docker image version 0.0.19</p>
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 01:23:14 CST"><span class="timeago" datetime="2026-11-12T01:23:14+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 01:23:14 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 12:49:40 CST"><span class="timeago" datetime="2026-11-12T12:49:40+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 12:49:40 CST">2026-11-12</span>
   </span>
 
     
