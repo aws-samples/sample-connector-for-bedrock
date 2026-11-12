@@ -17,7 +17,7 @@ A user can type a sentence, or upload up to 5 pictures and type a sentence, in B
   "s3Prefix": "<your-prefix>",
   "s3Region": "us-east-1",
   "paintModelId": "stability.stable-image-ultra-v1:1",
-  "localLlmModel": "claude-haiku-5-5-chat",
+  "localLlmModel": "claude-sonnet-5-5-chat",
   "image_prices": {
     "stability.stable-image-ultra-v1:1": 0.14
   }
@@ -26,7 +26,7 @@ A user can type a sentence, or upload up to 5 pictures and type a sentence, in B
 
 | Key | Type | Required | Default value | Description |
 | --- | --- | --- | --- | --- |
-| localLlmModel | string | Y | | The chat model that reads the request and chooses what to draw. It must support **function calling** and be able to **see images**. A model that cannot see images cannot tell which picture the user means. |
+| localLlmModel | string | Y | | The chat model that reads the request and chooses what to draw. It must support **function calling** and be able to **see images**. A model that cannot see images cannot tell which picture the user means. Use a Claude Sonnet model. See [Choosing the chat model](#choose-chat-model). |
 | paintModelId | string | Y | | The text-to-image model. See the options below. |
 | s3Bucket | string | Y | | The bucket that stores uploaded and generated pictures. Grant the access described in [IAM permissions](#iam-permissions). |
 | s3Prefix | string | N | "" | The S3 key prefix. Generated pictures go to `<s3Prefix>/<date>/` and uploaded pictures go to `<s3Prefix>/uploads/<date>/`. |
@@ -45,6 +45,16 @@ A user can type a sentence, or upload up to 5 pictures and type a sentence, in B
 painter ignores the `regions` field and logs a message when it is set. It picks the Region for each model. See [Regions and data residency](#regions-and-data-residency). Remove `regions` from existing configs.
 
 Then grant this model to a group or an API key.
+
+### Choosing the chat model {#choose-chat-model}
+
+Use a Claude Sonnet model, such as `claude-sonnet-5-5-chat`, as `localLlmModel`. The chat model decides how many steps a request runs, and every step makes a picture that is billed.
+
+In tests with Amazon Nova Pro (`us.amazon.nova-pro-v1:0`) as `localLlmModel`, a text-only request for one picture ran more steps than the user asked for. After the first picture, the model called style transfer or image to image on that picture by itself. Each extra step was billed. Nova Pro also wrote its `<thinking>...</thinking>` text into the reply, so the user saw it.
+
+With Claude Sonnet, the same request ran one step, and the reply had no such text.
+
+To use a different model, create the model config yourself and test it with your own requests before users rely on it.
 
 ## What users can say
 
