@@ -17,7 +17,7 @@
   "s3Prefix": "<your-prefix>",
   "s3Region": "us-east-1",
   "paintModelId": "stability.stable-image-ultra-v1:1",
-  "localLlmModel": "claude-haiku-5-5-chat",
+  "localLlmModel": "claude-sonnet-5-5-chat",
   "image_prices": {
     "stability.stable-image-ultra-v1:1": 0.14
   }
@@ -26,7 +26,7 @@
 
 | Key | Type | Required | Default value | Description |
 | --- | --- | --- | --- | --- |
-| localLlmModel | string | Y | | 理解请求并决定画什么的对话模型。它必须支持 **function calling**，并且能**看懂图片**。看不懂图片的模型分不清用户指的是哪一张。 |
+| localLlmModel | string | Y | | 理解请求并决定画什么的对话模型。它必须支持 **function calling**，并且能**看懂图片**。看不懂图片的模型分不清用户指的是哪一张。请使用 Claude Sonnet 模型，见[选择对话模型](#choose-chat-model)。 |
 | paintModelId | string | Y | | 文生图模型，可选值见下文。 |
 | s3Bucket | string | Y | | 保存上传图片和生成图片的存储桶。请按[IAM 权限](#iam)授予访问权限。 |
 | s3Prefix | string | N | "" | S3 key 前缀。生成的图片放在 `<s3Prefix>/<date>/`，上传的图片放在 `<s3Prefix>/uploads/<date>/`。 |
@@ -45,6 +45,16 @@
 painter 现在忽略 `regions` 字段，设置了它会在日志里记一条消息。painter 为每个模型自己选区域，见[区域与数据驻留](#regions)。请把已有 config 里的 `regions` 删掉。
 
 然后将此模型授予组或 api key。
+
+### 选择对话模型 {#choose-chat-model}
+
+请使用 Claude Sonnet 模型作为 `localLlmModel`，例如 `claude-sonnet-5-5-chat`。对话模型决定一次请求执行多少步，而每一步都会生成一张要计费的图片。
+
+测试中，用 Amazon Nova Pro（`us.amazon.nova-pro-v1:0`）作为 `localLlmModel` 时，一条只有文字、只要一张图片的请求，执行的步骤比用户要求的多。第一张图片画完后，模型自己对这张图片调用了风格迁移或图生图。多出来的每一步都会计费。Nova Pro 还把它的 `<thinking>...</thinking>` 文字写进了回复，用户能看到。
+
+用 Claude Sonnet 时，同样的请求只执行一步，回复里也没有这类文字。
+
+要使用其他模型，请自己新建模型 config，并在用户使用之前用自己的请求测试。
 
 ## 用户可以怎么说
 

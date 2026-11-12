@@ -5,7 +5,7 @@
 **升级提示**
 
 - 对使用了 Amazon Bedrock 已停止提供的图像模型的模型，这是不兼容变更（第 1 条）。升级前，请在管理后台检查 provider 为 `nova-canvas` 或 `painter` 的每个模型的 provider 和 `paintModelId`。没有 migration 会修改这些模型。
-- 开启 AutoUpdate 的 stack 会自动拉取新镜像（第 1、2 条）。在用户使用新的 `painter` 之前，请确认 `localLlmModel` 能看懂图片，并检查 `price_per_image` 和 `image_prices`（第 2 条）。没有设置价格的 `painter` config 现在按内置标价计费。
+- 开启 AutoUpdate 的 stack 会自动拉取新镜像（第 1、2 条）。在用户使用新的 `painter` 之前，请确认 `localLlmModel` 能看懂图片（推荐使用 Claude Sonnet），并检查 `price_per_image` 和 `image_prices`（第 2 条）。没有设置价格的 `painter` config 现在按内置标价计费。
 - `regions` 不再对 `painter` 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。
 - `lambda-web` stack 要从包含第 3 条的 `SourceRef` 重新构建部署包后，才会在 `/brclient/` 提供 BRClient。`SourceRef` 是分支时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）来重新构建。构建时会从 `public.ecr.aws` 下载 BRClient（第 3 条）。
 
@@ -20,6 +20,7 @@
    - 每张图片按生成它的模型的价格计费。新增的 `image_prices` 字段为每个模型 ID 设置价格。没有设置价格时，painter 使用内置标价。
    - 非流式请求不会画图，它们像以前一样转发给对话模型。
    - **不兼容变更：** `localLlmModel` 现在必须支持 function calling，并且能看懂图片。
+   - 请使用 Claude Sonnet 作为 `localLlmModel`。配置示例现在使用 `claude-sonnet-5-5-chat`。测试中，Amazon Nova Pro 执行了用户没有要求的额外计费步骤，并在回复里显示了它的 `<thinking>` 文字。见[选择对话模型](../providers/painter.md#choose-chat-model)。
    - **不兼容变更：** `regions` 不再对 `painter` 生效。Ultra、Core 和 SD3.5 Large 在 us-west-2 运行。六个 `us.stability.*` 图像服务，在所在区域是 us-east-1、us-east-2 或 us-west-2 时就在该区域运行，否则在 us-west-2 运行。在这三个区域之外，图片和提示词会发送到 us-west-2，有数据驻留要求时请不要使用 `painter`。角色需要目标区域的 `bedrock:InvokeModel`，用 `aws:RequestedRegion` 限制区域的 SCP 会拦截对 us-west-2 的调用。
    - **不兼容变更：** 没有设置价格的 config 现在按内置标价计费，不再按 0。设置了 `price_per_image` 的 config，在设置 `image_prices` 之前，所有能力都沿用这一个价格。
    - **不兼容变更：** 图片预签名 URL 现在最长有效 4 小时，以前是 1 小时。用临时凭证签名的 URL 在凭证过期时就失效，所以较早的图片可能更早打不开。
