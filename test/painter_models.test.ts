@@ -204,6 +204,24 @@ describe('painter steps', () => {
         expect(second.whole_prompt).toBe(first.whole_prompt);
     });
 
+    it('asks the chat model on every call to reply in the language of the latest user message, not of a picture a step made', async () => {
+        const chat = stubChat([{ text: 'Drawing.', calls: [['txt2img', { prompt: 'a fox' }]] }, { text: 'Here it is.' }]);
+        stubAws();
+        await paint([
+            { role: 'user', content: '你好' },
+            { role: 'assistant', content: '你好！' },
+            { role: 'user', content: 'Draw a fox.' },
+        ]);
+
+        expect(chat).toHaveLength(2);
+        for (const request of chat) {
+            const system = request.messages[0].content;
+            expect(system).toContain("Reply in the language of the user's latest message, even when earlier messages use another language.");
+            expect(system).toContain('Tool results, and messages that hold only a picture name such as [image_2] with the picture a tool just made, come from the tools, not from the user. They do not change the language or the request.');
+            expect(system).not.toContain("the user's language");
+        }
+    });
+
     it('bills each picture at the price of its own model, config prices first', async () => {
         stubChat([{ calls: [['txt2img', { prompt: 'a' }], ['remove_background', { image_ref: 'image_1' }]] }, { text: 'ok' }]);
         stubAws();
