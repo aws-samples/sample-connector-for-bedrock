@@ -1900,6 +1900,8 @@
 <li><code>regions</code> no longer applies to <code>painter</code>; remove it from the model config (item 2). If BRConnector runs outside us-east-1, us-east-2 and us-west-2, uploaded pictures and prompts go to us-west-2.</li>
 <li><code>lambda-web</code> stacks serve BRClient at <code>/brclient/</code> once the package is rebuilt from a <code>SourceRef</code> that includes item 3. When <code>SourceRef</code> is a branch, change <code>WebFnBuildId</code> (for example from <code>1</code> to <code>2</code>) to rebuild. The build now downloads BRClient from <code>public.ecr.aws</code> (item 3).</li>
 <li>The Claude Code Web backend image gets item 5 only when it is rebuilt. To rebuild it, change <code>ClaudeCodeWebImageBuildId</code> (for example from <code>1</code> to <code>2</code>). See <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Claude Code Web</a>.</li>
+<li>Release the templates and the BRConnector image together as 0.0.45, the image first or at the same time. A new <code>lambda</code> or <code>lambda-web</code> stack with a generated password (<code>PGPassword</code> empty) needs the 0.0.45 BRConnector to read it (item 7); with an older image or <code>SourceRef</code> it cannot reach its database. Stacks with a password are not affected.</li>
+<li>Updating a stack to the new <code>quick-build-brconnector.yaml</code> or <code>brconnector-ecs-fargate.yaml</code> asks for <code>PGStorageEncrypted</code> (item 6). Choose <code>false</code> for a stack created from an earlier template: <code>true</code> replaces its database with a new, empty one. On later updates, keep the value the stack has. Keep the current <code>PGPassword</code> (with the AWS CLI, <code>UsePreviousValue=true</code>; without it, the update generates a new password). The existing database keeps its data and its password and stays unencrypted, and the update turns on its deletion protection. See <a href="../deployment/#template-updates-of-existing-stacks">Template updates of existing stacks</a>.</li>
 </ul>
 <ol>
 <li>
@@ -1935,7 +1937,20 @@
 <p><strong>Dependency Updates</strong> - Dependencies with known vulnerabilities move to fixed releases.<br>
    - The Claude Code Web backend image installs litellm 1.100.4, cryptography 46.0.7, anyio 4.14.2, certifi 2026.10.18, fsspec 2026.6.0, mcp 1.28.1, pyasn1 0.6.5 and urllib3 2.8.0. litellm 1.100.4 needs a newer boto3, so the AWS CLI in the workspace terminal also moves from 1.44.38 to 1.46.3.<br>
    - cryptography and starlette keep known vulnerabilities that only a later major release fixes. They stay on their current major releases for now.<br>
-   - The BRConnector image does not change. Each build installs the newest releases that <code>package.json</code> allows, and these already include the fixes. The lockfile that the tests use now has these fixes too. zod stays on 3.25.76 in both, because its fix is only in zod 4.</p>
+   - The BRConnector image does not change. Each build installs the newest releases that <code>package.json</code> allows, and these already include the fixes. The lockfile that the tests use now has these fixes too. zod stays on 3.25.76 in both, because its fix is only in zod 4.<br>
+   - The Claude Code Web web client is built with rollup 4.68.2 instead of 4.52.5.</p>
+</li>
+<li>
+<p><strong>RDS Database Settings in the Templates</strong> - The RDS database that <code>quick-build-brconnector.yaml</code> and <code>brconnector-ecs-fargate.yaml</code> create (<code>DatabaseMode</code> <code>Standalone</code>) has new settings.<br>
+   - <code>PGPassword</code> can be left empty. The stack then generates the database password into AWS Secrets Manager (the <code>PGPasswordSecretArn</code> output), and BRConnector reads it from there. A stack created with a password keeps it. An entered password is 8 to 128 letters and digits.<br>
+   - The new <code>PGStorageEncrypted</code> parameter encrypts the storage of the database. It has no default: choose <code>true</code> for a new stack. On an update, keep the current value, which is <code>false</code> for a stack created from an earlier template.<br>
+   - The database has deletion protection. To delete a stack, turn it off first. See <a href="../deployment/#deleting-a-stack">Deleting a stack</a>, which also shows how to delete the final snapshot that CloudFormation keeps.<br>
+   - When a stack update replaces the database, CloudFormation now keeps the old one: as a snapshot, or, while its deletion protection is on, as a running database outside the stack. Before, it deleted the old database without a snapshot.<br>
+   - In <code>brconnector-ecs-fargate.yaml</code>, <code>PGUser</code> is NoEcho and has no default.<br>
+   - The templates list the outbound rules of each security group (all IPv4 and IPv6 traffic, as before) and set the database to not publicly accessible (as before).</p>
+</li>
+<li>
+<p><strong>Database Password from Secrets Manager</strong> - When <code>PGSQL_PASSWORD_SECRET_ARN</code> is set, BRConnector reads the database password from that Secrets Manager secret instead of <code>PGSQL_PASSWORD</code>. The templates set it for <code>lambda</code> and <code>lambda-web</code> when they generate the password (item 6). See <a href="../../user-manual/development/">Development</a>.</p>
 </li>
 </ol>
 <h2 id="0044">0.0.44<a class="headerlink" href="#0044" title="Permanent link">¶</a></h2>
@@ -2231,7 +2246,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 13, 2026 09:36:06 CST"><span class="timeago" datetime="2026-11-13T09:36:06+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 13, 2026 09:36:06 CST">2026-11-13</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 13, 2026 14:57:55 CST"><span class="timeago" datetime="2026-11-13T14:57:55+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 13, 2026 14:57:55 CST">2026-11-13</span>
   </span>
 
     

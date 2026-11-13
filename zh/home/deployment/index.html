@@ -544,6 +544,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#deleting-a-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        删除 stack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#admin-key-before-0-0-44" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1881,6 +1892,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#deleting-a-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        删除 stack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#admin-key-before-0-0-44" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2101,7 +2123,10 @@
 </ul>
 </li>
 <li>将 PerformanceMode 设置为 <code>true</code>，聊天历史将不会保存。</li>
-<li>默认 PostgreSQL 密码为 <code>mysecretpassword</code></li>
+<li>新建 stack 时 <code>PGPassword</code> 留空即可。stack 会生成一个 32 位、由字母和数字组成的密码，保存在 AWS Secrets Manager 里，并在输出 <code>PGPasswordSecretArn</code> 中给出这个 secret 的 ARN。stack 参数、输出、函数配置和 ECS 任务定义里都没有明文密码，任务定义里只有 secret 的 ARN。<code>ec2</code> 在实例启动时从 secret 读取密码，保存在 <code>/root</code> 下只有 root 能读的文件里。在 <code>ecs</code> 上，ECS 在任务启动时读取 secret，把 <code>PGSQL_PASSWORD</code> 设到容器的运行时环境里，ECS 对所有 secret 都是这样处理的。<code>lambda</code> 和 <code>lambda-web</code> 在连接数据库时读取，这需要 BRConnector 0.0.45 或更新的版本：BRConnector 镜像（以及 <code>lambda-web</code> 构建部署包所用的 <code>SourceRef</code>）要和这个模板一起发布，或者先于它发布。运行旧版 BRConnector 的 <code>lambda</code> 或 <code>lambda-web</code> stack 用生成的密码连不上数据库，这样的 stack 请填写密码。</li>
+<li>要使用自己的密码，请输入 8 到 128 个字母和数字：EC2 实例不能原样传递其他字符。</li>
+<li><code>PGStorageEncrypted</code> 没有默认值。选 <code>true</code> 会加密 RDS 数据库（<code>Standalone</code>）的存储。没有 RDS 数据库时不使用这个值，但模板仍然要求填写。</li>
+<li>RDS 数据库开启了删除保护，见<a href="./#deleting-a-stack">删除 stack</a>。</li>
 </ul>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../../home/attachments/deployment/IMG-deployment-13.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-13.png" src="../../../home/attachments/deployment/IMG-deployment-13.png"></a></p>
 <ul>
@@ -2164,11 +2189,36 @@
 <li><code>lambda-web</code> 启动时会执行数据库迁移，包括从未执行过的 0.0.43 迁移，它们会删除已下线 provider 的模型（见<a href="../changelogs/">更新日志</a>中的 0.0.43）。更新前请先做数据库快照。</li>
 <li>函数 URL 使用 AWS_IAM 认证时，把 <code>LambdaEdgeVersionArn</code> 设为新 Lambda@Edge stack（版本 <code>v2</code>）的输出。</li>
 </ul>
+<p>带有 <code>PGStorageEncrypted</code> 参数的模板还会修改 RDS 数据库（<code>Standalone</code>）的设置。更新会保留数据库、其中的数据和数据库密码：</p>
+<ul>
+<li><code>PGStorageEncrypted</code> 保持当前值。用以前的模板创建的 stack 是 <code>false</code>：它的数据库没有加密。选 <code>true</code> 会把它替换成一个新的空数据库，BRConnector 随后使用新数据库。CloudFormation 会为旧数据库做快照后删除它；如果旧数据库开启了删除保护（做过这次更新之后），则保留它继续运行，它不再属于 stack，在你删除之前一直计费。</li>
+<li><code>PGPassword</code> 保持当前值。控制台会自动填好。使用 AWS CLI 时传 <code>ParameterKey=PGPassword,UsePreviousValue=true</code>：不传的话，更新会用空的默认值，生成一个新密码。用密码创建的 stack 会继续使用这个密码，更新不会创建 secret。不要在这样的 stack 上清空 <code>PGPassword</code>，也不要在生成了密码的 stack 上填写密码：这两种改动都会给数据库设置新密码，在 <code>ec2</code> 上还会停止再启动实例，但不会更新 <code>/root/brconnector-run.sh</code>，BRConnector 仍然使用旧密码。</li>
+<li>更新会为数据库开启删除保护，不会中断服务。见<a href="./#deleting-a-stack">删除 stack</a>。</li>
+<li>使用 <code>brconnector-ecs-fargate.yaml</code> 时，<code>PGUser</code> 也要保持当前值。它现在没有默认值，换一个用户名会替换数据库。</li>
+<li>模板现在写明了每个安全组的出站规则，并把数据库设为不可公开访问。这些规则允许所有 IPv4 和所有 IPv6 流量，和安全组不写出站规则时 EC2 自动添加的规则一样。更新会修改这些资源，但出站流量和数据库的访问方式不变。在没有 IPv6 的 VPC 里，IPv6 规则不会匹配任何流量。</li>
+</ul>
+<h2 id="deleting-a-stack">删除 stack<a class="headerlink" href="#deleting-a-stack" title="Permanent link">¶</a></h2>
+<p>RDS 数据库开启了删除保护，所以删除 stack 会停在数据库这一步（<code>MyPG</code> 为 <code>DELETE_FAILED</code>）。要删除 stack：</p>
+<ol>
+<li>
+<p>关闭删除保护。数据库标识符是 stack <strong>资源</strong>页上 <code>MyPG</code> 的物理 ID。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>aws<span class="w"> </span>rds<span class="w"> </span>modify-db-instance<span class="w"> </span>--db-instance-identifier<span class="w"> </span>&lt;database&gt;<span class="w"> </span>--no-deletion-protection<span class="w"> </span>--apply-immediately
+</code></pre></div>
+</li>
+<li>
+<p>再次删除 stack。</p>
+</li>
+</ol>
+<p>stack 更新删除数据库时（例如修改 <code>DatabaseMode</code>）也同样删不掉。删除保护开启时，数据库会保留下来，在 stack 之外继续运行。</p>
+<p>CloudFormation 删除数据库之前会先做一个最终快照，以前的模板也是这样。生成的密码会随 stack 一起删除，所以从快照恢复时请设置新的主密码。stack 删除后快照仍然保留，并且在你删除它之前一直计费：</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>aws<span class="w"> </span>rds<span class="w"> </span>describe-db-snapshots<span class="w"> </span>--db-instance-identifier<span class="w"> </span>&lt;database&gt;<span class="w"> </span>--snapshot-type<span class="w"> </span>manual<span class="w"> </span>--query<span class="w"> </span><span class="s1">'DBSnapshots[].[DBSnapshotIdentifier,SnapshotCreateTime]'</span><span class="w"> </span>--output<span class="w"> </span>text
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>aws<span class="w"> </span>rds<span class="w"> </span>delete-db-snapshot<span class="w"> </span>--db-snapshot-identifier<span class="w"> </span>&lt;snapshot&gt;
+</code></pre></div>
 <h2 id="admin-key-before-0-0-44">0.0.44 之前创建的 stack 的 admin key<a class="headerlink" href="#admin-key-before-0-0-44" title="Permanent link">¶</a></h2>
 <p>0.0.44 之前创建的 stack 会把 admin key 写进 EC2 实例的启动日志（<code>/var/log/cloud-init-output.log</code>）和控制台输出：<code>ec2</code> 形态下是运行 BRConnector 的实例，<code>lambda</code>、<code>lambda-web</code> 和 <code>ecs</code> 形态下是辅助实例。如果 stack 管理员以外的人能登录这台实例或读取它的控制台输出，请轮换 admin key。</p>
 <p>如果 stack 有数据库，这份日志里还有 stack 创建的第一个用户的 API key（<code>/brconnector/first-user-key-&lt;stack name&gt;</code>）。这个 key 如果还在使用，请在管理控制台的<strong>接口密钥</strong>页面点<strong>重置</strong>。</p>
 <p>模板更新之后，<code>AutoUpdateBRConnector</code> 为 <code>true</code> 的 <code>ec2</code> stack 每晚的更新会把启动日志和 <code>/root</code> 下的密钥文件改为仅 root 可读。其他仍在运行的实例，请手动执行一次：</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'chmod 600 /var/log/cloud-init-output.log /root/*.txt'</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'chmod 600 /var/log/cloud-init-output.log /root/*.txt'</span>
 </code></pre></div>
 <h3 id="ec2">ec2<a class="headerlink" href="#ec2" title="Permanent link">¶</a></h3>
 <p>BRConnector 从它的 <code>docker run</code> 命令里拿到 key。只要没有 <code>/root/brconnector-run.sh</code>，这些 stack 每晚的更新就会重放第一次启动时记录的命令，而其中是旧 key。因此：</p>
@@ -2176,19 +2226,19 @@
 <li>如果 <code>AutoUpdateBRConnector</code> 为 <code>true</code>，先把 stack 更新到 0.0.44 模板：之前模板的每晚更新总是重放记录的命令。</li>
 <li>
 <p>用 Session Manager 连接实例，执行下面的命令，把 <code>&lt;stack name&gt;</code> 换成您的 stack 名称。这些命令用记录的命令和一个新 key 写出 <code>/root/brconnector-run.sh</code>，按当前运行的镜像标签重启 BRConnector，并把新 key 存进 SSM 参数。BRConnector 会有几秒钟不可用。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>-i
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">NEW_KEY</span><span class="o">=</span><span class="k">$(</span>uuidgen<span class="k">)</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nb">umask</span><span class="w"> </span><span class="m">077</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="o">{</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'#!/bin/bash -e'</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span>egrep<span class="w"> </span>-o<span class="w"> </span><span class="s1">'docker run .* --name brconnector .*'</span><span class="w"> </span>/var/log/cloud-init-output.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="p">|</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span>sed<span class="w"> </span>-e<span class="w"> </span><span class="s2">"s/ADMIN_API_KEY=[^ ]*/ADMIN_API_KEY=</span><span class="nv">$NEW_KEY</span><span class="s2">/"</span><span class="w"> </span>-e<span class="w"> </span><span class="s1">'s/:[^:]*$/:"${1:-latest}"/'</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="o">}</span><span class="w"> </span>&gt;<span class="w"> </span>/root/brconnector-run.sh
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>chmod<span class="w"> </span><span class="m">700</span><span class="w"> </span>/root/brconnector-run.sh
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NEW_KEY</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span>/root/admin-api-key.txt
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nv">TAG</span><span class="o">=</span><span class="k">$(</span>docker<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">'{{.Config.Image}}'</span><span class="w"> </span>brconnector<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span><span class="s1">'s/.*://'</span><span class="k">)</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>brconnector<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>bash<span class="w"> </span>/root/brconnector-run.sh<span class="w"> </span><span class="s2">"</span><span class="nv">$TAG</span><span class="s2">"</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>aws<span class="w"> </span>ssm<span class="w"> </span>put-parameter<span class="w"> </span>--name<span class="w"> </span>/brconnector/admin-key-&lt;stack<span class="w"> </span>name&gt;<span class="w"> </span>--value<span class="w"> </span><span class="s2">"</span><span class="nv">$NEW_KEY</span><span class="s2">"</span><span class="w"> </span>--type<span class="w"> </span>String<span class="w"> </span>--overwrite
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>-i
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">NEW_KEY</span><span class="o">=</span><span class="k">$(</span>uuidgen<span class="k">)</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">umask</span><span class="w"> </span><span class="m">077</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="o">{</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'#!/bin/bash -e'</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span>egrep<span class="w"> </span>-o<span class="w"> </span><span class="s1">'docker run .* --name brconnector .*'</span><span class="w"> </span>/var/log/cloud-init-output.log<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="p">|</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span>sed<span class="w"> </span>-e<span class="w"> </span><span class="s2">"s/ADMIN_API_KEY=[^ ]*/ADMIN_API_KEY=</span><span class="nv">$NEW_KEY</span><span class="s2">/"</span><span class="w"> </span>-e<span class="w"> </span><span class="s1">'s/:[^:]*$/:"${1:-latest}"/'</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="o">}</span><span class="w"> </span>&gt;<span class="w"> </span>/root/brconnector-run.sh
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>chmod<span class="w"> </span><span class="m">700</span><span class="w"> </span>/root/brconnector-run.sh
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NEW_KEY</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span>/root/admin-api-key.txt
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="nv">TAG</span><span class="o">=</span><span class="k">$(</span>docker<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">'{{.Config.Image}}'</span><span class="w"> </span>brconnector<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span><span class="s1">'s/.*://'</span><span class="k">)</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>brconnector<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>bash<span class="w"> </span>/root/brconnector-run.sh<span class="w"> </span><span class="s2">"</span><span class="nv">$TAG</span><span class="s2">"</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>aws<span class="w"> </span>ssm<span class="w"> </span>put-parameter<span class="w"> </span>--name<span class="w"> </span>/brconnector/admin-key-&lt;stack<span class="w"> </span>name&gt;<span class="w"> </span>--value<span class="w"> </span><span class="s2">"</span><span class="nv">$NEW_KEY</span><span class="s2">"</span><span class="w"> </span>--type<span class="w"> </span>String<span class="w"> </span>--overwrite
 </code></pre></div>
 </li>
 <li>
@@ -2213,27 +2263,27 @@
 <ul>
 <li>如果您未启用 ECR 拉取缓存，请按照此脚本手动更新映像</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span>us-west-2
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ACCOUNT_ID</span><span class="o">=</span><span class="m">00000000000000</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PrivateECRRepository</span><span class="o">=</span>your_private_repo_name
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>aws<span class="w"> </span>ecr<span class="w"> </span>get-login-password<span class="w"> </span>--region<span class="w"> </span><span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>docker<span class="w"> </span>login<span class="w"> </span>--username<span class="w"> </span>AWS<span class="w"> </span>--password-stdin<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># pull/tag/push arm64 image for lambda</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>docker<span class="w"> </span>pull<span class="w"> </span>--platform<span class="o">=</span>linux/arm64<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>docker<span class="w"> </span>tag<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>docker<span class="w"> </span>push<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># pull/tag/push amd64 image for lambda</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>docker<span class="w"> </span>pull<span class="w"> </span>--platform<span class="o">=</span>linux/amd64<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>docker<span class="w"> </span>tag<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>docker<span class="w"> </span>push<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="c1"># create/push manifest file</span>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>docker<span class="w"> </span>manifest<span class="w"> </span>create<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest<span class="w"> </span>--amend<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64<span class="w"> </span>--amend<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>docker<span class="w"> </span>manifest<span class="w"> </span>annotate<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64<span class="w"> </span>--os<span class="w"> </span>linux<span class="w"> </span>--arch<span class="w"> </span>arm64
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>docker<span class="w"> </span>manifest<span class="w"> </span>annotate<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64<span class="w"> </span>--os<span class="w"> </span>linux<span class="w"> </span>--arch<span class="w"> </span>amd64
-<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>docker<span class="w"> </span>manifest<span class="w"> </span>push<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span>us-west-2
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ACCOUNT_ID</span><span class="o">=</span><span class="m">00000000000000</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PrivateECRRepository</span><span class="o">=</span>your_private_repo_name
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>aws<span class="w"> </span>ecr<span class="w"> </span>get-login-password<span class="w"> </span>--region<span class="w"> </span><span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>docker<span class="w"> </span>login<span class="w"> </span>--username<span class="w"> </span>AWS<span class="w"> </span>--password-stdin<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># pull/tag/push arm64 image for lambda</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>docker<span class="w"> </span>pull<span class="w"> </span>--platform<span class="o">=</span>linux/arm64<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>docker<span class="w"> </span>tag<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>docker<span class="w"> </span>push<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># pull/tag/push amd64 image for lambda</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>docker<span class="w"> </span>pull<span class="w"> </span>--platform<span class="o">=</span>linux/amd64<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>docker<span class="w"> </span>tag<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock-lambda<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>docker<span class="w"> </span>push<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="c1"># create/push manifest file</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>docker<span class="w"> </span>manifest<span class="w"> </span>create<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest<span class="w"> </span>--amend<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64<span class="w"> </span>--amend<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>docker<span class="w"> </span>manifest<span class="w"> </span>annotate<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:arm64<span class="w"> </span>--os<span class="w"> </span>linux<span class="w"> </span>--arch<span class="w"> </span>arm64
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>docker<span class="w"> </span>manifest<span class="w"> </span>annotate<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:amd64<span class="w"> </span>--os<span class="w"> </span>linux<span class="w"> </span>--arch<span class="w"> </span>amd64
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>docker<span class="w"> </span>manifest<span class="w"> </span>push<span class="w"> </span><span class="si">${</span><span class="nv">ACCOUNT_ID</span><span class="si">}</span>.dkr.ecr.<span class="si">${</span><span class="nv">AWS_DEFAULT_REGION</span><span class="si">}</span>.amazonaws.com/<span class="si">${</span><span class="nv">PrivateECRRepository</span><span class="si">}</span>:latest
 </code></pre></div>
 <ul>
 <li>使用正确的架构更新 lambda 映像</li>
@@ -2242,11 +2292,11 @@
 <ul>
 <li>登录到 ec2 以更新本地映像并重新启动 brconnector 容器。请以 root 身份（<code>sudo -i</code>）执行这些命令：启动脚本和启动日志只有 root 可读。0.0.44 之前创建的 stack 没有 <code>/root/brconnector-run.sh</code>（除非您按<a href="./#admin-key-before-0-0-44">0.0.44 之前创建的 stack 的 admin key</a>写过一个），请改为重放记录的那一行：<code>cat /var/log/cloud-init-output.log |egrep -o 'docker run .* --name brconnector .*' |sed 's/:[^:]\+$/:latest/' |sh</code></li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>-i
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>aws<span class="w"> </span>ecr-public<span class="w"> </span>get-login-password<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>docker<span class="w"> </span>login<span class="w"> </span>--username<span class="w"> </span>AWS<span class="w"> </span>--password-stdin<span class="w"> </span>public.ecr.aws
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>docker<span class="w"> </span>pull<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>brconnector
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>bash<span class="w"> </span>/root/brconnector-run.sh<span class="w"> </span>latest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sudo<span class="w"> </span>-i
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>aws<span class="w"> </span>ecr-public<span class="w"> </span>get-login-password<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>docker<span class="w"> </span>login<span class="w"> </span>--username<span class="w"> </span>AWS<span class="w"> </span>--password-stdin<span class="w"> </span>public.ecr.aws
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>docker<span class="w"> </span>pull<span class="w"> </span>public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>brconnector
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>bash<span class="w"> </span>/root/brconnector-run.sh<span class="w"> </span>latest
 </code></pre></div>
 <h2 id="postgresql">迁移到新的 PostgreSQL 数据库<a class="headerlink" href="#postgresql" title="Permanent link">¶</a></h2>
 <p>您可以选择在 ECR 或 RDS 上的容器中直接部署 PostgreSQL，这里列出了一些命令供您在 PG 中迁移数据的参考。</p>
@@ -2254,14 +2304,14 @@
 <ul>
 <li>
 <p>列出您的数据库名称<br>
-</p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">postgres</span><span class="o">=</span>&gt;<span class="w"> </span><span class="se">\l</span><span class="w"> </span><span class="c1"># 列出数据库</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nv">postgres</span><span class="o">=</span>&gt;
+</p><div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">postgres</span><span class="o">=</span>&gt;<span class="w"> </span><span class="se">\l</span><span class="w"> </span><span class="c1"># 列出数据库</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nv">postgres</span><span class="o">=</span>&gt;
 </code></pre></div><p></p>
 </li>
 <li>
 <p>dump 整库<br>
-</p><div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>postgres<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>brproxy_dbname<span class="w"> </span>&gt;<span class="w"> </span>db.sql
+</p><div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>postgres<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>brproxy_dbname<span class="w"> </span>&gt;<span class="w"> </span>db.sql
 </code></pre></div><p></p>
 </li>
 <li>
@@ -2269,32 +2319,32 @@
 </li>
 <li>
 <p>我们将在您的本地临时运行一个 docker 作为 postgres 客户端，而不是安装 postgresql<br>
-</p><div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">POSTGRES_VERSION</span><span class="o">=</span><span class="m">16</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>postgres-client<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>-e<span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span>postgres-client-tmp-password<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>-d<span class="w"> </span>postgres:<span class="si">${</span><span class="nv">POSTGRES_VERSION</span><span class="si">}</span>
+</p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nv">POSTGRES_VERSION</span><span class="o">=</span><span class="m">16</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>postgres-client<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>-e<span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span>postgres-client-tmp-password<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>-d<span class="w"> </span>postgres:<span class="si">${</span><span class="nv">POSTGRES_VERSION</span><span class="si">}</span>
 </code></pre></div><p></p>
 </li>
 <li>
 <p>复制整库导出的文件到新的容器中<br>
-</p><div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>cp<span class="w"> </span>db.sql<span class="w"> </span>postgres-client:/tmp/
+</p><div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>docker<span class="w"> </span>cp<span class="w"> </span>db.sql<span class="w"> </span>postgres-client:/tmp/
 </code></pre></div><p></p>
 </li>
 <li>
 <p>创建目标数据库，然后导入数据<br>
-</p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>docker exec -it postgres-client sh 
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a># 
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a># psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>Password for user postgres:
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>postgres=&gt; CREATE DATABASE brconnector_db;
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>postgres=&gt; ^D
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a># psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com -d brconnector_db &lt;/tmp/db.sql
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>Password for user postgres:
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a># 
+</p><div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>docker exec -it postgres-client sh 
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a># 
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a># psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com 
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>Password for user postgres:
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>postgres=&gt; CREATE DATABASE brconnector_db;
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>postgres=&gt; ^D
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a># psql -U postgres -h pg-endpoint.xxx.us-west-2.rds.amazonaws.com -d brconnector_db &lt;/tmp/db.sql
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>Password for user postgres:
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a># 
 </code></pre></div><p></p>
 </li>
 <li>清理临时 docker on local<br>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>postgres-client
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>postgres-client
 </code></pre></div></li>
 </ul>
 <h2 id="_6">不支持的区域<a class="headerlink" href="#_6" title="Permanent link">¶</a></h2>
@@ -2326,7 +2376,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 14:51:50 CST"><span class="timeago" datetime="2026-11-12T14:51:50+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 14:51:50 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月13日 14:57:55 CST"><span class="timeago" datetime="2026-11-13T14:57:55+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月13日 14:57:55 CST">2026-11-13</span>
   </span>
 
     

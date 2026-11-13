@@ -1902,6 +1902,8 @@
 <li><code>regions</code> 不再对 <code>painter</code> 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。</li>
 <li><code>lambda-web</code> stack 要从包含第 3 条的 <code>SourceRef</code> 重新构建部署包后，才会在 <code>/brclient/</code> 提供 BRClient。<code>SourceRef</code> 是分支时，修改 <code>WebFnBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）来重新构建。构建时会从 <code>public.ecr.aws</code> 下载 BRClient（第 3 条）。</li>
 <li>Claude Code Web 后端镜像要重新构建后才会包含第 5 条。要重新构建，请修改 <code>ClaudeCodeWebImageBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）。见 <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Claude Code Web</a>。</li>
+<li>模板和 BRConnector 镜像要作为 0.0.45 一起发布，先发镜像或者同时发。新建的 <code>lambda</code> 或 <code>lambda-web</code> stack 使用生成的密码（<code>PGPassword</code> 留空）时，需要 0.0.45 的 BRConnector 才能读取（第 7 条）；用旧镜像或旧 <code>SourceRef</code> 时连不上数据库。填写了密码的 stack 不受影响。</li>
+<li>把 stack 更新到新的 <code>quick-build-brconnector.yaml</code> 或 <code>brconnector-ecs-fargate.yaml</code> 时需要填写 <code>PGStorageEncrypted</code>（第 6 条）。用以前的模板创建的 stack 请选 <code>false</code>：选 <code>true</code> 会把数据库替换成一个新的空数据库。以后再更新时，保持 stack 当前的值。<code>PGPassword</code> 保持当前值（使用 AWS CLI 时用 <code>UsePreviousValue=true</code>；不这样做的话，更新会生成一个新密码）。已有数据库保留数据和密码，仍然不加密，更新会为它开启删除保护。见<a href="../deployment/#template-updates-of-existing-stacks">已有 stack 的模板更新</a>。</li>
 </ul>
 <ol>
 <li>
@@ -1937,7 +1939,20 @@
 <p><strong>依赖更新</strong> - 有已知漏洞的依赖升级到已修复的版本。<br>
    - Claude Code Web 后端镜像安装 litellm 1.100.4、cryptography 46.0.7、anyio 4.14.2、certifi 2026.10.18、fsspec 2026.6.0、mcp 1.28.1、pyasn1 0.6.5 和 urllib3 2.8.0。litellm 1.100.4 需要更新的 boto3，所以工作区终端里的 AWS CLI 也从 1.44.38 升级到 1.46.3。<br>
    - cryptography 和 starlette 还有只能靠下一个大版本修复的已知漏洞，暂时保留在当前大版本。<br>
-   - BRConnector 镜像不变。每次构建都会安装 <code>package.json</code> 允许的最新版本，这些版本已经包含修复。测试使用的 lockfile 现在也包含这些修复。zod 在两边都保留 3.25.76，因为它的修复只在 zod 4 里。</p>
+   - BRConnector 镜像不变。每次构建都会安装 <code>package.json</code> 允许的最新版本，这些版本已经包含修复。测试使用的 lockfile 现在也包含这些修复。zod 在两边都保留 3.25.76，因为它的修复只在 zod 4 里。<br>
+   - Claude Code Web 网页客户端改用 rollup 4.68.2 构建，原来是 4.52.5。</p>
+</li>
+<li>
+<p><strong>模板中的 RDS 数据库设置</strong> - <code>quick-build-brconnector.yaml</code> 和 <code>brconnector-ecs-fargate.yaml</code> 创建的 RDS 数据库（<code>DatabaseMode</code> 为 <code>Standalone</code>）有了新的设置。<br>
+   - <code>PGPassword</code> 可以留空。这时 stack 会把数据库密码生成到 AWS Secrets Manager 里（输出 <code>PGPasswordSecretArn</code>），BRConnector 从那里读取。用密码创建的 stack 会继续使用这个密码。自己填写的密码由 8 到 128 个字母和数字组成。<br>
+   - 新参数 <code>PGStorageEncrypted</code> 用于加密数据库的存储。它没有默认值：新建 stack 选 <code>true</code>。更新时保持当前值，用以前的模板创建的 stack 是 <code>false</code>。<br>
+   - 数据库开启了删除保护，删除 stack 前要先关闭它。见<a href="../deployment/#deleting-a-stack">删除 stack</a>，其中也说明了怎么删除 CloudFormation 保留的最终快照。<br>
+   - stack 更新替换数据库时，CloudFormation 现在会保留旧数据库：做成快照，或者在它开启删除保护时保留为 stack 之外仍在运行的数据库。以前会直接删除旧数据库，不做快照。<br>
+   - <code>brconnector-ecs-fargate.yaml</code> 中的 <code>PGUser</code> 改为 NoEcho，并且没有默认值。<br>
+   - 模板写明了每个安全组的出站规则（和以前一样允许所有 IPv4 和 IPv6 流量），并把数据库设为不可公开访问（和以前一样）。</p>
+</li>
+<li>
+<p><strong>从 Secrets Manager 读取数据库密码</strong> - 设置了 <code>PGSQL_PASSWORD_SECRET_ARN</code> 时，BRConnector 从这个 Secrets Manager secret 读取数据库密码，不再使用 <code>PGSQL_PASSWORD</code>。模板在为 <code>lambda</code> 和 <code>lambda-web</code> 生成密码时会设置它（第 6 条）。见<a href="../../user-manual/development/">开发</a>。</p>
 </li>
 </ol>
 <h2 id="0044">0.0.44<a class="headerlink" href="#0044" title="Permanent link">¶</a></h2>
@@ -2233,7 +2248,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月13日 09:36:06 CST"><span class="timeago" datetime="2026-11-13T09:36:06+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月13日 09:36:06 CST">2026-11-13</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月13日 14:57:55 CST"><span class="timeago" datetime="2026-11-13T14:57:55+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月13日 14:57:55 CST">2026-11-13</span>
   </span>
 
     
