@@ -9,6 +9,7 @@
 - `regions` 不再对 `painter` 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。
 - `lambda-web` stack 要从包含第 3 条的 `SourceRef` 重新构建部署包后，才会在 `/brclient/` 提供 BRClient。`SourceRef` 是分支时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）来重新构建。构建时会从 `public.ecr.aws` 下载 BRClient（第 3 条）。
 - Claude Code Web 后端镜像要重新构建后才会包含第 5 条。要重新构建，请修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）。见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations)。
+- 模板和 BRConnector 镜像要作为 0.0.45 一起发布，先发镜像或者同时发。新建的 `lambda` 或 `lambda-web` stack 使用生成的密码（`PGPassword` 留空）时，需要 0.0.45 的 BRConnector 才能读取（第 7 条）；用旧镜像或旧 `SourceRef` 时连不上数据库。填写了密码的 stack 不受影响。
 - 把 stack 更新到新的 `quick-build-brconnector.yaml` 或 `brconnector-ecs-fargate.yaml` 时需要填写 `PGStorageEncrypted`（第 6 条）。用以前的模板创建的 stack 请选 `false`：选 `true` 会把数据库替换成一个新的空数据库。以后再更新时，保持 stack 当前的值。`PGPassword` 保持当前值（使用 AWS CLI 时用 `UsePreviousValue=true`；不这样做的话，更新会生成一个新密码）。已有数据库保留数据和密码，仍然不加密，更新会为它开启删除保护。见[已有 stack 的模板更新](deployment.md#template-updates-of-existing-stacks)。
 
 1. **下线已停止提供的图像模型** - Amazon Bedrock 已不再提供 Amazon Nova Canvas（`amazon.nova-canvas-v1:0`）、Amazon Titan Image Generator（`amazon.titan-image-generator-v1`、`amazon.titan-image-generator-v2:0`）、Stability SDXL（`stability.stable-diffusion-xl-v0`、`stability.stable-diffusion-xl-v1`）、`stability.sd3-large-v1:0` 和 `stability.stable-image-ultra-v1:0`，BRConnector 不再支持它们。

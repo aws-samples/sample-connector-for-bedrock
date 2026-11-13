@@ -81,7 +81,7 @@
     - `Standalone` -- 部署 RDS PostgreSQL
     - `NoDB` -- 不部署任何后端数据库，在此模式下只有 ADMIN KEY 可以访问默认模型
   - 将 PerformanceMode 设置为 `true`，聊天历史将不会保存。
-  - 新建 stack 时 `PGPassword` 留空即可。stack 会生成一个 32 位、由字母和数字组成的密码，保存在 AWS Secrets Manager 里，并在输出 `PGPasswordSecretArn` 中给出这个 secret 的 ARN。密码不会出现在 stack 参数、输出，也不会出现在函数或任务的环境变量里：`ec2` 在实例启动时从 secret 读取，保存在 `/root` 下只有 root 能读的文件里；`ecs` 在任务启动时注入；`lambda` 和 `lambda-web` 在连接数据库时读取。`lambda` 和 `lambda-web` 需要从这个版本起的 BRConnector 才能这样读取，所以 `SourceRef` 较旧的 `lambda-web` stack 需要填写密码。
+  - 新建 stack 时 `PGPassword` 留空即可。stack 会生成一个 32 位、由字母和数字组成的密码，保存在 AWS Secrets Manager 里，并在输出 `PGPasswordSecretArn` 中给出这个 secret 的 ARN。stack 参数、输出、函数配置和 ECS 任务定义里都没有明文密码，任务定义里只有 secret 的 ARN。`ec2` 在实例启动时从 secret 读取密码，保存在 `/root` 下只有 root 能读的文件里。在 `ecs` 上，ECS 在任务启动时读取 secret，把 `PGSQL_PASSWORD` 设到容器的运行时环境里，ECS 对所有 secret 都是这样处理的。`lambda` 和 `lambda-web` 在连接数据库时读取，这需要 BRConnector 0.0.45 或更新的版本：BRConnector 镜像（以及 `lambda-web` 构建部署包所用的 `SourceRef`）要和这个模板一起发布，或者先于它发布。运行旧版 BRConnector 的 `lambda` 或 `lambda-web` stack 用生成的密码连不上数据库，这样的 stack 请填写密码。
   - 要使用自己的密码，请输入 8 到 128 个字母和数字：EC2 实例不能原样传递其他字符。
   - `PGStorageEncrypted` 没有默认值。选 `true` 会加密 RDS 数据库（`Standalone`）的存储。没有 RDS 数据库时不使用这个值，但模板仍然要求填写。
   - RDS 数据库开启了删除保护，见[删除 stack](#deleting-a-stack)。
