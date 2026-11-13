@@ -1,6 +1,6 @@
 # Changelogs
 
-## Unreleased
+## 0.0.45
 
 **Upgrade notes**
 
@@ -33,14 +33,13 @@
    - **Fix:** when Bedrock returns `AccessDeniedException`, the reply now quotes the message from Bedrock. It also says if the AWS Marketplace subscription for the model is not complete, or else names the Region where the role needs `bedrock:InvokeModel`. Before, every denial got the IAM hint. The log now records each denial, without the prompt or the pictures. See [IAM permissions](../providers/painter.md#iam-permissions).
    - **Fix:** a `painter` stream now ends with a chunk that has a `finish_reason` before `[DONE]`: `length` at the 5-step limit, `content_filter` when the image model filtered the prompt or a picture, and `stop` otherwise. Before, every chunk had `finish_reason: null`, so a client that checks it could not tell that the reply was complete.
 
-
 3. **BRClient Built from Source** - The images and the `lambda-web` package now build BRClient from the upstream source, at the commits that `scripts/brclient.source` pins. See [BRClient source](deployment.md#brclient-source).
    - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`.
    - This release pins upstream `main` plus the unmerged upstream pull request [#82](https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82). A message with pictures gets a Download button that saves its pictures. A picture that the browser cannot save opens in a new tab, and an expired picture link shows a message.
    - Each artifact contains `brclient/.source`, which names the commits and the git tree it was built from.
    - Before each release, run `node scripts/resolve-brclient.mjs` and commit `scripts/brclient.source`. After upstream merges the pull request, the same command pins `main` only. See [Before a release](deployment.md#before-a-release).
 
-3. **Model Lists for Keys Without a Group** - A key that is not in a group now lists only the models bound to it in `GET /v1/models`, `/user/model/list`, `/user/model/list-for-brclient` and the Claude Code Web (`/cc`) model menu. Before, these lists also showed the models of every group, and a call to one of those models was refused. A key in a group still lists its group's models and its own. The admin key, which cannot call these models, now gets an empty list from `/user/model/list-for-brclient`.
+4. **Model Lists for Keys Without a Group** - A key that is not in a group now lists only the models bound to it in `GET /v1/models`, `/user/model/list`, `/user/model/list-for-brclient` and the Claude Code Web (`/cc`) model menu. Before, these lists also showed the models of every group, and a call to one of those models was refused. A key in a group still lists its group's models and its own. The admin key, which cannot call these models, now gets an empty list from `/user/model/list-for-brclient`.
 
 5. **Dependency Updates** - Dependencies with known vulnerabilities move to fixed releases.
    - The Claude Code Web backend image installs litellm 1.100.4, cryptography 46.0.7, anyio 4.14.2, certifi 2026.10.18, fsspec 2026.6.0, mcp 1.28.1, pyasn1 0.6.5 and urllib3 2.8.0. litellm 1.100.4 needs a newer boto3, so the AWS CLI in the workspace terminal also moves from 1.44.38 to 1.46.3.
@@ -57,6 +56,8 @@
    - The templates list the outbound rules of each security group (all IPv4 and IPv6 traffic, as before) and set the database to not publicly accessible (as before).
 
 7. **Database Password from Secrets Manager** - When `PGSQL_PASSWORD_SECRET_ARN` is set, BRConnector reads the database password from that Secrets Manager secret instead of `PGSQL_PASSWORD`. The templates set it for `lambda` and `lambda-web` when they generate the password (item 6). See [Development](../user-manual/development.md).
+
+8. **Docs** - A GPT-6 Sol example and a note on `reasoning_effort` for GPT reasoning models with tools in [bedrock-runtime-openai](../providers/bedrock-runtime-openai.md). The left sidebar shows the full navigation tree.
 
 ## 0.0.44
 
