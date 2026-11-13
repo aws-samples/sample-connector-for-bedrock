@@ -1,4 +1,5 @@
 import helper from "../util/helper";
+import serviceGroup from "./group";
 import { monthFeeAt, updatedAtAt } from "../providers/key_fee";
 
 // Writes `data` to key `id`, adds `add` to the stored values of its columns, and stamps updated_at, in one statement.
@@ -308,6 +309,16 @@ export default {
 
         return { items, total, limit, offset };
 
+    },
+
+    async listUsableModels(db: any, key: any, limit: number) {
+        const keyItems = (await this.listModels(db, { key_id: key.id, limit })).items;
+        const groupItems = key.group_id ? (await serviceGroup.listModels(db, { group_id: key.group_id, limit })).items : [];
+        const byModel = new Map();
+        for (const item of [...groupItems, ...keyItems]) {
+            if (!byModel.has(item.model_id)) byModel.set(item.model_id, item);
+        }
+        return [...byModel.values()];
     },
 
     async resetKey(db: any, options: any) {
