@@ -141,10 +141,13 @@ Parameters:
   
   PGPassword:
     Description: >-
-      PostgreSQL password. There is no default: enter one, 8 to 128 characters. When you
-      update the stack, keep the current value.
+      PostgreSQL password. Leave it empty for a new stack: the stack generates a password and
+      keeps it in AWS Secrets Manager (see the PGPasswordSecretArn output). When you update a
+      stack, keep the current value, also when it is empty. To set a password yourself, enter
+      8 to 128 characters.
     Type: String
     NoEcho: true
+    Default: ''
 
   PGStorageEncrypted:
     Description: >-
@@ -224,6 +227,11 @@ Conditions:
   IsNoDB: !Equals [!Ref DatabaseMode, 'NoDB']
   DeployDB: !Not [!Condition IsNoDB]
   IsPGStorageEncrypted: !Equals [!Ref PGStorageEncrypted, 'true']
+  # An empty PGPassword means a password generated into PGSecret. A stack created with a
+  # password keeps it on every update, so its resources render exactly as before.
+  CreatePGSecret: !And
+    - !Equals [!Ref PGPassword, '']
+    - !Condition DeployDB
   IsAutoUpdate: !Equals [!Ref AutoUpdateBRConnector, 'true']
 
 Resources:
@@ -533,7 +541,10 @@ Resources:
       Engine: postgres
       EngineVersion: "16.3"
       MasterUsername: !Ref PGUser
-      MasterUserPassword: !Ref PGPassword
+      MasterUserPassword: !If
+        - CreatePGSecret
+        - !Sub '{{resolve:secretsmanager:${PGSecret}}}'
+        - !Ref PGPassword
       StorageEncrypted: !If [IsPGStorageEncrypted, true, !Ref AWS::NoValue]
       DeletionProtection: true
       PubliclyAccessible: false
@@ -553,6 +564,42 @@ Resources:
       CapacityProviders:
         - FARGATE
         - FARGATE_SPOT
+
+  PGSecret:
+    Condition: CreatePGSecret
+    Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: The AWS managed key aws/secretsmanager is enough; only this stack's roles read the secret.
+          - id: CKV2_AWS_57
+            comment: BRConnector reads the password when it starts and has no rotation function.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W77
+            reason: The AWS managed key aws/secretsmanager is enough; only this stack's roles read the secret.
+    Properties:
+      Description: !Sub BRConnector database password of stack ${AWS::StackName}
+      GenerateSecretString:
+        PasswordLength: 32
+        ExcludePunctuation: true
+
+  # ECS reads the generated password at task start; the execution role itself stays as it is.
+  PGSecretReadPolicy:
+    Condition: CreatePGSecret
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-pg-password-${AWS::StackName}
+      Roles:
+        - !Ref ECSTaskExecutionRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ReadDatabasePassword
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref PGSecret
 
   # IAM Role for ECS Task Execution
   ECSTaskExecutionRole:
@@ -667,8 +714,17 @@ Resources:
               Value: !If [IsNoDB, "", !Ref PGDatabase]
             - Name: PGSQL_USER
               Value: !Ref PGUser
-            - Name: PGSQL_PASSWORD
-              Value: !Ref PGPassword
+            - !If
+              - CreatePGSecret
+              - !Ref AWS::NoValue
+              - Name: PGSQL_PASSWORD
+                Value: !Ref PGPassword
+          # The task definition holds only the ARN of the generated password.
+          Secrets: !If
+            - CreatePGSecret
+            - - Name: PGSQL_PASSWORD
+                ValueFrom: !Ref PGSecret
+            - !Ref AWS::NoValue
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -870,6 +926,10 @@ Resources:
       SourceArn: !GetAtt ECREventRule.Arn
 
 Outputs:
+  PGPasswordSecretArn:
+    Condition: CreatePGSecret
+    Description: Secrets Manager secret that holds the generated database password
+    Value: !Ref PGSecret
   VpcId:
     Condition: IsNewVpc
     Description: A reference to the created VPC
