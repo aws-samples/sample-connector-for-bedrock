@@ -40,6 +40,7 @@ yarn
 | PGSQL_DATABASE | no | | The name of the PostgreSQL database. |
 | PGSQL_USER | no | | The login user for the PostgreSQL. |
 | PGSQL_PASSWORD | no | | The password user for the PostgreSQL. |
+| PGSQL_PASSWORD_SECRET_ARN | no | | 值为 PostgreSQL 密码的 Secrets Manager secret 的 ARN。设置后 BRConnector 从这个 secret 读取密码，不再使用 PGSQL_PASSWORD；它的角色需要对这个 secret 有 `secretsmanager:GetSecretValue` 权限。 |
 | PGSQL_MAX |  no | 80 | The maximum connection pool size for PostgreSQL.|
 | PGSQL_DEBUG_MODE | no | false | If you set this parameter, it will print out the SQL statements and parameters in the console. |
 | AWS_ACCESS_KEY_ID | no  | | If your application has been authorized through an IAM policy, you don't need to set this variable. |

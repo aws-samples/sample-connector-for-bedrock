@@ -242,3 +242,7 @@ directory must be listed here.
   needs it only for its `grpc` and `proxy-runtime` extras). Every changed package has a `py3-none-any` or `manylinux`
   aarch64 wheel. Still vulnerable, because every fix is in a later major release: cryptography (48.0.1, 49.0.0,
   50.0.0) and starlette 0.50.0 (1.1.0, 1.3.1, held by fastapi 0.128.0).
+- `web_client/package-lock.json`: rollup 4.52.5 -> 4.68.2 (with its `@rollup/rollup-*` platform packages and
+  `@types/estree` 1.0.8 -> 1.0.10), locked with `npm update rollup --package-lock-only` (npm 10.9.9). rollup is a
+  dependency of vite (`^4.43.0`); the vulnerability known in 4.52.5 is fixed from 4.59.0 on. `package.json` is
+  unchanged.

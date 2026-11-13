@@ -34,6 +34,7 @@ Metadata:
           - PGDatabase
           - PGUser
           - PGPassword
+          - PGStorageEncrypted
 
       - Label: 
           default: "Others Settings"
@@ -131,15 +132,32 @@ Parameters:
     Default: brconnector_db
   
   PGUser:
-    Description: PostgreSQL default user name
+    Description: >-
+      PostgreSQL master user name. There is no default: enter one. When you update the
+      stack, keep the current value (stacks created from earlier templates use postgres):
+      changing it replaces the database with a new, empty one.
     Type: String
-    Default: postgres
+    NoEcho: true
   
   PGPassword:
-    Description: PostgreSQL default password
+    Description: >-
+      PostgreSQL password. Leave it empty for a new stack: the stack generates a password and
+      keeps it in AWS Secrets Manager (see the PGPasswordSecretArn output). When you update a
+      stack, keep the current value, also when it is empty. To set a password yourself, enter
+      8 to 128 characters.
     Type: String
-    Default: mysecretpassword
     NoEcho: true
+    Default: ''
+
+  PGStorageEncrypted:
+    Description: >-
+      Encrypt the storage of the RDS PostgreSQL database. Choose true for a new stack. When
+      you update a stack, keep its current value, which is false for a stack created from an
+      earlier template: changing the value replaces the database with a new, empty one. Not used when DatabaseMode is NoDB.
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
 
   BRConnectorVersion:
     Description: choose BR Connector Version
@@ -208,6 +226,12 @@ Conditions:
   IsNewVpc: !Equals [!Ref NewVpc, 'true']
   IsNoDB: !Equals [!Ref DatabaseMode, 'NoDB']
   DeployDB: !Not [!Condition IsNoDB]
+  IsPGStorageEncrypted: !Equals [!Ref PGStorageEncrypted, 'true']
+  # An empty PGPassword means a password generated into PGSecret. A stack created with a
+  # password keeps it on every update, so its resources render exactly as before.
+  CreatePGSecret: !And
+    - !Equals [!Ref PGPassword, '']
+    - !Condition DeployDB
   IsAutoUpdate: !Equals [!Ref AutoUpdateBRConnector, 'true']
 
 Resources:
@@ -369,6 +393,13 @@ Resources:
     Properties:
       GroupName: "no-ingress-sg"
       GroupDescription: "Security group with no ingress rule"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       VpcId: !Ref VPC
 
   # Random string generator for unique names
@@ -422,6 +453,13 @@ Resources:
     Properties:
       GroupName: !Sub "alb-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for ALB"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -435,6 +473,13 @@ Resources:
     Properties:
       GroupName: !Sub "ecs-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for ECS"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8866
@@ -447,6 +492,13 @@ Resources:
     Properties:
       GroupName: !Sub "rds-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for RDS"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       VpcId: !If [ IsNewVpc, !Ref VPC, !Ref VpcId ]
 
   RdsSecurityGroupIngressFromECS:
@@ -480,6 +532,8 @@ Resources:
   MyPG:
     Condition: DeployDB
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
     Properties:
       AllocatedStorage: '20'
       DBName: !Ref PGDatabase
@@ -487,7 +541,13 @@ Resources:
       Engine: postgres
       EngineVersion: "16.3"
       MasterUsername: !Ref PGUser
-      MasterUserPassword: !Ref PGPassword
+      MasterUserPassword: !If
+        - CreatePGSecret
+        - !Sub '{{resolve:secretsmanager:${PGSecret}}}'
+        - !Ref PGPassword
+      StorageEncrypted: !If [IsPGStorageEncrypted, true, !Ref AWS::NoValue]
+      DeletionProtection: true
+      PubliclyAccessible: false
       DBParameterGroupName: !Ref MyPGParameterGroup
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup
@@ -504,6 +564,42 @@ Resources:
       CapacityProviders:
         - FARGATE
         - FARGATE_SPOT
+
+  PGSecret:
+    Condition: CreatePGSecret
+    Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: The AWS managed key aws/secretsmanager is enough; only this stack's roles read the secret.
+          - id: CKV2_AWS_57
+            comment: BRConnector reads the password when it starts and has no rotation function.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W77
+            reason: The AWS managed key aws/secretsmanager is enough; only this stack's roles read the secret.
+    Properties:
+      Description: !Sub BRConnector database password of stack ${AWS::StackName}
+      GenerateSecretString:
+        PasswordLength: 32
+        ExcludePunctuation: true
+
+  # ECS reads the generated password at task start; the execution role itself stays as it is.
+  PGSecretReadPolicy:
+    Condition: CreatePGSecret
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-pg-password-${AWS::StackName}
+      Roles:
+        - !Ref ECSTaskExecutionRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ReadDatabasePassword
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref PGSecret
 
   # IAM Role for ECS Task Execution
   ECSTaskExecutionRole:
@@ -618,8 +714,17 @@ Resources:
               Value: !If [IsNoDB, "", !Ref PGDatabase]
             - Name: PGSQL_USER
               Value: !Ref PGUser
-            - Name: PGSQL_PASSWORD
-              Value: !Ref PGPassword
+            - !If
+              - CreatePGSecret
+              - !Ref AWS::NoValue
+              - Name: PGSQL_PASSWORD
+                Value: !Ref PGPassword
+          # The task definition holds only the ARN of the generated password.
+          Secrets: !If
+            - CreatePGSecret
+            - - Name: PGSQL_PASSWORD
+                ValueFrom: !Ref PGSecret
+            - !Ref AWS::NoValue
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -821,6 +926,10 @@ Resources:
       SourceArn: !GetAtt ECREventRule.Arn
 
 Outputs:
+  PGPasswordSecretArn:
+    Condition: CreatePGSecret
+    Description: Secrets Manager secret that holds the generated database password
+    Value: !Ref PGSecret
   VpcId:
     Condition: IsNewVpc
     Description: A reference to the created VPC

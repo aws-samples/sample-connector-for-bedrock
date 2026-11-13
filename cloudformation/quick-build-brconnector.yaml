@@ -51,6 +51,7 @@ Metadata:
           - PGDatabase
           - PGUser
           - PGPassword
+          - PGStorageEncrypted
 
       - Label: 
           default: "Others Settings"
@@ -248,10 +249,24 @@ Parameters:
     Type: String
     Default: postgres
   PGPassword:
-    Description: PostgreSQL default password
+    Description: >-
+      PostgreSQL password. Leave it empty for a new stack: the stack generates a password and
+      keeps it in AWS Secrets Manager (see the PGPasswordSecretArn output). When you update a
+      stack, keep the current value, also when it is empty. To set a password yourself, enter
+      8 to 128 letters and digits (the EC2 instance does not pass other characters through
+      unchanged).
     Type: String
     NoEcho: true
-    Default: mysecretpassword
+    Default: ''
+  PGStorageEncrypted:
+    Description: >-
+      Encrypt the storage of the RDS PostgreSQL database. Choose true for a new stack. When
+      you update a stack, keep its current value, which is false for a stack created from an
+      earlier template: changing the value replaces the database with a new, empty one. Not used without an RDS database.
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
 
   EnableCloudfront:
     Description: Enable Cloudfront or not, when using Lambda ComputeType. If you use EC2, this option will always be "true"
@@ -346,6 +361,17 @@ Parameters:
     Default: 'true'
 
 Rules:
+  # lambda runs the published image; the pinned versions cannot read the generated password.
+  GeneratedPGPasswordOnLambda:
+    RuleCondition: !And
+      - !Equals [!Ref PGPassword, '']
+      - !Equals [!Ref ComputeType, 'lambda']
+      - !Equals [!Ref DatabaseMode, 'Standalone']
+    Assertions:
+      - Assert: !Equals [!Ref BRConnectorVersion, 'latest']
+        AssertDescription: >-
+          A generated database password (PGPassword empty) with ComputeType lambda needs
+          BRConnectorVersion latest. Enter a PGPassword to use a pinned version.
   # Lambda Web Functions launch Regions; widen this list when AWS adds Regions.
   LambdaWebRegion:
     RuleCondition: !Equals [!Ref ComputeType, 'lambda-web']
@@ -411,6 +437,12 @@ Conditions:
   # the origin request would buy nothing.
   IsLambdaWebIamAuth: !And [!Condition IsLambdaWeb, !Equals [!Ref WebFnAuthType, 'IamAuth']]
   IsEC2IntegratedDB: !Equals [!Ref DatabaseMode, 'EC2Integrated']
+  IsPGStorageEncrypted: !Equals [!Ref PGStorageEncrypted, 'true']
+  # An empty PGPassword means a password generated into PGSecret. A stack created with a
+  # password keeps it on every update, so its resources render exactly as before.
+  CreatePGSecret: !And
+    - !Equals [!Ref PGPassword, '']
+    - !Condition DeployDB
   IsEnableCloudfrontEc2: !Equals [!Ref ComputeType, 'ec2']
   IsEnableCloudfrontLambda: !And
     - !Equals [!Ref EnableCloudfront, 'true']
@@ -596,6 +628,13 @@ Resources:
     Properties:
       GroupName: !Sub "ec2-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for EC2"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -620,6 +659,13 @@ Resources:
     Properties:
       GroupName: !Sub "rds-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for RDS"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       VpcId: !If 
         - UseExistingVpcStack
         - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
@@ -640,6 +686,13 @@ Resources:
     Properties:
       GroupName: !Sub "lambda-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for Lambda"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
@@ -674,9 +727,60 @@ Resources:
             - Fn::ImportValue: !Sub "${VpcStackName}-PrivateSubnet2Id"
             - !Ref PrivateSubnet2Id
 
+  PGSecret:
+    Condition: CreatePGSecret
+    Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: The AWS managed key aws/secretsmanager is enough; only this stack's roles read the secret.
+          - id: CKV2_AWS_57
+            comment: BRConnector reads the password when it starts and has no rotation function.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W77
+            reason: The AWS managed key aws/secretsmanager is enough; only this stack's roles read the secret.
+    Properties:
+      Description: !Sub BRConnector database password of stack ${AWS::StackName}
+      # Letters and digits only: the EC2 UserData passes the password unquoted to the shell.
+      GenerateSecretString:
+        PasswordLength: 32
+        ExcludePunctuation: true
+
+  # The roles that start BRConnector read the generated password; the roles themselves stay
+  # as they are, so stacks with a PGPassword see no change.
+  PGSecretReadPolicy:
+    Condition: CreatePGSecret
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-pg-password-${AWS::StackName}
+      Roles:
+        - !Ref EC2Role
+        - !If [IsLambda, !Ref BRConnectorLambdaRole, !Ref AWS::NoValue]
+        - !If [IsEcs, !Ref ECSTaskExecutionRole, !Ref AWS::NoValue]
+        - !If [IsLambdaWeb, !Ref BRConnectorWebFnExecRole, !Ref AWS::NoValue]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ReadDatabasePassword
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref PGSecret
+
   MyPG:
     Condition: IsStandaloneDB
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F24
+            reason: >-
+              The master username is not a secret. It stays postgres because every existing
+              stack uses it, the EC2Integrated container has only that user, and changing
+              MasterUsername replaces the database.
     Properties:
       AllocatedStorage: '20'
       DBName: !Ref PGDatabase
@@ -684,7 +788,13 @@ Resources:
       Engine: postgres
       EngineVersion: "16.10"
       MasterUsername: postgres
-      MasterUserPassword: !Ref PGPassword
+      MasterUserPassword: !If
+        - CreatePGSecret
+        - !Sub '{{resolve:secretsmanager:${PGSecret}}}'
+        - !Ref PGPassword
+      StorageEncrypted: !If [IsPGStorageEncrypted, true, !Ref AWS::NoValue]
+      DeletionProtection: true
+      PubliclyAccessible: false
       DBParameterGroupName: !Ref MyPGParameterGroup
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup
@@ -741,133 +851,270 @@ Resources:
         # lives in the root-only /root/brconnector-run.sh, which the SSM auto-update runs
         # with "latest"; it must stay a single line holding --name brconnector. CcEnvArg is
         # empty unless EnableClaudeCodeWeb is true and is glued to that line without a space.
-        Fn::Base64: !Sub
-        - |-
-          #!/bin/bash -e
-          # install packages & buildx
-          yum install -y aws-cfn-bootstrap docker jq git cronie
-          systemctl restart docker
-          systemctl enable docker
-          systemctl restart crond
-          systemctl enable crond
-          # mkdir -p ~/.docker/cli-plugins
-          # wget -q -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.15.1/buildx-v0.15.1.linux-amd64
-          # chmod a+x ~/.docker/cli-plugins/docker-buildx
-          # docker run -t --rm --privileged tonistiigi/binfmt --install all
-          # docker buildx inspect --bootstrap
-          # docker buildx create --use --platform=linux/arm64,linux/amd64 --name multi-platform-builder
-          # install regctl
-          if [[ $(uname -m) == "x86_64" ]]; then
-            curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64
-            chmod 755 regctl
-            sudo mv regctl /usr/local/bin/
-          else
-            curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-arm64
-            chmod 755 regctl
-            sudo mv regctl /usr/local/bin/
-          fi
+        # The script exists twice. A stack created with a PGPassword keeps the second one, the
+        # script of earlier templates, unchanged: any edit inside it, even one that renders the
+        # same text, makes CloudFormation update the instance. The first one reads a generated
+        # password from PGSecret into PGPWD. Change both together; a test compares them.
+        !If
+          - CreatePGSecret
+          -
+            Fn::Base64: !Sub
+            - |-
+              #!/bin/bash -e
+              # install packages & buildx
+              yum install -y aws-cfn-bootstrap docker jq git cronie
+              systemctl restart docker
+              systemctl enable docker
+              systemctl restart crond
+              systemctl enable crond
+              # mkdir -p ~/.docker/cli-plugins
+              # wget -q -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.15.1/buildx-v0.15.1.linux-amd64
+              # chmod a+x ~/.docker/cli-plugins/docker-buildx
+              # docker run -t --rm --privileged tonistiigi/binfmt --install all
+              # docker buildx inspect --bootstrap
+              # docker buildx create --use --platform=linux/arm64,linux/amd64 --name multi-platform-builder
+              # install regctl
+              if [[ $(uname -m) == "x86_64" ]]; then
+                curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64
+                chmod 755 regctl
+                sudo mv regctl /usr/local/bin/
+              else
+                curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-arm64
+                chmod 755 regctl
+                sudo mv regctl /usr/local/bin/
+              fi
 
-          # files written from here on are readable by root only
-          umask 077
-          # save default settings
-          export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
-          export KEY=$(uuidgen |tee /root/admin-api-key.txt)
-          export AWS_DEFAULT_REGION="${AWS::Region}"
+              # files written from here on are readable by root only
+              umask 077
+              PGPWD=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${PGSecret} --query SecretString --output text)
+              # save default settings
+              export PGPWD=$(echo "$PGPWD" |tee /root/pg-default-password.txt)
+              export KEY=$(uuidgen |tee /root/admin-api-key.txt)
+              export AWS_DEFAULT_REGION="${AWS::Region}"
           
-          #REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
-          REPO_PREFIX=${EcrRepo}-${RandomString}
-          echo $REPO_PREFIX
-          aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
-          IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
+              #REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
+              REPO_PREFIX=${EcrRepo}-${RandomString}
+              echo $REPO_PREFIX
+              aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+              IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
           
-          if [[ ${ComputeType} == "lambda" ]]; then
-            AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
-            ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
-            regctl image copy public.ecr.aws/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
-            regctl image copy public.ecr.aws/$IMG_LAMBDA@$ARM64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:arm64
-          fi
+              if [[ ${ComputeType} == "lambda" ]]; then
+                AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
+                ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
+                regctl image copy public.ecr.aws/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
+                regctl image copy public.ecr.aws/$IMG_LAMBDA@$ARM64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:arm64
+              fi
 
-          # start postgress db
-          # PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
-          PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text)
-          if [[ $PGHOST == "172.17.0.1" ]]; then
-            docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres:16
-            sleep 30; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
-          fi
-          # if set to NoDB then set HOST and DATABASE to empty string
-          if [[ $PGHOST == "NoDB" ]]; then
-            PGHOST=""
-          fi
+              # start postgress db
+              # PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
+              PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text)
+              if [[ $PGHOST == "172.17.0.1" ]]; then
+                docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=$PGPWD -p 5432:5432 -d postgres:16
+                sleep 30; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
+              fi
+              # if set to NoDB then set HOST and DATABASE to empty string
+              if [[ $PGHOST == "NoDB" ]]; then
+                PGHOST=""
+              fi
 
-          # # defaultSetTo empty string means false
-          # PerformanceModeStr=""
-          # if [[ ${PerformanceMode} == "true" || $PGHOST == "" ]];then
-          #   PerformanceModeStr="true"
-          # fi
-          # start brconnector container in ECR
-          # BEGIN brconnector-run
-          # The run script holds the database password and the admin key. It starts the
-          # image tag given as its argument, by default BRConnectorVersion. The docker run
-          # arguments are expanded here once, as the docker run line of earlier versions
-          # expanded them, and written quoted, so every run passes exactly these values.
-          BRC_DEFAULT_TAG=${BRConnectorVersion}
-          BRC_RUN_LINE=$(printf '%q ' docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY${CcEnvArg} -d)
-          cat > /root/brconnector-run.sh <<EOF
-          #!/bin/bash -e
-          IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
-          IMAGE_TAG="\${!1:-$BRC_DEFAULT_TAG}"
-          $BRC_RUN_LINE"public.ecr.aws/\$IMG_EC2:\$IMAGE_TAG"
-          EOF
-          chmod 700 /root/brconnector-run.sh
-          bash /root/brconnector-run.sh
-          # END brconnector-run
+              # # defaultSetTo empty string means false
+              # PerformanceModeStr=""
+              # if [[ ${PerformanceMode} == "true" || $PGHOST == "" ]];then
+              #   PerformanceModeStr="true"
+              # fi
+              # start brconnector container in ECR
+              # BEGIN brconnector-run
+              # The run script holds the database password and the admin key. It starts the
+              # image tag given as its argument, by default BRConnectorVersion. The docker run
+              # arguments are expanded here once, as the docker run line of earlier versions
+              # expanded them, and written quoted, so every run passes exactly these values.
+              BRC_DEFAULT_TAG=${BRConnectorVersion}
+              BRC_RUN_LINE=$(printf '%q ' docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=$PGPWD -e ADMIN_API_KEY=$KEY${CcEnvArg} -d)
+              cat > /root/brconnector-run.sh <<EOF
+              #!/bin/bash -e
+              IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
+              IMAGE_TAG="\${!1:-$BRC_DEFAULT_TAG}"
+              $BRC_RUN_LINE"public.ecr.aws/\$IMG_EC2:\$IMAGE_TAG"
+              EOF
+              chmod 700 /root/brconnector-run.sh
+              bash /root/brconnector-run.sh
+              # END brconnector-run
 
-          # create first user
-          sleep 60
-          curl "http://localhost:8866/"
-          curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" -o /dev/null
-          # if set dbmode to NoDB donnot generate first userkey
-          if [[ $PGHOST != "" ]]; then
-            curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}' -o /dev/null
-            # list users
-            curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . > /root/first-user-key.txt
-            USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
-            aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
-          fi
-          aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite
+              # create first user
+              sleep 60
+              curl "http://localhost:8866/"
+              curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" -o /dev/null
+              # if set dbmode to NoDB donnot generate first userkey
+              if [[ $PGHOST != "" ]]; then
+                curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}' -o /dev/null
+                # list users
+                curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . > /root/first-user-key.txt
+                USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
+                aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
+              fi
+              aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite
 
-          # ensure ecs service linked role existed
-          aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com || echo "ecs service linked role already exists"
+              # ensure ecs service linked role existed
+              aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com || echo "ecs service linked role already exists"
 
-          # # add health check script to root's crontab
-          # cat >/root/healthcheck.sh <<-EOF
-          # #!/bin/bash
-          # CURR=\$(date +%Y%m%d-%H%M%S)
-          # STAT=\$(curl -sL -w '%{http_code}' -o /dev/null "http://localhost:8866")
-          # if [[ \$STAT -ne 200 ]]; then
-          #   docker restart brconnector
-          #   echo "restart brconnector at \$CURR"
-          # fi
-          # EOF
-          # chmod a+x /root/healthcheck.sh
-          # echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' |crontab -
+              # # add health check script to root's crontab
+              # cat >/root/healthcheck.sh <<-EOF
+              # #!/bin/bash
+              # CURR=\$(date +%Y%m%d-%H%M%S)
+              # STAT=\$(curl -sL -w '%{http_code}' -o /dev/null "http://localhost:8866")
+              # if [[ \$STAT -ne 200 ]]; then
+              #   docker restart brconnector
+              #   echo "restart brconnector at \$CURR"
+              # fi
+              # EOF
+              # chmod a+x /root/healthcheck.sh
+              # echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' |crontab -
 
-          # prepare to delete self
-          TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-          INST_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/dynamic/instance-identity/document |jq -r .instanceId)
-          aws lambda update-function-configuration --function-name ${DeleteEC2Lambda} --environment "Variables={INSTANCE_ID=$INST_ID}"
+              # prepare to delete self
+              TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+              INST_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/dynamic/instance-identity/document |jq -r .instanceId)
+              aws lambda update-function-configuration --function-name ${DeleteEC2Lambda} --environment "Variables={INSTANCE_ID=$INST_ID}"
 
-          # call back to cfn
-          /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
-          if [[ ${KeepEc2} != "true" && ( ${ComputeType} == "lambda" || ${ComputeType} == "lambda-web" ) ]]; then
-            # the invoke must not run the old configuration, which has no INSTANCE_ID
-            aws lambda wait function-updated --function-name ${DeleteEC2Lambda} || echo "cleanup function update did not finish"
-            aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
-          fi
-        - CcEnvArg: !If
-            - IsClaudeCodeWeb
-            - !Sub " -e CC_CONFIG_PARAM=arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web"
-            - ''
+              # call back to cfn
+              /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
+              if [[ ${KeepEc2} != "true" && ( ${ComputeType} == "lambda" || ${ComputeType} == "lambda-web" ) ]]; then
+                # the invoke must not run the old configuration, which has no INSTANCE_ID
+                aws lambda wait function-updated --function-name ${DeleteEC2Lambda} || echo "cleanup function update did not finish"
+                aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
+              fi
+            - CcEnvArg: !If
+                - IsClaudeCodeWeb
+                - !Sub " -e CC_CONFIG_PARAM=arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web"
+                - ''
+
+          -
+            Fn::Base64: !Sub
+            - |-
+              #!/bin/bash -e
+              # install packages & buildx
+              yum install -y aws-cfn-bootstrap docker jq git cronie
+              systemctl restart docker
+              systemctl enable docker
+              systemctl restart crond
+              systemctl enable crond
+              # mkdir -p ~/.docker/cli-plugins
+              # wget -q -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.15.1/buildx-v0.15.1.linux-amd64
+              # chmod a+x ~/.docker/cli-plugins/docker-buildx
+              # docker run -t --rm --privileged tonistiigi/binfmt --install all
+              # docker buildx inspect --bootstrap
+              # docker buildx create --use --platform=linux/arm64,linux/amd64 --name multi-platform-builder
+              # install regctl
+              if [[ $(uname -m) == "x86_64" ]]; then
+                curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64
+                chmod 755 regctl
+                sudo mv regctl /usr/local/bin/
+              else
+                curl -L -o regctl https://github.com/regclient/regclient/releases/latest/download/regctl-linux-arm64
+                chmod 755 regctl
+                sudo mv regctl /usr/local/bin/
+              fi
+
+              # files written from here on are readable by root only
+              umask 077
+              # save default settings
+              export PGPWD=$(echo "${PGPassword}" |tee /root/pg-default-password.txt)
+              export KEY=$(uuidgen |tee /root/admin-api-key.txt)
+              export AWS_DEFAULT_REGION="${AWS::Region}"
+          
+              #REPO_PREFIX=${EcrRepo}-$(echo ${AWS::StackId}|awk -F'-' '{print $NF}')
+              REPO_PREFIX=${EcrRepo}-${RandomString}
+              echo $REPO_PREFIX
+              aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+              IMG_LAMBDA=x6u9o2u4/sample-connector-for-bedrock-lambda
+          
+              if [[ ${ComputeType} == "lambda" ]]; then
+                AMD64_DIG=$(regctl image digest --platform linux/amd64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
+                ARM64_DIG=$(regctl image digest --platform linux/arm64 public.ecr.aws/$IMG_LAMBDA:${BRConnectorVersion})
+                regctl image copy public.ecr.aws/$IMG_LAMBDA@$AMD64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:amd64
+                regctl image copy public.ecr.aws/$IMG_LAMBDA@$ARM64_DIG ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/$REPO_PREFIX/$IMG_LAMBDA:arm64
+              fi
+
+              # start postgress db
+              # PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text || echo "172.17.0.1")
+              PGHOST=$(aws ssm get-parameter --name /brconnector/pgdb-${AWS::StackName} --query 'Parameter.Value' --output text)
+              if [[ $PGHOST == "172.17.0.1" ]]; then
+                docker run --restart=unless-stopped --name postgres -e POSTGRES_PASSWORD=${PGPassword} -p 5432:5432 -d postgres:16
+                sleep 30; echo "CREATE DATABASE ${PGDatabase};" |docker exec -i postgres psql -U ${PGUser} 
+              fi
+              # if set to NoDB then set HOST and DATABASE to empty string
+              if [[ $PGHOST == "NoDB" ]]; then
+                PGHOST=""
+              fi
+
+              # # defaultSetTo empty string means false
+              # PerformanceModeStr=""
+              # if [[ ${PerformanceMode} == "true" || $PGHOST == "" ]];then
+              #   PerformanceModeStr="true"
+              # fi
+              # start brconnector container in ECR
+              # BEGIN brconnector-run
+              # The run script holds the database password and the admin key. It starts the
+              # image tag given as its argument, by default BRConnectorVersion. The docker run
+              # arguments are expanded here once, as the docker run line of earlier versions
+              # expanded them, and written quoted, so every run passes exactly these values.
+              BRC_DEFAULT_TAG=${BRConnectorVersion}
+              BRC_RUN_LINE=$(printf '%q ' docker run --restart=unless-stopped --name brconnector -p 8866:8866 -e AWS_DEFAULT_REGION=${AWS::Region} -e PERFORMANCE_MODE=${PerformanceMode} -e PGSQL_HOST=$PGHOST -e PGSQL_DATABASE=${PGDatabase} -e PGSQL_USER=${PGUser} -e PGSQL_PASSWORD=${PGPassword} -e ADMIN_API_KEY=$KEY${CcEnvArg} -d)
+              cat > /root/brconnector-run.sh <<EOF
+              #!/bin/bash -e
+              IMG_EC2=x6u9o2u4/sample-connector-for-bedrock
+              IMAGE_TAG="\${!1:-$BRC_DEFAULT_TAG}"
+              $BRC_RUN_LINE"public.ecr.aws/\$IMG_EC2:\$IMAGE_TAG"
+              EOF
+              chmod 700 /root/brconnector-run.sh
+              bash /root/brconnector-run.sh
+              # END brconnector-run
+
+              # create first user
+              sleep 60
+              curl "http://localhost:8866/"
+              curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" -o /dev/null
+              # if set dbmode to NoDB donnot generate first userkey
+              if [[ $PGHOST != "" ]]; then
+                curl -X POST "http://localhost:8866/admin/api-key/apply" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"name": "adminuser","group_id": 1,"role": "admin","email": "", "month_quota":"20"}' -o /dev/null
+                # list users
+                curl "http://localhost:8866/admin/api-key/list" -H "Authorization: Bearer $KEY" |jq -r . > /root/first-user-key.txt
+                USERKEY=$(cat /root/first-user-key.txt |jq -r '.data.items[0].api_key')
+                aws ssm put-parameter --name /brconnector/first-user-key-${AWS::StackName} --value "$USERKEY" --type String --overwrite
+              fi
+              aws ssm put-parameter --name /brconnector/admin-key-${AWS::StackName} --value "$KEY" --type String --overwrite
+
+              # ensure ecs service linked role existed
+              aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com || echo "ecs service linked role already exists"
+
+              # # add health check script to root's crontab
+              # cat >/root/healthcheck.sh <<-EOF
+              # #!/bin/bash
+              # CURR=\$(date +%Y%m%d-%H%M%S)
+              # STAT=\$(curl -sL -w '%{http_code}' -o /dev/null "http://localhost:8866")
+              # if [[ \$STAT -ne 200 ]]; then
+              #   docker restart brconnector
+              #   echo "restart brconnector at \$CURR"
+              # fi
+              # EOF
+              # chmod a+x /root/healthcheck.sh
+              # echo '*/5 * * * * sh -x /root/healthcheck.sh >>/root/healthcheck.log 2>&1' |crontab -
+
+              # prepare to delete self
+              TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+              INST_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/dynamic/instance-identity/document |jq -r .instanceId)
+              aws lambda update-function-configuration --function-name ${DeleteEC2Lambda} --environment "Variables={INSTANCE_ID=$INST_ID}"
+
+              # call back to cfn
+              /opt/aws/bin/cfn-signal -s true '${PrivateWaitHandle}' # variable handled by cfn
+              if [[ ${KeepEc2} != "true" && ( ${ComputeType} == "lambda" || ${ComputeType} == "lambda-web" ) ]]; then
+                # the invoke must not run the old configuration, which has no INSTANCE_ID
+                aws lambda wait function-updated --function-name ${DeleteEC2Lambda} || echo "cleanup function update did not finish"
+                aws lambda invoke --function-name ${DeleteEC2Lambda} /tmp/output.log
+              fi
+            - CcEnvArg: !If
+                - IsClaudeCodeWeb
+                - !Sub " -e CC_CONFIG_PARAM=arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web"
+                - ''
 
   PrivateWaitHandle:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -1187,7 +1434,8 @@ Resources:
           PGSQL_HOST: !If [ IsNoDB, "", !GetAtt MyPG.Endpoint.Address ]
           PGSQL_DATABASE: !If [ IsNoDB, "", !Ref PGDatabase ]
           PGSQL_USER: !Ref PGUser
-          PGSQL_PASSWORD: !Ref PGPassword
+          PGSQL_PASSWORD: !If [ CreatePGSecret, !Ref AWS::NoValue, !Ref PGPassword ]
+          PGSQL_PASSWORD_SECRET_ARN: !If [ CreatePGSecret, !Ref PGSecret, !Ref AWS::NoValue ]
       VpcConfig:
         !If
           - IsNoDB
@@ -1204,6 +1452,15 @@ Resources:
 
   BRConnectorLambdaPermission1:
     Condition: IsPublicLambdaPermission
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F13
+            reason: >-
+              The function URL is public by design when LambdaEdgeVersionArn is empty
+              (IsPublicLambdaPermission). It has no IAM authorization (AuthType NONE), so
+              any principal must be allowed; BRConnector authenticates each request with
+              its own API key.
     DependsOn:
       - LambdaCloudFrontDistribution
     Type: AWS::Lambda::Permission
@@ -1217,6 +1474,15 @@ Resources:
   # lambda:InvokeFunctionUrl; InvokedViaFunctionUrl limits it to calls through the URL.
   BRConnectorLambdaInvokePermission1:
     Condition: IsPublicLambdaPermission
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F13
+            reason: >-
+              The function URL is public by design when LambdaEdgeVersionArn is empty
+              (IsPublicLambdaPermission). It has no IAM authorization (AuthType NONE), so
+              any principal must be allowed; BRConnector authenticates each request with
+              its own API key.
     DependsOn:
       - LambdaCloudFrontDistribution
     Type: AWS::Lambda::Permission
@@ -1437,8 +1703,11 @@ Resources:
               Value: !If [ IsNoDB, "", !Ref PGDatabase ]
             - Name: PGSQL_USER
               Value: !Ref PGUser
-            - Name: PGSQL_PASSWORD
-              Value: !Ref PGPassword
+            - !If
+              - CreatePGSecret
+              - !Ref AWS::NoValue
+              - Name: PGSQL_PASSWORD
+                Value: !Ref PGPassword
             - Name: ADMIN_API_KEY
               Value: !GetAtt MySSMParameterAdminKey.Value
             # Built from the parameter's fixed name, as on ec2 and lambda-web, where a Ref
@@ -1448,6 +1717,12 @@ Resources:
               - Name: CC_CONFIG_PARAM
                 Value: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
               - !Ref AWS::NoValue
+          # ECS reads the generated password at task start; the task definition holds only the ARN.
+          Secrets: !If
+            - CreatePGSecret
+            - - Name: PGSQL_PASSWORD
+                ValueFrom: !Ref PGSecret
+            - !Ref AWS::NoValue
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1468,6 +1743,13 @@ Resources:
     Properties:
       GroupName: !Sub "ecs-lb-sg-${AWS::StackName}"
       GroupDescription: "Security Group for ECS LB"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       SecurityGroupIngress:
         - Description: Allow HTTP from com.amazonaws.global.cloudfront.origin-facing
           IpProtocol: tcp
@@ -1592,6 +1874,13 @@ Resources:
     Properties:
       GroupName: !Sub "codebuild-security-group-${AWS::StackName}"
       GroupDescription: "CodeBuild Security Group with no ingress"
+      SecurityGroupEgress:
+        - Description: Allow all outbound IPv4 traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       VpcId: !If 
         - UseExistingVpcStack
         - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
@@ -2292,7 +2581,8 @@ Resources:
         PGSQL_HOST: !If [IsNoDB, !Ref AWS::NoValue, !GetAtt MyPG.Endpoint.Address]
         PGSQL_DATABASE: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGDatabase]
         PGSQL_USER: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGUser]
-        PGSQL_PASSWORD: !If [IsNoDB, !Ref AWS::NoValue, !Ref PGPassword]
+        PGSQL_PASSWORD: !If [IsNoDB, !Ref AWS::NoValue, !If [CreatePGSecret, !Ref AWS::NoValue, !Ref PGPassword]]
+        PGSQL_PASSWORD_SECRET_ARN: !If [CreatePGSecret, !Ref PGSecret, !Ref AWS::NoValue]
         # Built from the parameter's fixed name rather than a Ref: the parameter holds the
         # runtime ARN, and the runtime needs WebFnDistribution, which depends on this function.
         CC_CONFIG_PARAM: !If
@@ -2989,6 +3279,10 @@ Resources:
         - CredentialProviderType: GATEWAY_IAM_ROLE
 
 Outputs:
+  PGPasswordSecretArn:
+    Condition: CreatePGSecret
+    Description: Secrets Manager secret that holds the generated database password
+    Value: !Ref PGSecret
   WebFnCloudFrontURL:
     Condition: IsLambdaWeb
     Description: BRConnector URL on Lambda Web Functions, through CloudFront. Use this one.

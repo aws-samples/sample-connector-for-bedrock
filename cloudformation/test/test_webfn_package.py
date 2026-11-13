@@ -31,8 +31,8 @@ def res(name):
 
 
 def userdata_text():
-    sub = res('MyEC2Instance')['Properties']['UserData']['Fn::Base64']['Fn::Sub']
-    return sub if isinstance(sub, str) else sub[0]
+    """Both UserData scripts."""
+    return '\n'.join(sub if isinstance(sub, str) else sub[0] for sub in gating.userdata_scripts(TEMPLATE))
 
 
 def test_webfn_package_feeds_the_revision():

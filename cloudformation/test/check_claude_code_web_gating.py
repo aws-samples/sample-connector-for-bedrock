@@ -355,9 +355,19 @@ def check_conditions(template):
     return problems
 
 
+def userdata_scripts(template):
+    """The Fn::Sub of each UserData script: one, or two when the script depends on CreatePGSecret."""
+    userdata = template['Resources']['MyEC2Instance']['Properties']['UserData']
+    scripts = userdata['Fn::If'][1:] if 'Fn::If' in userdata else [userdata]
+    return [script['Fn::Base64']['Fn::Sub'] for script in scripts]
+
+
 def check_ec2_docker_run_on(template):
-    """With the switch on, the run script's docker run line must still be one line naming brconnector."""
-    sub = template['Resources']['MyEC2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Sub']
+    """With the switch on, each run script's docker run line must still be one line naming brconnector."""
+    return [problem for sub in userdata_scripts(template) for problem in check_one_docker_run_on(sub)]
+
+
+def check_one_docker_run_on(sub):
     if isinstance(sub, str):
         return []  # Nothing is injected, so the line is the base line.
     text, variables = sub

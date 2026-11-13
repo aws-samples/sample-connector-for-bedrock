@@ -1,0 +1,15 @@
+# False positives in the git history. Each entry is <commit>:<file>:<rule>:<line>.
+
+# A commented-out line that compares a password with a SHA-256 hash, not a key.
+7fb60e6d084958350204a52d1f6d393806774921:src-frontend/utils/common.js:generic-api-key:49
+
+# The example access key from the AWS documentation, in a doc comment.
+fa765c312baa8be7b5392bc4335e58e3662bc9d2:src/util/helper.ts:aws-access-token:592
+fa765c312baa8be7b5392bc4335e58e3662bc9d2:src/util/helper.ts:aws-access-token:593
+
+# A JMESPath query that selects stack outputs by name, not a key.
+1729d085b9fbc0d366e15f0710d8cc50de1bb356:cloudformation/test/test-cfn.sh:generic-api-key:25
+
+# A curl example with the placeholder YOUR_API_KEY.
+c864f3e2c804364f5bf4720a3adf759d2ae190a6:docs/providers/bedrock-agent.md:curl-auth-header:38
+c864f3e2c804364f5bf4720a3adf759d2ae190a6:docs/providers/bedrock-agent.zh.md:curl-auth-header:38

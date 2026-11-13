@@ -3,6 +3,8 @@ import importlib.util
 import re
 from pathlib import Path
 
+import pytest
+
 HERE = Path(__file__).resolve().parent
 TEMPLATE_PATH = HERE.parent / 'quick-build-brconnector.yaml'
 
@@ -41,13 +43,13 @@ def test_invoke_function_for_everyone_is_limited_to_function_url_calls():
             assert perm['Properties'].get('InvokedViaFunctionUrl') is True, name
 
 
-def cleanup_lines():
-    text, _ = RESOURCES['MyEC2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Sub']
+def cleanup_lines(text):
     return [l.strip() for l in text.split('\n') if '${DeleteEC2Lambda}' in l and not l.strip().startswith('#')]
 
 
-def test_cleanup_waits_for_the_configuration_update_before_invoking():
-    lines = cleanup_lines()
+@pytest.mark.parametrize('script', [0, 1])
+def test_cleanup_waits_for_the_configuration_update_before_invoking(script):
+    lines = cleanup_lines(gating.userdata_scripts({'Resources': RESOURCES})[script][0])
     pos = {}
     for kind in ('update-function-configuration', 'wait function-updated', 'lambda invoke'):
         hits = [i for i, l in enumerate(lines) if re.search(r'aws lambda ' + kind.removeprefix('lambda ') + r'\b', l)]

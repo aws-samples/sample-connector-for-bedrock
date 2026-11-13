@@ -68,7 +68,7 @@ def test_alb_admits_only_cloudfront():
     assert rule["FromPort"] == 80 and rule["ToPort"] == 80
     assert "SourcePrefixListId" in rule and "FindInMap" in rule["SourcePrefixListId"]
     assert "CidrIp" not in rule
-    assert "0.0.0.0/0" not in repr(props)
+    assert "0.0.0.0/0" not in repr(rules)
 
 
 def test_prefix_list_table():

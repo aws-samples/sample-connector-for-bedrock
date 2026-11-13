@@ -1,3 +1,5 @@
+import { secretPassword } from "./util/db_password";
+
 // Unset, blank or non-numeric falls back to 1500; a number is used as given, 0 and negatives meaning "do not wait".
 function parseWarmupMs(raw: string | undefined): number {
     if (raw === undefined || raw.trim() === "") return 1500;
@@ -11,7 +13,7 @@ export default {
         port: process.env.PGSQL_PORT || 5432,
         database: process.env.PGSQL_DATABASE,
         user: process.env.PGSQL_USER,
-        password: process.env.PGSQL_PASSWORD,
+        password: process.env.PGSQL_PASSWORD_SECRET_ARN ? secretPassword(process.env.PGSQL_PASSWORD_SECRET_ARN) : process.env.PGSQL_PASSWORD,
         debugMode: process.env.PGSQL_DEBUG_MODE === "true" || process.env.PGSQL_DEBUG_MODE === "1" || false,
         max: process.env.PGSQL_MAX || 80
     },

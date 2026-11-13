@@ -66,12 +66,15 @@ ECS_SERVICE_LINKED_ROLE = sub(
 ECS_SERVICE_NAME = {'StringEquals': {'iam:AWSServiceName': 'ecs.amazonaws.com'}}
 
 # (call, its target as written in the script) -> [(actions, resource, statement Condition)].
-# The target is the value of --name, --function-name, --stack-name, --aws-service-name or
-# --key, or the destination repository of a regctl copy.
+# The target is the value of --name, --function-name, --stack-name, --aws-service-name,
+# --secret-id or --key, or the destination repository of a regctl copy.
 CALLS = {
     ('ecr get-login-password', None): [(['ecr:GetAuthorizationToken'], '*', None)],
     ('ecr-public get-login-password', None): [
         (['ecr-public:GetAuthorizationToken', 'sts:GetServiceBearerToken'], '*', None)],
+    # Only with a generated database password, which UserData reads from PGSecret.
+    ('secretsmanager get-secret-value', '${PGSecret}'): [
+        (['secretsmanager:GetSecretValue'], {'Ref': 'PGSecret'}, None)],
     ('ssm get-parameter', '/brconnector/pgdb-${AWS::StackName}'): [
         (['ssm:GetParameter'], ssm_parameter('/brconnector/pgdb-${AWS::StackName}'), None)],
     ('ssm put-parameter', '/brconnector/first-user-key-${AWS::StackName}'): [
@@ -158,6 +161,7 @@ SCENARIO_PARAMETERS = {
     'AutoUpdateBRConnector': ['true', 'false'],
     'KeepEc2': ['true', 'false'],
     'VpcStackName': ['', 'vpc'],
+    'PGPassword': ['', 'pw'],
 }
 DROPPED = object()
 
@@ -313,8 +317,9 @@ def every_scenario_role():
 # ---------------------------------------------------------------------------
 
 def userdata():
-    text, _ = RESOURCES['MyEC2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Sub']
-    return text
+    """Both UserData scripts: with a generated database password, and with a PGPassword."""
+    _, *scripts = RESOURCES['MyEC2Instance']['Properties']['UserData']['Fn::If']
+    return '\n'.join(script['Fn::Base64']['Fn::Sub'][0] for script in scripts)
 
 
 def ssm_document():
@@ -356,7 +361,7 @@ def sources():
 
 AWS_WORD = re.compile(r'(?<![^\s(|;&`])aws(?=\s)')
 AWS_CALL = re.compile(r'aws\s+([^\s|;&)]+)\s+([^\s|;&)]+)')
-TARGET = re.compile(r'--(?:name|function-name|stack-name|aws-service-name|key)\s+("?)([^\s"]+)\1')
+TARGET = re.compile(r'--(?:name|function-name|stack-name|aws-service-name|secret-id|key)\s+("?)([^\s"]+)\1')
 REGCTL_COPY = re.compile(r'regctl\s+image\s+copy\s+(\S+)\s+(\S+)')
 
 
@@ -393,6 +398,8 @@ def wanted_calls(role, scenario, truth):
             # The UserData copies the lambda image only when ComputeType is lambda; the
             # private repository exists only then.
             if holder == 'MyEC2Instance' and call == 'regctl image copy' and scenario['ComputeType'] != 'lambda':
+                continue
+            if call == 'secretsmanager get-secret-value' and not truth['CreatePGSecret']:
                 continue
             yield call, target
 

@@ -37,6 +37,7 @@ VALUES = {
     'RandomString': 'abc123',
     'DeleteEC2Lambda': 'brc-delete-ec2',
     'PrivateWaitHandle': 'https://cfn.example/wait',
+    'PGSecret': 'arn:aws:secretsmanager:us-west-2:111122223333:secret:brc-pg-AbCdEf',
 }
 
 # The ec2 docker run line of 0.0.43 and earlier. Those stacks have no run script: their nightly
@@ -81,12 +82,15 @@ def params():
     return TEMPLATE['Parameters']
 
 
-def userdata_sub():
-    return res('MyEC2Instance')['Properties']['UserData']['Fn::Base64']['Fn::Sub']
+def userdata_sub(generated=False):
+    """The Fn::Sub of the script for a stack with a PGPassword, or with a generated password."""
+    condition, with_secret, with_parameter = res('MyEC2Instance')['Properties']['UserData']['Fn::If']
+    assert condition == 'CreatePGSecret'
+    return (with_secret if generated else with_parameter)['Fn::Base64']['Fn::Sub']
 
 
-def userdata_text():
-    sub = userdata_sub()
+def userdata_text(generated=False):
+    sub = userdata_sub(generated)
     return sub if isinstance(sub, str) else sub[0]
 
 
@@ -96,7 +100,7 @@ def cc_env_arg(on):
     return render_sub(gate[1]['Fn::Sub']) if on else gate[2]
 
 
-def render_sub(text, values=None, cc=False):
+def render_sub(text, values=None, cc=False, generated=False):
     """Fn::Sub with test values: ${Name} takes its value and ${!X} becomes ${X}."""
     values = dict(VALUES if values is None else values)
 
@@ -110,9 +114,9 @@ def render_sub(text, values=None, cc=False):
     return re.sub(r'\$\{(!?)([^}]*)\}', one, text)
 
 
-def run_script_block(root, cc=False, values=None):
+def run_script_block(root, cc=False, values=None, generated=False):
     """The rendered BEGIN/END block, with /root/ mapped to root."""
-    text = render_sub(userdata_text(), values, cc=cc)
+    text = render_sub(userdata_text(generated), values, cc=cc, generated=generated)
     start = text.index('# BEGIN brconnector-run\n')
     end = text.index('# END brconnector-run', start)
     return text[start:end].replace('/root/', f'{root}/')
@@ -208,17 +212,90 @@ def gnu_sed():
 # --- the boot script ---------------------------------------------------------------------------
 
 
-def test_userdata_traces_nothing():
-    text = userdata_text()
+@pytest.mark.parametrize('generated', [False, True])
+def test_userdata_traces_nothing(generated):
+    text = userdata_text(generated)
     assert text.splitlines()[0] == '#!/bin/bash -e'
     assert not re.search(r'set -[a-z]*x|set -o xtrace', text)
     assert text.index('umask 077') < text.index('/root/')
 
 
+READ_SECRET = ('PGPWD=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id ${PGSecret} '
+               '--query SecretString --output text)')
+
+
+def test_the_two_scripts_differ_only_in_the_password():
+    # The script of a stack with a PGPassword must stay as earlier templates wrote it; the
+    # other copy reads the generated password instead and must otherwise follow it.
+    expected = userdata_text()
+    for a, b in [
+        ('umask 077\n# save default settings\nexport PGPWD=$(echo "${PGPassword}" |tee',
+         'umask 077\n' + READ_SECRET + '\n# save default settings\nexport PGPWD=$(echo "$PGPWD" |tee'),
+        ('-e POSTGRES_PASSWORD=${PGPassword} ', '-e POSTGRES_PASSWORD=$PGPWD '),
+        ('-e PGSQL_PASSWORD=${PGPassword} ', '-e PGSQL_PASSWORD=$PGPWD '),
+    ]:
+        assert expected.count(a) == 1, a
+        expected = expected.replace(a, b)
+    assert userdata_text(generated=True) == expected
+    assert userdata_sub(generated=True)[1] == userdata_sub()[1]
+
+
 def test_userdata_parses():
     for cc in (False, True):
-        proc = subprocess.run([shutil.which('bash'), '-n'], input=render_sub(userdata_text(), cc=cc), capture_output=True, text=True)
-        assert proc.returncode == 0, proc.stderr
+        for generated in (False, True):
+            text = render_sub(userdata_text(generated), cc=cc, generated=generated)
+            proc = subprocess.run([shutil.which('bash'), '-n'], input=text, capture_output=True, text=True)
+            assert proc.returncode == 0, proc.stderr
+
+
+def test_password_lines_render_as_before_with_a_pgpassword():
+    # A stack created with a PGPassword renders these lines as earlier templates did, so a
+    # template update does not change its UserData (which stops and starts the instance).
+    text = render_sub(userdata_text())
+    assert 'umask 077\n# save default settings\nexport PGPWD=$(echo "PG-MARKER" |tee /root/pg-default-password.txt)\n' in text
+    assert ' -e POSTGRES_PASSWORD=PG-MARKER -p 5432:5432 ' in text
+    assert 'secretsmanager' not in text
+
+
+def password_section(text):
+    """From umask 077 to the line after PGPWD is exported."""
+    start = text.index('umask 077')
+    return text[start:text.index('export KEY=', start)]
+
+
+def test_generated_password_is_read_from_the_secret(tmp_path):
+    text = render_sub(userdata_text(generated=True))
+    assert VALUES['PGSecret'] in text
+    stub_dir = stubs(tmp_path)
+    (stub_dir / 'aws').write_text('#!/bin/bash\nprintf "%s " "$@" > "$STUB_DIR/aws-call"\necho SECRET-PW\n')
+    script = tmp_path / 'password.sh'
+    script.write_text(password_section(text).replace('/root/', f'{tmp_path}/'))
+    proc = bash(['-e', script], stub_dir)
+    assert proc.returncode == 0, proc.stderr
+    assert (stub_dir / 'aws-call').read_text().split() == [
+        'secretsmanager', 'get-secret-value', '--region', 'us-west-2', '--secret-id', VALUES['PGSecret'],
+        '--query', 'SecretString', '--output', 'text']
+    assert (tmp_path / 'pg-default-password.txt').read_text() == 'SECRET-PW\n'
+    assert 'SECRET-PW' not in proc.stdout + proc.stderr
+
+
+def test_boot_stops_when_the_secret_cannot_be_read(tmp_path):
+    stub_dir = stubs(tmp_path)
+    (stub_dir / 'aws').write_text('#!/bin/bash\nexit 254\n')
+    script = tmp_path / 'password.sh'
+    script.write_text(password_section(render_sub(userdata_text(generated=True))).replace('/root/', f'{tmp_path}/'))
+    assert bash(['-e', script], stub_dir).returncode != 0
+
+
+@pytest.mark.parametrize('cc', [False, True])
+def test_run_script_passes_the_generated_password(tmp_path, cc):
+    stub_dir = stubs(tmp_path)
+    block = tmp_path / 'block.sh'
+    block.write_text(run_script_block(tmp_path, cc=cc, generated=True))
+    proc = bash(['-e', block], stub_dir, KEY='KEY-MARKER', PGHOST='172.17.0.1', PGPWD='SECRET-PW')
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert '-e' in docker_calls(stub_dir)[0] and 'PGSQL_PASSWORD=SECRET-PW' in docker_calls(stub_dir)[0]
+    assert 'SECRET-PW' not in block.read_text()
 
 
 @pytest.mark.parametrize('cc', [False, True])
@@ -304,7 +381,7 @@ def test_no_secret_goes_to_stdout():
 def test_docker_run_check_reads_the_run_script():
     assert gating.check_ec2_docker_run_on(TEMPLATE) == []
     moved = copy.deepcopy(TEMPLATE)
-    sub = moved['Resources']['MyEC2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Sub']
+    sub = moved['Resources']['MyEC2Instance']['Properties']['UserData']['Fn::If'][2]['Fn::Base64']['Fn::Sub']
     lines = sub[0].split('\n')
     (i,) = [n for n, line in enumerate(lines) if '--name brconnector' in line]
     line = lines.pop(i)
@@ -423,4 +500,4 @@ def test_compute_type_names_every_supported_region():
     description = params()['ComputeType']['Description']
     named = set(re.findall(r'\b[a-z]{2}-[a-z]+-\d\b', description))
     assert named == set(EXPECTED_17)
-    assert set(TEMPLATE['Rules']) == {'ClaudeCodeWebRequirements', 'LambdaWebRegion'}
+    assert set(TEMPLATE['Rules']) == {'ClaudeCodeWebRequirements', 'GeneratedPGPasswordOnLambda', 'LambdaWebRegion'}

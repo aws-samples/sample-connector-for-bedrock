@@ -82,7 +82,10 @@ Here are some recommend deployment patterns:
     - `Standalone` -- Deploy RDS PostgreSQL
     - `NoDB` -- Do not deploy any backend database, in this mode only ADMIN KEY could access default models
   - Set PerformanceMode to true, chat history will not be saved.
-  - Default PostgreSQL password is `mysecretpassword`
+  - Leave `PGPassword` empty for a new stack. The stack then generates a password of 32 letters and digits, keeps it in AWS Secrets Manager, and shows the secret's ARN in the `PGPasswordSecretArn` output. The stack parameters, the outputs, the function configuration and the ECS task definition hold no plain-text password; the task definition holds only the secret's ARN. `ec2` reads the password from the secret when the instance boots and keeps it in the root-only files in `/root`. On `ecs`, ECS reads the secret when a task starts and sets `PGSQL_PASSWORD` in the container's runtime environment, as it does for every secret. `lambda` and `lambda-web` read it when they connect to the database, which needs BRConnector 0.0.45 or later: release the BRConnector image (and, for `lambda-web`, the `SourceRef` the package is built from) together with this template, or before it. A `lambda` or `lambda-web` stack that runs an older BRConnector cannot reach its database with a generated password; enter a password for such a stack.
+  - To use a password of your own, enter 8 to 128 letters and digits: the EC2 instance does not pass other characters through unchanged.
+  - `PGStorageEncrypted` has no default. Choose `true` to encrypt the storage of the RDS database (`Standalone`). Without an RDS database the value is not used, but the template still asks for it.
+  - The RDS database has deletion protection. See [Deleting a stack](#deleting-a-stack).
 
 ![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
@@ -132,6 +135,35 @@ Updating a stack to the 0.0.44 template changes the instance's UserData, so:
 - `lambda` and `lambda-web` stacks created with `KeepEc2` set to `false` cannot take the update, because the helper instance deleted itself. Recreate them.
 - `lambda-web` applies the database migrations when it starts, including the 0.0.43 migrations if they were never applied, which delete the models of retired providers (see 0.0.43 in the [changelog](changelogs.md)). Take a database snapshot before you update.
 - Set `LambdaEdgeVersionArn` to the output of the new Lambda@Edge stack (version `v2`) when you use AWS_IAM authorization on the function URL.
+
+A template that has the `PGStorageEncrypted` parameter also changes the RDS database (`Standalone`). The update keeps the database, its data and its password:
+
+- Keep the current value of `PGStorageEncrypted`. For a stack created from an earlier template, that is `false`: its database is not encrypted. `true` replaces it with a new, empty database, which BRConnector then uses. CloudFormation takes a snapshot of the old database and deletes it, or, when the old database has deletion protection (after this update), leaves it running outside the stack, billed until you delete it.
+- Keep the current `PGPassword`. The console fills it in. With the AWS CLI, pass `ParameterKey=PGPassword,UsePreviousValue=true`: without it, the update takes the empty default and generates a new password. A stack created with a password keeps it, and the update creates no secret. Do not clear `PGPassword` on such a stack, and do not enter one on a stack that generated its password: either change sets a new database password, and on `ec2` it stops and starts the instance without updating `/root/brconnector-run.sh`, so BRConnector keeps the old password.
+- The update turns on deletion protection for the database, without an interruption. See [Deleting a stack](#deleting-a-stack).
+- On `brconnector-ecs-fargate.yaml`, keep the current `PGUser` as well. It has no default now, and a new user name replaces the database.
+- The template now lists the outbound rules of each security group and sets the database to not publicly accessible. The rules allow all IPv4 and all IPv6 traffic, which are the rules EC2 adds to a security group that lists none. The update modifies these resources, but outbound traffic and access to the database stay the same. In a VPC without IPv6, the IPv6 rule matches no traffic.
+
+## Deleting a stack {#deleting-a-stack}
+
+The RDS database has deletion protection, so a stack deletion stops at the database (`MyPG` in `DELETE_FAILED`). To delete the stack:
+
+1. Turn off deletion protection. The database identifier is the physical ID of `MyPG` on the **Resources** tab of the stack.
+
+    ```sh
+    aws rds modify-db-instance --db-instance-identifier <database> --no-deletion-protection --apply-immediately
+    ```
+
+2. Delete the stack again.
+
+A stack update that removes the database, for example a change of `DatabaseMode`, cannot delete it either. While deletion protection is on, the database stays, running outside the stack.
+
+When CloudFormation deletes the database, it first takes a final snapshot, as it did with earlier templates. A generated password is deleted with the stack, so set a new master password when you restore the snapshot. The snapshot stays after the stack is deleted, and it is billed until you delete it:
+
+```sh
+aws rds describe-db-snapshots --db-instance-identifier <database> --snapshot-type manual --query 'DBSnapshots[].[DBSnapshotIdentifier,SnapshotCreateTime]' --output text
+aws rds delete-db-snapshot --db-snapshot-identifier <snapshot>
+```
 
 ## Admin key on stacks created before 0.0.44 {#admin-key-before-0-0-44}
 

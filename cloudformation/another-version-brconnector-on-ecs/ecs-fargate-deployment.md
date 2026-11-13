@@ -59,8 +59,8 @@ aws cloudformation deploy \
     FargateMemory=2048 \
     DatabaseMode=Standalone \
     PGDatabase=brconnector_db \
-    PGUser=postgres \
-    PGPassword=mysecretpassword \
+    PGUser=<数据库用户名> \
+    PGStorageEncrypted=true \
     BRConnectorVersion=latest \
     AutoUpdateBRConnector=true \
     PerformanceMode=false \
