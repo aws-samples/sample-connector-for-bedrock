@@ -34,6 +34,7 @@ Metadata:
           - PGDatabase
           - PGUser
           - PGPassword
+          - PGStorageEncrypted
 
       - Label: 
           default: "Others Settings"
@@ -131,15 +132,29 @@ Parameters:
     Default: brconnector_db
   
   PGUser:
-    Description: PostgreSQL default user name
+    Description: >-
+      PostgreSQL master user name. There is no default: enter one. When you update the
+      stack, keep the current value (stacks created from earlier templates use postgres):
+      changing it replaces the database with a new, empty one.
     Type: String
-    Default: postgres
+    NoEcho: true
   
   PGPassword:
-    Description: PostgreSQL default password
+    Description: >-
+      PostgreSQL password. There is no default: enter one, 8 to 128 characters. When you
+      update the stack, keep the current value.
     Type: String
-    Default: mysecretpassword
     NoEcho: true
+
+  PGStorageEncrypted:
+    Description: >-
+      Encrypt the storage of the RDS PostgreSQL database. Choose true for a new stack. When
+      you update a stack, keep its current value, which is false for a stack created from an
+      earlier template: changing the value replaces the database with a new, empty one. Not used when DatabaseMode is NoDB.
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
 
   BRConnectorVersion:
     Description: choose BR Connector Version
@@ -208,6 +223,7 @@ Conditions:
   IsNewVpc: !Equals [!Ref NewVpc, 'true']
   IsNoDB: !Equals [!Ref DatabaseMode, 'NoDB']
   DeployDB: !Not [!Condition IsNoDB]
+  IsPGStorageEncrypted: !Equals [!Ref PGStorageEncrypted, 'true']
   IsAutoUpdate: !Equals [!Ref AutoUpdateBRConnector, 'true']
 
 Resources:
@@ -480,6 +496,8 @@ Resources:
   MyPG:
     Condition: DeployDB
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
     Properties:
       AllocatedStorage: '20'
       DBName: !Ref PGDatabase
@@ -488,6 +506,9 @@ Resources:
       EngineVersion: "16.3"
       MasterUsername: !Ref PGUser
       MasterUserPassword: !Ref PGPassword
+      StorageEncrypted: !If [IsPGStorageEncrypted, true, !Ref AWS::NoValue]
+      DeletionProtection: true
+      PubliclyAccessible: false
       DBParameterGroupName: !Ref MyPGParameterGroup
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup

@@ -51,6 +51,7 @@ Metadata:
           - PGDatabase
           - PGUser
           - PGPassword
+          - PGStorageEncrypted
 
       - Label: 
           default: "Others Settings"
@@ -248,10 +249,21 @@ Parameters:
     Type: String
     Default: postgres
   PGPassword:
-    Description: PostgreSQL default password
+    Description: >-
+      PostgreSQL password. There is no default: enter 8 to 128 letters and digits (the EC2
+      instance does not pass other characters through unchanged). When you update the stack,
+      keep the current value.
     Type: String
     NoEcho: true
-    Default: mysecretpassword
+  PGStorageEncrypted:
+    Description: >-
+      Encrypt the storage of the RDS PostgreSQL database. Choose true for a new stack. When
+      you update a stack, keep its current value, which is false for a stack created from an
+      earlier template: changing the value replaces the database with a new, empty one. Not used without an RDS database.
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
 
   EnableCloudfront:
     Description: Enable Cloudfront or not, when using Lambda ComputeType. If you use EC2, this option will always be "true"
@@ -411,6 +423,7 @@ Conditions:
   # the origin request would buy nothing.
   IsLambdaWebIamAuth: !And [!Condition IsLambdaWeb, !Equals [!Ref WebFnAuthType, 'IamAuth']]
   IsEC2IntegratedDB: !Equals [!Ref DatabaseMode, 'EC2Integrated']
+  IsPGStorageEncrypted: !Equals [!Ref PGStorageEncrypted, 'true']
   IsEnableCloudfrontEc2: !Equals [!Ref ComputeType, 'ec2']
   IsEnableCloudfrontLambda: !And
     - !Equals [!Ref EnableCloudfront, 'true']
@@ -677,6 +690,16 @@ Resources:
   MyPG:
     Condition: IsStandaloneDB
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F24
+            reason: >-
+              The master username is not a secret. It stays postgres because every existing
+              stack uses it, the EC2Integrated container has only that user, and changing
+              MasterUsername replaces the database.
     Properties:
       AllocatedStorage: '20'
       DBName: !Ref PGDatabase
@@ -685,6 +708,9 @@ Resources:
       EngineVersion: "16.10"
       MasterUsername: postgres
       MasterUserPassword: !Ref PGPassword
+      StorageEncrypted: !If [IsPGStorageEncrypted, true, !Ref AWS::NoValue]
+      DeletionProtection: true
+      PubliclyAccessible: false
       DBParameterGroupName: !Ref MyPGParameterGroup
       VPCSecurityGroups:
         - !Ref RdsSecurityGroup
