@@ -173,9 +173,12 @@ Resources:
       GroupName: "no-ingress-sg"
       GroupDescription: "Security group with no ingress rule"
       SecurityGroupEgress:
-        - Description: Allow all outbound traffic
+        - Description: Allow all outbound IPv4 traffic
           IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       VpcId: !Ref VPC
 
 Outputs:

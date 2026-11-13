@@ -386,9 +386,12 @@ Resources:
       GroupName: "no-ingress-sg"
       GroupDescription: "Security group with no ingress rule"
       SecurityGroupEgress:
-        - Description: Allow all outbound traffic
+        - Description: Allow all outbound IPv4 traffic
           IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       VpcId: !Ref VPC
 
   # Random string generator for unique names
@@ -443,9 +446,12 @@ Resources:
       GroupName: !Sub "alb-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for ALB"
       SecurityGroupEgress:
-        - Description: Allow all outbound traffic
+        - Description: Allow all outbound IPv4 traffic
           IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -460,9 +466,12 @@ Resources:
       GroupName: !Sub "ecs-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for ECS"
       SecurityGroupEgress:
-        - Description: Allow all outbound traffic
+        - Description: Allow all outbound IPv4 traffic
           IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8866
@@ -476,9 +485,12 @@ Resources:
       GroupName: !Sub "rds-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for RDS"
       SecurityGroupEgress:
-        - Description: Allow all outbound traffic
+        - Description: Allow all outbound IPv4 traffic
           IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound IPv6 traffic
+          IpProtocol: "-1"
+          CidrIpv6: "::/0"
       VpcId: !If [ IsNewVpc, !Ref VPC, !Ref VpcId ]
 
   RdsSecurityGroupIngressFromECS:
