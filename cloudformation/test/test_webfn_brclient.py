@@ -261,3 +261,15 @@ def test_committed_pin_names_upstream_and_full_shas():
         assert re.fullmatch(r'\d+', pin['BRCLIENT_PR'])
         assert re.fullmatch(r'[0-9a-f]{40}', pin['BRCLIENT_PR_HEAD'])
 
+
+@pytest.mark.parametrize('name', ['Dockerfile', 'lambda.Dockerfile'])
+def test_image_builds_brclient_once_on_the_build_platform_and_ships_it(name):
+    text = (REPO / name).read_text()
+    stage = re.search(r'^FROM --platform=\$BUILDPLATFORM \S+ AS brclient\n((?:(?!FROM ).*\n)+)', text, re.M)
+    assert stage, 'no brclient stage on the build platform'
+    assert 'scripts/fetch-brclient.sh' in stage.group(1)
+    assert re.search(r'^COPY --from=brclient /brclient /app/brclient$', text, re.M)
+
+
+def test_dockerignore_keeps_a_stale_brclient_out_of_the_image_context():
+    assert 'dist/brclient' in (REPO / '.dockerignore').read_text().split()
