@@ -551,10 +551,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#0045" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased
+        0.0.45
       
     </span>
   </a>
@@ -1742,10 +1742,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#0045" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased
+        0.0.45
       
     </span>
   </a>
@@ -1894,13 +1894,13 @@
 
 
 <h1 id="_1">更新日志<a class="headerlink" href="#_1" title="Permanent link">¶</a></h1>
-<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
+<h2 id="0045">0.0.45<a class="headerlink" href="#0045" title="Permanent link">¶</a></h2>
 <p><strong>升级提示</strong></p>
 <ul>
 <li>对使用了 Amazon Bedrock 已停止提供的图像模型的模型，这是不兼容变更（第 1 条）。升级前，请在管理后台检查 provider 为 <code>nova-canvas</code> 或 <code>painter</code> 的每个模型的 provider 和 <code>paintModelId</code>。没有 migration 会修改这些模型。</li>
 <li>开启 AutoUpdate 的 stack 会自动拉取新镜像（第 1、2 条）。在用户使用新的 <code>painter</code> 之前，请确认 <code>localLlmModel</code> 能看懂图片（推荐使用 Claude Sonnet），并检查 <code>price_per_image</code> 和 <code>image_prices</code>（第 2 条）。没有设置价格的 <code>painter</code> config 现在按内置标价计费。</li>
 <li><code>regions</code> 不再对 <code>painter</code> 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。</li>
-<li><code>lambda-web</code> stack 要从包含第 3 条的 <code>SourceRef</code> 重新构建部署包后，才会在 <code>/brclient/</code> 提供 BRClient。<code>SourceRef</code> 是分支时，修改 <code>WebFnBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）来重新构建。构建时会从 <code>public.ecr.aws</code> 下载 BRClient（第 3 条）。</li>
+<li><code>lambda-web</code> stack 要从包含第 3 条的 <code>SourceRef</code> 重新构建部署包后，才会在 <code>/brclient/</code> 提供 BRClient。<code>SourceRef</code> 是分支时，修改 <code>WebFnBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）来重新构建。构建部署包时会从 GitHub 下载 BRClient 源码、从 npm registry 下载依赖并构建 BRClient，所以构建要多花几分钟（第 3 条）。</li>
 <li>Claude Code Web 后端镜像要重新构建后才会包含第 5 条。要重新构建，请修改 <code>ClaudeCodeWebImageBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）。见 <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Claude Code Web</a>。</li>
 <li>模板和 BRConnector 镜像要作为 0.0.45 一起发布，先发镜像或者同时发。新建的 <code>lambda</code> 或 <code>lambda-web</code> stack 使用生成的密码（<code>PGPassword</code> 留空）时，需要 0.0.45 的 BRConnector 才能读取（第 7 条）；用旧镜像或旧 <code>SourceRef</code> 时连不上数据库。填写了密码的 stack 不受影响。</li>
 <li>把 stack 更新到新的 <code>quick-build-brconnector.yaml</code> 或 <code>brconnector-ecs-fargate.yaml</code> 时需要填写 <code>PGStorageEncrypted</code>（第 6 条）。用以前的模板创建的 stack 请选 <code>false</code>：选 <code>true</code> 会把数据库替换成一个新的空数据库。以后再更新时，保持 stack 当前的值。<code>PGPassword</code> 保持当前值（使用 AWS CLI 时用 <code>UsePreviousValue=true</code>；不这样做的话，更新会生成一个新密码）。已有数据库保留数据和密码，仍然不加密，更新会为它开启删除保护。见<a href="../deployment/#template-updates-of-existing-stacks">已有 stack 的模板更新</a>。</li>
@@ -1930,7 +1930,11 @@
    - <strong>修复：</strong> <code>painter</code> 的流现在在 <code>[DONE]</code> 之前以一个带 <code>finish_reason</code> 的 chunk 结束：达到 5 步上限时是 <code>length</code>，图像模型过滤了提示词或图片时是 <code>content_filter</code>，其他情况是 <code>stop</code>。以前每个 chunk 的 <code>finish_reason</code> 都是 <code>null</code>，检查它的客户端判断不出回复已经完整结束。</p>
 </li>
 <li>
-<p><strong>lambda-web 提供 BRClient</strong> - <code>lambda-web</code> 部署包现在在 <code>/brclient/</code> 提供 BRClient，之前 <code>lambda-web</code> 的 <code>/brclient/</code> 返回 404。构建时从 <code>scripts/brclient.pin</code> 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient v1.2.4，下载的内容和 digest 不一致时构建失败。见 <a href="../deployment/#autoupdate">AutoUpdate</a>。</p>
+<p><strong>从源码构建 BRClient</strong> - 镜像和 <code>lambda-web</code> 部署包现在都从上游源码构建 BRClient，用的是 <code>scripts/brclient.source</code> 钉住的提交。见 <a href="../deployment/#brclient-source">BRClient 来源</a>。<br>
+   - <code>lambda-web</code> 部署包现在在 <code>/brclient/</code> 提供 BRClient。以前在 <code>lambda-web</code> 上 <code>/brclient/</code> 返回 404。<br>
+   - 本次发版钉住上游 <code>main</code> 加上还没合并的上游 pull request <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82">#82</a>。带图片的消息多了一个下载按钮，用来保存消息里的图片。浏览器不能直接保存的图片会在新标签页打开，图片链接过期时会给出提示。<br>
+   - 每个产物里都有 <code>brclient/.source</code>，写明它是从哪些提交和哪个 git tree 构建的。<br>
+   - 每次发版前，运行 <code>node scripts/resolve-brclient.mjs</code> 并提交 <code>scripts/brclient.source</code>。上游合并这个 pull request 以后，同一条命令就只钉住 <code>main</code>。见<a href="../deployment/#before-a-release">发版之前</a>。</p>
 </li>
 <li>
 <p><strong>不属于任何组的 key 的模型列表</strong> - 不属于任何组的 key，在 <code>GET /v1/models</code>、<code>/user/model/list</code>、<code>/user/model/list-for-brclient</code> 和 Claude Code Web（<code>/cc</code>）的模型菜单里，现在只列出绑定给它的模型。以前这些列表还会列出所有组的模型，调用其中的模型会被拒绝。属于某个组的 key 仍然列出组的模型和它自己的模型。admin key 不能调用这些模型，现在从 <code>/user/model/list-for-brclient</code> 得到空列表。</p>
@@ -1953,6 +1957,9 @@
 </li>
 <li>
 <p><strong>从 Secrets Manager 读取数据库密码</strong> - 设置了 <code>PGSQL_PASSWORD_SECRET_ARN</code> 时，BRConnector 从这个 Secrets Manager secret 读取数据库密码，不再使用 <code>PGSQL_PASSWORD</code>。模板在为 <code>lambda</code> 和 <code>lambda-web</code> 生成密码时会设置它（第 6 条）。见<a href="../../user-manual/development/">开发</a>。</p>
+</li>
+<li>
+<p><strong>文档</strong> - <a href="../../providers/bedrock-runtime-openai/">bedrock-runtime-openai</a> 增加了 GPT-6 Sol 示例，并说明带 tools 的 GPT 推理模型要设置 <code>reasoning_effort</code>。左侧边栏显示完整的导航树。</p>
 </li>
 </ol>
 <h2 id="0044">0.0.44<a class="headerlink" href="#0044" title="Permanent link">¶</a></h2>
@@ -2248,7 +2255,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月13日 14:57:55 CST"><span class="timeago" datetime="2026-11-13T14:57:55+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月13日 14:57:55 CST">2026-11-13</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月13日 19:23:30 CST"><span class="timeago" datetime="2026-11-13T19:23:30+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月13日 19:23:30 CST">2026-11-13</span>
   </span>
 
     

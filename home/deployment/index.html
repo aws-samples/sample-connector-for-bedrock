@@ -531,6 +531,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#brclient-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BRClient source
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BRClient source">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before-a-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before a release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#template-updates-of-existing-stacks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1868,6 +1896,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#brclient-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BRClient source
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BRClient source">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before-a-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before a release
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#template-updates-of-existing-stacks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2147,7 +2203,7 @@
 </tr>
 </tbody>
 </table>
-<p>The <code>lambda-web</code> package serves BRClient at <code>/brclient/</code>, like the <code>ec2</code> and <code>ecs</code> images. Of the BRClient releases, only v1.2.1 includes a web build, and the images serve a newer BRClient. So the package build takes the <code>app/brclient</code> directory from one layer of the public BRConnector image. <code>scripts/brclient.pin</code> at <code>SourceRef</code> names that layer by its sha256 digest. The build downloads the layer (about 8 MB) from <code>public.ecr.aws</code>, compares its sha256 with the pin, and stops when they differ. A package built from a <code>SourceRef</code> without <code>scripts/brclient.pin</code> has no BRClient, and <code>/brclient/</code> returns 404.</p>
+<p>The <code>lambda-web</code> package serves BRClient at <code>/brclient/</code>, like the images. The package build builds it from the upstream commits that <code>scripts/brclient.source</code> at <code>SourceRef</code> names. See <a href="./#brclient-source">BRClient source</a>.</p>
 <p>If the update of a <code>lambda-web</code> stack fails, CloudFormation rolls it back by building the previous <code>SourceRef</code> again, so keep that ref (branch or commit) available in the repository until the update completes. If the rollback build fails too, the stack ends in <code>UPDATE_ROLLBACK_FAILED</code>. Recover with:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aws<span class="w"> </span>cloudformation<span class="w"> </span>continue-update-rollback<span class="w"> </span>--stack-name<span class="w"> </span>&lt;stack<span class="w"> </span>name&gt;<span class="w"> </span>--resources-to-skip<span class="w"> </span>WebFnPackage
 </code></pre></div>
@@ -2157,6 +2213,25 @@
 <li>Images in EC2 will NOT be updated by SSM State Manager automatically, because no association is created. Use the SSM document to run the update on EC2 manually.</li>
 <li>Check your ECR settings: if there are rules in the pull through cache page, you have enabled this feature to update the ECR image with the upstream repository automatically.</li>
 </ul>
+<h2 id="brclient-source">BRClient source<a class="headerlink" href="#brclient-source" title="Permanent link">¶</a></h2>
+<p>BRConnector serves the BRClient web app at <code>/brclient/</code>. The <code>ec2</code>, <code>ecs</code> and <code>lambda</code> images and the <code>lambda-web</code> package build it from the source of <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock">sample-client-for-amazon-bedrock</a>, at the commits that <code>scripts/brclient.source</code> names:</p>
+<ul>
+<li><code>BRCLIENT_BASE</code> is a commit of upstream <code>main</code>.</li>
+<li><code>BRCLIENT_PR</code> and <code>BRCLIENT_PR_HEAD</code> name an upstream pull request that is not merged yet, and its head commit. The build merges that head into the base. Both are empty when the build needs no pull request.</li>
+</ul>
+<p><code>scripts/fetch-brclient.sh</code> builds BRClient with node 22 and the yarn version that the BRClient source names. When <code>node</code> is another version and nvm is installed, it takes node 22 from nvm. It fetches the pinned commits by commit id, so it builds exactly those commits or stops. It does not check whether the pull request is merged. That is decided when <code>scripts/brclient.source</code> is written. Each build downloads the BRClient source from GitHub and its dependencies from the npm registry.</p>
+<p>The build output contains <code>brclient/.source</code>. It repeats the pinned values and adds <code>BRCLIENT_TREE</code>, the git tree id of the source that was built. Artifacts with the same <code>BRCLIENT_TREE</code> were built from the same source. A multi-platform image build builds BRClient once, so its amd64 and arm64 images carry the same files.</p>
+<h3 id="before-a-release">Before a release<a class="headerlink" href="#before-a-release" title="Permanent link">¶</a></h3>
+<ol>
+<li>Run <code>node scripts/resolve-brclient.mjs</code>. It reads upstream <code>main</code> and the pull request named in the current <code>scripts/brclient.source</code> from the GitHub API, and writes the file again:<ul>
+<li>While the pull request is open, the file pins <code>main</code> and the pull request’s current head.</li>
+<li>After the pull request is merged, the file pins <code>main</code> only and the pull request values are empty. Later runs keep pinning <code>main</code> only.</li>
+</ul>
+</li>
+<li>Commit <code>scripts/brclient.source</code> with the release.</li>
+<li>Optional: run <code>bash scripts/fetch-brclient.sh build/brclient</code> and check <code>build/brclient/.source</code>.</li>
+</ol>
+<p>To pin another pull request, run <code>node scripts/resolve-brclient.mjs --pr &lt;number&gt;</code>. To pin <code>main</code> only, run <code>node scripts/resolve-brclient.mjs --pr none</code>. The script stops when the pull request was closed without merging, does not target <code>main</code>, or is merged but not yet in the <code>main</code> it read. The build stops when the pull request does not merge into the pinned <code>main</code>. Then run step 1 again after the conflict is fixed upstream, or pin <code>main</code> only.</p>
 <h2 id="template-updates-of-existing-stacks">Template updates of existing stacks<a class="headerlink" href="#template-updates-of-existing-stacks" title="Permanent link">¶</a></h2>
 <p>Updating a stack to the 0.0.44 template changes the instance’s UserData, so:</p>
 <ul>
@@ -2345,7 +2420,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 13, 2026 14:57:55 CST"><span class="timeago" datetime="2026-11-13T14:57:55+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 13, 2026 14:57:55 CST">2026-11-13</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 13, 2026 16:51:03 CST"><span class="timeago" datetime="2026-11-13T16:51:03+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 13, 2026 16:51:03 CST">2026-11-13</span>
   </span>
 
     
