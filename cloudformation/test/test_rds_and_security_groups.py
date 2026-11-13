@@ -19,7 +19,8 @@ _spec.loader.exec_module(gating)
 
 TEMPLATES = {path.name: gating.load(path.read_text()) for path in (QUICK_BUILD, ECS, VPC)}
 DB_TEMPLATES = [QUICK_BUILD.name, ECS.name]
-ALLOW_ALL_EGRESS = {'IpProtocol': '-1', 'CidrIp': '0.0.0.0/0'}
+# The rules EC2 adds to a security group that declares no egress: all IPv4 and all IPv6 traffic.
+DEFAULT_EGRESS = [{'IpProtocol': '-1', 'CidrIp': '0.0.0.0/0'}, {'IpProtocol': '-1', 'CidrIpv6': '::/0'}]
 
 
 def resolve(value, template, params):
@@ -122,8 +123,8 @@ def test_security_groups_declare_their_egress(name):
     for logical_id, group in groups.items():
         egress = group['Properties'].get('SecurityGroupEgress')
         assert egress is not None, logical_id
-        # The same rule EC2 adds when a group declares none, so outbound traffic is unchanged.
-        assert [{k: rule[k] for k in ALLOW_ALL_EGRESS} for rule in egress] == [ALLOW_ALL_EGRESS], logical_id
+        # A declared rule removes the EC2 default, so the declared rules must be the default.
+        assert [{k: v for k, v in rule.items() if k != 'Description'} for rule in egress] == DEFAULT_EGRESS, logical_id
 
 
 def test_public_function_url_permissions_explain_the_open_principal():
