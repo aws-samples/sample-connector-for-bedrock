@@ -8,6 +8,7 @@
 - Stacks with AutoUpdate pull the new image automatically (items 1 and 2). Before users rely on the new `painter`, check that `localLlmModel` can see images (Claude Sonnet is recommended), and check `price_per_image` and `image_prices` (item 2). A `painter` config without a price is now billed at the built-in list prices.
 - `regions` no longer applies to `painter`; remove it from the model config (item 2). If BRConnector runs outside us-east-1, us-east-2 and us-west-2, uploaded pictures and prompts go to us-west-2.
 - `lambda-web` stacks serve BRClient at `/brclient/` once the package is rebuilt from a `SourceRef` that includes item 3. When `SourceRef` is a branch, change `WebFnBuildId` (for example from `1` to `2`) to rebuild. The build now downloads BRClient from `public.ecr.aws` (item 3).
+- The Claude Code Web backend image gets item 5 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations).
 
 1. **End-of-life Image Models Removed** - Amazon Bedrock no longer serves Amazon Nova Canvas (`amazon.nova-canvas-v1:0`), Amazon Titan Image Generator (`amazon.titan-image-generator-v1`, `amazon.titan-image-generator-v2:0`), Stability SDXL (`stability.stable-diffusion-xl-v0`, `stability.stable-diffusion-xl-v1`), `stability.sd3-large-v1:0` and `stability.stable-image-ultra-v1:0`, so BRConnector no longer supports them.
    - The `nova-canvas` provider is removed. A request to a model on it gets HTTP 400 that points to `painter`. The model stays in the database for you to change or delete. To keep drawing, create a `painter` model with one of the models below.
@@ -34,6 +35,11 @@
 3. **BRClient on lambda-web** - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`. The build takes BRClient v1.2.4 from the layer of the public BRConnector image 0.0.44 that `scripts/brclient.pin` names by sha256 digest, and fails when the download does not match the digest. See [AutoUpdate](deployment.md#autoupdate).
 
 3. **Model Lists for Keys Without a Group** - A key that is not in a group now lists only the models bound to it in `GET /v1/models`, `/user/model/list`, `/user/model/list-for-brclient` and the Claude Code Web (`/cc`) model menu. Before, these lists also showed the models of every group, and a call to one of those models was refused. A key in a group still lists its group's models and its own. The admin key, which cannot call these models, now gets an empty list from `/user/model/list-for-brclient`.
+
+5. **Dependency Updates** - Dependencies with known vulnerabilities move to fixed releases.
+   - The Claude Code Web backend image installs litellm 1.100.4, cryptography 46.0.7, anyio 4.14.2, certifi 2026.10.18, fsspec 2026.6.0, mcp 1.28.1, pyasn1 0.6.5 and urllib3 2.8.0. litellm 1.100.4 needs a newer boto3, so the AWS CLI in the workspace terminal also moves from 1.44.38 to 1.46.3.
+   - cryptography and starlette keep known vulnerabilities that only a later major release fixes. They stay on their current major releases for now.
+   - The BRConnector image does not change. Each build installs the newest releases that `package.json` allows, and these already include the fixes. The lockfile that the tests use now has these fixes too. zod stays on 3.25.76 in both, because its fix is only in zod 4.
 
 ## 0.0.44
 

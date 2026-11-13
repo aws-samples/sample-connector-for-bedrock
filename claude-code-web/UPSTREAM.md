@@ -231,3 +231,14 @@ directory must be listed here.
 - `serve`: the log tee is now a process substitution (`exec > >(tee "$LOG_FILE") 2>&1`) and the server is started with
   `exec uv run uvicorn ...`, so uv is PID 1 and forwards SIGTERM to uvicorn, which runs its shutdown handlers. Tests:
   `backend/tests/test_serve_signals.py`.
+- `uv.lock`: packages with known vulnerabilities move to fixed releases, locked with
+  `uv lock --upgrade-package <name>==<version>` (uv 0.13.1); `pyproject.toml` is unchanged. litellm 1.80.13 -> 1.100.4
+  (the first release with no known critical or high vulnerability), cryptography 46.0.3 -> 46.0.7, anyio 4.12.1 -> 4.14.2,
+  certifi 2026.1.4 -> 2026.10.18, fsspec 2025.12.0 -> 2026.6.0, mcp 1.25.0 -> 1.28.1, pyasn1 0.6.1 -> 0.6.5,
+  urllib3 2.6.3 -> 2.8.0. litellm 1.100.4 requires `boto3>=1.43.1`, `pydantic-settings>=2.14.1` and `openai>=2.20.0`,
+  so boto3 (1.44.1), botocore (1.44.1), s3transfer (0.19.3), awscrt (0.38.0, from botocore's `crt` extra), awscli
+  (1.46.3: 1.44.38 pinned `botocore==1.42.48`, and 1.46.3 no longer depends on botocore), openai (2.54.0),
+  pydantic-settings (2.16.2) and python-dotenv (1.2.4) move too; grpcio leaves the lock (litellm now
+  needs it only for its `grpc` and `proxy-runtime` extras). Every changed package has a `py3-none-any` or `manylinux`
+  aarch64 wheel. Still vulnerable, because every fix is in a later major release: cryptography (48.0.1, 49.0.0,
+  50.0.0) and starlette 0.50.0 (1.1.0, 1.3.1, held by fastapi 0.128.0).
