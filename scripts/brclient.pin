@@ -1,3 +1,0 @@
-# The COPY ./dist /app layer of public.ecr.aws/x6u9o2u4/sample-connector-for-bedrock:0.0.44, linux/arm64.
-BRCLIENT_IMAGE_REPOSITORY=x6u9o2u4/sample-connector-for-bedrock
-BRCLIENT_LAYER_DIGEST=sha256:1e824f4814c42cf3f5a97159abbf06a31a733070e5fbaa678911610940901b3f

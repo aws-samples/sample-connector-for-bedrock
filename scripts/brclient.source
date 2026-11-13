@@ -1,0 +1,6 @@
+# BRClient source that scripts/fetch-brclient.sh builds for the images and the lambda-web package.
+# Written by scripts/resolve-brclient.mjs. Commit it with the release.
+BRCLIENT_REPO=https://github.com/aws-samples/sample-client-for-amazon-bedrock.git
+BRCLIENT_BASE=a2131bd8d03da2b53f83857f3d41220955c7f823
+BRCLIENT_PR=82
+BRCLIENT_PR_HEAD=ce32296615f67f227672dbac93d69b49517b5c3e
