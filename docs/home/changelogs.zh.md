@@ -8,6 +8,7 @@
 - 开启 AutoUpdate 的 stack 会自动拉取新镜像（第 1、2 条）。在用户使用新的 `painter` 之前，请确认 `localLlmModel` 能看懂图片（推荐使用 Claude Sonnet），并检查 `price_per_image` 和 `image_prices`（第 2 条）。没有设置价格的 `painter` config 现在按内置标价计费。
 - `regions` 不再对 `painter` 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。
 - `lambda-web` stack 要从包含第 3 条的 `SourceRef` 重新构建部署包后，才会在 `/brclient/` 提供 BRClient。`SourceRef` 是分支时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）来重新构建。构建时会从 `public.ecr.aws` 下载 BRClient（第 3 条）。
+- Claude Code Web 后端镜像要重新构建后才会包含第 5 条。要重新构建，请修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）。见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations)。
 
 1. **下线已停止提供的图像模型** - Amazon Bedrock 已不再提供 Amazon Nova Canvas（`amazon.nova-canvas-v1:0`）、Amazon Titan Image Generator（`amazon.titan-image-generator-v1`、`amazon.titan-image-generator-v2:0`）、Stability SDXL（`stability.stable-diffusion-xl-v0`、`stability.stable-diffusion-xl-v1`）、`stability.sd3-large-v1:0` 和 `stability.stable-image-ultra-v1:0`，BRConnector 不再支持它们。
    - 移除 `nova-canvas` provider。请求 provider 为它的模型会返回 HTTP 400，并提示改用 `painter`。原模型保留在数据库里，由您修改或删除。要继续画图，请用下面的模型之一新建一个 `painter` 模型。
@@ -34,6 +35,11 @@
 3. **lambda-web 提供 BRClient** - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient，之前 `lambda-web` 的 `/brclient/` 返回 404。构建时从 `scripts/brclient.pin` 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient v1.2.4，下载的内容和 digest 不一致时构建失败。见 [AutoUpdate](deployment.md#autoupdate)。
 
 3. **不属于任何组的 key 的模型列表** - 不属于任何组的 key，在 `GET /v1/models`、`/user/model/list`、`/user/model/list-for-brclient` 和 Claude Code Web（`/cc`）的模型菜单里，现在只列出绑定给它的模型。以前这些列表还会列出所有组的模型，调用其中的模型会被拒绝。属于某个组的 key 仍然列出组的模型和它自己的模型。admin key 不能调用这些模型，现在从 `/user/model/list-for-brclient` 得到空列表。
+
+5. **依赖更新** - 有已知漏洞的依赖升级到已修复的版本。
+   - Claude Code Web 后端镜像安装 litellm 1.100.4、cryptography 46.0.7、anyio 4.14.2、certifi 2026.10.18、fsspec 2026.6.0、mcp 1.28.1、pyasn1 0.6.5 和 urllib3 2.8.0。litellm 1.100.4 需要更新的 boto3，所以工作区终端里的 AWS CLI 也从 1.44.38 升级到 1.46.3。
+   - cryptography 和 starlette 还有只能靠下一个大版本修复的已知漏洞，暂时保留在当前大版本。
+   - BRConnector 镜像不变。每次构建都会安装 `package.json` 允许的最新版本，这些版本已经包含修复。测试使用的 lockfile 现在也包含这些修复。zod 在两边都保留 3.25.76，因为它的修复只在 zod 4 里。
 
 ## 0.0.44
 
