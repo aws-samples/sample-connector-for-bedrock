@@ -49,7 +49,7 @@
    - The database has deletion protection. To delete a stack, turn it off first. See [Deleting a stack](deployment.md#deleting-a-stack), which also shows how to delete the final snapshot that CloudFormation keeps.
    - When a stack update replaces the database, CloudFormation now keeps the old one: as a snapshot, or, while its deletion protection is on, as a running database outside the stack. Before, it deleted the old database without a snapshot.
    - In `brconnector-ecs-fargate.yaml`, `PGUser` is NoEcho and has no default.
-   - The templates list the outbound rule of each security group (all traffic, as before) and set the database to not publicly accessible (as before).
+   - The templates list the outbound rules of each security group (all IPv4 and IPv6 traffic, as before) and set the database to not publicly accessible (as before).
 
 ## 0.0.44
 

@@ -140,7 +140,7 @@ aws cloudformation continue-update-rollback --stack-name <stack name> --resource
 - `PGPassword` 保持当前值。控制台会自动填好。使用 AWS CLI 时传 `ParameterKey=PGPassword,UsePreviousValue=true`。这个参数现在没有默认值，不给值的更新会被拒绝。
 - 更新会为数据库开启删除保护，不会中断服务。见[删除 stack](#deleting-a-stack)。
 - 使用 `brconnector-ecs-fargate.yaml` 时，`PGUser` 也要保持当前值。它现在没有默认值，换一个用户名会替换数据库。
-- 模板现在写明了每个安全组的出站规则，并把数据库设为不可公开访问。更新会修改这些资源，但出站流量和数据库的访问方式不变。
+- 模板现在写明了每个安全组的出站规则，并把数据库设为不可公开访问。这些规则允许所有 IPv4 和所有 IPv6 流量，和安全组不写出站规则时 EC2 自动添加的规则一样。更新会修改这些资源，但出站流量和数据库的访问方式不变。在没有 IPv6 的 VPC 里，IPv6 规则不会匹配任何流量。
 
 ## 删除 stack {#deleting-a-stack}
 

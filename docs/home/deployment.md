@@ -141,7 +141,7 @@ A template that has the `PGStorageEncrypted` parameter also changes the RDS data
 - Keep the current `PGPassword`. The console fills it in. With the AWS CLI, pass `ParameterKey=PGPassword,UsePreviousValue=true`. The parameter has no default now, so an update without a value is refused.
 - The update turns on deletion protection for the database, without an interruption. See [Deleting a stack](#deleting-a-stack).
 - On `brconnector-ecs-fargate.yaml`, keep the current `PGUser` as well. It has no default now, and a new user name replaces the database.
-- The template now lists the outbound rule of each security group and sets the database to not publicly accessible. The update modifies these resources, but outbound traffic and access to the database stay the same.
+- The template now lists the outbound rules of each security group and sets the database to not publicly accessible. The rules allow all IPv4 and all IPv6 traffic, which are the rules EC2 adds to a security group that lists none. The update modifies these resources, but outbound traffic and access to the database stay the same. In a VPC without IPv6, the IPv6 rule matches no traffic.
 
 ## Deleting a stack {#deleting-a-stack}
 

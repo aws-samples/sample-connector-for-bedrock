@@ -49,7 +49,7 @@
    - 数据库开启了删除保护，删除 stack 前要先关闭它。见[删除 stack](deployment.md#deleting-a-stack)，其中也说明了怎么删除 CloudFormation 保留的最终快照。
    - stack 更新替换数据库时，CloudFormation 现在会保留旧数据库：做成快照，或者在它开启删除保护时保留为 stack 之外仍在运行的数据库。以前会直接删除旧数据库，不做快照。
    - `brconnector-ecs-fargate.yaml` 中的 `PGUser` 改为 NoEcho，并且没有默认值。
-   - 模板写明了每个安全组的出站规则（和以前一样允许所有流量），并把数据库设为不可公开访问（和以前一样）。
+   - 模板写明了每个安全组的出站规则（和以前一样允许所有 IPv4 和 IPv6 流量），并把数据库设为不可公开访问（和以前一样）。
 
 ## 0.0.44
 
