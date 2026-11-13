@@ -60,7 +60,6 @@ aws cloudformation deploy \
     DatabaseMode=Standalone \
     PGDatabase=brconnector_db \
     PGUser=<数据库用户名> \
-    PGPassword=<数据库密码，8 到 128 个字符> \
     PGStorageEncrypted=true \
     BRConnectorVersion=latest \
     AutoUpdateBRConnector=true \

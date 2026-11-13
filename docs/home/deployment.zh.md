@@ -81,7 +81,8 @@
     - `Standalone` -- 部署 RDS PostgreSQL
     - `NoDB` -- 不部署任何后端数据库，在此模式下只有 ADMIN KEY 可以访问默认模型
   - 将 PerformanceMode 设置为 `true`，聊天历史将不会保存。
-  - `PGPassword` 没有默认值，请输入 8 到 128 个字母和数字：EC2 实例不能原样传递其他字符。所有 `DatabaseMode`（包括 `NoDB`）都要填写。
+  - 新建 stack 时 `PGPassword` 留空即可。stack 会生成一个 32 位、由字母和数字组成的密码，保存在 AWS Secrets Manager 里，并在输出 `PGPasswordSecretArn` 中给出这个 secret 的 ARN。密码不会出现在 stack 参数、输出，也不会出现在函数或任务的环境变量里：`ec2` 在实例启动时从 secret 读取，保存在 `/root` 下只有 root 能读的文件里；`ecs` 在任务启动时注入；`lambda` 和 `lambda-web` 在连接数据库时读取。`lambda` 和 `lambda-web` 需要从这个版本起的 BRConnector 才能这样读取，所以 `SourceRef` 较旧的 `lambda-web` stack 需要填写密码。
+  - 要使用自己的密码，请输入 8 到 128 个字母和数字：EC2 实例不能原样传递其他字符。
   - `PGStorageEncrypted` 没有默认值。选 `true` 会加密 RDS 数据库（`Standalone`）的存储。没有 RDS 数据库时不使用这个值，但模板仍然要求填写。
   - RDS 数据库开启了删除保护，见[删除 stack](#deleting-a-stack)。
 
@@ -137,7 +138,7 @@ aws cloudformation continue-update-rollback --stack-name <stack name> --resource
 带有 `PGStorageEncrypted` 参数的模板还会修改 RDS 数据库（`Standalone`）的设置。更新会保留数据库、其中的数据和数据库密码：
 
 - `PGStorageEncrypted` 保持当前值。用以前的模板创建的 stack 是 `false`：它的数据库没有加密。选 `true` 会把它替换成一个新的空数据库，BRConnector 随后使用新数据库。CloudFormation 会为旧数据库做快照后删除它；如果旧数据库开启了删除保护（做过这次更新之后），则保留它继续运行，它不再属于 stack，在你删除之前一直计费。
-- `PGPassword` 保持当前值。控制台会自动填好。使用 AWS CLI 时传 `ParameterKey=PGPassword,UsePreviousValue=true`。这个参数现在没有默认值，不给值的更新会被拒绝。
+- `PGPassword` 保持当前值。控制台会自动填好。使用 AWS CLI 时传 `ParameterKey=PGPassword,UsePreviousValue=true`：不传的话，更新会用空的默认值，生成一个新密码。用密码创建的 stack 会继续使用这个密码，更新不会创建 secret。不要在这样的 stack 上清空 `PGPassword`，也不要在生成了密码的 stack 上填写密码：这两种改动都会给数据库设置新密码，在 `ec2` 上还会停止再启动实例，但不会更新 `/root/brconnector-run.sh`，BRConnector 仍然使用旧密码。
 - 更新会为数据库开启删除保护，不会中断服务。见[删除 stack](#deleting-a-stack)。
 - 使用 `brconnector-ecs-fargate.yaml` 时，`PGUser` 也要保持当前值。它现在没有默认值，换一个用户名会替换数据库。
 - 模板现在写明了每个安全组的出站规则，并把数据库设为不可公开访问。这些规则允许所有 IPv4 和所有 IPv6 流量，和安全组不写出站规则时 EC2 自动添加的规则一样。更新会修改这些资源，但出站流量和数据库的访问方式不变。在没有 IPv6 的 VPC 里，IPv6 规则不会匹配任何流量。
@@ -156,7 +157,7 @@ RDS 数据库开启了删除保护，所以删除 stack 会停在数据库这一
 
 stack 更新删除数据库时（例如修改 `DatabaseMode`）也同样删不掉。删除保护开启时，数据库会保留下来，在 stack 之外继续运行。
 
-CloudFormation 删除数据库之前会先做一个最终快照，以前的模板也是这样。stack 删除后快照仍然保留，并且在你删除它之前一直计费：
+CloudFormation 删除数据库之前会先做一个最终快照，以前的模板也是这样。生成的密码会随 stack 一起删除，所以从快照恢复时请设置新的主密码。stack 删除后快照仍然保留，并且在你删除它之前一直计费：
 
 ```sh
 aws rds describe-db-snapshots --db-instance-identifier <database> --snapshot-type manual --query 'DBSnapshots[].[DBSnapshotIdentifier,SnapshotCreateTime]' --output text

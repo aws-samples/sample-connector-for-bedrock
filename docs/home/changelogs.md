@@ -9,7 +9,7 @@
 - `regions` no longer applies to `painter`; remove it from the model config (item 2). If BRConnector runs outside us-east-1, us-east-2 and us-west-2, uploaded pictures and prompts go to us-west-2.
 - `lambda-web` stacks serve BRClient at `/brclient/` once the package is rebuilt from a `SourceRef` that includes item 3. When `SourceRef` is a branch, change `WebFnBuildId` (for example from `1` to `2`) to rebuild. The build now downloads BRClient from `public.ecr.aws` (item 3).
 - The Claude Code Web backend image gets item 5 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations).
-- Updating a stack to the new `quick-build-brconnector.yaml` or `brconnector-ecs-fargate.yaml` asks for `PGStorageEncrypted` (item 6). Choose `false` for a stack created from an earlier template: `true` replaces its database with a new, empty one. On later updates, keep the value the stack has. Keep the current `PGPassword` (with the AWS CLI, `UsePreviousValue=true`). The existing database keeps its data and its password and stays unencrypted, and the update turns on its deletion protection. See [Template updates of existing stacks](deployment.md#template-updates-of-existing-stacks).
+- Updating a stack to the new `quick-build-brconnector.yaml` or `brconnector-ecs-fargate.yaml` asks for `PGStorageEncrypted` (item 6). Choose `false` for a stack created from an earlier template: `true` replaces its database with a new, empty one. On later updates, keep the value the stack has. Keep the current `PGPassword` (with the AWS CLI, `UsePreviousValue=true`; without it, the update generates a new password). The existing database keeps its data and its password and stays unencrypted, and the update turns on its deletion protection. See [Template updates of existing stacks](deployment.md#template-updates-of-existing-stacks).
 
 1. **End-of-life Image Models Removed** - Amazon Bedrock no longer serves Amazon Nova Canvas (`amazon.nova-canvas-v1:0`), Amazon Titan Image Generator (`amazon.titan-image-generator-v1`, `amazon.titan-image-generator-v2:0`), Stability SDXL (`stability.stable-diffusion-xl-v0`, `stability.stable-diffusion-xl-v1`), `stability.sd3-large-v1:0` and `stability.stable-image-ultra-v1:0`, so BRConnector no longer supports them.
    - The `nova-canvas` provider is removed. A request to a model on it gets HTTP 400 that points to `painter`. The model stays in the database for you to change or delete. To keep drawing, create a `painter` model with one of the models below.
@@ -44,12 +44,14 @@
    - The Claude Code Web web client is built with rollup 4.68.2 instead of 4.52.5.
 
 6. **RDS Database Settings in the Templates** - The RDS database that `quick-build-brconnector.yaml` and `brconnector-ecs-fargate.yaml` create (`DatabaseMode` `Standalone`) has new settings.
-   - `PGPassword` has no default. A new stack needs a password of 8 to 128 letters and digits.
+   - `PGPassword` can be left empty. The stack then generates the database password into AWS Secrets Manager (the `PGPasswordSecretArn` output), and BRConnector reads it from there. A stack created with a password keeps it. An entered password is 8 to 128 letters and digits.
    - The new `PGStorageEncrypted` parameter encrypts the storage of the database. It has no default: choose `true` for a new stack. On an update, keep the current value, which is `false` for a stack created from an earlier template.
    - The database has deletion protection. To delete a stack, turn it off first. See [Deleting a stack](deployment.md#deleting-a-stack), which also shows how to delete the final snapshot that CloudFormation keeps.
    - When a stack update replaces the database, CloudFormation now keeps the old one: as a snapshot, or, while its deletion protection is on, as a running database outside the stack. Before, it deleted the old database without a snapshot.
    - In `brconnector-ecs-fargate.yaml`, `PGUser` is NoEcho and has no default.
    - The templates list the outbound rules of each security group (all IPv4 and IPv6 traffic, as before) and set the database to not publicly accessible (as before).
+
+7. **Database Password from Secrets Manager** - When `PGSQL_PASSWORD_SECRET_ARN` is set, BRConnector reads the database password from that Secrets Manager secret instead of `PGSQL_PASSWORD`. The templates set it for `lambda` and `lambda-web` when they generate the password (item 6). See [Development](../user-manual/development.md).
 
 ## 0.0.44
 

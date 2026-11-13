@@ -42,6 +42,7 @@ The connector supports the following environment variables:
 | PGSQL_DATABASE | no | | The name of the PostgreSQL database. |
 | PGSQL_USER | no | | The login user for the PostgreSQL. |
 | PGSQL_PASSWORD | no | | The password user for the PostgreSQL. |
+| PGSQL_PASSWORD_SECRET_ARN | no | | The ARN of a Secrets Manager secret whose value is the PostgreSQL password. When it is set, BRConnector reads the password from the secret instead of PGSQL_PASSWORD; its role needs `secretsmanager:GetSecretValue` on the secret. |
 | PGSQL_MAX |  no | 80 | The maximum connection pool size for PostgreSQL.|
 | PGSQL_DEBUG_MODE | no | false | If you set this parameter, it will print out the SQL statements and parameters in the console. |
 | AWS_ACCESS_KEY_ID | no  | | If your application has been authorized through an IAM policy, you don't need to set this variable. |
