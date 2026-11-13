@@ -1242,6 +1242,15 @@ Resources:
 
   BRConnectorLambdaPermission1:
     Condition: IsPublicLambdaPermission
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F13
+            reason: >-
+              The function URL is public by design when LambdaEdgeVersionArn is empty
+              (IsPublicLambdaPermission). It has no IAM authorization (AuthType NONE), so
+              any principal must be allowed; BRConnector authenticates each request with
+              its own API key.
     DependsOn:
       - LambdaCloudFrontDistribution
     Type: AWS::Lambda::Permission
@@ -1255,6 +1264,15 @@ Resources:
   # lambda:InvokeFunctionUrl; InvokedViaFunctionUrl limits it to calls through the URL.
   BRConnectorLambdaInvokePermission1:
     Condition: IsPublicLambdaPermission
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F13
+            reason: >-
+              The function URL is public by design when LambdaEdgeVersionArn is empty
+              (IsPublicLambdaPermission). It has no IAM authorization (AuthType NONE), so
+              any principal must be allowed; BRConnector authenticates each request with
+              its own API key.
     DependsOn:
       - LambdaCloudFrontDistribution
     Type: AWS::Lambda::Permission
