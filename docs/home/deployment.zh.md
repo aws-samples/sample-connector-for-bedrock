@@ -145,7 +145,7 @@ BRConnector 在 `/brclient/` 提供 BRClient 网页版。`ec2`、`ecs`、`lambda
 2. 把 `scripts/brclient.source` 和发版一起提交。
 3. 可选：运行 `bash scripts/fetch-brclient.sh build/brclient`，查看 `build/brclient/.source`。
 
-要钉住别的 pull request，运行 `node scripts/resolve-brclient.mjs --pr <编号>`。只钉住 `main` 时，运行 `node scripts/resolve-brclient.mjs --pr none`。pull request 没有合并就被关闭，或者目标分支不是 `main` 时，脚本会停止。pull request 合不进钉住的 `main` 时，构建会停止。这时等上游解决冲突后重新执行第 1 步，或者只钉住 `main`。
+要钉住别的 pull request，运行 `node scripts/resolve-brclient.mjs --pr <编号>`。只钉住 `main` 时，运行 `node scripts/resolve-brclient.mjs --pr none`。pull request 没有合并就被关闭、目标分支不是 `main`，或者已经合并但读到的 `main` 里还没有这次合并时，脚本会停止。pull request 合不进钉住的 `main` 时，构建会停止。这时等上游解决冲突后重新执行第 1 步，或者只钉住 `main`。
 
 ## 已有 stack 的模板更新 {#template-updates-of-existing-stacks}
 

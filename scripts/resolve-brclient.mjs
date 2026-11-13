@@ -66,11 +66,23 @@ function requestedPr(argv) {
   return value;
 }
 
+async function requireMainHoldsMerge(pr, mergeSha, mainSha) {
+  if (!SHA.test(mergeSha ?? '')) throw new Error(`PR #${pr} is merged but names no merge commit`);
+  const { status } = await get(`compare/${mergeSha}...${mainSha}?per_page=1`);
+  if (status !== 'ahead' && status !== 'identical') {
+    throw new Error(`main ${mainSha} does not contain ${mergeSha}, the merge of PR #${pr}, yet. Rerun in a minute.`);
+  }
+}
+
 async function main() {
   const pr = requestedPr(process.argv.slice(2));
-  const mainSha = (await get('git/ref/heads/main')).object?.sha;
+  // The PR is read before main, so a merge that lands between the two requests is in the main that gets pinned.
   const pull = pr === null ? null : await get(`pulls/${pr}`);
-  const text = render(decidePin(mainSha, pr, pull));
+  const mainSha = (await get('git/ref/heads/main')).object?.sha;
+  if (!SHA.test(mainSha ?? '')) throw new Error(`"${mainSha}" is not a 40 character lowercase hex sha`);
+  const pin = decidePin(mainSha, pr, pull);
+  if (pull?.merged === true) await requireMainHoldsMerge(pr, pull.merge_commit_sha, mainSha);
+  const text = render(pin);
   const tmp = `${SOURCE_FILE}.tmp`;
   writeFileSync(tmp, text);
   renameSync(tmp, SOURCE_FILE);

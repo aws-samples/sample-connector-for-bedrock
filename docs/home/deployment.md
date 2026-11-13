@@ -146,7 +146,7 @@ The build output contains `brclient/.source`. It repeats the pinned values and a
 2. Commit `scripts/brclient.source` with the release.
 3. Optional: run `bash scripts/fetch-brclient.sh build/brclient` and check `build/brclient/.source`.
 
-To pin another pull request, run `node scripts/resolve-brclient.mjs --pr <number>`. To pin `main` only, run `node scripts/resolve-brclient.mjs --pr none`. The script stops when the pull request was closed without merging or does not target `main`. The build stops when the pull request does not merge into the pinned `main`. Then run step 1 again after the conflict is fixed upstream, or pin `main` only.
+To pin another pull request, run `node scripts/resolve-brclient.mjs --pr <number>`. To pin `main` only, run `node scripts/resolve-brclient.mjs --pr none`. The script stops when the pull request was closed without merging, does not target `main`, or is merged but not yet in the `main` it read. The build stops when the pull request does not merge into the pinned `main`. Then run step 1 again after the conflict is fixed upstream, or pin `main` only.
 
 ## Template updates of existing stacks
 

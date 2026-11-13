@@ -11,6 +11,8 @@ const MAIN = 'a'.repeat(40);
 const HEAD = 'b'.repeat(40);
 const OLD_MAIN = 'c'.repeat(40);
 const OLD_HEAD = 'd'.repeat(40);
+const MERGE = 'e'.repeat(40);
+const MAIN_AFTER_MERGE = 'f'.repeat(40);
 
 const pinText = (base: string, pr = '', head = '') =>
   [
@@ -29,6 +31,7 @@ const pull = (over: Pull = {}): Pull => ({
   state: 'open',
   base: { ref: 'main' },
   head: { sha: HEAD },
+  merge_commit_sha: MERGE,
   ...over,
 });
 
@@ -39,11 +42,17 @@ describe('resolve-brclient.mjs', () => {
   let requests: string[];
   let pulls: Record<string, { status: number; body: unknown }>;
   let mainStatus: number;
+  let mainSha: string;
+  let inMain: Set<string>;
+  let afterFirstRequest: (() => void) | null;
 
   beforeEach(async () => {
     requests = [];
     pulls = {};
     mainStatus = 200;
+    mainSha = MAIN;
+    inMain = new Set([MERGE]);
+    afterFirstRequest = null;
     dir = mkdtempSync(join(tmpdir(), 'resolve-brclient-'));
     mkdirSync(join(dir, 'scripts'));
     copyFileSync('scripts/resolve-brclient.mjs', join(dir, 'scripts/resolve-brclient.mjs'));
@@ -54,13 +63,26 @@ describe('resolve-brclient.mjs', () => {
         res.writeHead(status, { 'content-type': 'application/json' });
         res.end(typeof body === 'string' ? body : JSON.stringify(body));
       };
-      if (req.url === `/repos/${UPSTREAM}/git/ref/heads/main`) {
-        return send(mainStatus, { object: { sha: MAIN } });
+      const answer = (status: number, body: unknown) => {
+        send(status, body);
+        if (afterFirstRequest) {
+          afterFirstRequest();
+          afterFirstRequest = null;
+        }
+      };
+      const path = req.url?.split('?')[0];
+      if (path === `/repos/${UPSTREAM}/git/ref/heads/main`) {
+        return answer(mainStatus, { object: { sha: mainSha } });
       }
-      const m = req.url?.match(new RegExp(`^/repos/${UPSTREAM}/pulls/(\\d+)$`));
+      const cmp = path?.match(new RegExp(`^/repos/${UPSTREAM}/compare/([0-9a-f]{40})\\.\\.\\.([0-9a-f]{40})$`));
+      if (cmp) {
+        const status = cmp[1] === cmp[2] ? 'identical' : cmp[2] === mainSha && inMain.has(cmp[1]) ? 'ahead' : 'diverged';
+        return answer(200, { status });
+      }
+      const m = path?.match(new RegExp(`^/repos/${UPSTREAM}/pulls/(\\d+)$`));
       const hit = m && pulls[m[1]];
-      if (hit) return send(hit.status, hit.body);
-      send(404, { message: 'Not Found' });
+      if (hit) return answer(hit.status, hit.body);
+      answer(404, { message: 'Not Found' });
     });
     await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   });
@@ -98,6 +120,19 @@ describe('resolve-brclient.mjs', () => {
     const r = await run('--pr', '82');
     expect(r.code).toBe(0);
     expect(readFileSync(pins, 'utf8')).toBe(pinText(MAIN));
+  });
+
+  it('pins a main that holds the PR when the PR is merged between its requests', async () => {
+    pulls['82'] = { status: 200, body: pull() };
+    afterFirstRequest = () => {
+      mainSha = MAIN_AFTER_MERGE;
+      inMain.add(MAIN_AFTER_MERGE);
+      pulls['82'] = { status: 200, body: pull({ merged: true, state: 'closed', merge_commit_sha: MAIN_AFTER_MERGE }) };
+    };
+    const r = await run('--pr', '82');
+    expect(r.code).toBe(0);
+    const pin = readFileSync(pins, 'utf8');
+    expect([pinText(MAIN_AFTER_MERGE), pinText(MAIN_AFTER_MERGE, '82', HEAD)]).toContain(pin);
   });
 
   it('pins main only for --pr none without asking about any PR', async () => {
@@ -142,6 +177,15 @@ describe('resolve-brclient.mjs', () => {
       const r = await run('--pr', '82');
       expect(r.code).not.toBe(0);
       expect(r.stderr).toContain('--pr none');
+      expect(readFileSync(pins, 'utf8')).toBe(before);
+    });
+
+    it('merged PR whose merge commit is not in main yet', async () => {
+      pulls['82'] = { status: 200, body: pull({ merged: true, state: 'closed' }) };
+      inMain.clear();
+      const r = await run('--pr', '82');
+      expect(r.code).not.toBe(0);
+      expect(r.stderr).toContain(MERGE);
       expect(readFileSync(pins, 'utf8')).toBe(before);
     });
 
