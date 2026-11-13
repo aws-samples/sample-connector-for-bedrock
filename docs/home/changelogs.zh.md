@@ -7,7 +7,7 @@
 - 对使用了 Amazon Bedrock 已停止提供的图像模型的模型，这是不兼容变更（第 1 条）。升级前，请在管理后台检查 provider 为 `nova-canvas` 或 `painter` 的每个模型的 provider 和 `paintModelId`。没有 migration 会修改这些模型。
 - 开启 AutoUpdate 的 stack 会自动拉取新镜像（第 1、2 条）。在用户使用新的 `painter` 之前，请确认 `localLlmModel` 能看懂图片（推荐使用 Claude Sonnet），并检查 `price_per_image` 和 `image_prices`（第 2 条）。没有设置价格的 `painter` config 现在按内置标价计费。
 - `regions` 不再对 `painter` 生效，请从模型 config 里删除（第 2 条）。BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，上传的图片和提示词会发送到 us-west-2。
-- `lambda-web` stack 要从包含第 3 条的 `SourceRef` 重新构建部署包后，才会在 `/brclient/` 提供 BRClient。`SourceRef` 是分支时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）来重新构建。构建时会从 `public.ecr.aws` 下载 BRClient（第 3 条）。
+- `lambda-web` stack 要从包含第 3 条的 `SourceRef` 重新构建部署包后，才会在 `/brclient/` 提供 BRClient。`SourceRef` 是分支时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）来重新构建。构建部署包时会从 GitHub 下载 BRClient 源码、从 npm registry 下载依赖并构建 BRClient，所以构建要多花几分钟（第 3 条）。
 - Claude Code Web 后端镜像要重新构建后才会包含第 5 条。要重新构建，请修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）。见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations)。
 - 模板和 BRConnector 镜像要作为 0.0.45 一起发布，先发镜像或者同时发。新建的 `lambda` 或 `lambda-web` stack 使用生成的密码（`PGPassword` 留空）时，需要 0.0.45 的 BRConnector 才能读取（第 7 条）；用旧镜像或旧 `SourceRef` 时连不上数据库。填写了密码的 stack 不受影响。
 - 把 stack 更新到新的 `quick-build-brconnector.yaml` 或 `brconnector-ecs-fargate.yaml` 时需要填写 `PGStorageEncrypted`（第 6 条）。用以前的模板创建的 stack 请选 `false`：选 `true` 会把数据库替换成一个新的空数据库。以后再更新时，保持 stack 当前的值。`PGPassword` 保持当前值（使用 AWS CLI 时用 `UsePreviousValue=true`；不这样做的话，更新会生成一个新密码）。已有数据库保留数据和密码，仍然不加密，更新会为它开启删除保护。见[已有 stack 的模板更新](deployment.md#template-updates-of-existing-stacks)。
@@ -34,7 +34,11 @@
    - **修复：** `painter` 的流现在在 `[DONE]` 之前以一个带 `finish_reason` 的 chunk 结束：达到 5 步上限时是 `length`，图像模型过滤了提示词或图片时是 `content_filter`，其他情况是 `stop`。以前每个 chunk 的 `finish_reason` 都是 `null`，检查它的客户端判断不出回复已经完整结束。
 
 
-3. **lambda-web 提供 BRClient** - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient，之前 `lambda-web` 的 `/brclient/` 返回 404。构建时从 `scripts/brclient.pin` 用 sha256 digest 指定的 BRConnector 0.0.44 公开镜像层取出 BRClient v1.2.4，下载的内容和 digest 不一致时构建失败。见 [AutoUpdate](deployment.md#autoupdate)。
+3. **从源码构建 BRClient** - 镜像和 `lambda-web` 部署包现在都从上游源码构建 BRClient，用的是 `scripts/brclient.source` 钉住的提交。见 [BRClient 来源](deployment.md#brclient-source)。
+   - `lambda-web` 部署包现在在 `/brclient/` 提供 BRClient。以前在 `lambda-web` 上 `/brclient/` 返回 404。
+   - 本次发版钉住上游 `main` 加上还没合并的上游 pull request [#82](https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82)。带图片的消息多了一个下载按钮，用来保存消息里的图片。浏览器不能直接保存的图片会在新标签页打开，图片链接过期时会给出提示。
+   - 每个产物里都有 `brclient/.source`，写明它是从哪些提交和哪个 git tree 构建的。
+   - 每次发版前，运行 `node scripts/resolve-brclient.mjs` 并提交 `scripts/brclient.source`。上游合并这个 pull request 以后，同一条命令就只钉住 `main`。见[发版之前](deployment.md#before-a-release)。
 
 3. **不属于任何组的 key 的模型列表** - 不属于任何组的 key，在 `GET /v1/models`、`/user/model/list`、`/user/model/list-for-brclient` 和 Claude Code Web（`/cc`）的模型菜单里，现在只列出绑定给它的模型。以前这些列表还会列出所有组的模型，调用其中的模型会被拒绝。属于某个组的 key 仍然列出组的模型和它自己的模型。admin key 不能调用这些模型，现在从 `/user/model/list-for-brclient` 得到空列表。
 

@@ -112,7 +112,7 @@
 | `ecs` | 没有夜间任务。 |
 | `lambda-web` | 没有夜间任务。`SourceRepoUrl`、`SourceRef` 或 `WebFnBuildId` 变化时，以及第一次更新到 0.0.44 模板时，更新 stack 会从 `SourceRepoUrl` 的 `SourceRef` 重新构建部署包并发布。只想重新构建时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）。 |
 
-`lambda-web` 部署包和 `ec2`、`ecs` 的镜像一样，在 `/brclient/` 提供 BRClient。BRClient 的 release 里只有 v1.2.1 带网页版构建，而镜像里的 BRClient 更新。所以构建部署包时从 BRConnector 公开镜像的一个层里取出 `app/brclient` 目录。`SourceRef` 里的 `scripts/brclient.pin` 用 sha256 digest 指定这个层。构建时从 `public.ecr.aws` 下载这个层（约 8 MB），和 pin 比对 sha256，不一致就停止构建。从没有 `scripts/brclient.pin` 的 `SourceRef` 构建的部署包不含 BRClient，`/brclient/` 返回 404。
+`lambda-web` 部署包和镜像一样，在 `/brclient/` 提供 BRClient。构建部署包时，按 `SourceRef` 里 `scripts/brclient.source` 指定的上游提交构建 BRClient。见 [BRClient 来源](#brclient-source)。
 
 `lambda-web` stack 更新失败时，CloudFormation 通过重新构建上一个 `SourceRef` 来回滚，所以在更新完成之前，请保留这个 ref（分支或提交）。如果回滚构建也失败，stack 会停在 `UPDATE_ROLLBACK_FAILED`。用下面的命令恢复：
 
@@ -125,6 +125,27 @@ aws cloudformation continue-update-rollback --stack-name <stack name> --resource
 - 转到 CodeBuild 页面，可以触发一个项目来手动更新 lambda 映像。单击“开始构建”。
 - 由于没有创建 association，EC2 中的映像不会由 SSM State Manager 自动更新。请用 SSM 文档在 EC2 上手动执行更新。
 - 检查您的 ECR 设置：如果拉取缓存页面中有规则，则已启用用上游仓库自动更新 ECR 映像的功能。
+
+## BRClient 来源 {#brclient-source}
+
+BRConnector 在 `/brclient/` 提供 BRClient 网页版。`ec2`、`ecs`、`lambda` 镜像和 `lambda-web` 部署包都从 [sample-client-for-amazon-bedrock](https://github.com/aws-samples/sample-client-for-amazon-bedrock) 的源码构建它，用的是 `scripts/brclient.source` 指定的提交：
+
+- `BRCLIENT_BASE` 是上游 `main` 的一个提交。
+- `BRCLIENT_PR` 和 `BRCLIENT_PR_HEAD` 指定一个还没合并的上游 pull request 和它的 head 提交。构建时把这个 head 合进 base。不需要 pull request 时，两项都为空。
+
+`scripts/fetch-brclient.sh` 用 node 22 和 BRClient 源码指定的 yarn 版本构建 BRClient。`node` 是别的版本、并且装了 nvm 时，它从 nvm 取 node 22。它按提交 id 取钉死的提交，所以要么构建的正是这些提交，要么停止构建。它不检查 pull request 是否已合并，这一点在写 `scripts/brclient.source` 时就定了。每次构建都从 GitHub 下载 BRClient 源码，从 npm registry 下载依赖。
+
+构建产物里有 `brclient/.source`。它重复钉死的几项，并加上 `BRCLIENT_TREE`，即所构建源码的 git tree id。`BRCLIENT_TREE` 相同的产物来自同一份源码。多平台镜像构建只构建一次 BRClient，所以 amd64 和 arm64 镜像里的文件相同。
+
+### 发版之前 {#before-a-release}
+
+1. 运行 `node scripts/resolve-brclient.mjs`。它从 GitHub API 读取上游 `main` 和当前 `scripts/brclient.source` 里记录的 pull request，重新写这个文件：
+    - pull request 还开着时，文件钉住 `main` 和 pull request 当前的 head。
+    - pull request 合并以后，文件只钉住 `main`，pull request 两项为空。以后再运行，也只钉住 `main`。
+2. 把 `scripts/brclient.source` 和发版一起提交。
+3. 可选：运行 `bash scripts/fetch-brclient.sh build/brclient`，查看 `build/brclient/.source`。
+
+要钉住别的 pull request，运行 `node scripts/resolve-brclient.mjs --pr <编号>`。只钉住 `main` 时，运行 `node scripts/resolve-brclient.mjs --pr none`。pull request 没有合并就被关闭，或者目标分支不是 `main` 时，脚本会停止。pull request 合不进钉住的 `main` 时，构建会停止。这时等上游解决冲突后重新执行第 1 步，或者只钉住 `main`。
 
 ## 已有 stack 的模板更新 {#template-updates-of-existing-stacks}
 
