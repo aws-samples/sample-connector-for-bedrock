@@ -609,6 +609,10 @@ Resources:
     Properties:
       GroupName: !Sub "ec2-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for EC2"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -633,6 +637,10 @@ Resources:
     Properties:
       GroupName: !Sub "rds-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for RDS"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       VpcId: !If 
         - UseExistingVpcStack
         - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"
@@ -653,6 +661,10 @@ Resources:
     Properties:
       GroupName: !Sub "lambda-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for Lambda"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
@@ -1494,6 +1506,10 @@ Resources:
     Properties:
       GroupName: !Sub "ecs-lb-sg-${AWS::StackName}"
       GroupDescription: "Security Group for ECS LB"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
         - Description: Allow HTTP from com.amazonaws.global.cloudfront.origin-facing
           IpProtocol: tcp
@@ -1618,6 +1634,10 @@ Resources:
     Properties:
       GroupName: !Sub "codebuild-security-group-${AWS::StackName}"
       GroupDescription: "CodeBuild Security Group with no ingress"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       VpcId: !If 
         - UseExistingVpcStack
         - Fn::ImportValue: !Sub "${VpcStackName}-VpcId"

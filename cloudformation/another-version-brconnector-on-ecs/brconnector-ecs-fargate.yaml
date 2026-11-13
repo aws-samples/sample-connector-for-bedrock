@@ -385,6 +385,10 @@ Resources:
     Properties:
       GroupName: "no-ingress-sg"
       GroupDescription: "Security group with no ingress rule"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
 
   # Random string generator for unique names
@@ -438,6 +442,10 @@ Resources:
     Properties:
       GroupName: !Sub "alb-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for ALB"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -451,6 +459,10 @@ Resources:
     Properties:
       GroupName: !Sub "ecs-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for ECS"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8866
@@ -463,6 +475,10 @@ Resources:
     Properties:
       GroupName: !Sub "rds-security-group-${AWS::StackName}"
       GroupDescription: "Security Group for RDS"
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
       VpcId: !If [ IsNewVpc, !Ref VPC, !Ref VpcId ]
 
   RdsSecurityGroupIngressFromECS:
