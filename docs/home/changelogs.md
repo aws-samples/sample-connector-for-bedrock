@@ -9,6 +9,7 @@
 - `regions` no longer applies to `painter`; remove it from the model config (item 2). If BRConnector runs outside us-east-1, us-east-2 and us-west-2, uploaded pictures and prompts go to us-west-2.
 - `lambda-web` stacks serve BRClient at `/brclient/` once the package is rebuilt from a `SourceRef` that includes item 3. When `SourceRef` is a branch, change `WebFnBuildId` (for example from `1` to `2`) to rebuild. The build now downloads BRClient from `public.ecr.aws` (item 3).
 - The Claude Code Web backend image gets item 5 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations).
+- Updating a stack to the new `quick-build-brconnector.yaml` or `brconnector-ecs-fargate.yaml` asks for `PGStorageEncrypted` (item 6). Choose `false` for a stack created from an earlier template: `true` replaces its database with a new, empty one. On later updates, keep the value the stack has. Keep the current `PGPassword` (with the AWS CLI, `UsePreviousValue=true`). The existing database keeps its data and its password and stays unencrypted, and the update turns on its deletion protection. See [Template updates of existing stacks](deployment.md#template-updates-of-existing-stacks).
 
 1. **End-of-life Image Models Removed** - Amazon Bedrock no longer serves Amazon Nova Canvas (`amazon.nova-canvas-v1:0`), Amazon Titan Image Generator (`amazon.titan-image-generator-v1`, `amazon.titan-image-generator-v2:0`), Stability SDXL (`stability.stable-diffusion-xl-v0`, `stability.stable-diffusion-xl-v1`), `stability.sd3-large-v1:0` and `stability.stable-image-ultra-v1:0`, so BRConnector no longer supports them.
    - The `nova-canvas` provider is removed. A request to a model on it gets HTTP 400 that points to `painter`. The model stays in the database for you to change or delete. To keep drawing, create a `painter` model with one of the models below.
@@ -40,6 +41,15 @@
    - The Claude Code Web backend image installs litellm 1.100.4, cryptography 46.0.7, anyio 4.14.2, certifi 2026.10.18, fsspec 2026.6.0, mcp 1.28.1, pyasn1 0.6.5 and urllib3 2.8.0. litellm 1.100.4 needs a newer boto3, so the AWS CLI in the workspace terminal also moves from 1.44.38 to 1.46.3.
    - cryptography and starlette keep known vulnerabilities that only a later major release fixes. They stay on their current major releases for now.
    - The BRConnector image does not change. Each build installs the newest releases that `package.json` allows, and these already include the fixes. The lockfile that the tests use now has these fixes too. zod stays on 3.25.76 in both, because its fix is only in zod 4.
+   - The Claude Code Web web client is built with rollup 4.68.2 instead of 4.52.5.
+
+6. **RDS Database Settings in the Templates** - The RDS database that `quick-build-brconnector.yaml` and `brconnector-ecs-fargate.yaml` create (`DatabaseMode` `Standalone`) has new settings.
+   - `PGPassword` has no default. A new stack needs a password of 8 to 128 letters and digits.
+   - The new `PGStorageEncrypted` parameter encrypts the storage of the database. It has no default: choose `true` for a new stack. On an update, keep the current value, which is `false` for a stack created from an earlier template.
+   - The database has deletion protection. To delete a stack, turn it off first. See [Deleting a stack](deployment.md#deleting-a-stack), which also shows how to delete the final snapshot that CloudFormation keeps.
+   - When a stack update replaces the database, CloudFormation now keeps the old one: as a snapshot, or, while its deletion protection is on, as a running database outside the stack. Before, it deleted the old database without a snapshot.
+   - In `brconnector-ecs-fargate.yaml`, `PGUser` is NoEcho and has no default.
+   - The templates list the outbound rule of each security group (all traffic, as before) and set the database to not publicly accessible (as before).
 
 ## 0.0.44
 
