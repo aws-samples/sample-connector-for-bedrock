@@ -1,6 +1,6 @@
 # 0004. BRClient for lambda-web from a pinned image layer
 
-Status: Accepted
+Status: Superseded by [0005](0005-brclient-from-pinned-upstream-source.md)
 
 ## Context
 
