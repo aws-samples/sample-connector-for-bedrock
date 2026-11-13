@@ -8,32 +8,22 @@ cd "$ROOT"
 OUT="$ROOT/build/webfn"
 STAGE="$OUT/stage"
 ZIP="$OUT/function.zip"
-LAYER="$OUT/brclient-layer.tar.gz"
 
 fail() { echo "ASSERTION FAILED: $*" >&2; exit 1; }
-sha256_of() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
 
 # 1. Build before anything is pruned, so the bundler is still installed.
 npm run build
 
 # 2. Assemble the staging directory from scratch.
-rm -rf "$STAGE" "$ZIP" "$LAYER"
+rm -rf "$STAGE" "$ZIP"
 mkdir -p "$STAGE"
 cp -R dist/server "$STAGE/server"
 cp -R dist/frontend "$STAGE/frontend"
 cp -R dist/cc "$STAGE/cc"
 cp dist/package.json "$STAGE/package.json"
 
-# The only BRClient web release (v1.2.1) is older than the BRClient the images serve, so take
-# app/brclient from an image layer.
-. scripts/brclient.pin
-REGISTRY="https://public.ecr.aws"
-TOKEN="$(curl -fsS --max-time 30 --retry 2 "$REGISTRY/token/?scope=repository:$BRCLIENT_IMAGE_REPOSITORY:pull" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
-[ -n "$TOKEN" ] || fail "no pull token from $REGISTRY for $BRCLIENT_IMAGE_REPOSITORY"
-curl -fsSL --max-time 120 --retry 2 -H "Authorization: Bearer $TOKEN" -o "$LAYER" "$REGISTRY/v2/$BRCLIENT_IMAGE_REPOSITORY/blobs/$BRCLIENT_LAYER_DIGEST"
-GOT="sha256:$(sha256_of "$LAYER")"
-[ "$GOT" = "$BRCLIENT_LAYER_DIGEST" ] || fail "BRClient layer digest is $GOT, expected $BRCLIENT_LAYER_DIGEST"
-tar -xzf "$LAYER" -C "$STAGE" --strip-components=1 app/brclient
+# Same BRClient source as the images: built from the commits pinned in scripts/brclient.source.
+bash scripts/fetch-brclient.sh "$STAGE/brclient"
 
 # 3. Entry point loaded by the runtime from /var/task/index.js (CommonJS).
 printf 'require("./server/index.js");\n' > "$STAGE/index.js"
@@ -56,7 +46,7 @@ BAD="$(find node_modules -name '*.node' | grep -E 'darwin|x64' || true)"
 [ -z "$BAD" ] || fail "wrong-platform native binaries found:
 $BAD"
 
-for f in index.js package.json server/index.js frontend/index.html cc/index.html brclient/index.html; do
+for f in index.js package.json server/index.js frontend/index.html cc/index.html brclient/index.html brclient/.source; do
   [ -f "$f" ] || fail "missing $f"
 done
 

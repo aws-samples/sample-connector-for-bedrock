@@ -1,3 +1,8 @@
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/node:22 AS brclient
+WORKDIR /build
+COPY scripts/fetch-brclient.sh scripts/brclient.source scripts/
+RUN bash scripts/fetch-brclient.sh /brclient
+
 FROM public.ecr.aws/docker/library/node:22-slim
 
 RUN apt update
@@ -8,6 +13,8 @@ ENV AWS_LWA_PORT=8866
 ENV AWS_LWA_INVOKE_MODE=response_stream
 
 COPY ./dist /app
+# Built once on the build machine, so every platform of a multi-platform build gets the same BRClient files.
+COPY --from=brclient /brclient /app/brclient
 WORKDIR /app
 
 RUN npm install --omit=dev

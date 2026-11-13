@@ -54,6 +54,65 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
+## 0.0.45
+
+**Upgrade notes**
+
+- This is a breaking change for models that use an image model Amazon Bedrock no longer serves (item 1). Before you upgrade, check the provider and the `paintModelId` of each model on the `nova-canvas` or `painter` provider in the admin console. No migration changes these models.
+- Stacks with AutoUpdate pull the new image automatically (items 1 and 2). Before users rely on the new `painter`, check that `localLlmModel` can see images (Claude Sonnet is recommended), and check `price_per_image` and `image_prices` (item 2). A `painter` config without a price is now billed at the built-in list prices.
+- `regions` no longer applies to `painter`; remove it from the model config (item 2). If BRConnector runs outside us-east-1, us-east-2 and us-west-2, uploaded pictures and prompts go to us-west-2.
+- `lambda-web` stacks serve BRClient at `/brclient/` once the package is rebuilt from a `SourceRef` that includes item 3. When `SourceRef` is a branch, change `WebFnBuildId` (for example from `1` to `2`) to rebuild. The package build now downloads the BRClient source from GitHub and its dependencies from the npm registry, and builds BRClient, so the build takes a few minutes longer (item 3).
+- The Claude Code Web backend image gets item 5 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/#known-limitations).
+- Release the templates and the BRConnector image together as 0.0.45, the image first or at the same time. A new `lambda` or `lambda-web` stack with a generated password (`PGPassword` empty) needs the 0.0.45 BRConnector to read it (item 7); with an older image or `SourceRef` it cannot reach its database. Stacks with a password are not affected.
+- Updating a stack to the new `quick-build-brconnector.yaml` or `brconnector-ecs-fargate.yaml` asks for `PGStorageEncrypted` (item 6). Choose `false` for a stack created from an earlier template: `true` replaces its database with a new, empty one. On later updates, keep the value the stack has. Keep the current `PGPassword` (with the AWS CLI, `UsePreviousValue=true`; without it, the update generates a new password). The existing database keeps its data and its password and stays unencrypted, and the update turns on its deletion protection. See [Template updates of existing stacks](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#template-updates-of-existing-stacks).
+
+1. **End-of-life Image Models Removed** - Amazon Bedrock no longer serves Amazon Nova Canvas (`amazon.nova-canvas-v1:0`), Amazon Titan Image Generator (`amazon.titan-image-generator-v1`, `amazon.titan-image-generator-v2:0`), Stability SDXL (`stability.stable-diffusion-xl-v0`, `stability.stable-diffusion-xl-v1`), `stability.sd3-large-v1:0` and `stability.stable-image-ultra-v1:0`, so BRConnector no longer supports them.
+   - The `nova-canvas` provider is removed. A request to a model on it gets HTTP 400 that points to `painter`. The model stays in the database for you to change or delete. To keep drawing, create a `painter` model with one of the models below.
+   - `painter` supports `stability.stable-image-ultra-v1:1`, `stability.stable-image-core-v1:1` and `stability.sd3-5-large-v1:0`. Amazon Bedrock serves them only in us-west-2, and `painter` calls that Region by itself. See [painter](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/).
+   - A `painter` model whose `paintModelId` is not a Stability model now answers with an error that lists the three models, and does not call Bedrock. A `painter` model on a retired Stability model still fails at Bedrock.
+   - To fix a `painter` model, set its `paintModelId` to one of the three models.
+
+2. **painter Image to Image** - Users can upload up to 5 pictures (10 MB each; JPEG, PNG or WebP) in BRClient with one sentence. The chat model chooses one of eight Stability capabilities: text to image, image to image, search and replace, remove background, style guide, style transfer, control structure and control sketch. See [painter](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/).
+   - One request can run up to 5 steps. Each step's picture streams back as soon as it is made, with a line that names the capability, the model and the input pictures. Later messages can refer to earlier pictures.
+   - Each picture is billed at the price of the model that made it. The new `image_prices` field sets a price for each model ID. Without a price, painter uses the built-in list prices.
+   - Non-stream requests do not draw. They go to the chat model as before.
+   - painter replies in the language of the user's latest message, also when earlier messages use another language.
+   - **Breaking:** `localLlmModel` must now support function calling and see images.
+   - Use Claude Sonnet as `localLlmModel`. The configuration example now uses `claude-sonnet-5-5-chat`. In tests, Amazon Nova Pro ran extra billed steps the user did not ask for and showed its `<thinking>` text in the reply. See [Choosing the chat model](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/#choose-chat-model).
+   - **Breaking:** `regions` no longer applies to `painter`. Ultra, Core and SD3.5 Large run in us-west-2. The six `us.stability.*` image services run in the host Region when it is us-east-1, us-east-2 or us-west-2, and in us-west-2 otherwise. Outside those three Regions, pictures and prompts are sent to us-west-2, so do not use `painter` if you have data-residency requirements. The role needs `bedrock:InvokeModel` in the target Region, and an SCP that limits `aws:RequestedRegion` blocks calls to us-west-2.
+   - **Breaking:** a config with no price is now billed at the built-in list prices, not at 0. A config with `price_per_image` keeps that one price for every capability until `image_prices` is set.
+   - **Breaking:** presigned picture URLs now last up to 4 hours instead of 1. A URL signed with temporary credentials stops working when the credentials expire, so older pictures can stop loading sooner.
+   - Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. BRConnector sets no lifecycle rule, so pictures stay until you delete them.
+   - **Fix:** a non-stream answer from a `bedrock-converse` model now keeps every tool call, in order. It kept only the last one before.
+   - **Fix:** when Bedrock returns `AccessDeniedException`, the reply now quotes the message from Bedrock. It also says if the AWS Marketplace subscription for the model is not complete, or else names the Region where the role needs `bedrock:InvokeModel`. Before, every denial got the IAM hint. The log now records each denial, without the prompt or the pictures. See [IAM permissions](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/#iam-permissions).
+   - **Fix:** a `painter` stream now ends with a chunk that has a `finish_reason` before `[DONE]`: `length` at the 5-step limit, `content_filter` when the image model filtered the prompt or a picture, and `stop` otherwise. Before, every chunk had `finish_reason: null`, so a client that checks it could not tell that the reply was complete.
+
+3. **BRClient Built from Source** - The images and the `lambda-web` package now build BRClient from the upstream source, at the commits that `scripts/brclient.source` pins. See [BRClient source](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#brclient-source).
+   - The `lambda-web` package now serves BRClient at `/brclient/`. Before, `/brclient/` returned 404 on `lambda-web`.
+   - This release pins upstream `main` plus the unmerged upstream pull request [#82](https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82). A message with pictures gets a Download button that saves its pictures. A picture that the browser cannot save opens in a new tab, and an expired picture link shows a message.
+   - Each artifact contains `brclient/.source`, which names the commits and the git tree it was built from.
+   - Before each release, run `node scripts/resolve-brclient.mjs` and commit `scripts/brclient.source`. After upstream merges the pull request, the same command pins `main` only. See [Before a release](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#before-a-release).
+
+4. **Model Lists for Keys Without a Group** - A key that is not in a group now lists only the models bound to it in `GET /v1/models`, `/user/model/list`, `/user/model/list-for-brclient` and the Claude Code Web (`/cc`) model menu. Before, these lists also showed the models of every group, and a call to one of those models was refused. A key in a group still lists its group's models and its own. The admin key, which cannot call these models, now gets an empty list from `/user/model/list-for-brclient`.
+
+5. **Dependency Updates** - Dependencies with known vulnerabilities move to fixed releases.
+   - The Claude Code Web backend image installs litellm 1.100.4, cryptography 46.0.7, anyio 4.14.2, certifi 2026.10.18, fsspec 2026.6.0, mcp 1.28.1, pyasn1 0.6.5 and urllib3 2.8.0. litellm 1.100.4 needs a newer boto3, so the AWS CLI in the workspace terminal also moves from 1.44.38 to 1.46.3.
+   - cryptography and starlette keep known vulnerabilities that only a later major release fixes. They stay on their current major releases for now.
+   - The BRConnector image does not change. Each build installs the newest releases that `package.json` allows, and these already include the fixes. The lockfile that the tests use now has these fixes too. zod stays on 3.25.76 in both, because its fix is only in zod 4.
+   - The Claude Code Web web client is built with rollup 4.68.2 instead of 4.52.5.
+
+6. **RDS Database Settings in the Templates** - The RDS database that `quick-build-brconnector.yaml` and `brconnector-ecs-fargate.yaml` create (`DatabaseMode` `Standalone`) has new settings.
+   - `PGPassword` can be left empty. The stack then generates the database password into AWS Secrets Manager (the `PGPasswordSecretArn` output), and BRConnector reads it from there. A stack created with a password keeps it. An entered password is 8 to 128 letters and digits.
+   - The new `PGStorageEncrypted` parameter encrypts the storage of the database. It has no default: choose `true` for a new stack. On an update, keep the current value, which is `false` for a stack created from an earlier template.
+   - The database has deletion protection. To delete a stack, turn it off first. See [Deleting a stack](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#deleting-a-stack), which also shows how to delete the final snapshot that CloudFormation keeps.
+   - When a stack update replaces the database, CloudFormation now keeps the old one: as a snapshot, or, while its deletion protection is on, as a running database outside the stack. Before, it deleted the old database without a snapshot.
+   - In `brconnector-ecs-fargate.yaml`, `PGUser` is NoEcho and has no default.
+   - The templates list the outbound rules of each security group (all IPv4 and IPv6 traffic, as before) and set the database to not publicly accessible (as before).
+
+7. **Database Password from Secrets Manager** - When `PGSQL_PASSWORD_SECRET_ARN` is set, BRConnector reads the database password from that Secrets Manager secret instead of `PGSQL_PASSWORD`. The templates set it for `lambda` and `lambda-web` when they generate the password (item 6). See [Development](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/development/).
+
+8. **Docs** - A GPT-6 Sol example and a note on `reasoning_effort` for GPT reasoning models with tools in [bedrock-runtime-openai](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-runtime-openai/). The left sidebar shows the full navigation tree.
+
 ## 0.0.44
 
 **Upgrade notes**
@@ -170,31 +229,6 @@ Once defined, models can be bound to groups or API Keys.
 9. **API Keys and Logs**
    - New API keys are generated from a cryptographic random source.
    - SQL parameters and whole error objects are no longer logged, outside debug mode.
-
-## 0.0.42
-
-1. **bedrock-runtime-anthropic Provider** - New provider for Claude Code and other Anthropic Messages clients. `POST /v1/messages` is passed through to Bedrock's native `/anthropic/v1/messages` route, so `system`, `tools`, `thinking`, `cache_control` and `context_management` reach the model unchanged. It bills input, cache read, 5-minute and 1-hour cache writes, and output, and keeps each session on one region and credential so that prompt caching keeps hitting. Six Claude presets are added for new databases. [#147](https://github.com/aws-samples/sample-connector-for-bedrock/pull/147)
-
-2. **bedrock-runtime-openai Provider** - New provider that passes OpenAI Chat Completions requests through to Bedrock's `/openai/v1/chat/completions` route, for OpenAI-format models such as Kimi K3 and GLM. Seven presets are added for new databases. [#141](https://github.com/aws-samples/sample-connector-for-bedrock/pull/141)
-
-3. **Anthropic-format Errors on /v1/messages** - Errors on `/v1/messages` now come back as `{"type":"error","error":{...}}` with a matching status, for example 401 `authentication_error` or 403 `permission_error`, so Anthropic SDK clients can handle them. Other routes are unchanged. [#147](https://github.com/aws-samples/sample-connector-for-bedrock/pull/147)
-
-4. **AWS Lambda Web Functions** - New `lambda-web` ComputeType in the CloudFormation template that runs BRConnector on Lambda Web Functions: no adapter, native response streaming, billing by active CPU, and requests up to 900 seconds. The endpoint defaults to `IamAuth`, so only the CloudFront distribution can reach it, and every request is also checked against a shared origin secret. The existing `lambda` ComputeType is unchanged. [#145](https://github.com/aws-samples/sample-connector-for-bedrock/pull/145) [#148](https://github.com/aws-samples/sample-connector-for-bedrock/pull/148)
-
-5. **Concurrency Fix: One Provider Instance per Request** - Concurrent requests no longer share provider state or model data. [#144](https://github.com/aws-samples/sample-connector-for-bedrock/pull/144)
-
-6. **bedrock-converse Fixes**
-   - `temperature` and `top_p` are no longer sent to Claude models that reject them (Opus 4.x and Claude 5.x). A `ValidationException` on a single-region model is no longer retried. [#146](https://github.com/aws-samples/sample-connector-for-bedrock/pull/146)
-   - Bedrock API keys and AK/SK credentials are scoped to their own model. [#138](https://github.com/aws-samples/sample-connector-for-bedrock/pull/138)
-   - The `thinking` parameter is read from the Anthropic request body. [#122](https://github.com/aws-samples/sample-connector-for-bedrock/pull/122)
-
-7. **BRClient Portal** - With no API key saved, the portal turns on BRConnector mode and opens the settings page. [#142](https://github.com/aws-samples/sample-connector-for-bedrock/pull/142)
-
-8. **Container Runs as Non-root** - Both Docker images now run as the `node` user, the health check no longer depends on curl (the container used to report unhealthy), and the Feishu bot writes its temporary files to the system temp directory. [#150](https://github.com/aws-samples/sample-connector-for-bedrock/pull/150)
-
-9. **Build and Dependencies** - devDependencies are kept out of `dist/package.json` [#140](https://github.com/aws-samples/sample-connector-for-bedrock/pull/140). Dependency updates: [#109](https://github.com/aws-samples/sample-connector-for-bedrock/pull/109) [#110](https://github.com/aws-samples/sample-connector-for-bedrock/pull/110) [#111](https://github.com/aws-samples/sample-connector-for-bedrock/pull/111) [#114](https://github.com/aws-samples/sample-connector-for-bedrock/pull/114) [#115](https://github.com/aws-samples/sample-connector-for-bedrock/pull/115) [#116](https://github.com/aws-samples/sample-connector-for-bedrock/pull/116) [#128](https://github.com/aws-samples/sample-connector-for-bedrock/pull/128) [#132](https://github.com/aws-samples/sample-connector-for-bedrock/pull/132) [#133](https://github.com/aws-samples/sample-connector-for-bedrock/pull/133) [#134](https://github.com/aws-samples/sample-connector-for-bedrock/pull/134) [#135](https://github.com/aws-samples/sample-connector-for-bedrock/pull/135) [#136](https://github.com/aws-samples/sample-connector-for-bedrock/pull/136) [#137](https://github.com/aws-samples/sample-connector-for-bedrock/pull/137) [#143](https://github.com/aws-samples/sample-connector-for-bedrock/pull/143)
-
-Upgrade notes: preset models are inserted only into new databases. On an existing database, add the models you want in the admin UI. Admin Price-In / Price-Out are per 1 million tokens, while the cache prices in a model's config are per token.
 
 [More changelogs](https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/)
 

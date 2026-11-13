@@ -113,7 +113,7 @@ With `AutoUpdateBRConnector` set to `true`, the stack moves BRConnector to `late
 | `ecs` | No nightly job. |
 | `lambda-web` | No nightly job. A stack update rebuilds the package from `SourceRepoUrl` at `SourceRef` and deploys it when `SourceRepoUrl`, `SourceRef` or `WebFnBuildId` changes, and on the first update to a 0.0.44 template. Change `WebFnBuildId` (for example from `1` to `2`) to rebuild without changing anything else. |
 
-The `lambda-web` package serves BRClient at `/brclient/`, like the `ec2` and `ecs` images. Of the BRClient releases, only v1.2.1 includes a web build, and the images serve a newer BRClient. So the package build takes the `app/brclient` directory from one layer of the public BRConnector image. `scripts/brclient.pin` at `SourceRef` names that layer by its sha256 digest. The build downloads the layer (about 8 MB) from `public.ecr.aws`, compares its sha256 with the pin, and stops when they differ. A package built from a `SourceRef` without `scripts/brclient.pin` has no BRClient, and `/brclient/` returns 404.
+The `lambda-web` package serves BRClient at `/brclient/`, like the images. The package build builds it from the upstream commits that `scripts/brclient.source` at `SourceRef` names. See [BRClient source](#brclient-source).
 
 If the update of a `lambda-web` stack fails, CloudFormation rolls it back by building the previous `SourceRef` again, so keep that ref (branch or commit) available in the repository until the update completes. If the rollback build fails too, the stack ends in `UPDATE_ROLLBACK_FAILED`. Recover with:
 
@@ -126,6 +126,27 @@ With `AutoUpdateBRConnector` set to `false`:
 - Go to the CodeBuild page; one project could be triggered to update your lambda image manually. Click `Start build`.
 - Images in EC2 will NOT be updated by SSM State Manager automatically, because no association is created. Use the SSM document to run the update on EC2 manually.
 - Check your ECR settings: if there are rules in the pull through cache page, you have enabled this feature to update the ECR image with the upstream repository automatically.
+
+## BRClient source {#brclient-source}
+
+BRConnector serves the BRClient web app at `/brclient/`. The `ec2`, `ecs` and `lambda` images and the `lambda-web` package build it from the source of [sample-client-for-amazon-bedrock](https://github.com/aws-samples/sample-client-for-amazon-bedrock), at the commits that `scripts/brclient.source` names:
+
+- `BRCLIENT_BASE` is a commit of upstream `main`.
+- `BRCLIENT_PR` and `BRCLIENT_PR_HEAD` name an upstream pull request that is not merged yet, and its head commit. The build merges that head into the base. Both are empty when the build needs no pull request.
+
+`scripts/fetch-brclient.sh` builds BRClient with node 22 and the yarn version that the BRClient source names. When `node` is another version and nvm is installed, it takes node 22 from nvm. It fetches the pinned commits by commit id, so it builds exactly those commits or stops. It does not check whether the pull request is merged. That is decided when `scripts/brclient.source` is written. Each build downloads the BRClient source from GitHub and its dependencies from the npm registry.
+
+The build output contains `brclient/.source`. It repeats the pinned values and adds `BRCLIENT_TREE`, the git tree id of the source that was built. Artifacts with the same `BRCLIENT_TREE` were built from the same source. A multi-platform image build builds BRClient once, so its amd64 and arm64 images carry the same files.
+
+### Before a release {#before-a-release}
+
+1. Run `node scripts/resolve-brclient.mjs`. It reads upstream `main` and the pull request named in the current `scripts/brclient.source` from the GitHub API, and writes the file again:
+    - While the pull request is open, the file pins `main` and the pull request's current head.
+    - After the pull request is merged, the file pins `main` only and the pull request values are empty. Later runs keep pinning `main` only.
+2. Commit `scripts/brclient.source` with the release.
+3. Optional: run `bash scripts/fetch-brclient.sh build/brclient` and check `build/brclient/.source`.
+
+To pin another pull request, run `node scripts/resolve-brclient.mjs --pr <number>`. To pin `main` only, run `node scripts/resolve-brclient.mjs --pr none`. The script stops when the pull request was closed without merging, does not target `main`, or is merged but not yet in the `main` it read. The build stops when the pull request does not merge into the pinned `main`. Then run step 1 again after the conflict is fixed upstream, or pin `main` only.
 
 ## Template updates of existing stacks
 
