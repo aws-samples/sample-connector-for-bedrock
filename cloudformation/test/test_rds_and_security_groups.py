@@ -1,7 +1,9 @@
-"""The RDS instance and security group settings of the templates.
+"""The RDS instance, its password and the security group settings of the templates.
 
 A stack update must not replace the database of an existing stack: MasterUsername and
 StorageEncrypted require replacement, so their values for existing stacks stay as they were.
+A stack created with a PGPassword keeps using it; a new stack can leave it empty and get a
+generated password that the compute reads from Secrets Manager.
 """
 import importlib.util
 from pathlib import Path
@@ -23,8 +25,18 @@ DB_TEMPLATES = [QUICK_BUILD.name, ECS.name]
 DEFAULT_EGRESS = [{'IpProtocol': '-1', 'CidrIp': '0.0.0.0/0'}, {'IpProtocol': '-1', 'CidrIpv6': '::/0'}]
 
 
+NO_VALUE = {'Ref': 'AWS::NoValue'}
+STANDALONE = {'DatabaseMode': 'Standalone'}
+
+
+def with_defaults(template, params):
+    values = {name: p.get('Default') for name, p in template['Parameters'].items()}
+    values.update(params)
+    return values
+
+
 def resolve(value, template, params):
-    """Evaluate Ref to a parameter, Fn::If and Fn::Equals for the given parameter values."""
+    """Evaluate Fn::If, and Ref to a parameter given in params."""
     if isinstance(value, dict) and set(value) == {'Fn::If'}:
         name, when_true, when_false = value['Fn::If']
         return resolve(when_true if condition(name, template, params) else when_false, template, params)
@@ -34,15 +46,38 @@ def resolve(value, template, params):
 
 
 def condition(name, template, params):
-    body = template['Conditions'][name]
-    left, right = body['Fn::Equals']
-    return resolve(left, template, params) == resolve(right, template, params)
+    return truth(template['Conditions'][name], template, with_defaults(template, params))
+
+
+def truth(node, template, params):
+    (op, arg), = node.items()
+    if op == 'Condition':
+        return truth(template['Conditions'][arg], template, params)
+    if op == 'Fn::Equals':
+        left, right = (resolve(side, template, params) for side in arg)
+        return str(left).lower() == str(right).lower()
+    if op == 'Fn::Not':
+        return not truth(arg[0], template, params)
+    if op == 'Fn::And':
+        return all(truth(item, template, params) for item in arg)
+    if op == 'Fn::Or':
+        return any(truth(item, template, params) for item in arg)
+    raise AssertionError(node)
+
+
+def render(value, template, params):
+    """value with every Fn::If decided and AWS::NoValue dropped, as CloudFormation sends it."""
+    value = resolve(value, template, params)
+    if isinstance(value, dict) and value != NO_VALUE:
+        items = ((k, render(v, template, params)) for k, v in value.items())
+        return {k: v for k, v in items if v != NO_VALUE}
+    if isinstance(value, list):
+        return [v for v in (render(item, template, params) for item in value) if v != NO_VALUE]
+    return value
 
 
 def db_properties(template, **params):
-    props = template['Resources']['MyPG']['Properties']
-    resolved = {key: resolve(value, template, params) for key, value in props.items()}
-    return {key: value for key, value in resolved.items() if value != {'Ref': 'AWS::NoValue'}}
+    return render(template['Resources']['MyPG']['Properties'], template, params)
 
 
 def suppressed(resource):
@@ -66,17 +101,104 @@ def test_new_stacks_can_encrypt_storage(name):
 def test_storage_encryption_is_an_explicit_choice(name):
     param = TEMPLATES[name]['Parameters']['PGStorageEncrypted']
     assert param['AllowedValues'] == ['true', 'false']
-    # A default would apply to existing stacks on their next update and replace the database.
+    # A default applies to every existing stack on its first update with this template:
+    # true would replace its database, false would leave new stacks unencrypted.
     assert 'Default' not in param
 
 
 @pytest.mark.parametrize('name', DB_TEMPLATES)
-def test_db_password_has_no_default(name):
+def test_empty_db_password_is_generated_into_secrets_manager(name):
     template = TEMPLATES[name]
     param = template['Parameters']['PGPassword']
-    assert param['NoEcho'] is True
-    assert 'Default' not in param
-    assert template['Resources']['MyPG']['Properties']['MasterUserPassword'] == {'Ref': 'PGPassword'}
+    assert param['NoEcho'] is True and param['Default'] == ''
+    props = db_properties(template, PGPassword='', **STANDALONE)
+    assert props['MasterUserPassword'] == {'Fn::Sub': '{{resolve:secretsmanager:${PGSecret}}}'}
+    secret = template['Resources']['PGSecret']
+    assert secret['Condition'] == 'CreatePGSecret'
+    # Letters and digits only, so the shell, the URL-free pg client and RDS all take it as is.
+    assert secret['Properties']['GenerateSecretString'] == {'PasswordLength': 32, 'ExcludePunctuation': True}
+    output = template['Outputs']['PGPasswordSecretArn']
+    assert (output['Condition'], output['Value']) == ('CreatePGSecret', {'Ref': 'PGSecret'})
+    assert condition('CreatePGSecret', template, {'PGPassword': '', **STANDALONE})
+
+
+@pytest.mark.parametrize('name', DB_TEMPLATES)
+def test_a_db_password_that_was_entered_is_kept(name):
+    template = TEMPLATES[name]
+    assert db_properties(template, PGPassword='pw', **STANDALONE)['MasterUserPassword'] == 'pw'
+    assert not condition('CreatePGSecret', template, {'PGPassword': 'pw', **STANDALONE})
+
+
+@pytest.mark.parametrize('name', DB_TEMPLATES)
+def test_no_secret_without_a_database(name):
+    assert not condition('CreatePGSecret', TEMPLATES[name], {'PGPassword': '', 'DatabaseMode': 'NoDB'})
+
+
+def lambda_env(params):
+    template = TEMPLATES[QUICK_BUILD.name]
+    return render(template['Resources']['BRConnectorLambda']['Properties']['Environment']['Variables'], template, params)
+
+
+def web_function_env(params):
+    template = TEMPLATES[QUICK_BUILD.name]
+    return render(template['Resources']['BRConnectorWebFn']['Properties']['EnvironmentVariables'], template, params)
+
+
+def ecs_container(name, task, params):
+    template = TEMPLATES[name]
+    (container,) = render(template['Resources'][task]['Properties']['ContainerDefinitions'], template, params)
+    return {e['Name']: e['Value'] for e in container['Environment']}, container.get('Secrets')
+
+
+ECS_TASKS = [(QUICK_BUILD.name, 'ECSTaskDefinition', {'ComputeType': 'ecs'}), (ECS.name, 'ECSTaskDefinition', {})]
+
+
+def test_lambda_reads_a_generated_password_by_arn():
+    params = {'ComputeType': 'lambda', 'PGPassword': '', **STANDALONE}
+    env = lambda_env(params)
+    assert 'PGSQL_PASSWORD' not in env
+    assert env['PGSQL_PASSWORD_SECRET_ARN'] == {'Ref': 'PGSecret'}
+    env = lambda_env({**params, 'PGPassword': 'pw'})
+    assert env['PGSQL_PASSWORD'] == 'pw' and 'PGSQL_PASSWORD_SECRET_ARN' not in env
+
+
+def test_web_function_reads_a_generated_password_by_arn():
+    params = {'ComputeType': 'lambda-web', 'PGPassword': '', **STANDALONE}
+    env = web_function_env(params)
+    assert 'PGSQL_PASSWORD' not in env
+    assert env['PGSQL_PASSWORD_SECRET_ARN'] == {'Ref': 'PGSecret'}
+    env = web_function_env({**params, 'PGPassword': 'pw'})
+    assert env['PGSQL_PASSWORD'] == 'pw' and 'PGSQL_PASSWORD_SECRET_ARN' not in env
+
+
+@pytest.mark.parametrize('name,task,extra', ECS_TASKS)
+def test_ecs_injects_a_generated_password_from_the_secret(name, task, extra):
+    params = {'PGPassword': '', **STANDALONE, **extra}
+    env, secrets = ecs_container(name, task, params)
+    assert 'PGSQL_PASSWORD' not in env
+    assert secrets == [{'Name': 'PGSQL_PASSWORD', 'ValueFrom': {'Ref': 'PGSecret'}}]
+    env, secrets = ecs_container(name, task, {**params, 'PGPassword': 'pw'})
+    assert env['PGSQL_PASSWORD'] == 'pw' and secrets is None
+
+
+@pytest.mark.parametrize('compute,roles', [
+    ('ec2', ['EC2Role']),
+    ('lambda', ['EC2Role', 'BRConnectorLambdaRole']),
+    ('lambda-web', ['EC2Role', 'BRConnectorWebFnExecRole']),
+    ('ecs', ['EC2Role', 'ECSTaskExecutionRole']),
+])
+def test_only_the_roles_that_start_brconnector_read_the_secret(compute, roles):
+    template = TEMPLATES[QUICK_BUILD.name]
+    policy = render(template['Resources']['PGSecretReadPolicy']['Properties'], template, {'ComputeType': compute})
+    assert policy['Roles'] == [{'Ref': role} for role in roles]
+    (statement,) = policy['PolicyDocument']['Statement']
+    assert (statement['Action'], statement['Resource']) == ('secretsmanager:GetSecretValue', {'Ref': 'PGSecret'})
+    assert template['Resources']['PGSecretReadPolicy']['Condition'] == 'CreatePGSecret'
+
+
+def test_pinned_lambda_images_cannot_take_a_generated_password():
+    rule = TEMPLATES[QUICK_BUILD.name]['Rules']['GeneratedPGPasswordOnLambda']
+    assert rule['Assertions'][0]['Assert'] == {'Fn::Equals': [{'Ref': 'BRConnectorVersion'}, 'latest']}
 
 
 @pytest.mark.parametrize('name', DB_TEMPLATES)
