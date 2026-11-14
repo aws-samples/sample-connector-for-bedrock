@@ -202,8 +202,8 @@ def scenarios():
         yield dict(zip(names, values)), truth_table(params)
 
 
-def truth_table(params):
-    conditions = TEMPLATE['Conditions']
+def truth_table(params, template=TEMPLATE):
+    conditions = template['Conditions']
     truth = {}
 
     def value(node):

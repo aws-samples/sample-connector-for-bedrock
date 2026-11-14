@@ -500,4 +500,4 @@ def test_compute_type_names_every_supported_region():
     description = params()['ComputeType']['Description']
     named = set(re.findall(r'\b[a-z]{2}-[a-z]+-\d\b', description))
     assert named == set(EXPECTED_17)
-    assert set(TEMPLATE['Rules']) == {'ClaudeCodeWebRequirements', 'GeneratedPGPasswordOnLambda', 'LambdaWebRegion'}
+    assert set(TEMPLATE['Rules']) == {'GeneratedPGPasswordOnLambda', 'LambdaWebRegion'}

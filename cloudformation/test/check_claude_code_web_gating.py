@@ -18,24 +18,28 @@ is merged: that template already contains it, and the check would then always fa
 script evaluates the current template as if the switch were off and compares the result
 with the template at BASE_REF:
 
-- a gate is IsClaudeCodeWeb, or a condition defined as an `Fn::And` that holds a gate
-  (IsClaudeCodeWebSearch), so every gate is false while the switch is off;
+- the switch is the condition ClaudeCodeWebRequested, EnableClaudeCodeWeb equal to 'true';
+- a gate is the switch, or a condition defined as an `Fn::And` that holds a gate
+  (IsClaudeCodeWeb, IsClaudeCodeWebSearch), so every gate is false while the switch is off;
 - resources and outputs whose `Condition` is a gate are dropped;
-- the new parameters, the gate conditions, the new rule and the new parameter group are
-  dropped;
+- the new parameters, the gate conditions and the new parameter group are dropped;
 - every `Fn::If` on a gate takes its false branch, and a false branch of `AWS::NoValue`
   drops the key or list item it sits in;
 - a `Fn::Sub` variable whose value is such an `Fn::If` is inlined into the string, and a
   variable map left empty collapses back to the plain-string form;
-- the descriptions of SourceRepoUrl and SourceRef may differ.
+- the descriptions of SourceRepoUrl and SourceRef may differ, and a STATUS output may be new.
 
 Anything else that differs, down to one space in the ec2 `docker run` line, fails with the
 path of the first difference. Existing stacks must not see any change while the switch is
 off: a UserData change alone makes CloudFormation stop and restart the BRConnector instance.
 
-It also checks that every ClaudeCodeWeb* resource and output carries a gate condition, that
-with the switch on the ec2 run script (the UserData block between `# BEGIN brconnector-run`
-and `# END brconnector-run`) holds the only `docker run` line with `--name brconnector`, as a
+It also checks that every ClaudeCodeWeb* resource and output carries IsClaudeCodeWeb, or a
+condition defined as an `Fn::And` that holds it, as its Condition. The switch alone is not
+enough: it is also true where Claude Code Web is skipped (lambda, no database, a pinned
+version on ec2 or ecs). It checks that the switch is EnableClaudeCodeWeb equal to 'true' and
+that IsClaudeCodeWeb holds it, which the switch-off render relies on. It checks that with the
+switch on the ec2 run script (the UserData block between `# BEGIN brconnector-run` and
+`# END brconnector-run`) holds the only `docker run` line with `--name brconnector`, as a
 single line, because the SSM auto-update starts the container from that script, and that
 ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
 backend image without touching the BRConnector instance or deployment package.
@@ -44,6 +48,10 @@ The resources in SHARED are the exception to the gate rule. A SHARED resource mu
 no Condition: painter keeps its pictures in it, so every stack has it, with Claude Code Web
 or without. The switch-off render keeps it, and nothing in it may reference what that
 render drops.
+
+The outputs in STATUS are the other exception. A STATUS output must carry no Condition, so
+a stack that skipped Claude Code Web still says why. The switch-off render decides its
+`Fn::If` on the gates like any other, which leaves the text for the switch being off.
 
 A second render covers web search. It evaluates only IsClaudeCodeWebSearch, and the
 conditions built on it, as false, which is what EnableWebSearch=false and a Region without
@@ -59,10 +67,10 @@ role may call the gateway (and only on its ARN), the workspace access role holds
 bedrock-agentcore action, and the SSM config value does not name the gateway.
 
 The structural checks are: gate conditions on every ClaudeCodeWeb* resource and output (no
-Condition on the SHARED ones), the ec2 run script's `docker run` line, the image build id,
-the web-search-on grants, nothing referencing what the web-search-off render dropped, and
-nothing referencing the gated resources, gate conditions, new parameters or new rules in
-the switch-off render.
+Condition on the SHARED and STATUS ones), the switch, the ec2 run script's `docker run`
+line, the image build id, the web-search-on grants, nothing referencing what the
+web-search-off render dropped, and nothing referencing the gated resources, gate conditions
+or new parameters in the switch-off render.
 """
 import subprocess
 import sys
@@ -74,8 +82,11 @@ TEMPLATE = 'cloudformation/quick-build-brconnector.yaml'
 # Last upstream main without Claude Code Web.
 DEFAULT_BASE_REF = '7ba1548'
 GATE = 'IsClaudeCodeWeb'
+SWITCH = 'ClaudeCodeWebRequested'
+SWITCH_PARAMETER = 'EnableClaudeCodeWeb'
 PREFIX = 'ClaudeCodeWeb'
 SHARED = {'ClaudeCodeWebWorkspaceBucket'}
+STATUS = {'ClaudeCodeWebStatus'}
 NEW_PARAMETERS = {
     'EnableClaudeCodeWeb',
     'ClaudeCodeDefaultModel',
@@ -83,7 +94,6 @@ NEW_PARAMETERS = {
     'ClaudeCodeWebImageBuildId',
     'EnableWebSearch',
 }
-NEW_RULES = {'ClaudeCodeWebRequirements'}
 NEW_PARAMETER_GROUP = 'Claude Code Web (optional)'
 DESCRIPTION_MAY_DIFFER = {'SourceRepoUrl', 'SourceRef'}
 EC2_SUB_VAR = 'CcEnvArg'
@@ -196,22 +206,19 @@ def switch_off_sub(args, gate_names):
 
 
 def render_off(template, base=None):
-    gate_names = gates(template)
+    gate_names = gates(template, SWITCH)
     t = dict(template)
     t['Resources'] = {k: v for k, v in t['Resources'].items() if v.get('Condition') not in gate_names}
     if 'Outputs' in t:
         t['Outputs'] = {k: v for k, v in t['Outputs'].items() if v.get('Condition') not in gate_names}
+        if base:
+            for name in STATUS - set(base.get('Outputs', {})):
+                t['Outputs'].pop(name, None)
     t['Parameters'] = {k: dict(v) for k, v in t['Parameters'].items() if k not in NEW_PARAMETERS}
     for name in DESCRIPTION_MAY_DIFFER:
         if base and name in t['Parameters'] and name in base.get('Parameters', {}):
             t['Parameters'][name]['Description'] = base['Parameters'][name].get('Description')
     t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k not in gate_names}
-    if 'Rules' in t:
-        rules = {k: v for k, v in t['Rules'].items() if k not in NEW_RULES}
-        if rules:
-            t['Rules'] = rules
-        else:
-            del t['Rules']
     interface = t.get('Metadata', {}).get('AWS::CloudFormation::Interface')
     if interface and 'ParameterGroups' in interface:
         groups = [g for g in interface['ParameterGroups'] if g.get('Label', {}).get('default') != NEW_PARAMETER_GROUP]
@@ -354,16 +361,27 @@ def first_difference(a, b, path=''):
 
 def check_conditions(template):
     gate_names = gates(template)
+    ungated = {('Resources', name) for name in SHARED} | {('Outputs', name) for name in STATUS}
     problems = []
     for section in ('Resources', 'Outputs'):
         for name, body in template.get(section, {}).items():
             if not name.startswith(PREFIX):
                 continue
-            if section == 'Resources' and name in SHARED:
+            if (section, name) in ungated:
                 if 'Condition' in body:
-                    problems.append(f'{section}.{name} is shared, so it must carry no Condition')
+                    problems.append(f'{section}.{name} must exist on every stack, so it must carry no Condition')
             elif body.get('Condition') not in gate_names:
                 problems.append(f'{section}.{name} lacks a gate Condition ({", ".join(sorted(gate_names))})')
+    return problems
+
+
+def check_switch(template):
+    """The switch-off render takes the switch, and so IsClaudeCodeWeb, as false."""
+    problems = []
+    if template.get('Conditions', {}).get(SWITCH) != {'Fn::Equals': [{'Ref': SWITCH_PARAMETER}, 'true']}:
+        problems.append(f"condition {SWITCH} must be {SWITCH_PARAMETER} equal to 'true'")
+    if GATE not in gates(template, SWITCH):
+        problems.append(f'condition {GATE} must be an Fn::And that holds {SWITCH}')
     return problems
 
 
@@ -428,14 +446,15 @@ def check_image_only_parameter(template):
 
 def dropped_by_switch_off(template):
     """Names that must not be referenced once the Claude Code Web switch is off."""
-    gate_names = gates(template)
+    gate_names = gates(template, SWITCH)
     resources = {k for k, v in template['Resources'].items() if v.get('Condition') in gate_names}
-    return resources | gate_names | NEW_PARAMETERS | NEW_RULES
+    return resources | gate_names | NEW_PARAMETERS
 
 
 def structural_problems(template):
     """Checks that hold for any version of the template, with no base commit needed."""
-    problems = check_conditions(template) + check_ec2_docker_run_on(template) + check_image_only_parameter(template)
+    problems = check_conditions(template) + check_switch(template)
+    problems += check_ec2_docker_run_on(template) + check_image_only_parameter(template)
     problems += check_web_search_on(template)
     off = render_off(template)
     for path, name in mentions(off, dropped_by_switch_off(template)):

@@ -314,15 +314,21 @@ Parameters:
     Description: >-
       Deploy Claude Code Web: Claude Code in the browser at <BRConnector URL>/cc/, signed
       in with a BRConnector API key, with its backend on Amazon Bedrock AgentCore Runtime
-      (one microVM per key, billed to this account). Only takes effect when the stack is
-      created. Needs ComputeType ec2, ecs or lambda-web, a database, and BRConnectorVersion
-      latest unless ComputeType is lambda-web. The backend image is built by CodeBuild
-      from SourceRepoUrl at SourceRef.
+      (one microVM per key). On by default. A deployment that cannot run it skips it, and
+      the stack is still created: ComputeType lambda, no database, ComputeType ecs or
+      lambda-web with DatabaseMode EC2Integrated, or a pinned BRConnectorVersion with
+      ComputeType ec2 or ecs. The ClaudeCodeWebStatus output says whether it was deployed,
+      and why not. When it is deployed, CodeBuild builds the backend image from
+      SourceRepoUrl at SourceRef, which adds to the time the stack takes to create, and
+      AgentCore Runtime is billed to this account. EnableWebSearch is also true by default,
+      and each search is billed. Only takes effect when the stack is created: an update in
+      the console keeps the stack's current value, and with the AWS CLI pass
+      UsePreviousValue=true for it.
     Type: String
     AllowedValues:
       - 'true'
       - 'false'
-    Default: 'false'
+    Default: 'true'
 
   ClaudeCodeDefaultModel:
     Description: >-
@@ -380,32 +386,6 @@ Rules:
         AssertDescription: >-
           ComputeType lambda-web is available only in us-east-1, us-east-2, us-west-2,
           ap-northeast-1 and eu-west-1. Use ec2, ecs or lambda in other Regions.
-  # Claude Code Web needs a BRConnector that has /cc and normal (non-admin) keys.
-  ClaudeCodeWebRequirements:
-    RuleCondition: !Equals [!Ref EnableClaudeCodeWeb, 'true']
-    Assertions:
-      - Assert: !Not [!Equals [!Ref ComputeType, 'lambda']]
-        AssertDescription: >-
-          Claude Code Web does not support ComputeType lambda: its 60-second timeout cuts
-          off long streams. Use ec2, ecs or lambda-web.
-      # Same test as the IsNoDB condition: without a database only the admin key exists,
-      # and Claude Code Web refuses the admin key.
-      - Assert: !And
-          - !Not [!Equals [!Ref DatabaseMode, 'NoDB']]
-          - !Not
-            - !And
-              - !Contains [['ecs', 'lambda-web'], !Ref ComputeType]
-              - !Equals [!Ref DatabaseMode, 'EC2Integrated']
-        AssertDescription: >-
-          Claude Code Web needs a database, because it refuses the admin key. Set
-          DatabaseMode to Standalone, or to EC2Integrated with ComputeType ec2.
-      # ec2 and ecs run the published BRConnector image; pinned older versions have no /cc.
-      - Assert: !Or
-          - !Equals [!Ref ComputeType, 'lambda-web']
-          - !Equals [!Ref BRConnectorVersion, 'latest']
-        AssertDescription: >-
-          Claude Code Web needs BRConnectorVersion latest with ComputeType ec2 or ecs;
-          the pinned versions predate /cc.
 
 Conditions:
   UseExistingVpcStack: !Not [!Equals [!Ref VpcStackName, '']]
@@ -461,7 +441,16 @@ Conditions:
   IsPrivateLambdaPermission: !And
     - !Equals [!Ref ComputeType, 'lambda']
     - !Not [!Equals [!Ref LambdaEdgeVersionArn, '']]
-  IsClaudeCodeWeb: !Equals [!Ref EnableClaudeCodeWeb, 'true']
+  ClaudeCodeWebRequested: !Equals [!Ref EnableClaudeCodeWeb, 'true']
+  # Claude Code Web is deployed only where it can run, and the ClaudeCodeWebStatus output
+  # says why it was skipped. lambda's 60-second timeout cuts off long streams. Without a
+  # database only the admin key exists, and Claude Code Web refuses it. ec2 and ecs run
+  # the published image, and its pinned versions predate /cc.
+  IsClaudeCodeWeb: !And
+    - !Condition ClaudeCodeWebRequested
+    - !Not [!Condition IsLambda]
+    - !Condition DeployDB
+    - !Or [!Condition IsLambdaWeb, !Equals [!Ref BRConnectorVersion, 'latest']]
   # The Regions where AgentCore Web Search is available; anywhere else it creates nothing.
   IsClaudeCodeWebSearch: !And
     - !Condition IsClaudeCodeWeb
@@ -850,7 +839,7 @@ Resources:
         # nothing here traces commands or prints a key or password. The docker run line
         # lives in the root-only /root/brconnector-run.sh, which the SSM auto-update runs
         # with "latest"; it must stay a single line holding --name brconnector. CcEnvArg is
-        # empty unless EnableClaudeCodeWeb is true and is glued to that line without a space.
+        # empty unless IsClaudeCodeWeb is true and is glued to that line without a space.
         # The script exists twice. A stack created with a PGPassword keeps the second one, the
         # script of earlier templates, unchanged: any edit inside it, even one that renders the
         # same text, makes CloudFormation update the instance. The first one reads a generated
@@ -3157,7 +3146,7 @@ Resources:
           - X-Amzn-Bedrock-AgentCore-Runtime-Custom-Brc-Aws-Session-Token
       EnvironmentVariables:
         CLAUDE_CODE_USE_BEDROCK: '0'
-        # Claude Code appends /v1/messages. The Rules exclude lambda, so this is the
+        # Claude Code appends /v1/messages. IsClaudeCodeWeb excludes lambda, so this is the
         # distribution of ecs, lambda-web or ec2.
         ANTHROPIC_BASE_URL: !If
           - IsEcs
@@ -3517,6 +3506,23 @@ Outputs:
     Condition: IsLambda
     Description: Lambda URL (debug)
     Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
+
+  # Always present, so a stack that skipped Claude Code Web says why.
+  ClaudeCodeWebStatus:
+    Description: Whether Claude Code Web was deployed, and if not, why
+    Value: !If
+      - IsClaudeCodeWeb
+      - 'Deployed. Sign in at the ClaudeCodeWebUrl output.'
+      - !If
+        - ClaudeCodeWebRequested
+        - !If
+          - IsLambda
+          - 'Not deployed: ComputeType lambda is not supported, because its 60-second timeout cuts off long streams. Use ec2, ecs or lambda-web.'
+          - !If
+            - IsNoDB
+            - 'Not deployed: Claude Code Web needs a database, because it refuses the admin key. Set DatabaseMode to Standalone, or to EC2Integrated with ComputeType ec2.'
+            - 'Not deployed: Claude Code Web needs BRConnectorVersion latest with ComputeType ec2 or ecs, because the pinned versions predate /cc.'
+        - 'Not deployed: EnableClaudeCodeWeb is false.'
 
   ClaudeCodeWebUrl:
     Condition: IsClaudeCodeWeb
