@@ -326,3 +326,83 @@ describe('the converse cache-price migration', () => {
         expect(await models()).toEqual(once);
     }, 30000);
 });
+
+describe('the painter preset migration', () => {
+    const NAME = '2026-11-14-painter-preset.sql';
+    const sql = migrations.includes(NAME) ? read(join('migrations', NAME)) : '';
+    let db: PGlite;
+
+    // pg's Client.query on PGlite: parameterised statements go through query(), scripts through exec().
+    const run = async (text: string, params?: any[]) => {
+        if (params?.length) {
+            const r = await db.query(text, params);
+            return { rows: r.rows as any[], rowCount: r.affectedRows ?? r.rows.length };
+        }
+        const results = await db.exec(text);
+        const last = results[results.length - 1];
+        return { rows: (last?.rows ?? []) as any[], rowCount: last?.affectedRows ?? 0 };
+    };
+    // The real src/install.ts against PGlite. withMigration=false is the install from before this migration.
+    const install = async (withMigration: boolean) => {
+        vi.resetModules();
+        for (const [k, v] of Object.entries({ PGSQL_HOST: 'h', PGSQL_DATABASE: 'd', SKIP_DB_INSTALL: '', ADMIN_API_KEY: 'k' })) vi.stubEnv(k, v);
+        vi.doMock('pg', () => ({ Client: class { async connect() {} async end() {} query(text: string, params?: any[]) { return run(text, params); } } }));
+        const real = fs.readdirSync;
+        const hide = withMigration ? null : vi.spyOn(fs, 'readdirSync').mockImplementation(((p: any, ...a: any[]) => {
+            const listed = (real as any)(p, ...a);
+            return resolve(String(p)) === resolve(migrationDir) ? listed.filter((f: string) => f !== NAME) : listed;
+        }) as any);
+        try {
+            await (await import('../src/install')).default();
+        } finally {
+            hide?.mockRestore();
+            vi.doUnmock('pg');
+        }
+    };
+    const reset = () => db.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
+    const painters = async () => (await db.query<any>(`SELECT id, multiple, provider, config, price_in, price_out FROM eiai_model WHERE name = 'painter'`)).rows;
+    const groupsOf = async (modelId: number) =>
+        (await db.query<any>('SELECT group_id FROM eiai_group_model WHERE model_id = $1 ORDER BY group_id', [modelId])).rows.map((r) => r.group_id);
+    const ledger = async () => (await db.query<any>('SELECT name FROM eiai_migration ORDER BY name')).rows.map((r) => r.name);
+
+    beforeAll(async () => { db = await PGlite.create(); }, 30000);
+    afterAll(async () => { await db?.close(); });
+
+    it('gives a fresh install one painter on group 1, whose chat model is a preset', async () => {
+        await reset();
+        await install(true);
+        const [painter, ...more] = await painters();
+        expect(more).toEqual([]);
+        expect(painter).toMatchObject({ multiple: 1, provider: 'painter' });
+        expect(painter.config).toEqual({ paintModelId: 'stability.stable-image-ultra-v1:1', localLlmModel: 'claude-sonnet-5-5-chat' });
+        expect([Number(painter.price_in), Number(painter.price_out)]).toEqual([0, 0]);
+        expect(await groupsOf(painter.id)).toEqual([1]);
+        const chat = (await db.query<any>('SELECT provider FROM eiai_model WHERE name = $1', [painter.config.localLlmModel])).rows;
+        expect(chat).toEqual([{ provider: 'bedrock-converse' }]);
+        expect(await ledger()).toContain(NAME);
+    }, 30000);
+
+    it('leaves one painter bound to group 1 once when the whole migration list runs twice', async () => {
+        await reset();
+        await install(true);
+        const once = await painters();
+        await install(true);
+        for (const file of migrations) await db.exec(read(join('migrations', file)));
+        expect(await painters()).toEqual(once);
+        expect(await groupsOf(once[0].id)).toEqual([1]);
+    }, 30000);
+
+    it('leaves a model already named painter as it was and binds it to no group', async () => {
+        await reset();
+        await install(false);
+        await db.exec(`INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out) VALUES
+            ('painter', 0, 'painter', '{"paintModelId": "stability.sd3-5-large-v1:0", "localLlmModel": "my-chat", "s3Bucket": "my-bucket", "s3Region": "us-east-1"}', 0, 0);`);
+        const before = await painters();
+        expect(await ledger()).not.toContain(NAME);
+
+        await install(true);
+        expect(await ledger()).toContain(NAME);
+        expect(await painters()).toEqual(before);
+        expect(await groupsOf(before[0].id)).toEqual([]);
+    }, 30000);
+});
