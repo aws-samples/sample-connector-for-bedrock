@@ -246,3 +246,14 @@ directory must be listed here.
   `@types/estree` 1.0.8 -> 1.0.10), locked with `npm update rollup --package-lock-only` (npm 10.9.9). rollup is a
   dependency of vite (`^4.43.0`); the vulnerability known in 4.52.5 is fixed from 4.59.0 on. `package.json` is
   unchanged.
+- `uv.lock`: dnspython 2.9.0 -> 2.9.2, opentelemetry-api 1.45.1 -> 1.45.2, mcp 1.28.1 -> 1.30.0, fastmcp and
+  fastmcp-slim 3.4.0 -> 3.4.10, filelock 3.20.2 -> 4.2.1, locked with `uv lock --upgrade-package <name>==<version>`
+  (uv 0.13.7); `pyproject.toml` is unchanged. fastmcp-slim 3.4.10 requires `starlette>=1.0.1` and fastapi 0.128.0
+  caps starlette below 0.51, so fastapi (0.162.7) and starlette (1.10.0) move too; no other locked version changes.
+  The backend uses none of the APIs that Starlette 1.0 removed (`on_startup`, `on_shutdown`, `on_event()`,
+  `add_event_handler()`, the `route`, `websocket_route`, `exception_handler` and `middleware` decorators, and the
+  `method` argument of `FileResponse`). With Starlette 1.x, a request with an `Origin` header gets that origin back in
+  `access-control-allow-origin` instead of `*`, because `allow_credentials` is on; the gateway reaches this server only
+  through the AgentCore invoke API, so browsers do not see these headers. filelock 4.0 changes only the
+  `SoftReadWriteLock` on-disk protocol; its only user here, huggingface-hub, uses `FileLock`, `SoftFileLock`, `Timeout`
+  and `BaseFileLock`. Every changed package has a `py3-none-any` wheel.
