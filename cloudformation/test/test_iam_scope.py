@@ -6,8 +6,8 @@ and WebFnPackageBuildRole. Every `aws <service> <operation>` call in them, and e
 `regctl image copy` into the private registry, must appear in CALLS, and each action CALLS
 names must be granted on the resource CALLS names, in every combination of the parameters
 that decide which resources and statements exist. Conversely, each (action, resource,
-Condition) these roles grant must come from CALLS, NOT_A_CALL or, on ec2 with painter,
-PAINTER_ON_EC2. Other roles, and other commands such as docker push, are not checked here.
+Condition) these roles grant must come from CALLS, NOT_A_CALL or, on ec2, PAINTER_ON_EC2.
+Other roles, and other commands such as docker push, are not checked here.
 """
 import fnmatch
 import importlib.util
@@ -157,7 +157,7 @@ PAINTER_ON_EC2 = [
 
 
 def not_a_call(role, truth):
-    if role == 'EC2Role' and truth['IsPainterEc2']:
+    if role == 'EC2Role' and truth['IsEc2']:
         return NOT_A_CALL[role] + PAINTER_ON_EC2
     return NOT_A_CALL[role]
 
@@ -172,7 +172,6 @@ SCENARIO_PARAMETERS = {
     'ComputeType': ['ec2', 'lambda', 'lambda-web', 'ecs'],
     'DatabaseMode': ['Standalone', 'EC2Integrated', 'NoDB'],
     'EnableClaudeCodeWeb': ['true', 'false'],
-    'EnablePainter': ['true', 'false'],
     'AutoUpdateBRConnector': ['true', 'false'],
     'KeepEc2': ['true', 'false'],
     'VpcStackName': ['', 'vpc'],

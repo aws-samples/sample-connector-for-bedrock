@@ -61,11 +61,6 @@ Metadata:
           - AutoUpdateBRConnector
 
       - Label:
-          default: "Painter (image generation)"
-        Parameters:
-          - EnablePainter
-
-      - Label:
           default: "Claude Code Web (optional)"
         Parameters:
           - EnableClaudeCodeWeb
@@ -315,22 +310,6 @@ Parameters:
     ConstraintDescription: The Lambda@Edge version ARN must include 'us-east-1'
     Default: ''
 
-  EnablePainter:
-    Description: >-
-      Set up the preset painter model, which draws pictures in BRClient, so an admin only
-      has to grant it to a key or group. BRConnector stores the pictures under painter/ in
-      the Claude Code Web workspace bucket, which is created if it does not exist and kept
-      when the stack is deleted. The role that runs BRConnector gets read and write access
-      to that prefix, and BRConnector gets the bucket settings from this stack. With 'false'
-      the painter model stays in the model list but has no storage until S3 settings are
-      filled into its model config. Bedrock subscribes to the Stability AI image models in
-      AWS Marketplace on first use, billed to this account.
-    Type: String
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Default: 'true'
-
   EnableClaudeCodeWeb:
     Description: >-
       Deploy Claude Code Web: Claude Code in the browser at <BRConnector URL>/cc/, signed
@@ -494,9 +473,6 @@ Conditions:
       - !Equals [!Ref AWS::Region, eu-west-1]
       - !Equals [!Ref AWS::Region, ap-southeast-2]
       - !Equals [!Ref AWS::Region, ap-northeast-1]
-  IsPainter: !Equals [!Ref EnablePainter, 'true']
-  IsPainterEc2: !And [!Condition IsPainter, !Condition IsEc2]
-  CreateWorkspaceBucket: !Or [!Condition IsClaudeCodeWeb, !Condition IsPainter]
 
 Mappings:
   ArchitectureMapping:
@@ -1460,9 +1436,9 @@ Resources:
           PGSQL_USER: !Ref PGUser
           PGSQL_PASSWORD: !If [ CreatePGSecret, !Ref AWS::NoValue, !Ref PGPassword ]
           PGSQL_PASSWORD_SECRET_ARN: !If [ CreatePGSecret, !Ref PGSecret, !Ref AWS::NoValue ]
-          PAINTER_S3_BUCKET: !If [ IsPainter, !Ref ClaudeCodeWebWorkspaceBucket, !Ref AWS::NoValue ]
-          PAINTER_S3_REGION: !If [ IsPainter, !Ref AWS::Region, !Ref AWS::NoValue ]
-          PAINTER_S3_PREFIX: !If [ IsPainter, painter, !Ref AWS::NoValue ]
+          PAINTER_S3_BUCKET: !Ref ClaudeCodeWebWorkspaceBucket
+          PAINTER_S3_REGION: !Ref AWS::Region
+          PAINTER_S3_PREFIX: painter
       VpcConfig:
         !If
           - IsNoDB
@@ -1744,21 +1720,12 @@ Resources:
               - Name: CC_CONFIG_PARAM
                 Value: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
               - !Ref AWS::NoValue
-            - !If
-              - IsPainter
-              - Name: PAINTER_S3_BUCKET
-                Value: !Ref ClaudeCodeWebWorkspaceBucket
-              - !Ref AWS::NoValue
-            - !If
-              - IsPainter
-              - Name: PAINTER_S3_REGION
-                Value: !Ref AWS::Region
-              - !Ref AWS::NoValue
-            - !If
-              - IsPainter
-              - Name: PAINTER_S3_PREFIX
-                Value: painter
-              - !Ref AWS::NoValue
+            - Name: PAINTER_S3_BUCKET
+              Value: !Ref ClaudeCodeWebWorkspaceBucket
+            - Name: PAINTER_S3_REGION
+              Value: !Ref AWS::Region
+            - Name: PAINTER_S3_PREFIX
+              Value: painter
           # ECS reads the generated password at task start; the task definition holds only the ARN.
           Secrets: !If
             - CreatePGSecret
@@ -2631,9 +2598,9 @@ Resources:
           - IsClaudeCodeWeb
           - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
           - !Ref AWS::NoValue
-        PAINTER_S3_BUCKET: !If [IsPainter, !Ref ClaudeCodeWebWorkspaceBucket, !Ref AWS::NoValue]
-        PAINTER_S3_REGION: !If [IsPainter, !Ref AWS::Region, !Ref AWS::NoValue]
-        PAINTER_S3_PREFIX: !If [IsPainter, painter, !Ref AWS::NoValue]
+        PAINTER_S3_BUCKET: !Ref ClaudeCodeWebWorkspaceBucket
+        PAINTER_S3_REGION: !Ref AWS::Region
+        PAINTER_S3_PREFIX: painter
 
 
   # CloudFront is how a browser reaches an IamAuth endpoint: no browser can SigV4-sign,
@@ -2735,12 +2702,11 @@ Resources:
       RepositoryName: !Sub brc-claude-code-web-${RandomString}
       EmptyOnDelete: true
 
-  # Claude Code Web users' workspaces, under user_data/<user id>/, and painter's pictures,
-  # under painter/. Retained for the same reason as WebFnCodeBucket, and because it holds
-  # user files; delete it by hand if unwanted. A new name or logical id would replace it on
-  # every Claude Code Web stack.
+  # On every stack: painter's pictures, under painter/, and Claude Code Web users'
+  # workspaces, under user_data/<user id>/. Retained for the same reason as WebFnCodeBucket,
+  # and because it holds user files; delete it by hand if unwanted. A new name or logical id
+  # would replace it on every Claude Code Web stack.
   ClaudeCodeWebWorkspaceBucket:
-    Condition: CreateWorkspaceBucket
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -3338,7 +3304,6 @@ Resources:
         - CredentialProviderType: GATEWAY_IAM_ROLE
 
   PainterComputePolicy:
-    Condition: IsPainter
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: !Sub brconnector-painter-${AWS::StackName}
@@ -3368,7 +3333,7 @@ Resources:
               - aws-marketplace:ViewSubscriptions
             Resource: '*'
           - !If
-            - IsPainterEc2
+            - IsEc2
             - Sid: ReadPainterEc2Settings
               Effect: Allow
               Action: ssm:GetParameter
@@ -3379,7 +3344,7 @@ Resources:
   # ec2 reads them from PainterEc2Settings instead: a UserData change would stop and
   # start MyEC2Instance, and UserData does not rerun on an existing instance.
   PainterEc2Settings:
-    Condition: IsPainterEc2
+    Condition: IsEc2
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /brconnector/instance/${MyEC2Instance}/painter

@@ -41,9 +41,9 @@ RUNNERS = {
 }
 
 
-def truth(compute, painter='true', cc='false'):
+def truth(compute, cc='false'):
     params = {name: p.get('Default', '') for name, p in TEMPLATE['Parameters'].items()}
-    params.update({'AWS::Region': 'us-west-2', 'ComputeType': compute, 'EnablePainter': painter, 'EnableClaudeCodeWeb': cc})
+    params.update({'AWS::Region': 'us-west-2', 'ComputeType': compute, 'EnableClaudeCodeWeb': cc})
     return iam.truth_table(params)
 
 
@@ -89,37 +89,20 @@ def env(compute, t):
 
 def painter_settings(compute, t):
     if compute == 'ec2':
-        if not iam.present('PainterEc2Settings', t):
-            return {}
         return json.loads(render(RESOURCES['PainterEc2Settings']['Properties']['Value']))
     return {name: render(value) for name, value in env(compute, t).items() if name.startswith('PAINTER_')}
 
 
-def painter_names():
-    found = {'EnablePainter'}
-    while True:
-        more = {name for name, body in TEMPLATE['Conditions'].items()
-                if name not in found and any(True for _ in iam.gating.mentions(body, found))}
-        if not more:
-            break
-        found |= more
-    return found | {name for name, body in RESOURCES.items() if body.get('Condition') in found}
-
-
+@pytest.mark.parametrize('cc', ['false', 'true'])
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)
-@pytest.mark.parametrize('painter, cc, exists', [
-    ('true', 'false', True),
-    ('false', 'true', True),
-    ('true', 'true', True),
-    ('false', 'false', False),
-])
-def test_the_bucket_exists_while_painter_or_claude_code_web_is_on(compute, painter, cc, exists):
-    assert iam.present(BUCKET, truth(compute, painter, cc)) is exists
+def test_every_stack_has_the_bucket(compute, cc):
+    assert iam.present(BUCKET, truth(compute, cc))
 
 
 def test_the_bucket_keeps_the_claude_code_web_logical_id_and_name():
     bucket = RESOURCES[BUCKET]
     assert bucket['Type'] == 'AWS::S3::Bucket'
+    assert 'Condition' not in bucket
     assert bucket['Properties']['BucketName'] == {'Fn::Sub': 'brc-cc-workspace-${AWS::AccountId}-${AWS::Region}-${RandomString}'}
     assert (bucket['DeletionPolicy'], bucket['UpdateReplacePolicy']) == ('Retain', 'Retain')
 
@@ -141,24 +124,8 @@ def test_only_the_role_that_runs_brconnector_may_paint(compute, cc):
 
 @pytest.mark.parametrize('cc', ['false', 'true'])
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)
-def test_without_painter_no_role_may_paint(compute, cc):
-    t = truth(compute, painter='false', cc=cc)
-    for role in roles(t):
-        assert not any(allows(role, t, a, arn) for a in ('s3:PutObject', 's3:GetObject') for arn in PAINTER_ARNS), role
-        assert not any(allows(role, t, a, '*') for a in MARKETPLACE), role
-
-
-@pytest.mark.parametrize('compute', COMPUTE_TYPES)
-def test_brconnector_gets_the_bucket_settings(compute):
-    assert painter_settings(compute, truth(compute)) == SETTINGS
-
-
-@pytest.mark.parametrize('cc', ['false', 'true'])
-@pytest.mark.parametrize('compute', COMPUTE_TYPES)
-def test_without_painter_brconnector_gets_no_bucket_settings(compute, cc):
-    t = truth(compute, painter='false', cc=cc)
-    assert painter_settings(compute, t) == {}
-    assert not iam.present('PainterComputePolicy', t) and not iam.present('PainterEc2Settings', t)
+def test_brconnector_gets_the_bucket_settings(compute, cc):
+    assert painter_settings(compute, truth(compute, cc)) == SETTINGS
 
 
 def test_ec2_reads_the_settings_of_its_own_instance_only():
@@ -166,23 +133,28 @@ def test_ec2_reads_the_settings_of_its_own_instance_only():
     name = render(RESOURCES['PainterEc2Settings']['Properties']['Name'])
     assert name == f"/brconnector/instance/{VALUES['MyEC2Instance']}/painter"
     assert RESOURCES['PainterEc2Settings']['Properties']['Type'] == 'String'
+    assert iam.present('PainterEc2Settings', t)
     parameter_arn = 'arn:aws:ssm:us-west-2:111122223333:parameter'
     assert allows('EC2Role', t, 'ssm:GetParameter', parameter_arn + name)
-    assert not allows('EC2Role', t, 'ssm:GetParameter', parameter_arn + '/brconnector/instance/i-0fedcba9876543210/painter')
+    other_instance = parameter_arn + '/brconnector/instance/i-0fedcba9876543210/painter'
+    assert not allows('EC2Role', t, 'ssm:GetParameter', other_instance)
     for compute in ('lambda', 'ecs', 'lambda-web'):
-        assert not iam.present('PainterEc2Settings', truth(compute))
+        t = truth(compute)
+        assert not iam.present('PainterEc2Settings', t)
+        policy = iam.resolve(RESOURCES['PainterComputePolicy']['Properties']['PolicyDocument'], t)
+        assert not [a for st in policy['Statement'] for a in iam.as_list(st['Action']) if a.startswith('ssm:')], compute
 
 
 def test_the_ec2_instance_holds_no_reference_to_painter():
-    names = painter_names()
-    assert {'IsPainter', 'IsPainterEc2', 'CreateWorkspaceBucket', BUCKET, 'PainterComputePolicy', 'PainterEc2Settings'} <= names
+    names = {BUCKET} | {name for name in RESOURCES if name.startswith('Painter')}
+    assert {'PainterComputePolicy', 'PainterEc2Settings'} <= names
     instance = RESOURCES['MyEC2Instance']
     assert list(iam.gating.mentions(instance, names)) == []
     assert 'painter' not in json.dumps(instance).lower()
 
 
 def test_claude_code_web_sessions_reach_only_user_data():
-    t = truth('ec2', painter='true', cc='true')
+    t = truth('ec2', cc='true')
     role = 'ClaudeCodeWebWorkspaceAccessRole'
     prefix = json.loads(render(RESOURCES['ClaudeCodeWebConfigParameter']['Properties']['Value']))['prefix']
     session_arn = f'arn:aws:s3:::{VALUES[BUCKET]}/{prefix}/u1/project/notes.md'

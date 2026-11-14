@@ -22,16 +22,17 @@ def test_an_ungated_reference_to_a_claude_code_web_resource_is_reported():
 
 
 @pytest.mark.parametrize('name, condition', [
-    pytest.param('ClaudeCodeWebWorkspaceBucket', 'IsPainter', id='shared-bucket-without-claude-code-web'),
-    pytest.param('ClaudeCodeWebRepository', 'CreateWorkspaceBucket', id='unshared-resource-under-the-or'),
+    pytest.param('ClaudeCodeWebWorkspaceBucket', 'IsEc2', id='shared-bucket-under-a-condition'),
+    pytest.param('ClaudeCodeWebRepository', None, id='resource-without-a-gate'),
 ])
 def test_a_claude_code_web_resource_outside_its_gate_is_reported(name, condition):
     t = gating.load(TEMPLATE_PATH.read_text())
-    t['Resources'][name]['Condition'] = condition
-    assert any(name in p for p in gating.structural_problems(t))
+    t['Resources'][name].pop('Condition', None)
+    if condition:
+        t['Resources'][name]['Condition'] = condition
+    assert any(p.startswith(f'Resources.{name} ') for p in gating.structural_problems(t))
 
 
-def test_the_switch_off_render_keeps_the_shared_bucket_for_painter():
+def test_the_switch_off_render_keeps_the_shared_bucket():
     off = gating.render_off(gating.load(TEMPLATE_PATH.read_text()))
-    assert off['Resources']['ClaudeCodeWebWorkspaceBucket']['Condition'] == 'CreateWorkspaceBucket'
-    assert off['Conditions']['CreateWorkspaceBucket'] == {'Condition': 'IsPainter'}
+    assert 'Condition' not in off['Resources']['ClaudeCodeWebWorkspaceBucket']
