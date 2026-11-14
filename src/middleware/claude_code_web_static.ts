@@ -2,6 +2,7 @@ import type { Middleware } from "koa";
 import fs from "fs";
 import path from "path";
 import { lookup } from "mime-types";
+import { cacheControlFor } from "./static_cache";
 
 const PREFIX = "/cc";
 
@@ -59,14 +60,7 @@ export function ccStaticHandler(opts: CcStaticOptions): Middleware {
     if (isFile(filePath)) {
       ctx.type = lookup(filePath) || "application/octet-stream";
       ctx.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
-      ctx.set(
-        "Cache-Control",
-        filePath === indexPath
-          ? "no-cache"
-          : rel.startsWith("assets/")
-            ? "public, max-age=31536000, immutable"
-            : "no-cache",
-      );
+      ctx.set("Cache-Control", cacheControlFor(root, filePath, ["assets"]));
       ctx.body = fs.createReadStream(filePath);
       return;
     }

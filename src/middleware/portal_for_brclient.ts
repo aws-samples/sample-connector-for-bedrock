@@ -3,6 +3,7 @@ const autoLoginHandler = async (ctx: any, next: any) => {
     const pathName = ctx.path;
 
     if (pathName == "/portal-for-brclient.html") {
+        ctx.set("Cache-Control", "no-cache");
         ctx.body = `
         <!DOCTYPE html>
         <html>
