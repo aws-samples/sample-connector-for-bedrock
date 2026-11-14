@@ -58,7 +58,9 @@ painter 按 config 决定图片存在哪里：
 
 ## 预置的 painter 模型 {#preset-painter-model}
 
-新 stack 里有一个名为 `painter` 的模型。它用 Stability Image Ultra（`stability.stable-image-ultra-v1:1`）画图，用 `claude-sonnet-5-5-chat` 作为对话模型。它的价格是 0，每张图片按内置标价计费（见[计费](#billing)）。
+带数据库的新 stack 里有一个名为 `painter` 的模型。它用 Stability Image Ultra（`stability.stable-image-ultra-v1:1`）画图，用 `claude-sonnet-5-5-chat` 作为对话模型。它的价格是 0，每张图片按内置标价计费（见[计费](#billing)）。
+
+这个模型由 migration 添加，而 BRConnector 只在有数据库时执行 migration。没有数据库的 stack 没有 `painter` 模型，也无法添加，因为它的模型列表是固定的。这类 stack 是 `DatabaseMode` 为 `NoDB` 的，或者 `DatabaseMode` 为 `EC2Integrated` 且 `ComputeType` 为 `lambda`、`ecs`、`lambda-web` 的。
 
 要让用户画图，把 `painter` 授予某个 key 或某个 group 即可。不需要再授予对话模型：painter 对它的调用记在同一个 key 上。只被授予 `painter` 的 key 仍然不能直接调用这个对话模型。
 

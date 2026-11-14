@@ -33,7 +33,7 @@ Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](h
 
 ### 哪些情况会跳过 {#where-it-is-skipped}
 
-不满足上述组合时，stack 仍然会创建，只是没有 Claude Code Web，下面这些资源也都不会创建。stack 输出 `ClaudeCodeWebStatus` 会写明有没有部署；没有部署时还会写明原因：
+不满足上述组合时，stack 仍然会创建，只是没有 Claude Code Web，下面这些 Claude Code Web 的资源也都不会创建。存放工作区的 S3 bucket 例外：painter 也把图片放在里面，所以每个 stack 都会创建它，删除 stack 时也会保留。stack 输出 `ClaudeCodeWebStatus` 会写明有没有部署；没有部署时还会写明原因：
 
 - `EnableClaudeCodeWeb` 为 `false`。
 - `ComputeType` 是 `lambda`：它的 60 秒超时会截断长的流式响应。请使用 `ec2`、`ecs` 或 `lambda-web`。
@@ -50,7 +50,7 @@ Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](h
 
 - 一个 ECR 仓库，以及一个 CodeBuild 项目：从 `SourceRepoUrl` 的 `SourceRef` 构建后端镜像（arm64），冒烟检查后推送。建 stack 时由一个小的 Lambda 函数启动构建，stack 会等待构建完成；
 - AgentCore Runtime；
-- 存放工作区的 S3 bucket，删除 stack 时会**保留**；
+- 存放工作区的 S3 bucket（每个 stack 都会为 painter 创建它），删除 stack 时会**保留**；
 - Runtime 的 IAM 角色、访问工作区的 IAM 角色，以及挂在 BRConnector 角色上、允许它调用 Runtime 的策略；
 - SSM 参数 `/brconnector/<stack 名>/claude-code-web`，BRConnector 从这里读取 Runtime 的配置（`CC_CONFIG_PARAM`）；
 - `EnableWebSearch` 为 `true` 且所在区域提供 AgentCore Web Search 时：一个带 Web Search connector 的 AgentCore Gateway 及其 IAM 角色，见「联网搜索」。

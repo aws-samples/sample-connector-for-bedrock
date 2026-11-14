@@ -33,7 +33,7 @@ Claude Code Web is part of the CloudFormation template [quick-build-brconnector.
 
 ### Where it is skipped {#where-it-is-skipped}
 
-With any other combination, the stack is still created without Claude Code Web, and no resource below is created. The stack output `ClaudeCodeWebStatus` says whether it was deployed and, if not, why:
+With any other combination, the stack is still created without Claude Code Web, and none of the Claude Code Web resources below is created. The workspace S3 bucket is the exception: painter keeps its pictures in it too, so every stack creates it and keeps it when the stack is deleted. The stack output `ClaudeCodeWebStatus` says whether it was deployed and, if not, why:
 
 - `EnableClaudeCodeWeb` is `false`.
 - `ComputeType` is `lambda`: its 60-second timeout cuts off long streams. Use `ec2`, `ecs` or `lambda-web`.
@@ -50,7 +50,7 @@ When it is deployed, the stack also creates:
 
 - an ECR repository, and a CodeBuild project that builds the backend image (arm64) from `SourceRepoUrl` at `SourceRef`, smoke-tests it and pushes it; a small Lambda function starts the build during stack creation, and the stack waits for it;
 - the AgentCore Runtime;
-- an S3 bucket for the workspaces, which is **kept** when the stack is deleted;
+- the workspace S3 bucket, which every stack creates for painter as well and which is **kept** when the stack is deleted;
 - an IAM role for the runtime, an IAM role for workspace access, and a policy on BRConnector's role that lets it call the runtime;
 - the SSM parameter `/brconnector/<stack name>/claude-code-web`, from which BRConnector reads the runtime settings (`CC_CONFIG_PARAM`);
 - with `EnableWebSearch` `true`, in a Region with AgentCore Web Search: an AgentCore Gateway with the Web Search connector, and its IAM role; see [Web search](#web-search).

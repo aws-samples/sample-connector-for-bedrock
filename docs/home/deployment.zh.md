@@ -89,7 +89,7 @@
 ![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
 - painter
-  - 模板总是为预置的 `painter` 模型做好准备，没有对应的参数。stack 把图片放进它的工作区存储桶（Claude Code Web 用的那个，名称以 `brc-cc-workspace-` 开头），前缀是 `painter/`；给 BRConnector 的角色授予这个前缀和 AWS Marketplace 的权限，并把设置交给 BRConnector。删除 stack 时这个存储桶会保留，也没有生命周期规则。它允许任何网站跨域 `GET` 和 `HEAD`，这样 BRClient 的下载按钮才能保存图片；请求仍然需要预签名 URL。S3 和 IAM 都不需要您来填。见 [painter](../providers/painter.md#preset-painter-model)。
+  - 模板总是为预置的 `painter` 模型准备好存储，没有对应的参数。预置模型本身需要数据库：没有数据库的 stack（`DatabaseMode` 为 `NoDB`，或者 `ComputeType` 为 `lambda`、`ecs`、`lambda-web` 且 `DatabaseMode` 为 `EC2Integrated`）没有 `painter` 模型。stack 把图片放进它的工作区存储桶（Claude Code Web 用的那个，名称以 `brc-cc-workspace-` 开头），前缀是 `painter/`；给 BRConnector 的角色授予这个前缀和 AWS Marketplace 的权限，并把设置交给 BRConnector。删除 stack 时这个存储桶会保留，也没有生命周期规则。它允许任何网站跨域 `GET` 和 `HEAD`，这样 BRClient 的下载按钮才能保存图片；请求仍然需要预签名 URL。S3 和 IAM 都不需要您来填。见 [painter](../providers/painter.md#preset-painter-model)。
 
 - Claude Code Web 参数
   - `EnableClaudeCodeWeb` 默认是 `true`。部署条件不满足、跑不了 [Claude Code Web](../user-manual/scenarios/claude-code-web.md) 时，它会被跳过，stack 仍然会创建。stack 输出 `ClaudeCodeWebStatus` 会写明有没有部署；没有部署时还会写明原因：

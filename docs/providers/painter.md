@@ -58,7 +58,9 @@ A stack created from the current template always sets the variables. A stack can
 
 ## Preset painter model {#preset-painter-model}
 
-A new stack has a model named `painter`. It uses Stability Image Ultra (`stability.stable-image-ultra-v1:1`) to draw and `claude-sonnet-5-5-chat` as the chat model. Its prices are 0, and each picture is billed at the built-in list prices (see [Billing](#billing)).
+A new stack with a database has a model named `painter`. It uses Stability Image Ultra (`stability.stable-image-ultra-v1:1`) to draw and `claude-sonnet-5-5-chat` as the chat model. Its prices are 0, and each picture is billed at the built-in list prices (see [Billing](#billing)).
+
+A migration adds the model, and BRConnector runs migrations only when it has a database. A stack without one has no `painter` model and cannot add one, because its model list is fixed. That is a stack with `DatabaseMode` `NoDB`, or with `EC2Integrated` and `ComputeType` `lambda`, `ecs` or `lambda-web`.
 
 To let users draw, grant `painter` to a key or a group. You do not need to grant the chat model: painter's calls to it are billed to the same key. A key that has only `painter` still cannot call the chat model directly.
 
