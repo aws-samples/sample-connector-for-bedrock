@@ -1,12 +1,3 @@
-"""Claude Code Web is on by default and skips itself where the deployment cannot run it.
-
-A deployment that cannot run it (lambda, no database, a pinned BRConnectorVersion on ec2 or
-ecs) must still be created: no Rule fails, no Claude Code Web resource or output exists
-except the ones every stack has, nothing left refers to what is missing, and the
-ClaudeCodeWebStatus output says why. A stack created before this default keeps
-EnableClaudeCodeWeb 'false' on a console update, and its BRConnector instance must render
-exactly as it did.
-"""
 import importlib.util
 import subprocess
 from pathlib import Path
@@ -24,8 +15,7 @@ RESOURCES = TEMPLATE['Resources']
 OUTPUTS = TEMPLATE['Outputs']
 COMPUTE_TYPES = ['ec2', 'lambda', 'ecs', 'lambda-web']
 EVERY_STACK = gating.SHARED | gating.STATUS
-# The template before painter and before Claude Code Web was on by default.
-BEFORE = '86deac17350a2ddc116e8d18882a6c723b23354f'
+BASE_COMMIT = '86deac17350a2ddc116e8d18882a6c723b23354f'
 
 STATUS = {
     'deployed': 'Deployed. Sign in at the ClaudeCodeWebUrl output.',
@@ -80,17 +70,16 @@ def value(node, params):
     return str(node)
 
 
-def holds(node, params):
-    """A Rule's RuleCondition or Assert, evaluated the way CloudFormation does before it creates anything."""
+def rule_holds(node, params):
     (fn, args), = node.items()
     if fn == 'Fn::Equals':
         return value(args[0], params) == value(args[1], params)
     if fn == 'Fn::Not':
-        return not holds(args[0], params)
+        return not rule_holds(args[0], params)
     if fn == 'Fn::And':
-        return all(holds(a, params) for a in args)
+        return all(rule_holds(a, params) for a in args)
     if fn == 'Fn::Or':
-        return any(holds(a, params) for a in args)
+        return any(rule_holds(a, params) for a in args)
     if fn == 'Fn::Contains':
         return value(args[1], params) in [value(v, params) for v in args[0]]
     raise AssertionError(f'unexpected rule function {fn}')
@@ -99,8 +88,8 @@ def holds(node, params):
 def failing_rules(params):
     return [
         name for name, rule in TEMPLATE.get('Rules', {}).items()
-        if ('RuleCondition' not in rule or holds(rule['RuleCondition'], params))
-        and not all(holds(a['Assert'], params) for a in rule['Assertions'])
+        if ('RuleCondition' not in rule or rule_holds(rule['RuleCondition'], params))
+        and not all(rule_holds(a['Assert'], params) for a in rule['Assertions'])
     ]
 
 
@@ -163,9 +152,9 @@ def cc_env_arg(truth):
 
 def template_before():
     try:
-        return gating.template_at(HERE.parents[1], BEFORE)
+        return gating.template_at(HERE.parents[1], BASE_COMMIT)
     except (OSError, subprocess.CalledProcessError):
-        pytest.skip(f'commit {BEFORE} is not in this clone (a shallow checkout), so there is no template to compare with')
+        pytest.skip(f'commit {BASE_COMMIT} is not in this clone (a shallow checkout), so there is no template to compare with')
 
 
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)

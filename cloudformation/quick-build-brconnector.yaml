@@ -443,10 +443,6 @@ Conditions:
     - !Equals [!Ref ComputeType, 'lambda']
     - !Not [!Equals [!Ref LambdaEdgeVersionArn, '']]
   ClaudeCodeWebRequested: !Equals [!Ref EnableClaudeCodeWeb, 'true']
-  # Claude Code Web is deployed only where it can run, and the ClaudeCodeWebStatus output
-  # says why it was skipped. lambda's 60-second timeout cuts off long streams. Without a
-  # database only the admin key exists, and Claude Code Web refuses it. ec2 and ecs run
-  # the published image, and its pinned versions predate /cc.
   IsClaudeCodeWeb: !And
     - !Condition ClaudeCodeWebRequested
     - !Not [!Condition IsLambda]
@@ -2694,17 +2690,17 @@ Resources:
           - id: CKV_AWS_51
             comment: Every rebuild pushes the same tag again, which an immutable tag refuses; the runtime runs the image by digest.
           - id: CKV_AWS_136
-            comment: ECR encrypts images with AES-256 already, and a KMS key would replace the repository and the image it holds.
+            comment: ECR encrypts images with AES-256 already, and a named repository cannot be replaced, which a KMS key on an existing stack requires.
     Properties:
       RepositoryName: !Sub brc-claude-code-web-${RandomString}
       EmptyOnDelete: true
       ImageScanningConfiguration:
         ScanOnPush: true
 
-  # On every stack: painter's pictures, under painter/, and Claude Code Web users'
-  # workspaces, under user_data/<user id>/. Retained for the same reason as WebFnCodeBucket,
-  # and because it holds user files; delete it by hand if unwanted. A new name or logical id
-  # would replace it on every Claude Code Web stack.
+  # Claude Code Web users' workspaces, under user_data/<user id>/, and painter's pictures,
+  # under painter/. Retained for the same reason as WebFnCodeBucket, and because it holds
+  # user files; delete it by hand if unwanted. A new name or logical id would replace it on
+  # every stack.
   ClaudeCodeWebWorkspaceBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -3528,7 +3524,6 @@ Outputs:
     Description: Lambda URL (debug)
     Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
 
-  # Always present, so a stack that skipped Claude Code Web says why.
   ClaudeCodeWebStatus:
     Description: Whether Claude Code Web was deployed, and if not, why
     Value: !If

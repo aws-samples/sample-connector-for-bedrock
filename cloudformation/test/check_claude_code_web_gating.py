@@ -34,24 +34,20 @@ path of the first difference. Existing stacks must not see any change while the 
 off: a UserData change alone makes CloudFormation stop and restart the BRConnector instance.
 
 It also checks that every ClaudeCodeWeb* resource and output carries IsClaudeCodeWeb, or a
-condition defined as an `Fn::And` that holds it, as its Condition. The switch alone is not
-enough: it is also true where Claude Code Web is skipped (lambda, no database, a pinned
-version on ec2 or ecs). It checks that the switch is EnableClaudeCodeWeb equal to 'true' and
-that IsClaudeCodeWeb holds it, which the switch-off render relies on. It checks that with the
-switch on the ec2 run script (the UserData block between `# BEGIN brconnector-run` and
+condition defined as an `Fn::And` that holds it, as its Condition. It checks that the switch
+is EnableClaudeCodeWeb equal to 'true' and that IsClaudeCodeWeb holds it. It checks that with
+the switch on the ec2 run script (the UserData block between `# BEGIN brconnector-run` and
 `# END brconnector-run`) holds the only `docker run` line with `--name brconnector`, as a
 single line, because the SSM auto-update starts the container from that script, and that
 ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
 backend image without touching the BRConnector instance or deployment package.
 
 The resources in SHARED are the exception to the gate rule. A SHARED resource must carry
-no Condition: painter keeps its pictures in it, so every stack has it, with Claude Code Web
-or without. The switch-off render keeps it, and nothing in it may reference what that
+no Condition. The switch-off render keeps it, and nothing in it may reference what that
 render drops.
 
-The outputs in STATUS are the other exception. A STATUS output must carry no Condition, so
-a stack that skipped Claude Code Web still says why. The switch-off render decides its
-`Fn::If` on the gates like any other, which leaves the text for the switch being off.
+The outputs in STATUS are the other exception. A STATUS output must carry no Condition. The
+switch-off render decides its `Fn::If` on the gates like any other.
 
 A second render covers web search. It evaluates only IsClaudeCodeWebSearch, and the
 conditions built on it, as false, which is what EnableWebSearch=false and a Region without
@@ -376,7 +372,6 @@ def check_conditions(template):
 
 
 def check_switch(template):
-    """The switch-off render takes the switch, and so IsClaudeCodeWeb, as false."""
     problems = []
     if template.get('Conditions', {}).get(SWITCH) != {'Fn::Equals': [{'Ref': SWITCH_PARAMETER}, 'true']}:
         problems.append(f"condition {SWITCH} must be {SWITCH_PARAMETER} equal to 'true'")

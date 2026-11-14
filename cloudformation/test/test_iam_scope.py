@@ -5,9 +5,8 @@ document (EC2Role), and the buildspecs of the CodeBuild projects that run as Cod
 and WebFnPackageBuildRole. Every `aws <service> <operation>` call in them, and every
 `regctl image copy` into the private registry, must appear in CALLS, and each action CALLS
 names must be granted on the resource CALLS names, in every combination of the parameters
-that decide which resources and statements exist. Conversely, each (action, resource,
-Condition) these roles grant must come from CALLS, NOT_A_CALL or, on ec2, PAINTER_ON_EC2.
-Other roles, and other commands such as docker push, are not checked here.
+that decide which resources and statements exist. Other roles, and other commands such as
+docker push, are not checked here.
 """
 import fnmatch
 import importlib.util
