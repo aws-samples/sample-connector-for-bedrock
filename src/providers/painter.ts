@@ -24,8 +24,6 @@ type MadePicture = { name: string; bytes: Buffer; price: number };
 
 const clientGone = (ctx: any) => !!(ctx.res.destroyed || ctx.res.writableEnded);
 
-// The chat model is called with the caller's key, so the call is billed to it; the grant lets a key that may use
-// painter but not the chat model make this one call.
 const loopbackHeaders = (ctx: any, session_id: string, model: string) => ({
   'Accept': 'application/json',
   'Content-Type': 'application/json',
