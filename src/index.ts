@@ -16,13 +16,13 @@ import {
 } from "./middleware/handlers";
 import autoLoginHandler from "./middleware/portal_for_brclient";
 import { router } from "./routes";
-import serve from "koa-static-server";
 import config from "./config";
 import path from "path";
 const fs = require("fs");
 import { version } from "../package.json";
 import { startUp } from "./util/warmup";
 import { managerStaticHandler } from "./middleware/manager_static";
+import { brclientStaticHandler } from "./middleware/brclient_static";
 import { ccStaticHandler } from "./middleware/claude_code_web_static";
 import { ccBodyLimit } from "./middleware/claude_code_web_body";
 import { loadCcConfig } from "./claude_code_web/config";
@@ -45,14 +45,7 @@ if (!config.disableUI) {
     }),
   );
 
-  app.use(
-    serve({
-      rootDir: "./brclient",
-      rootPath: "/brclient",
-      index: "index.html",
-      maxage: 1000 * 60 * 60 * 24 * 30,
-    }),
-  );
+  app.use(brclientStaticHandler("./brclient"));
 }
 
 app.use(loggerHandler);
