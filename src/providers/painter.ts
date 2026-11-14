@@ -6,6 +6,7 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import logger from "../util/logger";
 import { selfBaseUrl } from "../util/self";
+import { MODEL_GRANT_HEADER, issueModelGrant } from "./model_grant";
 import { pictureBucket } from "./painter_bucket";
 import { PictureBook, S3PictureStore, chatCopy, collectPictures, fitForStability } from "./painter_pictures";
 import {
@@ -22,6 +23,16 @@ type PaintConfig = { paintModelId: string; localLlmModel: string; store: S3Pictu
 type MadePicture = { name: string; bytes: Buffer; price: number };
 
 const clientGone = (ctx: any) => !!(ctx.res.destroyed || ctx.res.writableEnded);
+
+// The chat model is called with the caller's key, so the call is billed to it; the grant lets a key that may use
+// painter but not the chat model make this one call.
+const loopbackHeaders = (ctx: any, session_id: string, model: string) => ({
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer ' + ctx.user.api_key,
+  'Session-Id': session_id,
+  [MODEL_GRANT_HEADER]: issueModelGrant(ctx.user.id, model),
+});
 
 // CloudFront closes an origin connection that is silent for 30 seconds. The keep-alive is a normal chunk with
 // empty content, so clients that parse every data line accept it.
@@ -86,12 +97,7 @@ export default class Painter extends AbstractProvider {
 
     const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ctx.user.api_key,
-        'Session-Id': session_id
-      },
+      headers: loopbackHeaders(ctx, session_id, chatRequest.model),
       body: JSON.stringify(chatRequest)
     });
 
@@ -205,12 +211,7 @@ export default class Painter extends AbstractProvider {
     const jRes: any = await withKeepAlive(ctx, reqId, (async () => {
       const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + ctx.user.api_key,
-          'Session-Id': session_id
-        },
+        headers: loopbackHeaders(ctx, session_id, model),
         body: JSON.stringify(body)
       });
       if (!response.ok) {
