@@ -495,6 +495,7 @@ Conditions:
       - !Equals [!Ref AWS::Region, ap-southeast-2]
       - !Equals [!Ref AWS::Region, ap-northeast-1]
   IsPainter: !Equals [!Ref EnablePainter, 'true']
+  IsPainterEc2: !And [!Condition IsPainter, !Condition IsEc2]
   CreateWorkspaceBucket: !Or [!Condition IsClaudeCodeWeb, !Condition IsPainter]
 
 Mappings:
@@ -1459,6 +1460,9 @@ Resources:
           PGSQL_USER: !Ref PGUser
           PGSQL_PASSWORD: !If [ CreatePGSecret, !Ref AWS::NoValue, !Ref PGPassword ]
           PGSQL_PASSWORD_SECRET_ARN: !If [ CreatePGSecret, !Ref PGSecret, !Ref AWS::NoValue ]
+          PAINTER_S3_BUCKET: !If [ IsPainter, !Ref ClaudeCodeWebWorkspaceBucket, !Ref AWS::NoValue ]
+          PAINTER_S3_REGION: !If [ IsPainter, !Ref AWS::Region, !Ref AWS::NoValue ]
+          PAINTER_S3_PREFIX: !If [ IsPainter, painter, !Ref AWS::NoValue ]
       VpcConfig:
         !If
           - IsNoDB
@@ -1739,6 +1743,21 @@ Resources:
               - IsClaudeCodeWeb
               - Name: CC_CONFIG_PARAM
                 Value: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
+              - !Ref AWS::NoValue
+            - !If
+              - IsPainter
+              - Name: PAINTER_S3_BUCKET
+                Value: !Ref ClaudeCodeWebWorkspaceBucket
+              - !Ref AWS::NoValue
+            - !If
+              - IsPainter
+              - Name: PAINTER_S3_REGION
+                Value: !Ref AWS::Region
+              - !Ref AWS::NoValue
+            - !If
+              - IsPainter
+              - Name: PAINTER_S3_PREFIX
+                Value: painter
               - !Ref AWS::NoValue
           # ECS reads the generated password at task start; the task definition holds only the ARN.
           Secrets: !If
@@ -2612,6 +2631,9 @@ Resources:
           - IsClaudeCodeWeb
           - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
           - !Ref AWS::NoValue
+        PAINTER_S3_BUCKET: !If [IsPainter, !Ref ClaudeCodeWebWorkspaceBucket, !Ref AWS::NoValue]
+        PAINTER_S3_REGION: !If [IsPainter, !Ref AWS::Region, !Ref AWS::NoValue]
+        PAINTER_S3_PREFIX: !If [IsPainter, painter, !Ref AWS::NoValue]
 
 
   # CloudFront is how a browser reaches an IamAuth endpoint: no browser can SigV4-sign,
@@ -3308,6 +3330,68 @@ Resources:
                 ParameterValues: {}
       CredentialProviderConfigurations:
         - CredentialProviderType: GATEWAY_IAM_ROLE
+
+  # ---------------------------------------------------------------------------
+  # Painter  (EnablePainter=true)
+  #
+  # The preset painter model keeps the pictures it draws and the ones users upload under
+  # painter/ in ClaudeCodeWebWorkspaceBucket, and links them with presigned URLs. lambda,
+  # ecs and lambda-web get the bucket settings as PAINTER_S3_* environment variables.
+  # ec2 reads them from PainterEc2Settings instead: a UserData change would stop and
+  # start MyEC2Instance, and UserData does not rerun on an existing instance.
+  # ---------------------------------------------------------------------------
+
+  # Attached to the role that runs BRConnector rather than added to it, so the role itself
+  # renders as before.
+  PainterComputePolicy:
+    Condition: IsPainter
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-painter-${AWS::StackName}
+      Roles:
+        - !If
+          - IsEcs
+          - !Ref ECSTaskRole
+          - !If
+            - IsLambdaWeb
+            - !Ref BRConnectorWebFnExecRole
+            - !If [IsLambda, !Ref BRConnectorLambdaRole, !Ref EC2Role]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PainterPictures
+            Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/painter/*
+          # The Stability AI models are AWS Marketplace products. The first call to one
+          # subscribes the account, with the caller's permissions.
+          - Sid: SubscribeImageModels
+            Effect: Allow
+            Action:
+              - aws-marketplace:Subscribe
+              - aws-marketplace:ViewSubscriptions
+            Resource: '*'
+          - !If
+            - IsPainterEc2
+            - Sid: ReadPainterEc2Settings
+              Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/instance/${MyEC2Instance}/painter
+            - !Ref AWS::NoValue
+
+  # BRConnector on ec2 finds this by its own instance id when PAINTER_S3_BUCKET is unset.
+  PainterEc2Settings:
+    Condition: IsPainterEc2
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /brconnector/instance/${MyEC2Instance}/painter
+      Type: String
+      Value: !Sub '{"PAINTER_S3_BUCKET":"${ClaudeCodeWebWorkspaceBucket}","PAINTER_S3_REGION":"${AWS::Region}","PAINTER_S3_PREFIX":"painter"}'
+      Description: Painter S3 settings for BRConnector, created by CloudFormation
+      Tier: Standard
+      DataType: text
 
 Outputs:
   PGPasswordSecretArn:

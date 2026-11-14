@@ -1,4 +1,4 @@
-"""EnablePainter: the bucket painter shares with Claude Code Web.
+"""EnablePainter: the shared bucket, the grants, and the bucket settings BRConnector reads.
 
 Each test decides the template's conditions for one set of parameters with the helpers in
 test_iam_scope.py, then reads what a stack created with them would hold.
@@ -25,13 +25,27 @@ VALUES = {
     'AWS::Region': 'us-west-2',
     'AWS::AccountId': '111122223333',
     'AWS::StackName': 'brc',
+    'MyEC2Instance': 'i-0123456789abcdef0',
     BUCKET: 'brc-cc-workspace-111122223333-us-west-2-abc123',
+}
+SETTINGS = {
+    'PAINTER_S3_BUCKET': VALUES[BUCKET],
+    'PAINTER_S3_REGION': 'us-west-2',
+    'PAINTER_S3_PREFIX': 'painter',
 }
 # What painter writes and reads back: a picture it drew, and one a user uploaded.
 PAINTER_ARNS = [
     f'arn:aws:s3:::{VALUES[BUCKET]}/painter/2026-11-14/1763100000000-a.png',
     f'arn:aws:s3:::{VALUES[BUCKET]}/painter/uploads/2026-11-14/1763100000000-b.jpg',
 ]
+USER_DATA_ARN = f'arn:aws:s3:::{VALUES[BUCKET]}/user_data/u1/project/notes.md'
+MARKETPLACE = ['aws-marketplace:Subscribe', 'aws-marketplace:ViewSubscriptions']
+# The resource that runs BRConnector off EC2, and the property that names its role.
+RUNNERS = {
+    'lambda': ('BRConnectorLambda', 'Role'),
+    'ecs': ('ECSTaskDefinition', 'TaskRoleArn'),
+    'lambda-web': ('BRConnectorWebFn', 'ExecutionRoleArn'),
+}
 
 
 def truth(compute, painter='true', cc='false'):
@@ -49,6 +63,20 @@ def render(node):
     return node if isinstance(node, str) else ''
 
 
+def runner_role(compute):
+    """The role BRConnector runs as, read from the resource that runs it."""
+    if compute == 'ec2':
+        return iam.instance_role()
+    resource, key = RUNNERS[compute]
+    role, attribute = RESOURCES[resource]['Properties'][key]['Fn::GetAtt']
+    assert attribute == 'Arn'
+    return role
+
+
+def roles(t):
+    return [name for name, body in RESOURCES.items() if body['Type'] == 'AWS::IAM::Role' and iam.present(name, t)]
+
+
 def allows(role, t, action, arn):
     """Whether an inline or attached policy of role allows action on arn without a Condition."""
     return any(
@@ -58,6 +86,37 @@ def allows(role, t, action, arn):
         and any(fnmatch.fnmatchcase(arn, render(r)) for r in iam.as_list(st['Resource']) if render(r))
         for st in iam.statements(role, t, managed=False)
     )
+
+
+def env(compute, t):
+    """BRConnector's environment variables on lambda, ecs or lambda-web."""
+    if compute == 'lambda':
+        return iam.resolve(RESOURCES['BRConnectorLambda']['Properties']['Environment']['Variables'], t)
+    if compute == 'lambda-web':
+        return iam.resolve(RESOURCES['BRConnectorWebFn']['Properties']['EnvironmentVariables'], t)
+    (container,) = iam.resolve(RESOURCES['ECSTaskDefinition']['Properties']['ContainerDefinitions'], t)
+    return {item['Name']: item['Value'] for item in container['Environment']}
+
+
+def painter_settings(compute, t):
+    """The PAINTER_* settings BRConnector finds: in its environment, or on ec2 in the SSM parameter."""
+    if compute == 'ec2':
+        if not iam.present('PainterEc2Settings', t):
+            return {}
+        return json.loads(render(RESOURCES['PainterEc2Settings']['Properties']['Value']))
+    return {name: render(value) for name, value in env(compute, t).items() if name.startswith('PAINTER_')}
+
+
+def painter_names():
+    """EnablePainter, every condition that depends on it, and every resource under one of those."""
+    found = {'EnablePainter'}
+    while True:
+        more = {name for name, body in TEMPLATE['Conditions'].items()
+                if name not in found and any(True for _ in iam.gating.mentions(body, found))}
+        if not more:
+            break
+        found |= more
+    return found | {name for name, body in RESOURCES.items() if body.get('Condition') in found}
 
 
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)
@@ -79,6 +138,65 @@ def test_the_bucket_keeps_the_claude_code_web_logical_id_and_name():
     assert (bucket['DeletionPolicy'], bucket['UpdateReplacePolicy']) == ('Retain', 'Retain')
 
 
+@pytest.mark.parametrize('cc', ['false', 'true'])
+@pytest.mark.parametrize('compute', COMPUTE_TYPES)
+def test_only_the_role_that_runs_brconnector_may_paint(compute, cc):
+    t = truth(compute, cc=cc)
+    runner = runner_role(compute)
+    for arn in PAINTER_ARNS:
+        assert allows(runner, t, 's3:PutObject', arn) and allows(runner, t, 's3:GetObject', arn), (runner, arn)
+    assert not allows(runner, t, 's3:PutObject', USER_DATA_ARN)
+    assert all(allows(runner, t, action, '*') for action in MARKETPLACE), runner
+    for role in roles(t):
+        if role != runner:
+            assert not any(allows(role, t, a, arn) for a in ('s3:PutObject', 's3:GetObject') for arn in PAINTER_ARNS), role
+            assert not any(allows(role, t, a, '*') for a in MARKETPLACE), role
+
+
+@pytest.mark.parametrize('cc', ['false', 'true'])
+@pytest.mark.parametrize('compute', COMPUTE_TYPES)
+def test_without_painter_no_role_may_paint(compute, cc):
+    t = truth(compute, painter='false', cc=cc)
+    for role in roles(t):
+        assert not any(allows(role, t, a, arn) for a in ('s3:PutObject', 's3:GetObject') for arn in PAINTER_ARNS), role
+        assert not any(allows(role, t, a, '*') for a in MARKETPLACE), role
+
+
+@pytest.mark.parametrize('compute', COMPUTE_TYPES)
+def test_brconnector_gets_the_bucket_settings(compute):
+    assert painter_settings(compute, truth(compute)) == SETTINGS
+
+
+@pytest.mark.parametrize('cc', ['false', 'true'])
+@pytest.mark.parametrize('compute', COMPUTE_TYPES)
+def test_without_painter_brconnector_gets_no_bucket_settings(compute, cc):
+    t = truth(compute, painter='false', cc=cc)
+    assert painter_settings(compute, t) == {}
+    assert not iam.present('PainterComputePolicy', t) and not iam.present('PainterEc2Settings', t)
+
+
+def test_ec2_reads_the_settings_of_its_own_instance_only():
+    t = truth('ec2')
+    name = render(RESOURCES['PainterEc2Settings']['Properties']['Name'])
+    assert name == f"/brconnector/instance/{VALUES['MyEC2Instance']}/painter"
+    assert RESOURCES['PainterEc2Settings']['Properties']['Type'] == 'String'
+    parameter_arn = 'arn:aws:ssm:us-west-2:111122223333:parameter'
+    assert allows('EC2Role', t, 'ssm:GetParameter', parameter_arn + name)
+    assert not allows('EC2Role', t, 'ssm:GetParameter', parameter_arn + '/brconnector/instance/i-0fedcba9876543210/painter')
+    for compute in ('lambda', 'ecs', 'lambda-web'):
+        assert not iam.present('PainterEc2Settings', truth(compute))
+
+
+def test_the_ec2_instance_holds_no_reference_to_painter():
+    # Any change to MyEC2Instance's UserData stops and starts the instance of every ec2
+    # stack, and the new UserData never runs.
+    names = painter_names()
+    assert {'IsPainter', 'IsPainterEc2', 'CreateWorkspaceBucket', BUCKET, 'PainterComputePolicy', 'PainterEc2Settings'} <= names
+    instance = RESOURCES['MyEC2Instance']
+    assert list(iam.gating.mentions(instance, names)) == []
+    assert 'painter' not in json.dumps(instance).lower()
+
+
 def test_claude_code_web_sessions_reach_only_user_data():
     t = truth('ec2', painter='true', cc='true')
     role = 'ClaudeCodeWebWorkspaceAccessRole'
@@ -97,3 +215,26 @@ def test_claude_code_web_sessions_reach_only_user_data():
         assert any(fnmatch.fnmatchcase(listed, p) for p in patterns), listed
     for listed in ('painter', 'painter/', 'painter/2026-11-14/', ''):
         assert not any(fnmatch.fnmatchcase(listed, p) for p in patterns), listed
+
+
+@pytest.mark.parametrize('compute, resource', [('lambda', 'BRConnectorLambda'), ('lambda-web', 'BRConnectorWebFnRevision')])
+def test_sam_hands_the_settings_to_the_function(compute, resource, monkeypatch, tmp_path):
+    pytest.importorskip('samtranslator')
+    from samtranslator.translator.transform import transform
+
+    # As in test_webfn_package: no AWS config or credentials, so the transform cannot reach AWS.
+    monkeypatch.delenv('AWS_PROFILE', raising=False)
+    monkeypatch.setenv('AWS_CONFIG_FILE', str(tmp_path / 'no-config'))
+    monkeypatch.setenv('AWS_SHARED_CREDENTIALS_FILE', str(tmp_path / 'no-credentials'))
+    monkeypatch.setenv('AWS_DEFAULT_REGION', 'us-west-2')
+
+    class NoManagedPolicies:
+        def load(self):
+            return {}
+
+    template = iam.gating.load(iam.TEMPLATE_PATH.read_text())
+    out = transform(template, {'ComputeType': compute, 'DatabaseMode': 'Standalone'}, NoManagedPolicies())
+    props = out['Resources'][resource]['Properties']
+    variables = props['Environment']['Variables'] if compute == 'lambda' else props['ServiceConfig']['EnvironmentVariables']
+    found = iam.resolve(variables, truth(compute))
+    assert {name: render(value) for name, value in found.items() if name.startswith('PAINTER_')} == SETTINGS
