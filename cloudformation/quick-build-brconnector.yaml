@@ -315,7 +315,7 @@ Parameters:
       Deploy Claude Code Web: Claude Code in the browser at <BRConnector URL>/cc/, signed
       in with a BRConnector API key, with its backend on Amazon Bedrock AgentCore Runtime
       (one microVM per key). On by default. A deployment that cannot run it skips it, and
-      the stack is still created: ComputeType lambda, no database, ComputeType ecs or
+      the stack is still created: ComputeType lambda, DatabaseMode NoDB, ComputeType ecs or
       lambda-web with DatabaseMode EC2Integrated, or a pinned BRConnectorVersion with
       ComputeType ec2 or ecs. The ClaudeCodeWebStatus output says whether it was deployed,
       and why not. When it is deployed, CodeBuild builds the backend image from
@@ -323,7 +323,8 @@ Parameters:
       AgentCore Runtime is billed to this account. EnableWebSearch is also true by default,
       and each search is billed. Only takes effect when the stack is created: an update in
       the console keeps the stack's current value, and with the AWS CLI pass
-      UsePreviousValue=true for it.
+      UsePreviousValue=true for it. A stack created from a template without this parameter
+      has no current value, so set it to false when you update that stack.
     Type: String
     AllowedValues:
       - 'true'
