@@ -192,7 +192,7 @@ Fill `s3Bucket` and `s3Region` in the `painter` model config where a stack canno
 
 ## Claude Code Web in existing stacks {#claude-code-web-stack-update}
 
-`EnableClaudeCodeWeb` takes effect only when the stack is created. A stack created before the default changed has it set to `false`, and keeps `false` when you update it in the console. With `false`, the update creates nothing for Claude Code Web, and an `ec2` instance is not changed.
+`EnableClaudeCodeWeb` takes effect only when the stack is created. A stack created before the default changed has it set to `false`, and keeps `false` when you update it in the console. With `false`, the update creates nothing for Claude Code Web, and an `ec2` instance is not changed. A stack created from a template that has no `EnableClaudeCodeWeb` parameter, from before Claude Code Web, has no value to keep: the console shows the new default `true`, so set it to `false` when you update that stack.
 
 With the AWS CLI, pass `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`. Without it, the update takes the new default `true`. It then creates Claude Code Web, and on `ec2` it changes the UserData, which stops and starts the instance. Turning it on for an existing stack is not supported; see [Known limitations](../user-manual/scenarios/claude-code-web.md#known-limitations).
 

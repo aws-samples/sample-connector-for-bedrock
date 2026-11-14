@@ -12,7 +12,7 @@
 - 开启 AutoUpdate 时，预置的 `painter` 会随新镜像出现，即使 stack 还没有更新到新模板。在那之前，它会返回一条说明如何给它配置存储的错误（第 3 条）。
 - 第一次调用每个 Stability 模型时，会在 AWS Marketplace 为账号自动订阅，最多可能需要 15 分钟。订阅生效之前，调用会失败并带一条访问被拒绝的提示（第 3 条）。
 - Claude Code Web 的工作区角色现在只能访问存储桶里的 `user_data/`（第 3 条）。
-- 新 stack 默认打开 Claude Code Web（第 4 条）。在控制台更新时，`EnableClaudeCodeWeb` 保持 stack 当前的值，在此之前创建的 stack 是 `false`。使用 AWS CLI 时传 `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`。不传的话，更新会采用新的默认值，创建 Claude Code Web，在 `ec2` 上还会修改 UserData，从而停止再启动实例。见[已有 stack 使用 Claude Code Web](deployment.md#claude-code-web-stack-update)。
+- 新 stack 默认打开 Claude Code Web（第 4 条）。在控制台更新时，`EnableClaudeCodeWeb` 保持 stack 当前的值，在此之前创建的 stack 是 `false`。用没有 `EnableClaudeCodeWeb` 参数的模板（Claude Code Web 之前的版本）创建的 stack 没有可保持的值：控制台会显示新的默认值 `true`，更新这样的 stack 时请把它设为 `false`。使用 AWS CLI 时传 `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`。不传的话，更新会采用新的默认值，创建 Claude Code Web，在 `ec2` 上还会修改 UserData，从而停止再启动实例。见[已有 stack 使用 Claude Code Web](deployment.md#claude-code-web-stack-update)。
 - 新 stack 的创建时间更长，费用也更高，因为 Claude Code Web 增加了一次 CodeBuild 构建和 AgentCore Runtime 的费用（第 4 条）。要避免这些，把 `EnableClaudeCodeWeb` 设为 `false`。
 - 跑不了 Claude Code Web 的部署组合不会再让 stack 创建失败，而是跳过它，`ClaudeCodeWebStatus` 输出会写明原因（第 4 条）。
 - 模板现在总是创建工作区存储桶。如果 stack 曾经开启 Claude Code Web、后来更新时关闭了它，同名的存储桶仍在 stack 之外，更新可能因为它已存在而失败。见[已有 stack 使用 painter](deployment.md#painter-stack-update)（第 3 条）。

@@ -191,7 +191,7 @@ stack 拿不到这些设置时（部署不是用这个模板创建的、模板�
 
 ## 已有 stack 使用 Claude Code Web {#claude-code-web-stack-update}
 
-`EnableClaudeCodeWeb` 只在创建 stack 时生效。在默认值改变之前创建的 stack，这个参数是 `false`，在控制台更新时也会保持 `false`。值为 `false` 时，更新不会为 Claude Code Web 创建任何东西，`ec2` 实例也不会被修改。
+`EnableClaudeCodeWeb` 只在创建 stack 时生效。在默认值改变之前创建的 stack，这个参数是 `false`，在控制台更新时也会保持 `false`。值为 `false` 时，更新不会为 Claude Code Web 创建任何东西，`ec2` 实例也不会被修改。用没有 `EnableClaudeCodeWeb` 参数的模板（Claude Code Web 之前的版本）创建的 stack 没有可保持的值：控制台会显示新的默认值 `true`，更新这样的 stack 时请把它设为 `false`。
 
 使用 AWS CLI 时传 `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `true`：它会创建 Claude Code Web，在 `ec2` 上还会修改 UserData，从而停止再启动实例。不支持对已有 stack 打开它，见[已知限制](../user-manual/scenarios/claude-code-web.md#known-limitations)。
 
