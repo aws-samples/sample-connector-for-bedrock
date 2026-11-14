@@ -8,7 +8,7 @@
 
 1. **依赖更新** - 依赖升级到更新的版本。dnspython、fast-uri、fastmcp、filelock、mcp、opentelemetry-api、qs 和 starlette 的新版本修复了已知漏洞。
    - Claude Code Web 后端镜像安装 dnspython 2.9.2、opentelemetry-api 1.45.2、mcp 1.30.0、fastmcp 3.4.10 和 filelock 4.2.1。fastmcp 3.4.10 需要 Starlette 1.x，所以 starlette 从 0.50.0 升级到 1.10.0，fastapi 从 0.128.0 升级到 0.162.7。0.0.45 保留的 starlette 已知漏洞因此得到修复。
-   - BRConnector 镜像不变。每次构建都会安装 `package.json` 允许的最新版本。测试使用的 lockfile 现在是 qs 6.17.1 和 fast-uri 3.1.9。
+   - BRConnector 服务端依赖不变。每次构建都会安装 `package.json` 允许的最新版本。测试使用的 lockfile 现在是 qs 6.17.1 和 fast-uri 3.1.9。
    - Claude Code Web 网页客户端改用 @babel/core 7.29.6 和 picomatch 4.0.7 构建。
 
 ## 0.0.45
