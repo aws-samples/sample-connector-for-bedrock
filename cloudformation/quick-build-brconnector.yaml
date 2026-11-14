@@ -2687,9 +2687,18 @@ Resources:
   ClaudeCodeWebRepository:
     Condition: IsClaudeCodeWeb
     Type: AWS::ECR::Repository
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_51
+            comment: Every rebuild pushes the same tag again, which an immutable tag refuses; the runtime runs the image by digest.
+          - id: CKV_AWS_136
+            comment: ECR encrypts images with AES-256 already, and a KMS key would replace the repository and the image it holds.
     Properties:
       RepositoryName: !Sub brc-claude-code-web-${RandomString}
       EmptyOnDelete: true
+      ImageScanningConfiguration:
+        ScanOnPush: true
 
   # On every stack: painter's pictures, under painter/, and Claude Code Web users'
   # workspaces, under user_data/<user id>/. Retained for the same reason as WebFnCodeBucket,
@@ -3030,6 +3039,17 @@ Resources:
   ClaudeCodeWebBuildTrigger:
     Condition: IsClaudeCodeWeb
     Type: AWS::Lambda::Function
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Only CloudFormation calls it, and reserved concurrency fails the stack in an account at its unreserved minimum.
+          - id: CKV_AWS_116
+            comment: Only CloudFormation calls it and waits for the answer, so a failed call already fails the stack operation.
+          - id: CKV_AWS_117
+            comment: It calls only public AWS endpoints, CodeBuild and the CloudFormation response URL, and nothing in the VPC.
+          - id: CKV_AWS_173
+            comment: Its variables hold the build project name and a fixed resource id, no secret; Lambda encrypts them at rest.
     Properties:
       Handler: index.handler
       Runtime: python3.12
