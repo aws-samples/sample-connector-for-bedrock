@@ -254,7 +254,17 @@ directory must be listed here.
   `add_event_handler()`, the `route`, `websocket_route`, `exception_handler` and `middleware` decorators, and the
   `method` argument of `FileResponse`). With Starlette 1.x, a request with an `Origin` header gets that origin back in
   `access-control-allow-origin` instead of `*`, because `allow_credentials` is on; the gateway reaches this server only
-  through the AgentCore invoke API, so browsers do not see these headers. filelock 4.0 changes only the
+  through the AgentCore invoke API, so browsers do not see these headers. FastAPI 0.132 and later answer a JSON body
+  without a `Content-Type` header with 422 instead of parsing it, and `POST /invocations` takes a JSON object. The
+  gateway sends `content-type: application/json` on every `InvokeAgentRuntime` request, and the template gives the
+  runtime no session endpoints and no other invoker, so this does not change the deployed path; that AgentCore passes
+  the caller's `Content-Type` on to the container is not checked on a deployed runtime. To restore the old behavior,
+  pass `strict_content_type=False` to the `APIRouter` in `backend/api/invocations.py` (a local test then matches
+  FastAPI 0.128.0), or keep fastmcp on 3.4.0. The other breaking changes from FastAPI 0.129 to 0.162.7 (Python 3.9 and
+  3.10 dropped, `**extra` and `openapi_prefix` removed, `root_path` and `ORJSONResponse` deprecated, `router.routes`
+  as a tree, OpenTelemetry setup as an opt-in, and new handling of defaults, form fields, files and JSON `null`) do
+  not reach the backend: `/invocations` calls the other route functions directly with models it builds. See
+  `docs/adr/0006-starlette-1-for-fastmcp.md`. filelock 4.0 changes only the
   `SoftReadWriteLock` on-disk protocol; its only user here, huggingface-hub, uses `FileLock`, `SoftFileLock`, `Timeout`
   and `BaseFileLock`. Every changed package has a `py3-none-any` wheel.
 - `web_client/package-lock.json`: `@babel/core` 7.28.4 -> 7.29.6 and picomatch 4.0.3 -> 4.0.7, both dev dependencies
