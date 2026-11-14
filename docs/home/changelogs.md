@@ -1,5 +1,16 @@
 # Changelogs
 
+## Unreleased
+
+**Upgrade notes**
+
+- The Claude Code Web backend image gets item 1 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations).
+
+1. **Dependency Updates** - Dependencies move to newer releases. The new releases of dnspython, fast-uri, fastmcp, filelock, mcp, opentelemetry-api, qs and starlette fix known vulnerabilities.
+   - The Claude Code Web backend image installs dnspython 2.9.2, opentelemetry-api 1.45.2, mcp 1.30.0, fastmcp 3.4.10 and filelock 4.2.1. fastmcp 3.4.10 needs Starlette 1.x, so starlette moves from 0.50.0 to 1.10.0 and fastapi from 0.128.0 to 0.162.7. This fixes the known starlette vulnerabilities that 0.0.45 kept.
+   - The BRConnector image does not change. Each build installs the newest releases that `package.json` allows. The lockfile that the tests use now has qs 6.17.1 and fast-uri 3.1.9.
+   - The Claude Code Web web client is built with @babel/core 7.29.6 and picomatch 4.0.7.
+
 ## 0.0.45
 
 **Upgrade notes**
