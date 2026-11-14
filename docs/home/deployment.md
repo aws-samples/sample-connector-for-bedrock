@@ -89,6 +89,10 @@ Here are some recommend deployment patterns:
 
 ![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
+- painter parameter
+  - `EnablePainter` (default `true`) gives the preset `painter` model what it needs to draw. The stack puts pictures in its workspace bucket (the one Claude Code Web uses, named `brc-cc-workspace-...`) under the prefix `painter/`, grants the BRConnector role access to that prefix and to AWS Marketplace, and gives BRConnector the settings. The bucket is retained when you delete the stack and has no lifecycle rule. You fill in nothing about S3 or IAM. See [painter](../providers/painter.md#preset-painter-model).
+  - With `false`, the stack creates no bucket for painter (Claude Code Web may still create it) and sets nothing for painter.
+
 - Debugging parameters
   - If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.
   - Don't delete EC2 if you choose EC2 as ComputeType
@@ -164,6 +168,17 @@ A template that has the `PGStorageEncrypted` parameter also changes the RDS data
 - The update turns on deletion protection for the database, without an interruption. See [Deleting a stack](#deleting-a-stack).
 - On `brconnector-ecs-fargate.yaml`, keep the current `PGUser` as well. It has no default now, and a new user name replaces the database.
 - The template now lists the outbound rules of each security group and sets the database to not publicly accessible. The rules allow all IPv4 and all IPv6 traffic, which are the rules EC2 adds to a security group that lists none. The update modifies these resources, but outbound traffic and access to the database stay the same. In a VPC without IPv6, the IPv6 rule matches no traffic.
+
+## painter in existing stacks {#painter-stack-update}
+
+To give an existing stack the preset `painter` model with storage:
+
+1. Update the stack with the new template and keep `EnablePainter` at `true`.
+2. Run an image that includes this release. With AutoUpdate, the nightly update pulls it.
+
+`lambda`, `lambda-web` and `ecs` get the settings as environment variables from the template update. `ec2` reads them from an SSM parameter, so the update does not change or restart its instance.
+
+Fill `s3Bucket` and `s3Region` in the `painter` model config where a stack cannot get the settings: `EnablePainter` is `false`, the deployment was not made from this template, or the image is older. See [Where pictures are stored](../providers/painter.md#where-pictures-are-stored).
 
 ## Deleting a stack {#deleting-a-stack}
 

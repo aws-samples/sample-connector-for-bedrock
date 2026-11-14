@@ -28,9 +28,9 @@ A user can type a sentence, or upload up to 5 pictures and type a sentence, in B
 | --- | --- | --- | --- | --- |
 | localLlmModel | string | Y | | The chat model that reads the request and chooses what to draw. It must support **function calling** and be able to **see images**. A model that cannot see images cannot tell which picture the user means. Use a Claude Sonnet model. See [Choosing the chat model](#choose-chat-model). |
 | paintModelId | string | Y | | The text-to-image model. See the options below. |
-| s3Bucket | string | Y | | The bucket that stores uploaded and generated pictures. Grant the access described in [IAM permissions](#iam-permissions). |
-| s3Prefix | string | N | "" | The S3 key prefix. Generated pictures go to `<s3Prefix>/<date>/` and uploaded pictures go to `<s3Prefix>/uploads/<date>/`. |
-| s3Region | string | Y | | The Region of the bucket. |
+| s3Bucket | string | N | the stack's bucket | The bucket that stores uploaded and generated pictures. Leave it out to use the stack's bucket. See [Where pictures are stored](#where-pictures-are-stored). With it, grant the access described in [IAM permissions](#iam-permissions). |
+| s3Prefix | string | N | "" (`painter` with the stack's bucket) | The S3 key prefix. Generated pictures go to `<s3Prefix>/<date>/` and uploaded pictures go to `<s3Prefix>/uploads/<date>/`. |
+| s3Region | string | Y with `s3Bucket` | the stack's Region | The Region of the bucket. |
 | image_prices | object | N | | The price of one picture for each model ID, in the model's currency. See [Billing](#billing). |
 | price_per_image | number | N | | One price for every picture, in the model's currency. It is used for a model ID that is not in `image_prices`. See [Billing](#billing). |
 
@@ -45,6 +45,25 @@ A user can type a sentence, or upload up to 5 pictures and type a sentence, in B
 painter ignores the `regions` field and logs a message when it is set. It picks the Region for each model. See [Regions and data residency](#regions-and-data-residency). Remove `regions` from existing configs.
 
 Then grant this model to a group or an API key.
+
+### Where pictures are stored {#where-pictures-are-stored}
+
+The config decides where painter stores pictures:
+
+- With `s3Bucket` in the config, the config gives all three settings. `s3Region` is required, and `s3Prefix` is empty unless you set it. Nothing else is read.
+- Without `s3Bucket`, painter uses the stack's bucket, Region and prefix `painter`. BRConnector reads them from the environment variables `PAINTER_S3_BUCKET`, `PAINTER_S3_REGION` and `PAINTER_S3_PREFIX`. On the `ec2` compute type, the stack keeps these values in an SSM parameter, and BRConnector reads them from there.
+- With neither, painter answers with an error that names both fixes: fill S3 into the model config, or update the stack to a template that has painter (`EnablePainter`).
+
+A stack created from the current template sets the variables when `EnablePainter` is `true` (the default). See [Quick Deployment](../home/deployment.md#painter-stack-update).
+
+## Preset painter model {#preset-painter-model}
+
+A new stack has a model named `painter`. It uses Stability Image Ultra (`stability.stable-image-ultra-v1:1`) to draw and `claude-sonnet-5-5-chat` as the chat model. Its prices are 0, and each picture is billed at the built-in list prices (see [Billing](#billing)).
+
+To let users draw, grant `painter` to a key or a group. You do not need to grant the chat model: painter's calls to it are billed to the same key. A key that has only `painter` still cannot call the chat model directly.
+
+- A database that already has a model named `painter` keeps it unchanged.
+- With `EnablePainter` set to `false`, the model still exists. It answers with an error that says how to give it storage.
 
 ### Choosing the chat model {#choose-chat-model}
 
@@ -94,7 +113,7 @@ On the `lambda` compute type, a request stops after 60 seconds, and a chain of t
 - A picture outside the limits of the chosen model gets an error that names the rule and the picture's actual value.
 - If Bedrock filters the prompt, an input picture or the output picture, the reply says which one. The reply does not show an error trace.
 
-Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. Generated pictures are stored in `<s3Prefix>/<date>/`. BRConnector sets no lifecycle rule, so the pictures stay until you delete them.
+Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. Generated pictures are stored in `<s3Prefix>/<date>/`. With the stack's bucket, `<s3Prefix>` is `painter`. BRConnector sets no lifecycle rule, so the pictures stay until you delete them.
 
 The generated pictures in a reply are links to S3 presigned URLs. A URL lasts at most 4 hours. A URL signed with temporary credentials stops working when the credentials expire. The credentials of an EC2 instance role last about 6 hours, so older pictures in a conversation can stop loading sooner than 4 hours.
 
@@ -114,15 +133,15 @@ When BRConnector runs outside us-east-1, us-east-2 and us-west-2, the prompts an
 The role that runs BRConnector needs:
 
 - `bedrock:InvokeModel` in the target Region, on the foundation models and on the `us.stability.*` inference profiles.
-- `s3:PutObject` and `s3:GetObject` on the bucket and prefix.
+- `s3:PutObject` and `s3:GetObject` on the bucket and prefix. The stack grants them on `<bucket>/painter/*` of its own bucket. A custom bucket in the model config needs the same permissions on that bucket.
 
-Stability models are third-party models that AWS Marketplace sells. The first call to a model in an AWS account subscribes the account to that model. This call needs `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions`, and the account needs a valid payment method for AWS Marketplace. Give these permissions to the role, or ask someone who has them to invoke each model once in the Amazon Bedrock console. After the subscription is complete, the role needs only `bedrock:InvokeModel`. A subscription can take up to 15 minutes.
+Stability models are third-party models that AWS Marketplace sells. The first call to a model in an AWS account subscribes the account to that model. This call needs `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions`, and the account needs a valid payment method for AWS Marketplace. The stack grants both permissions to the role, so the first call to each Stability model subscribes the account by itself. A subscription can take up to 15 minutes, and calls fail with the hint below until it is active. No one-click subscribe exists. Without the stack's permissions, give them to the role, or ask someone who has them to invoke each model once in the Amazon Bedrock console. After the subscription is complete, the role needs only `bedrock:InvokeModel`.
 
 A service control policy that limits `aws:RequestedRegion` blocks calls to us-west-2.
 
 If a call returns `AccessDeniedException`, the reply quotes the message from Bedrock and adds a hint:
 
-- If the message names AWS Marketplace, the subscription for the model is not complete. Complete it in one of the two ways above, and try again after a few minutes.
+- If the message names AWS Marketplace, the subscription for the model is not complete. Wait for the subscription to complete, or complete it in one of the ways above, and try again after a few minutes.
 - Otherwise, the reply names the Region that BRConnector called. Make sure that the role and all service control policies allow `bedrock:InvokeModel` in that Region.
 
 The message from Bedrock can include the ARN of the role that runs BRConnector. The log records each denial with the model ID, the Region, the error name, the message from Bedrock and the request ID. The log does not record the prompt or the pictures.

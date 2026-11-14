@@ -6,6 +6,11 @@
 
 - Claude Code Web 后端镜像要重新构建后才会包含第 1 条。要重新构建，请修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）。见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations)。
 - 不需要任何操作（第 2 条）。升级前已经缓存了 BRClient 的浏览器会把这份副本保留最多 30 天，所以在用户手动刷新一次页面之前，它仍可能显示旧版 BRClient。BRConnector 无法更改浏览器里已有的副本。
+- 要让 `painter` 有存储和 IAM 权限，请把 stack 更新到新模板（第 3 条），`EnablePainter` 保持 `true`。见[已有 stack 使用 painter](deployment.md#painter-stack-update)。
+- 这次更新不会修改或重启 `ec2` 实例：BRConnector 从一个 SSM 参数读取 painter 的设置（第 3 条）。
+- 已有的名为 `painter` 的模型保持不变。只有名称空闲时才会添加预置模型（第 3 条）。
+- 第一次调用每个 Stability 模型时，会在 AWS Marketplace 为账号自动订阅，最多可能需要 15 分钟。订阅生效之前，调用会失败并带一条访问被拒绝的提示（第 3 条）。
+- Claude Code Web 的工作区角色现在只能访问存储桶里的 `user_data/`（第 3 条）。
 
 1. **依赖更新** - 依赖升级到更新的版本。dnspython、fast-uri、fastmcp、filelock、mcp、opentelemetry-api、qs 和 starlette 的新版本修复了已知漏洞。
    - Claude Code Web 后端镜像安装 dnspython 2.9.2、opentelemetry-api 1.45.2、mcp 1.30.0、fastmcp 3.4.10 和 filelock 4.2.1。fastmcp 3.4.10 需要 Starlette 1.x，所以 starlette 从 0.50.0 升级到 1.10.0，fastapi 从 0.128.0 升级到 0.162.7。0.0.45 保留的 starlette 已知漏洞因此得到修复。
@@ -14,6 +19,14 @@
 
 2. **升级后自动显示新版 BRClient** - 升级以后，浏览器现在不用手动刷新就会显示新版 BRClient。以前 BRConnector 让浏览器把 BRClient 的所有文件（包括 `index.html`）缓存 30 天，所以浏览器一直显示旧版。
    - 现在浏览器每次加载 `/portal-for-brclient.html`，以及 BRClient（`/brclient/`）和管理后台（`/manager/`）的文件时，都会向 BRConnector 获取最新版本。文件名里带内容哈希的构建文件例外：浏览器会把它们缓存最长一年，和 `/cc` 一样。
+3. **painter 开箱即用** - 新 stack 自带一个可用的 `painter` 模型。管理员只需把它授予某个 key 或 group，不用填写任何 S3 或 IAM 设置。见 [painter](../providers/painter.md#preset-painter-model)。
+   - 新增一个 migration，添加预置的 `painter` 模型：用 Stability Image Ultra（`stability.stable-image-ultra-v1:1`）画图，对话模型是 `claude-sonnet-5-5-chat`，价格为 0（图片按内置标价计费），并绑定到 group 1。已有的同名模型不会被修改。
+   - 模板新增参数 `EnablePainter`（默认 `true`），与 Claude Code Web 共用 stack 的工作区存储桶，painter 使用 `painter/` 前缀。Claude Code Web 或 painter 任一开启时就会创建这个存储桶。删除 stack 时它会保留，也没有生命周期规则。
+   - 模板给 BRConnector 的角色授予 `<bucket>/painter/*` 上的 `s3:PutObject` 和 `s3:GetObject`，以及 `aws-marketplace:Subscribe` 和 `aws-marketplace:ViewSubscriptions`，所以第一次调用每个 Stability 模型时会自动为账号订阅。账号需要有效的付款方式。
+   - `lambda`、`lambda-web` 和 `ecs` 通过环境变量得到 `PAINTER_S3_BUCKET`、`PAINTER_S3_REGION` 和 `PAINTER_S3_PREFIX`。`ec2` 从一个 SSM 参数读取，所以更新不会重启实例。
+   - painter config 里的 `s3Bucket`、`s3Region` 和 `s3Prefix` 现在都是可选的。不填 `s3Bucket` 时，painter 使用 stack 的设置；填了就三项都取自 config，和以前一样。两处都没有时，错误信息会写明两种解决办法。见[图片存在哪里](../providers/painter.md#where-pictures-are-stored)。
+   - 只被授予 `painter` 的 key 现在可以正常使用。painter 对对话模型的调用记在同一个 key 上，这个 key 仍然不能直接调用对话模型。
+   - Claude Code Web 的工作区角色现在只限于共用存储桶里的 `user_data/`。
 
 ## 0.0.45
 

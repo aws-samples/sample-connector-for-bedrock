@@ -28,9 +28,9 @@
 | --- | --- | --- | --- | --- |
 | localLlmModel | string | Y | | 理解请求并决定画什么的对话模型。它必须支持 **function calling**，并且能**看懂图片**。看不懂图片的模型分不清用户指的是哪一张。请使用 Claude Sonnet 模型，见[选择对话模型](#choose-chat-model)。 |
 | paintModelId | string | Y | | 文生图模型，可选值见下文。 |
-| s3Bucket | string | Y | | 保存上传图片和生成图片的存储桶。请按[IAM 权限](#iam)授予访问权限。 |
-| s3Prefix | string | N | "" | S3 key 前缀。生成的图片放在 `<s3Prefix>/<date>/`，上传的图片放在 `<s3Prefix>/uploads/<date>/`。 |
-| s3Region | string | Y | | 存储桶所在的区域。 |
+| s3Bucket | string | N | stack 的存储桶 | 保存上传图片和生成图片的存储桶。不填就使用 stack 的存储桶，见[图片存在哪里](#where-pictures-are-stored)。填了它，请按[IAM 权限](#iam)授予访问权限。 |
+| s3Prefix | string | N | ""（用 stack 的存储桶时是 `painter`） | S3 key 前缀。生成的图片放在 `<s3Prefix>/<date>/`，上传的图片放在 `<s3Prefix>/uploads/<date>/`。 |
+| s3Region | string | 填了 `s3Bucket` 时为 Y | stack 所在的区域 | 存储桶所在的区域。 |
 | image_prices | object | N | | 每个模型 ID 对应的单张图片价格，币种与模型相同。见[计费](#billing)。 |
 | price_per_image | number | N | | 所有图片共用的单张价格，币种与模型相同。`image_prices` 里没有的模型 ID 使用它。见[计费](#billing)。 |
 
@@ -45,6 +45,25 @@
 painter 现在忽略 `regions` 字段，设置了它会在日志里记一条消息。painter 为每个模型自己选区域，见[区域与数据驻留](#regions)。请把已有 config 里的 `regions` 删掉。
 
 然后将此模型授予组或 api key。
+
+### 图片存在哪里 {#where-pictures-are-stored}
+
+painter 按 config 决定图片存在哪里：
+
+- config 里有 `s3Bucket` 时，存储桶、区域和前缀三项都取自 config。`s3Region` 必填，`s3Prefix` 不设置就是空。不会再读别的设置。
+- config 里没有 `s3Bucket` 时，painter 使用 stack 的存储桶、区域和前缀 `painter`。BRConnector 从环境变量 `PAINTER_S3_BUCKET`、`PAINTER_S3_REGION` 和 `PAINTER_S3_PREFIX` 读取。`ec2` 计算类型上，stack 把这些值放在一个 SSM 参数里，BRConnector 从那里读取。
+- 两处都没有时，painter 会返回错误，同时写明两种解决办法：在模型 config 里填写 S3，或者把 stack 更新到带 painter 的模板（`EnablePainter`）。
+
+用当前模板创建的 stack，在 `EnablePainter` 为 `true`（默认值）时会设置这些变量。见[快速部署](../home/deployment.md#painter-stack-update)。
+
+## 预置的 painter 模型 {#preset-painter-model}
+
+新 stack 里有一个名为 `painter` 的模型。它用 Stability Image Ultra（`stability.stable-image-ultra-v1:1`）画图，用 `claude-sonnet-5-5-chat` 作为对话模型。它的价格是 0，每张图片按内置标价计费（见[计费](#billing)）。
+
+要让用户画图，把 `painter` 授予某个 key 或某个 group 即可。不需要再授予对话模型：painter 对它的调用记在同一个 key 上。只被授予 `painter` 的 key 仍然不能直接调用这个对话模型。
+
+- 数据库里已经有名为 `painter` 的模型时，保持不变。
+- `EnablePainter` 设为 `false` 时，这个模型仍然存在，调用它会返回错误，说明怎样给它配置存储。
 
 ### 选择对话模型 {#choose-chat-model}
 
@@ -94,7 +113,7 @@ painter 不支持蒙版，所以不能做局部重绘、擦除物体或扩图。
 - 图片超出所选模型的限制时，会返回错误，写明违反的规则和图片的实际值。
 - Bedrock 过滤了提示词、输入图片或输出图片时，回复会说明是哪一个，不会显示错误堆栈。
 
-上传的图片保存在 `<s3Prefix>/uploads/<date>/`，生成的图片保存在 `<s3Prefix>/<date>/`。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。
+上传的图片保存在 `<s3Prefix>/uploads/<date>/`，生成的图片保存在 `<s3Prefix>/<date>/`。用 stack 的存储桶时，`<s3Prefix>` 是 `painter`。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。
 
 回复里生成的图片是 S3 预签名 URL 链接。URL 最长有效 4 小时。用临时凭证签名的 URL 在凭证过期时就失效。EC2 实例角色的凭证约 6 小时有效，所以对话里较早的图片可能不到 4 小时就打不开。
 
@@ -114,15 +133,15 @@ BRConnector 运行在 us-east-1、us-east-2 和 us-west-2 之外时，提示词�
 运行 BRConnector 的角色需要：
 
 - 目标区域的 `bedrock:InvokeModel`，覆盖基础模型和 `us.stability.*` 推理配置文件。
-- 存储桶和前缀上的 `s3:PutObject` 和 `s3:GetObject`。
+- 存储桶和前缀上的 `s3:PutObject` 和 `s3:GetObject`。stack 会在它自己存储桶的 `<bucket>/painter/*` 上授予这两个权限。模型 config 里填了自定义存储桶时，角色需要在那个存储桶上有同样的权限。
 
-Stability 模型是通过 AWS Marketplace 销售的第三方模型。一个 AWS 账号第一次调用某个模型时，会为账号订阅这个模型。这次调用需要 `aws-marketplace:Subscribe` 和 `aws-marketplace:ViewSubscriptions` 权限，账号也需要有可用于 AWS Marketplace 的有效付款方式。请把这两个权限授予角色，或者请有这两个权限的人在 Amazon Bedrock 控制台里把每个模型调用一次。订阅完成后，角色只需要 `bedrock:InvokeModel`。订阅最多可能需要 15 分钟。
+Stability 模型是通过 AWS Marketplace 销售的第三方模型。一个 AWS 账号第一次调用某个模型时，会为账号订阅这个模型。这次调用需要 `aws-marketplace:Subscribe` 和 `aws-marketplace:ViewSubscriptions` 权限，账号也需要有可用于 AWS Marketplace 的有效付款方式。stack 会把这两个权限授予角色，所以第一次调用每个 Stability 模型时会自动为账号订阅。订阅最多可能需要 15 分钟，在订阅生效之前，调用会失败并带下面的提示。没有一键订阅的办法。如果没有 stack 授予的权限，请把这两个权限授予角色，或者请有这两个权限的人在 Amazon Bedrock 控制台里把每个模型调用一次。订阅完成后，角色只需要 `bedrock:InvokeModel`。
 
 用 `aws:RequestedRegion` 限制区域的服务控制策略（SCP）会拦截对 us-west-2 的调用。
 
 调用返回 `AccessDeniedException` 时，回复会引用 Bedrock 的原始消息，并附一条提示：
 
-- 消息里提到 AWS Marketplace 时，说明这个模型的订阅还没有完成。请用上面两种方法之一完成订阅，几分钟后再试。
+- 消息里提到 AWS Marketplace 时，说明这个模型的订阅还没有完成。请等订阅完成，或者用上面的方法完成订阅，几分钟后再试。
 - 其他情况下，回复会写明 BRConnector 调用的区域。请确认角色和所有服务控制策略都允许在该区域调用 `bedrock:InvokeModel`。
 
 Bedrock 的消息里可能包含运行 BRConnector 的角色的 ARN。日志会记下每次拒绝的模型 ID、区域、错误名称、Bedrock 的消息和请求 ID，不记录提示词和图片。

@@ -88,6 +88,10 @@
 
 ![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
+- painter 参数
+  - `EnablePainter`（默认 `true`）让预置的 `painter` 模型具备画图所需的条件。stack 把图片放进它的工作区存储桶（Claude Code Web 用的那个，名称以 `brc-cc-workspace-` 开头），前缀是 `painter/`；给 BRConnector 的角色授予这个前缀和 AWS Marketplace 的权限，并把设置交给 BRConnector。删除 stack 时这个存储桶会保留，也没有生命周期规则。S3 和 IAM 都不需要您来填。见 [painter](../providers/painter.md#preset-painter-model)。
+  - 设为 `false` 时，stack 不会为 painter 创建存储桶（Claude Code Web 开启时仍可能创建它），也不会为 painter 设置任何东西。
+
 - 调试参数
   - 如果您选择 Lambda 作为计算类型，可以选择在所有资源部署成功后删除 EC2。此 EC2 用于临时编译和构建 BRConnector 容器。
   - 如果您选择 EC2 作为计算类型，请不要删除 EC2
@@ -163,6 +167,17 @@ BRConnector 在 `/brclient/` 提供 BRClient 网页版。`ec2`、`ecs`、`lambda
 - 更新会为数据库开启删除保护，不会中断服务。见[删除 stack](#deleting-a-stack)。
 - 使用 `brconnector-ecs-fargate.yaml` 时，`PGUser` 也要保持当前值。它现在没有默认值，换一个用户名会替换数据库。
 - 模板现在写明了每个安全组的出站规则，并把数据库设为不可公开访问。这些规则允许所有 IPv4 和所有 IPv6 流量，和安全组不写出站规则时 EC2 自动添加的规则一样。更新会修改这些资源，但出站流量和数据库的访问方式不变。在没有 IPv6 的 VPC 里，IPv6 规则不会匹配任何流量。
+
+## 已有 stack 使用 painter {#painter-stack-update}
+
+要让已有 stack 拥有带存储的预置 `painter` 模型：
+
+1. 用新模板更新 stack，`EnablePainter` 保持 `true`。
+2. 运行包含本版本的镜像。开启 AutoUpdate 时，每晚更新会拉取它。
+
+`lambda`、`lambda-web` 和 `ecs` 通过模板更新得到这些环境变量。`ec2` 从一个 SSM 参数读取设置，所以这次更新不会修改或重启它的实例。
+
+stack 拿不到这些设置时（`EnablePainter` 为 `false`、部署不是用这个模板创建的，或者镜像太旧），请在 `painter` 模型的 config 里填写 `s3Bucket` 和 `s3Region`。见[图片存在哪里](../providers/painter.md#where-pictures-are-stored)。
 
 ## 删除 stack {#deleting-a-stack}
 
