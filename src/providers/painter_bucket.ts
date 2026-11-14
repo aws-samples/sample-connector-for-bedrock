@@ -28,7 +28,6 @@ export function resetStackSettings(): void {
 
 const withoutTrailingSlash = (prefix: string) => (prefix.endsWith("/") ? prefix.slice(0, -1) : prefix);
 
-/** A bucket in the model config decides all three settings; without one, the stack's settings do. */
 export async function pictureBucket(config: ModelS3Config, deps: Deps = {}): Promise<PictureBucket> {
   if (config.s3Bucket) {
     if (!config.s3Region) throw new Error("You must specify the parameter 's3Region'.");
@@ -38,7 +37,7 @@ export async function pictureBucket(config: ModelS3Config, deps: Deps = {}): Pro
   const stack = env.PAINTER_S3_BUCKET ? env : await stackSettingsOnEc2(env, deps);
   if (!stack?.PAINTER_S3_BUCKET) throw new Error(NO_BUCKET);
   if (!stack.PAINTER_S3_REGION) {
-    throw new Error("painter's stack settings name the bucket PAINTER_S3_BUCKET without its Region. Set PAINTER_S3_REGION, or set s3Bucket and s3Region in this model's config.");
+    throw new Error("painter's stack settings have PAINTER_S3_BUCKET but no PAINTER_S3_REGION. Set PAINTER_S3_REGION, or set s3Bucket and s3Region in this model's config.");
   }
   return { bucket: stack.PAINTER_S3_BUCKET, region: stack.PAINTER_S3_REGION, prefix: withoutTrailingSlash(stack.PAINTER_S3_PREFIX || "") };
 }
@@ -51,10 +50,13 @@ function stackSettingsOnEc2(env: NodeJS.ProcessEnv, deps: Deps): Promise<StackSe
   }
   if (!ec2Settings) {
     const lookup = readEc2Settings(env, deps);
+    const forget = () => {
+      if (ec2Settings === lookup) ec2Settings = null;
+    };
     ec2Settings = lookup;
-    void lookup.then((settings) => {
-      if (!settings && ec2Settings === lookup) ec2Settings = null;
-    });
+    lookup.then((settings) => {
+      if (!settings) forget();
+    }, forget);
   }
   return ec2Settings;
 }
@@ -89,7 +91,7 @@ function parseStackSettings(value: string | undefined): StackSettings | null {
   if (typeof parsed !== "object" || parsed === null) return null;
   const settings: StackSettings = {};
   for (const key of ["PAINTER_S3_BUCKET", "PAINTER_S3_REGION", "PAINTER_S3_PREFIX"] as const) {
-    const v: unknown = (parsed as Record<string, unknown>)[key];
+    const v = (parsed as Record<string, unknown>)[key];
     if (typeof v === "string") settings[key] = v;
   }
   return settings.PAINTER_S3_BUCKET ? settings : null;
