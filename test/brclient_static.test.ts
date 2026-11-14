@@ -8,7 +8,6 @@ import { brclientStaticHandler } from '../src/middleware/brclient_static';
 
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 
-// The layout of a Next.js static export: only _next/static/ holds content-hashed names.
 const FILES: Record<string, string> = {
     'index.html': '<html>BRCLIENT</html>',
     '404.html': '<html>NOT FOUND</html>',
@@ -33,9 +32,9 @@ beforeAll(async () => {
         fs.mkdirSync(path.dirname(path.join(rootDir, name)), { recursive: true });
         fs.writeFileSync(path.join(rootDir, name), content);
     }
+    const rootDirFromCwd = path.relative(process.cwd(), rootDir);
     const app = new Koa();
-    // Relative to the working directory, as the server mounts it.
-    app.use(brclientStaticHandler(path.relative(process.cwd(), rootDir)));
+    app.use(brclientStaticHandler(rootDirFromCwd));
     server = app.listen(0, '127.0.0.1');
     await new Promise<void>((resolve) => server.once('listening', () => resolve()));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

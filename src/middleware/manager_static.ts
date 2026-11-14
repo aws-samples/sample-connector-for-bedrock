@@ -5,7 +5,6 @@ import { lookup } from "mime-types";
 import { cacheControlFor } from "./static_cache";
 
 const PREFIX = "/manager";
-// vite.config.js gives every file in these directories a content-hashed name.
 const HASHED_DIRS = ["js", "css", "img", "fonts", "assets"];
 
 /**

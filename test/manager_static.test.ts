@@ -6,6 +6,7 @@ import net from 'net';
 import path from 'path';
 import type { AddressInfo } from 'net';
 import { managerStaticHandler } from '../src/middleware/manager_static';
+import viteConfig from '../vite.config.js';
 
 let tmp: string;
 let server: ReturnType<Koa['listen']>;
@@ -110,6 +111,18 @@ describe('managerStaticHandler', () => {
             const r = await raw(p);
             expect(r.status, p).toBe(200);
             expect(cacheControl(r.headers), p).toBe('public, max-age=31536000, immutable');
+        }
+    });
+
+    it('caches every file the vite build names with a content hash', async () => {
+        const { entryFileNames, chunkFileNames, assetFileNames } = viteConfig.build.rollupOptions.output;
+        const patterns = [entryFileNames, chunkFileNames, ...['a.css', 'a.png', 'a.woff2', 'a.json'].map((name) => assetFileNames({ name }))];
+        for (const pattern of patterns) {
+            expect(pattern).toContain('[hash]');
+            const name = pattern.replace('[name]', 'built').replace('[hash]', 'Q1w2E3r4').replace('[extname]', '.bin');
+            fs.mkdirSync(path.dirname(path.join(tmp, 'frontend', name)), { recursive: true });
+            fs.writeFileSync(path.join(tmp, 'frontend', name), 'built');
+            expect(cacheControl((await raw(`/manager/${name}`)).headers), name).toBe('public, max-age=31536000, immutable');
         }
     });
 
