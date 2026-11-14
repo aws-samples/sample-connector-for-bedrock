@@ -15,13 +15,13 @@ title: Claude Code Web
 - 会话启动时，如果用户的 `~/.claude/settings.json` 里没有 `skipWebFetchPreflight`，会写入 `"skipWebFetchPreflight": true`，这样 Claude Code 在 WebFetch 之前不会先向 api.anthropic.com 检查域名；用户自己设置的值会保留。
 - key 被删除或者额度用完，就不能再使用 Claude Code Web。
 
-## 打开开关
+## 打开或关闭
 
-Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 中（见 [快速部署](../../home/deployment.md)）。请在**新建** stack 时打开开关，原因见下文「已知限制」。
+Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) 中（见 [快速部署](../../home/deployment.md)）。它默认打开，并且只在**新建** stack 时生效，原因见下文「已知限制」。部署条件不满足、跑不了它时，它会被跳过，stack 仍然会创建（见[哪些情况会跳过](#where-it-is-skipped)）。
 
 | 参数 | 取值 |
 | --- | --- |
-| `EnableClaudeCodeWeb` | `true`（默认 `false`） |
+| `EnableClaudeCodeWeb` | `true`（默认）。`false` 表示关闭。 |
 | `ComputeType` | `ec2`、`ecs` 或 `lambda-web`。不支持 `lambda`。 |
 | `DatabaseMode` | `Standalone`，或者 `ComputeType` 为 `ec2` 时用 `EC2Integrated`。没有数据库就只有 admin key，而 Claude Code Web 不接受 admin key。 |
 | `BRConnectorVersion` | `ec2` 和 `ecs` 用的是公开镜像，必须选 `latest`；固定的旧版本里没有 `/cc`。 |
@@ -31,9 +31,22 @@ Claude Code Web 包含在 CloudFormation 模板 [quick-build-brconnector.yaml](h
 | `ClaudeCodeWebImageBuildId` | 修改它（例如从 `1` 改成 `2`）只重建后端镜像，不动其他资源，见「已知限制」。默认 `1`。 |
 | `EnableWebSearch` | `true`（默认）时同时创建 AgentCore Web Search 的 gateway，见「联网搜索」。`false` 时不创建。 |
 
-不满足上述组合时，模板的 `Rules` 会在创建任何资源之前拒绝。
+### 哪些情况会跳过 {#where-it-is-skipped}
 
-打开开关后，stack 还会创建：
+不满足上述组合时，stack 仍然会创建，只是没有 Claude Code Web，下面这些资源也都不会创建。stack 输出 `ClaudeCodeWebStatus` 会写明有没有部署；没有部署时还会写明原因：
+
+- `EnableClaudeCodeWeb` 为 `false`。
+- `ComputeType` 是 `lambda`：它的 60 秒超时会截断长的流式响应。请使用 `ec2`、`ecs` 或 `lambda-web`。
+- 没有可用的数据库：Claude Code Web 不接受 admin key。请把 `DatabaseMode` 设为 `Standalone`，或者在 `ComputeType` 为 `ec2` 时设为 `EC2Integrated`。
+- `ec2` 或 `ecs` 上固定了 `BRConnectorVersion`：固定的旧版本里没有 `/cc`。请使用 `latest`。
+
+如果您打开了它却没有看到 `ClaudeCodeWebUrl`，请看 `ClaudeCodeWebStatus`。在不支持的组合上要求部署 Claude Code Web，不会再让 stack 创建失败。
+
+### 费用和创建时间
+
+因为默认打开，新 stack 的创建时间更长（创建期间会运行构建后端镜像的 CodeBuild 构建），账号还要承担 AgentCore Runtime 的费用。`EnableWebSearch` 默认也是 `true`，每次搜索都记在账号上。要避免这两项，把 `EnableClaudeCodeWeb` 设为 `false`。
+
+部署 Claude Code Web 时，stack 还会创建：
 
 - 一个 ECR 仓库，以及一个 CodeBuild 项目：从 `SourceRepoUrl` 的 `SourceRef` 构建后端镜像（arm64），冒烟检查后推送。建 stack 时由一个小的 Lambda 函数启动构建，stack 会等待构建完成；
 - AgentCore Runtime；
@@ -116,7 +129,7 @@ key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 40
 
 ## 已知限制 {#known-limitations}
 
-- 只支持在新建 stack 时打开开关。对已有 stack 打开开关不会生效：ec2 修改 UserData 不会重跑 cloud-init，每晚的 SSM 升级执行的是 `/root/brconnector-run.sh`（0.0.44 之前创建的 stack 重放第一次启动时记录的 `docker run` 行），而这个脚本是实例第一次部署时写下的。
+- 开关只在新建 stack 时生效。在默认值改变之前创建的 stack，在控制台更新时仍保持 `false`，什么都不会创建。使用 AWS CLI 时，给 `EnableClaudeCodeWeb` 传 `UsePreviousValue=true`：不传的话，更新会采用新的默认值 `true`，创建 Claude Code Web，在 `ec2` 上还会修改 UserData，从而停止再启动实例。对已有 stack 打开它不会生效：ec2 修改 UserData 不会重跑 cloud-init，每晚的 SSM 升级执行的是 `/root/brconnector-run.sh`（0.0.44 之前创建的 stack 重放第一次启动时记录的 `docker run` 行），而这个脚本是实例第一次部署时写下的。
 - microVM 的计算费用算在部署 stack 的账号上，不计入 key 的额度。key 的额度只管模型 token。每个 key 最多一个 microVM，空闲 15 分钟回收。
 - ec2 每晚自动把 BRConnector 升级到 `latest`，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）：镜像会从 `SourceRepoUrl` 的 `SourceRef` 重新构建，`SourceRef` 是分支时会带上新提交，stack 里的其他资源不变。修改 `SourceRepoUrl` 或 `SourceRef` 也会重建镜像。`lambda-web` 形态下，更新 stack 还会从同一个仓库和 ref 重新构建 BRConnector 部署包（更新失败时通过重新构建上一个 `SourceRef` 回滚，所以更新完成前请保留它，见 [AutoUpdate](../../home/deployment.md#autoupdate)）。`ec2` 形态下，`SourceRepoUrl` 和 `SourceRef` 不会动实例；修改 `BRConnectorVersion` 会改变 UserData，实例会停止再启动一次。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。
 - 在上游发布带 `/cc` 的 BRConnector 版本、维护者推送公开镜像之前，`ec2` 和 `ecs` 形态用不了 Claude Code Web。

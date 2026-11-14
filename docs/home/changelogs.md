@@ -6,12 +6,16 @@
 
 - The Claude Code Web backend image gets item 1 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations).
 - No action is needed (item 2). A browser that cached BRClient before the upgrade keeps that copy for up to 30 days, so it can show the old BRClient until the user refreshes the page once. BRConnector cannot change a copy that the browser already holds.
-- Update the stack to the new template to give `painter` storage and IAM permissions (item 3). Keep `EnablePainter` at `true`. See [painter in existing stacks](deployment.md#painter-stack-update).
+- Update the stack to the new template to give `painter` storage and IAM permissions (item 3). See [painter in existing stacks](deployment.md#painter-stack-update).
 - An `ec2` instance is not changed or restarted by this update: BRConnector reads the painter settings from an SSM parameter (item 3).
 - A model that is already named `painter` stays unchanged. The preset is added only when the name is free (item 3).
 - With AutoUpdate, the preset `painter` arrives with the new image, also before the stack is updated to the new template. Until then it answers with an error that says how to give it storage (item 3).
 - The first call to each Stability model subscribes the account in AWS Marketplace and can take up to 15 minutes. Calls fail with an access-denied hint until the subscription is active (item 3).
 - The Claude Code Web workspace role now reaches only `user_data/` in the bucket (item 3).
+- Claude Code Web is on by default for new stacks (item 4). A console update keeps the value of `EnableClaudeCodeWeb` the stack has, which is `false` for a stack created before. With the AWS CLI, pass `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`. Without it, the update takes the new default, creates Claude Code Web, and on `ec2` changes the UserData, which stops and starts the instance. See [Claude Code Web in existing stacks](deployment.md#claude-code-web-stack-update).
+- A new stack takes longer to create and costs more, because Claude Code Web adds a CodeBuild build and AgentCore Runtime charges (item 4). Set `EnableClaudeCodeWeb` to `false` to avoid them.
+- A combination that cannot run Claude Code Web no longer fails the stack. It is skipped, and the `ClaudeCodeWebStatus` output says why (item 4).
+- The template now always creates the workspace bucket. A stack that had Claude Code Web on and was later updated with it off still owns a bucket with that name outside the stack, and the update can fail because it exists. See [painter in existing stacks](deployment.md#painter-stack-update) (item 3).
 
 1. **Dependency Updates** - Dependencies move to newer releases. The new releases of dnspython, fast-uri, fastmcp, filelock, mcp, opentelemetry-api, qs and starlette fix known vulnerabilities.
    - The Claude Code Web backend image installs dnspython 2.9.2, opentelemetry-api 1.45.2, mcp 1.30.0, fastmcp 3.4.10 and filelock 4.2.1. fastmcp 3.4.10 needs Starlette 1.x, so starlette moves from 0.50.0 to 1.10.0 and fastapi from 0.128.0 to 0.162.7. This fixes the known starlette vulnerabilities that 0.0.45 kept.
@@ -22,12 +26,17 @@
    - On every load, the browser now asks BRConnector for the current version of `/portal-for-brclient.html` and of the BRClient (`/brclient/`) and admin console (`/manager/`) files. Build files whose names contain a content hash are the exception: the browser keeps them for up to a year, as it already does for `/cc`.
 3. **painter Out of the Box** - A new stack ships a ready `painter` model. An admin only grants it to a key or a group, and fills in nothing about S3 or IAM. See [painter](../providers/painter.md#preset-painter-model).
    - A new migration adds the preset `painter` model: Stability Image Ultra (`stability.stable-image-ultra-v1:1`) with `claude-sonnet-5-5-chat` as the chat model, prices 0 (pictures are billed at the built-in list prices), bound to group 1. An existing model with the same name is not changed.
-   - The new `EnablePainter` template parameter (default `true`) shares the stack's workspace bucket, the one Claude Code Web uses, under `painter/`. The bucket is created when Claude Code Web or painter is on. It is retained on stack delete and has no lifecycle rule.
+   - The template always shares the stack's workspace bucket, the one Claude Code Web uses, with painter, under `painter/`. There is no parameter for it. The bucket is always created. It is retained on stack delete and has no lifecycle rule.
    - The template grants the BRConnector role `s3:PutObject` and `s3:GetObject` on `<bucket>/painter/*`, and `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions`, so the first call to each Stability model subscribes the account. The account needs a valid payment method.
    - `lambda`, `lambda-web` and `ecs` get `PAINTER_S3_BUCKET`, `PAINTER_S3_REGION` and `PAINTER_S3_PREFIX` as environment variables. `ec2` reads them from an SSM parameter, so the update does not restart the instance.
    - `s3Bucket`, `s3Region` and `s3Prefix` in the painter config are now optional. Without `s3Bucket`, painter uses the stack's settings. With it, the config gives all three, as before. With neither, the error names both fixes. See [Where pictures are stored](../providers/painter.md#where-pictures-are-stored).
    - A key that has only `painter` now works. painter's call to the chat model is billed to the same key. The key still cannot call the chat model directly.
    - The Claude Code Web workspace role is now limited to `user_data/` in the shared bucket.
+4. **Claude Code Web On by Default** (behaviour change) - `EnableClaudeCodeWeb` now defaults to `true`, so a new stack deploys [Claude Code Web](../user-manual/scenarios/claude-code-web.md) without a switch. A deployment that cannot run it skips it, and the stack is still created.
+   - The `ClaudeCodeWebRequirements` rule is removed. Its three tests are part of the condition that creates Claude Code Web: `ComputeType` is not `lambda`, the stack has a database, and `BRConnectorVersion` is `latest` unless `ComputeType` is `lambda-web`.
+   - The new output `ClaudeCodeWebStatus` is always present. It says `Deployed`, or why Claude Code Web was not deployed: the switch is off, `lambda`, no usable database, or a pinned `BRConnectorVersion`.
+   - A new stack takes longer to create, because the CodeBuild build of the backend image runs during creation. The account pays for AgentCore Runtime. `EnableWebSearch` is also `true` by default, and each search is billed to the account.
+   - A request for Claude Code Web on an unsupported combination used to fail the stack with an error. Now the stack is created without it. Read `ClaudeCodeWebStatus`.
 
 ## 0.0.45
 

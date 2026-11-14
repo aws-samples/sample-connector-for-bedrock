@@ -52,9 +52,9 @@ The config decides where painter stores pictures:
 
 - With `s3Bucket` in the config, the config gives all three settings. `s3Region` is required, and `s3Prefix` is empty unless you set it. Nothing else is read.
 - Without `s3Bucket`, painter uses the stack's bucket, Region and prefix `painter`. BRConnector reads them from the environment variables `PAINTER_S3_BUCKET`, `PAINTER_S3_REGION` and `PAINTER_S3_PREFIX`. On the `ec2` compute type, the stack keeps these values in an SSM parameter, and BRConnector reads them from there.
-- With neither, painter answers with an error that names both fixes: fill S3 into the model config, or update the stack to a template that has painter (`EnablePainter`).
+- With neither, painter answers with an error that names both fixes: fill S3 into the model config, or update the BRConnector stack to the current template, which sets them.
 
-A stack created from the current template sets the variables when `EnablePainter` is `true` (the default). See [Quick Deployment](../home/deployment.md#painter-stack-update).
+A stack created from the current template always sets the variables. A stack cannot get them when it was not made from this template, its template was not updated, or it runs an older image. For such a stack, fill `s3Bucket` and `s3Region` in the model config. See [Quick Deployment](../home/deployment.md#painter-stack-update).
 
 ## Preset painter model {#preset-painter-model}
 
@@ -63,7 +63,7 @@ A new stack has a model named `painter`. It uses Stability Image Ultra (`stabili
 To let users draw, grant `painter` to a key or a group. You do not need to grant the chat model: painter's calls to it are billed to the same key. A key that has only `painter` still cannot call the chat model directly.
 
 - A database that already has a model named `painter` keeps it unchanged.
-- With `EnablePainter` set to `false`, the model still exists. It answers with an error that says how to give it storage.
+- On a stack that cannot get the stack's settings (see [Where pictures are stored](#where-pictures-are-stored)), the model still exists. It answers with an error that says how to give it storage.
 
 ### Choosing the chat model {#choose-chat-model}
 

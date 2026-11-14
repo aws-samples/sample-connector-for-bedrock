@@ -52,9 +52,9 @@ painter 按 config 决定图片存在哪里：
 
 - config 里有 `s3Bucket` 时，存储桶、区域和前缀三项都取自 config。`s3Region` 必填，`s3Prefix` 不设置就是空。不会再读别的设置。
 - config 里没有 `s3Bucket` 时，painter 使用 stack 的存储桶、区域和前缀 `painter`。BRConnector 从环境变量 `PAINTER_S3_BUCKET`、`PAINTER_S3_REGION` 和 `PAINTER_S3_PREFIX` 读取。`ec2` 计算类型上，stack 把这些值放在一个 SSM 参数里，BRConnector 从那里读取。
-- 两处都没有时，painter 会返回错误，同时写明两种解决办法：在模型 config 里填写 S3，或者把 stack 更新到带 painter 的模板（`EnablePainter`）。
+- 两处都没有时，painter 会返回错误，同时写明两种解决办法：在模型 config 里填写 S3，或者把 BRConnector 的 stack 更新到当前模板，当前模板会设置这些值。
 
-用当前模板创建的 stack，在 `EnablePainter` 为 `true`（默认值）时会设置这些变量。见[快速部署](../home/deployment.md#painter-stack-update)。
+用当前模板创建的 stack 一定会设置这些变量。不是用这个模板创建的 stack、模板没有更新的 stack，或者镜像较旧的 stack 拿不到它们，请在模型 config 里填写 `s3Bucket` 和 `s3Region`。见[快速部署](../home/deployment.md#painter-stack-update)。
 
 ## 预置的 painter 模型 {#preset-painter-model}
 
@@ -63,7 +63,7 @@ painter 按 config 决定图片存在哪里：
 要让用户画图，把 `painter` 授予某个 key 或某个 group 即可。不需要再授予对话模型：painter 对它的调用记在同一个 key 上。只被授予 `painter` 的 key 仍然不能直接调用这个对话模型。
 
 - 数据库里已经有名为 `painter` 的模型时，保持不变。
-- `EnablePainter` 设为 `false` 时，这个模型仍然存在，调用它会返回错误，说明怎样给它配置存储。
+- stack 拿不到设置时（见[图片存在哪里](#where-pictures-are-stored)），这个模型仍然存在，调用它会返回错误，说明怎样给它配置存储。
 
 ### 选择对话模型 {#choose-chat-model}
 

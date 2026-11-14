@@ -89,9 +89,17 @@ Here are some recommend deployment patterns:
 
 ![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
-- painter parameter
-  - `EnablePainter` (default `true`) gives the preset `painter` model what it needs to draw. The stack puts pictures in its workspace bucket (the one Claude Code Web uses, named `brc-cc-workspace-...`) under the prefix `painter/`, grants the BRConnector role access to that prefix and to AWS Marketplace, and gives BRConnector the settings. The bucket is retained when you delete the stack and has no lifecycle rule. You fill in nothing about S3 or IAM. See [painter](../providers/painter.md#preset-painter-model).
-  - With `false`, the stack creates no bucket for painter (Claude Code Web may still create it) and sets nothing for painter.
+- painter
+  - The template always sets up the preset `painter` model, with no parameter. The stack puts pictures in its workspace bucket (the one Claude Code Web uses, named `brc-cc-workspace-...`) under the prefix `painter/`, grants the BRConnector role access to that prefix and to AWS Marketplace, and gives BRConnector the settings. The bucket is retained when you delete the stack and has no lifecycle rule. You fill in nothing about S3 or IAM. See [painter](../providers/painter.md#preset-painter-model).
+
+- Claude Code Web parameter
+  - `EnableClaudeCodeWeb` defaults to `true`. A deployment that cannot run [Claude Code Web](../user-manual/scenarios/claude-code-web.md) skips it, and the stack is still created. The stack output `ClaudeCodeWebStatus` says whether it was deployed and, if not, why:
+    - `lambda`: the 60-second timeout cuts off long streams. Use `ec2`, `ecs` or `lambda-web`.
+    - No usable database: Claude Code Web refuses the admin key. Set `DatabaseMode` to `Standalone`, or to `EC2Integrated` with `ComputeType` `ec2`.
+    - A pinned `BRConnectorVersion` on `ec2` or `ecs`: the pinned versions predate `/cc`. Use `latest`.
+    - `EnableClaudeCodeWeb` set to `false`.
+  - It adds the CodeBuild build of the backend image to the stack creation time, and AgentCore Runtime charges to the account. `EnableWebSearch` is also `true` by default, and each search is billed to the account. Set `EnableClaudeCodeWeb` to `false` if you do not want them.
+  - It takes effect only when the stack is created. See [Claude Code Web in existing stacks](#claude-code-web-stack-update).
 
 - Debugging parameters
   - If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.
@@ -173,14 +181,20 @@ A template that has the `PGStorageEncrypted` parameter also changes the RDS data
 
 To give an existing stack the preset `painter` model with storage:
 
-1. Update the stack with the new template and keep `EnablePainter` at `true`.
+1. Update the stack with the new template.
 2. Run an image that includes this release. With AutoUpdate, the nightly update pulls it.
 
 `lambda`, `lambda-web` and `ecs` get the settings as environment variables from the template update. `ec2` reads them from an SSM parameter, so the update does not change or restart its instance.
 
-A stack that had Claude Code Web on and was later updated with it off still has the workspace bucket, outside the stack, because the bucket is retained. If the update then fails because a bucket with that name already exists, update with `EnablePainter` set to `false`, or delete that bucket first if you no longer need its files.
+The template now always creates the workspace bucket. A stack that had Claude Code Web on and was later updated with it off still owns a bucket with that name outside the stack, because the bucket is retained. This case is rare, and the way out below was not tested. The update can fail because the bucket already exists. Either move the files you need and delete the bucket, then update again, or import the bucket into the stack (a resource import, with the logical ID `ClaudeCodeWebWorkspaceBucket`) and update again.
 
-Fill `s3Bucket` and `s3Region` in the `painter` model config where a stack cannot get the settings: `EnablePainter` is `false`, the deployment was not made from this template, or the image is older. See [Where pictures are stored](../providers/painter.md#where-pictures-are-stored).
+Fill `s3Bucket` and `s3Region` in the `painter` model config where a stack cannot get the settings: the deployment was not made from this template, its template was not updated, or its image is older. See [Where pictures are stored](../providers/painter.md#where-pictures-are-stored).
+
+## Claude Code Web in existing stacks {#claude-code-web-stack-update}
+
+`EnableClaudeCodeWeb` takes effect only when the stack is created. A stack created before the default changed has it set to `false`, and keeps `false` when you update it in the console. With `false`, the update creates nothing for Claude Code Web, and an `ec2` instance is not changed.
+
+With the AWS CLI, pass `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`. Without it, the update takes the new default `true`. It then creates Claude Code Web, and on `ec2` it changes the UserData, which stops and starts the instance. Turning it on for an existing stack is not supported; see [Known limitations](../user-manual/scenarios/claude-code-web.md#known-limitations).
 
 ## Deleting a stack {#deleting-a-stack}
 
