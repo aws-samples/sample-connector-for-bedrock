@@ -14,7 +14,7 @@ You can start BRClient directly from the source code or [download the installer 
 
 If you have deployed the BRConnector project, you can start it directly through this URL: http(s)://your-endpoint/brclient/.
 
-The web app at `/brclient/` is built from a pinned version of the upstream source; see [BRClient source](../../home/deployment.md#brclient-source). Since BRConnector 0.0.45, a message with pictures in this web app has a Download button among its actions, which saves each picture as a file.
+The web app at `/brclient/` is built from pinned upstream commits; see [BRClient source](../../home/deployment.md#brclient-source). Since BRConnector 0.0.45, a message with pictures in this web app has a Download button among its actions, which saves its pictures. A picture that the browser cannot save directly opens in a new tab instead.
 
 ## Settings
 

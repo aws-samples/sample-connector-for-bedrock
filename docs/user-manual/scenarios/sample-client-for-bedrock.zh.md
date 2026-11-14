@@ -14,7 +14,7 @@ Sample client for Bedrock (BRClient) 是一个样例项目，用于展示如何�
 
 如果您部署了本项目（BRConnector），可以直接通过这个 URL 启动：http(s)://your-endpoint/brclient/。
 
-`/brclient/` 上的网页版从钉住的上游源码版本构建，见 [BRClient 来源](../../home/deployment.md#brclient-source)。从 BRConnector 0.0.45 起，这个网页版里带图片的消息多了一个下载按钮，把消息里的每张图片存成文件。
+`/brclient/` 上的网页版从钉住的上游提交构建，见 [BRClient 来源](../../home/deployment.md#brclient-source)。从 BRConnector 0.0.45 起，这个网页版里带图片的消息在操作栏里多了一个下载按钮，用来保存消息里的图片；浏览器不能直接保存的图片会在新标签页打开。
 
 ## 设置
 
