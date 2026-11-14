@@ -22,10 +22,8 @@ def test_an_ungated_reference_to_a_claude_code_web_resource_is_reported():
 
 
 @pytest.mark.parametrize('name, condition', [
-    # Under painter's switch alone, a Claude Code Web stack without painter has no bucket.
-    ('ClaudeCodeWebWorkspaceBucket', 'IsPainter'),
-    # Only the SHARED resources may exist while Claude Code Web is off.
-    ('ClaudeCodeWebRepository', 'CreateWorkspaceBucket'),
+    pytest.param('ClaudeCodeWebWorkspaceBucket', 'IsPainter', id='shared-bucket-without-claude-code-web'),
+    pytest.param('ClaudeCodeWebRepository', 'CreateWorkspaceBucket', id='unshared-resource-under-the-or'),
 ])
 def test_a_claude_code_web_resource_outside_its_gate_is_reported(name, condition):
     t = gating.load(TEMPLATE_PATH.read_text())

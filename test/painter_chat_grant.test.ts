@@ -6,7 +6,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import v1 from '../src/controller/runtime/v1';
 import { authHandler, errorHandler } from '../src/middleware/handlers';
 import { ADD_KEY_FEE_SQL } from '../src/providers/key_fee';
-import { MODEL_GRANT_HEADER, issueModelGrant, redeemModelGrant } from '../src/providers/model_grant';
+import { PAINTER_CHAT_GRANT_HEADER, issuePainterChatGrant, redeemPainterChatGrant } from '../src/providers/painter_chat_grant';
 import logger from '../src/util/logger';
 import { selfBaseUrl } from '../src/util/self';
 import { fakeDb } from './helpers/fakes';
@@ -19,11 +19,11 @@ const PAINTER_ONLY = keyOf(5);
 const OTHER_KEY = keyOf(6);
 const REFUSED = `You do not have permission to access the [${CHAT.name}] model, please contact the administrator.`;
 
+const grantsOnly = (model: { id: number }) => async (_table: string, c: any) => c.params[1] === model.id;
+
 let db: ReturnType<typeof fakeDb>;
 let picture: string;
 
-// One request through the gateway as the server runs it: the error handler, the key check, then /v1/chat/completions.
-// The key and its group may use painter and nothing else.
 async function gateway(headers: Record<string, string>, body: any) {
     const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
     const chunks: string[] = [];
@@ -38,7 +38,6 @@ async function gateway(headers: Record<string, string>, body: any) {
     return { ctx, text };
 }
 
-// Painter calls the gateway back over HTTP with the caller's key; here that call goes into the same gateway.
 function loopbackIntoGateway() {
     const sent: Record<string, string>[] = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string, init: any) => {
@@ -50,7 +49,6 @@ function loopbackIntoGateway() {
     return sent;
 }
 
-// The chat model answers with the given rounds in order; a round with `draw` asks painter for txt2img.
 function stubAws(rounds: { text: string; draw?: object }[]) {
     const converse: any[] = [];
     vi.spyOn(BedrockRuntimeClient.prototype, 'send').mockImplementation((async (command: any) => {
@@ -79,7 +77,7 @@ function stubAws(rounds: { text: string; draw?: object }[]) {
 const chargedKeys = () => db.calls.filter((c: any[]) => c[0] === 'query' && c[1] === ADD_KEY_FEE_SQL).map((c: any[]) => c[2][2]);
 const asKey = (key: { api_key: string }, extra: Record<string, string> = {}) => ({ Authorization: `Bearer ${key.api_key}`, 'Session-Id': 's-1', ...extra });
 const askChatModelDirectly = (grant?: string) =>
-    gateway(asKey(PAINTER_ONLY, grant === undefined ? {} : { [MODEL_GRANT_HEADER]: grant }), { model: CHAT.name, messages: [{ role: 'user', content: 'hi' }] });
+    gateway(asKey(PAINTER_ONLY, grant === undefined ? {} : { [PAINTER_CHAT_GRANT_HEADER]: grant }), { model: CHAT.name, messages: [{ role: 'user', content: 'hi' }] });
 
 beforeAll(async () => {
     picture = (await sharp({ create: { width: 64, height: 64, channels: 3, background: { r: 10, g: 120, b: 200 } } }).png().toBuffer()).toString('base64');
@@ -91,7 +89,7 @@ beforeEach(() => {
     vi.stubEnv('PAINTER_S3_PREFIX', 'painter');
     vi.spyOn(logger, 'warn').mockImplementation((() => logger) as any);
     vi.spyOn(logger, 'error').mockImplementation((() => logger) as any);
-    db = { ...fakeDb(), exists: async (_table: string, c: any) => c.params[1] === PAINTER.id } as any;
+    db = { ...fakeDb(), exists: grantsOnly(PAINTER) } as any;
 });
 afterEach(() => {
     vi.restoreAllMocks();
@@ -112,14 +110,12 @@ describe('a key granted only painter', () => {
         expect(text.endsWith('Here it is.')).toBe(true);
         expect(ctx.status).toBe(200);
         expect(aws.converse).toHaveLength(2);
-        // The first chat call, the picture, then the second chat call.
         expect(chargedKeys()).toEqual([PAINTER_ONLY.id, PAINTER_ONLY.id, PAINTER_ONLY.id]);
 
-        const grants = sent.map((headers) => headers[MODEL_GRANT_HEADER]);
+        const grants = sent.map((headers) => headers[PAINTER_CHAT_GRANT_HEADER]);
         expect(grants).toHaveLength(2);
         expect(new Set(grants).size).toBe(2);
         expect(sent.every((headers) => headers.Authorization === `Bearer ${PAINTER_ONLY.api_key}`)).toBe(true);
-        // The grants painter sent were used up by its own calls.
         for (const grant of grants) expect((await askChatModelDirectly(grant)).ctx.body).toMatchObject({ success: false, data: REFUSED });
         expect(aws.converse).toHaveLength(2);
     });
@@ -133,15 +129,15 @@ describe('a key granted only painter', () => {
         expect(ctx.status).toBe(200);
         expect(ctx.body.choices[0].message.content).toBe('A title');
         expect(aws.converse).toHaveLength(1);
-        expect(sent.map((headers) => typeof headers[MODEL_GRANT_HEADER])).toEqual(['string']);
+        expect(sent.map((headers) => typeof headers[PAINTER_CHAT_GRANT_HEADER])).toEqual(['string']);
         expect(chargedKeys()).toEqual([PAINTER_ONLY.id]);
     });
 
     it.each([
         ['no grant', () => undefined],
         ['a made-up grant', () => crypto.randomBytes(32).toString('base64url')],
-        ['a grant issued for another key', () => issueModelGrant(OTHER_KEY.id, CHAT.name)],
-        ['a grant issued for another model', () => issueModelGrant(PAINTER_ONLY.id, 'claude-haiku-5-5-chat')],
+        ['a grant issued for another key', () => issuePainterChatGrant(OTHER_KEY.id, CHAT.name)],
+        ['a grant issued for another model', () => issuePainterChatGrant(PAINTER_ONLY.id, 'claude-haiku-5-5-chat')],
     ])('is refused the chat model when it asks for it directly with %s', async (_what, grant) => {
         const aws = stubAws([{ text: 'unused' }]);
         const { ctx } = await askChatModelDirectly(grant());
@@ -153,7 +149,7 @@ describe('a key granted only painter', () => {
 
     it('is refused the chat model with a grant it already used once', async () => {
         const aws = stubAws([{ text: 'ok' }]);
-        const grant = issueModelGrant(PAINTER_ONLY.id, CHAT.name);
+        const grant = issuePainterChatGrant(PAINTER_ONLY.id, CHAT.name);
         expect((await askChatModelDirectly(grant)).ctx.status).toBe(200);
         const { ctx } = await askChatModelDirectly(grant);
         expect(ctx.body).toMatchObject({ success: false, data: REFUSED });
@@ -167,7 +163,7 @@ describe('a key granted only painter', () => {
         stubAws([{ text: 'ok' }]);
         vi.useFakeTimers({ toFake: ['Date'] });
         vi.setSystemTime(Date.now());
-        const grant = issueModelGrant(PAINTER_ONLY.id, CHAT.name);
+        const grant = issuePainterChatGrant(PAINTER_ONLY.id, CHAT.name);
         vi.setSystemTime(Date.now() + later);
         const { ctx } = await askChatModelDirectly(grant);
         expect(ctx.status).toBe(status);
@@ -177,12 +173,12 @@ describe('a key granted only painter', () => {
 
 describe('a model grant', () => {
     it('is used up by a lookup with the wrong model, so it cannot be tried again', () => {
-        const grant = issueModelGrant(5, 'chat-model');
-        expect(redeemModelGrant(grant, 5, 'other-model')).toBe(false);
-        expect(redeemModelGrant(grant, 5, 'chat-model')).toBe(false);
+        const grant = issuePainterChatGrant(5, 'chat-model');
+        expect(redeemPainterChatGrant(grant, 5, 'other-model')).toBe(false);
+        expect(redeemPainterChatGrant(grant, 5, 'chat-model')).toBe(false);
     });
 
     it.each([undefined, null, 42, ['token']])('is not found for the header value %j', (value) => {
-        expect(redeemModelGrant(value, 5, 'chat-model')).toBe(false);
+        expect(redeemPainterChatGrant(value, 5, 'chat-model')).toBe(false);
     });
 });

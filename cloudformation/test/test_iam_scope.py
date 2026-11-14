@@ -149,17 +149,14 @@ NOT_A_CALL = {
     'WebFnPackageBuildRole': [(LOGS, group, None) for group in build_log_group('${AWS::StackName}-webfn-package')],
 }
 
-# Painter's grants, which sit on EC2Role only when ComputeType is ec2 and EnablePainter is true.
 PAINTER_ON_EC2 = [
     (['s3:PutObject', 's3:GetObject'], sub('arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/painter/*'), None),
-    # Bedrock subscribes the account to a Stability AI model on its first call.
     (['aws-marketplace:Subscribe', 'aws-marketplace:ViewSubscriptions'], '*', None),
     (['ssm:GetParameter'], ssm_parameter('/brconnector/instance/${MyEC2Instance}/painter'), None),
 ]
 
 
 def not_a_call(role, truth):
-    """NOT_A_CALL for role, with painter's grants where BRConnector runs on EC2Role with painter."""
     if role == 'EC2Role' and truth['IsPainterEc2']:
         return NOT_A_CALL[role] + PAINTER_ON_EC2
     return NOT_A_CALL[role]

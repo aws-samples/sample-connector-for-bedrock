@@ -332,7 +332,6 @@ describe('the painter preset migration', () => {
     const sql = migrations.includes(NAME) ? read(join('migrations', NAME)) : '';
     let db: PGlite;
 
-    // pg's Client.query on PGlite: parameterised statements go through query(), scripts through exec().
     const run = async (text: string, params?: any[]) => {
         if (params?.length) {
             const r = await db.query(text, params);
@@ -342,7 +341,6 @@ describe('the painter preset migration', () => {
         const last = results[results.length - 1];
         return { rows: (last?.rows ?? []) as any[], rowCount: last?.affectedRows ?? 0 };
     };
-    // The real src/install.ts against PGlite. withMigration=false is the install from before this migration.
     const install = async (withMigration: boolean) => {
         vi.resetModules();
         for (const [k, v] of Object.entries({ PGSQL_HOST: 'h', PGSQL_DATABASE: 'd', SKIP_DB_INSTALL: '', ADMIN_API_KEY: 'k' })) vi.stubEnv(k, v);

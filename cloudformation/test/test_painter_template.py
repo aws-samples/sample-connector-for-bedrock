@@ -1,8 +1,3 @@
-"""EnablePainter: the shared bucket, the grants, and the bucket settings BRConnector reads.
-
-Each test decides the template's conditions for one set of parameters with the helpers in
-test_iam_scope.py, then reads what a stack created with them would hold.
-"""
 import fnmatch
 import importlib.util
 import json
@@ -33,14 +28,12 @@ SETTINGS = {
     'PAINTER_S3_REGION': 'us-west-2',
     'PAINTER_S3_PREFIX': 'painter',
 }
-# What painter writes and reads back: a picture it drew, and one a user uploaded.
 PAINTER_ARNS = [
     f'arn:aws:s3:::{VALUES[BUCKET]}/painter/2026-11-14/1763100000000-a.png',
     f'arn:aws:s3:::{VALUES[BUCKET]}/painter/uploads/2026-11-14/1763100000000-b.jpg',
 ]
 USER_DATA_ARN = f'arn:aws:s3:::{VALUES[BUCKET]}/user_data/u1/project/notes.md'
 MARKETPLACE = ['aws-marketplace:Subscribe', 'aws-marketplace:ViewSubscriptions']
-# The resource that runs BRConnector off EC2, and the property that names its role.
 RUNNERS = {
     'lambda': ('BRConnectorLambda', 'Role'),
     'ecs': ('ECSTaskDefinition', 'TaskRoleArn'),
@@ -55,7 +48,6 @@ def truth(compute, painter='true', cc='false'):
 
 
 def render(node):
-    """node as text with VALUES filled in, <name> for any other name, '' for other functions."""
     if isinstance(node, dict) and set(node) == {'Ref'}:
         return VALUES.get(node['Ref'], f"<{node['Ref']}>")
     if isinstance(node, dict) and set(node) == {'Fn::Sub'} and isinstance(node['Fn::Sub'], str):
@@ -64,7 +56,6 @@ def render(node):
 
 
 def runner_role(compute):
-    """The role BRConnector runs as, read from the resource that runs it."""
     if compute == 'ec2':
         return iam.instance_role()
     resource, key = RUNNERS[compute]
@@ -78,7 +69,6 @@ def roles(t):
 
 
 def allows(role, t, action, arn):
-    """Whether an inline or attached policy of role allows action on arn without a Condition."""
     return any(
         st['Effect'] == 'Allow'
         and action in iam.as_list(st['Action'])
@@ -89,7 +79,6 @@ def allows(role, t, action, arn):
 
 
 def env(compute, t):
-    """BRConnector's environment variables on lambda, ecs or lambda-web."""
     if compute == 'lambda':
         return iam.resolve(RESOURCES['BRConnectorLambda']['Properties']['Environment']['Variables'], t)
     if compute == 'lambda-web':
@@ -99,7 +88,6 @@ def env(compute, t):
 
 
 def painter_settings(compute, t):
-    """The PAINTER_* settings BRConnector finds: in its environment, or on ec2 in the SSM parameter."""
     if compute == 'ec2':
         if not iam.present('PainterEc2Settings', t):
             return {}
@@ -108,7 +96,6 @@ def painter_settings(compute, t):
 
 
 def painter_names():
-    """EnablePainter, every condition that depends on it, and every resource under one of those."""
     found = {'EnablePainter'}
     while True:
         more = {name for name, body in TEMPLATE['Conditions'].items()
@@ -131,7 +118,6 @@ def test_the_bucket_exists_while_painter_or_claude_code_web_is_on(compute, paint
 
 
 def test_the_bucket_keeps_the_claude_code_web_logical_id_and_name():
-    # A new logical id or name would replace the bucket of every Claude Code Web stack.
     bucket = RESOURCES[BUCKET]
     assert bucket['Type'] == 'AWS::S3::Bucket'
     assert bucket['Properties']['BucketName'] == {'Fn::Sub': 'brc-cc-workspace-${AWS::AccountId}-${AWS::Region}-${RandomString}'}
@@ -188,8 +174,6 @@ def test_ec2_reads_the_settings_of_its_own_instance_only():
 
 
 def test_the_ec2_instance_holds_no_reference_to_painter():
-    # Any change to MyEC2Instance's UserData stops and starts the instance of every ec2
-    # stack, and the new UserData never runs.
     names = painter_names()
     assert {'IsPainter', 'IsPainterEc2', 'CreateWorkspaceBucket', BUCKET, 'PainterComputePolicy', 'PainterEc2Settings'} <= names
     instance = RESOURCES['MyEC2Instance']
@@ -200,7 +184,6 @@ def test_the_ec2_instance_holds_no_reference_to_painter():
 def test_claude_code_web_sessions_reach_only_user_data():
     t = truth('ec2', painter='true', cc='true')
     role = 'ClaudeCodeWebWorkspaceAccessRole'
-    # The session policy narrows the role to <prefix>/<user id>/, with prefix from this value.
     prefix = json.loads(render(RESOURCES['ClaudeCodeWebConfigParameter']['Properties']['Value']))['prefix']
     session_arn = f'arn:aws:s3:::{VALUES[BUCKET]}/{prefix}/u1/project/notes.md'
     for action in ('s3:GetObject', 's3:PutObject', 's3:DeleteObject', 's3:AbortMultipartUpload'):
@@ -222,7 +205,6 @@ def test_sam_hands_the_settings_to_the_function(compute, resource, monkeypatch, 
     pytest.importorskip('samtranslator')
     from samtranslator.translator.transform import transform
 
-    # As in test_webfn_package: no AWS config or credentials, so the transform cannot reach AWS.
     monkeypatch.delenv('AWS_PROFILE', raising=False)
     monkeypatch.setenv('AWS_CONFIG_FILE', str(tmp_path / 'no-config'))
     monkeypatch.setenv('AWS_SHARED_CREDENTIALS_FILE', str(tmp_path / 'no-credentials'))

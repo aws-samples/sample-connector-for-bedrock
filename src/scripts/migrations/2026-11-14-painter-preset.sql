@@ -1,7 +1,3 @@
--- painter, ready to grant to a key or group. It draws with Stable Image Ultra and plans with the Claude Sonnet 5.5
--- chat preset. Its config names no S3 bucket, so it uses the one the BRConnector stack sets (EnablePainter). Painter
--- bills each picture and its chat calls at their own prices, so its token prices are 0. The model inserted here is
--- bound to group 1 if that group exists; a model named painter that already exists is left unchanged and not bound.
 WITH inserted AS (
 INSERT INTO eiai_model (name, multiple, provider, config, price_in, price_out)
 VALUES

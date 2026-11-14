@@ -9,7 +9,6 @@ const INSTANCE_ID_URL = 'http://169.254.169.254/latest/meta-data/instance-id';
 const STACK = { PAINTER_S3_BUCKET: 'stack-bucket', PAINTER_S3_REGION: 'us-east-1', PAINTER_S3_PREFIX: 'painter' };
 const NO_BUCKET = /no S3 bucket for pictures.*s3Bucket and s3Region in this model's config.*EnablePainter/s;
 
-// An instance metadata service. With a working token call it is IMDSv2-only: a GET without the token gets 401.
 function fakeImds(token: 'works' | 'fails' | 'hangs' = 'works') {
     const calls: { method: string; url: string; headers: Record<string, string> }[] = [];
     const fetch = vi.fn(async (url: string, init: any = {}) => {

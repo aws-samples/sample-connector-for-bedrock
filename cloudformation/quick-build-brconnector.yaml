@@ -2736,9 +2736,9 @@ Resources:
       EmptyOnDelete: true
 
   # Claude Code Web users' workspaces, under user_data/<user id>/, and painter's pictures,
-  # under painter/, kept until deleted by hand (no lifecycle rule). Retained for the same
-  # reason as WebFnCodeBucket, and because it holds user files; delete it by hand if
-  # unwanted. A new name or logical id would replace it on every Claude Code Web stack.
+  # under painter/. Retained for the same reason as WebFnCodeBucket, and because it holds
+  # user files; delete it by hand if unwanted. A new name or logical id would replace it on
+  # every Claude Code Web stack.
   ClaudeCodeWebWorkspaceBucket:
     Condition: CreateWorkspaceBucket
     Type: AWS::S3::Bucket
@@ -2852,8 +2852,7 @@ Resources:
 
   # BRConnector assumes this for each user, always with a session policy that narrows it
   # to user_data/<user id>/, and hands the result to that user's microVM. Only the
-  # current compute type's role may assume it. The role itself reaches only user_data/,
-  # so no session can reach painter's pictures in the same bucket.
+  # current compute type's role may assume it.
   ClaudeCodeWebWorkspaceAccessRole:
     Condition: IsClaudeCodeWeb
     Type: AWS::IAM::Role
@@ -3331,18 +3330,6 @@ Resources:
       CredentialProviderConfigurations:
         - CredentialProviderType: GATEWAY_IAM_ROLE
 
-  # ---------------------------------------------------------------------------
-  # Painter  (EnablePainter=true)
-  #
-  # The preset painter model keeps the pictures it draws and the ones users upload under
-  # painter/ in ClaudeCodeWebWorkspaceBucket, and links them with presigned URLs. lambda,
-  # ecs and lambda-web get the bucket settings as PAINTER_S3_* environment variables.
-  # ec2 reads them from PainterEc2Settings instead: a UserData change would stop and
-  # start MyEC2Instance, and UserData does not rerun on an existing instance.
-  # ---------------------------------------------------------------------------
-
-  # Attached to the role that runs BRConnector rather than added to it, so the role itself
-  # renders as before.
   PainterComputePolicy:
     Condition: IsPainter
     Type: AWS::IAM::Policy
@@ -3381,7 +3368,9 @@ Resources:
               Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/instance/${MyEC2Instance}/painter
             - !Ref AWS::NoValue
 
-  # BRConnector on ec2 finds this by its own instance id when PAINTER_S3_BUCKET is unset.
+  # lambda, ecs and lambda-web get the bucket settings as PAINTER_S3_* environment variables.
+  # ec2 reads them from PainterEc2Settings instead: a UserData change would stop and
+  # start MyEC2Instance, and UserData does not rerun on an existing instance.
   PainterEc2Settings:
     Condition: IsPainterEc2
     Type: AWS::SSM::Parameter

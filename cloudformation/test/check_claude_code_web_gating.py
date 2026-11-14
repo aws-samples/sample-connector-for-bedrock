@@ -42,12 +42,10 @@ single line, because the SSM auto-update starts the container from that script, 
 ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
 backend image without touching the BRConnector instance or deployment package.
 
-The resources in SHARED are the exception to the gate rule. Painter keeps its pictures under
-painter/ in ClaudeCodeWebWorkspaceBucket, so the bucket exists while Claude Code Web or
-painter is on, and a new logical id or name would replace the bucket of every Claude Code
-Web stack. A SHARED resource must carry a condition defined as an `Fn::Or` that holds
-IsClaudeCodeWeb, so every Claude Code Web stack still has it. The switch-off render keeps
-it, and nothing in it may reference what that render drops.
+The resources in SHARED are the exception to the gate rule. A SHARED resource must carry a
+condition defined as an `Fn::Or` that holds IsClaudeCodeWeb, so every Claude Code Web stack
+still has it. The switch-off render keeps it, and nothing in it may reference what that
+render drops.
 
 A second render covers web search. It evaluates only IsClaudeCodeWebSearch, and the
 conditions built on it, as false, which is what EnableWebSearch=false and a Region without
@@ -79,7 +77,6 @@ TEMPLATE = 'cloudformation/quick-build-brconnector.yaml'
 DEFAULT_BASE_REF = '7ba1548'
 GATE = 'IsClaudeCodeWeb'
 PREFIX = 'ClaudeCodeWeb'
-# ClaudeCodeWeb* resources that painter uses too; see the text at the top.
 SHARED = {'ClaudeCodeWebWorkspaceBucket'}
 NEW_PARAMETERS = {
     'EnableClaudeCodeWeb',
@@ -158,7 +155,6 @@ def gates(template, root=GATE):
 
 
 def shared_conditions(template):
-    """Conditions defined as an Fn::Or that holds IsClaudeCodeWeb: true whenever the switch is on."""
     return {
         name
         for name, body in template.get('Conditions', {}).items()
@@ -167,7 +163,6 @@ def shared_conditions(template):
 
 
 def switch_off_or(name, body, gate_names):
-    """An Fn::Or condition without its gate operands, which are false while the switch is off."""
     if not (isinstance(body, dict) and set(body) == {'Fn::Or'}):
         return body
     rest = [item for item in body['Fn::Or'] if item not in [{'Condition': g} for g in gate_names]]

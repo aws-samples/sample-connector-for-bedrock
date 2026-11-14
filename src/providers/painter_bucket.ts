@@ -1,12 +1,10 @@
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import logger from "../util/logger";
 
-/** Where painter keeps pictures. The prefix has no slash at the end and may be empty. */
 export type PictureBucket = { bucket: string; region: string; prefix: string };
 
 type ModelS3Config = { s3Bucket?: string; s3Region?: string; s3Prefix?: string };
 
-// The stack sets these as environment variables, or on ec2 as one JSON SSM parameter with the same keys.
 type StackSettings = { PAINTER_S3_BUCKET?: string; PAINTER_S3_REGION?: string; PAINTER_S3_PREFIX?: string };
 
 type Deps = {
@@ -42,23 +40,22 @@ export async function pictureBucket(config: ModelS3Config, deps: Deps = {}): Pro
   return { bucket: stack.PAINTER_S3_BUCKET, region: stack.PAINTER_S3_REGION, prefix: withoutTrailingSlash(stack.PAINTER_S3_PREFIX || "") };
 }
 
-// The ec2 template cannot add environment variables to a running instance, so it writes the settings to a
-// parameter named after the instance. A failure is not kept: the stack may be updated while the gateway runs.
 function stackSettingsOnEc2(env: NodeJS.ProcessEnv, deps: Deps): Promise<StackSettings | null> {
   if (env.AWS_LAMBDA_FUNCTION_NAME || env.ECS_CONTAINER_METADATA_URI_V4 || env.AWS_EC2_METADATA_DISABLED?.toLowerCase() === "true") {
     return Promise.resolve(null);
   }
-  if (!ec2Settings) {
-    const lookup = readEc2Settings(env, deps);
-    const forget = () => {
-      if (ec2Settings === lookup) ec2Settings = null;
-    };
-    ec2Settings = lookup;
-    lookup.then((settings) => {
-      if (!settings) forget();
-    }, forget);
-  }
+  ec2Settings ??= rememberOnlyWhenFound(readEc2Settings(env, deps));
   return ec2Settings;
+}
+
+function rememberOnlyWhenFound(lookup: Promise<StackSettings | null>): Promise<StackSettings | null> {
+  const forget = () => {
+    if (ec2Settings === lookup) ec2Settings = null;
+  };
+  lookup.then((settings) => {
+    if (!settings) forget();
+  }, forget);
+  return lookup;
 }
 
 async function readEc2Settings(env: NodeJS.ProcessEnv, deps: Deps): Promise<StackSettings | null> {
@@ -72,7 +69,6 @@ async function readEc2Settings(env: NodeJS.ProcessEnv, deps: Deps): Promise<Stac
   try {
     value = await (deps.getParameter ?? ssmParameter)(name, env.AWS_REGION || env.AWS_DEFAULT_REGION);
   } catch (e: any) {
-    // The name and HTTP status only; the message may carry request details.
     logger.warn(`painter has no stack S3 settings: reading the SSM parameter ${name} failed: ${e?.name ?? "Error"} (http ${e?.$metadata?.httpStatusCode ?? "n/a"})`);
     return null;
   }

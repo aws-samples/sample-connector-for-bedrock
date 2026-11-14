@@ -6,7 +6,7 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import logger from "../util/logger";
 import { selfBaseUrl } from "../util/self";
-import { MODEL_GRANT_HEADER, issueModelGrant } from "./model_grant";
+import { PAINTER_CHAT_GRANT_HEADER, issuePainterChatGrant } from "./painter_chat_grant";
 import { pictureBucket } from "./painter_bucket";
 import { PictureBook, S3PictureStore, chatCopy, collectPictures, fitForStability } from "./painter_pictures";
 import {
@@ -29,7 +29,7 @@ const loopbackHeaders = (ctx: any, session_id: string, model: string) => ({
   'Content-Type': 'application/json',
   'Authorization': 'Bearer ' + ctx.user.api_key,
   'Session-Id': session_id,
-  [MODEL_GRANT_HEADER]: issueModelGrant(ctx.user.id, model),
+  [PAINTER_CHAT_GRANT_HEADER]: issuePainterChatGrant(ctx.user.id, model),
 });
 
 // CloudFront closes an origin connection that is silent for 30 seconds. The keep-alive is a normal chunk with

@@ -8,7 +8,7 @@ Painter plans with a chat model (`localLlmModel`). It calls that model through t
 
 ## Decision
 
-- Painter attaches a model grant to each of its calls to the chat model, in the `x-brconnector-model-grant` header. A grant is a random 32-byte token that the BRConnector process keeps in memory. It is bound to the key id and the chat model name, and it is valid for 60 seconds.
+- Painter attaches a model grant to each of its calls to the chat model, in the `x-brconnector-painter-grant` header. A grant is a random 32-byte token that the BRConnector process keeps in memory. It is bound to the key id and the chat model name, and it is valid for 60 seconds.
 - On `/v1/chat/completions`, the gateway accepts a grant for the resolved model name and the calling key as access, and deletes it on the first lookup that finds it. Without a valid grant, the normal group and key checks apply.
 - Painter issues a grant only after its own request has passed the access check for `painter`, and only for the chat model in its config. The grant does not change billing. The call is billed to the same key.
 
