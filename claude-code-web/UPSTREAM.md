@@ -257,3 +257,13 @@ directory must be listed here.
   through the AgentCore invoke API, so browsers do not see these headers. filelock 4.0 changes only the
   `SoftReadWriteLock` on-disk protocol; its only user here, huggingface-hub, uses `FileLock`, `SoftFileLock`, `Timeout`
   and `BaseFileLock`. Every changed package has a `py3-none-any` wheel.
+- `web_client/package-lock.json`: `@babel/core` 7.28.4 -> 7.29.6 and picomatch 4.0.3 -> 4.0.7, both dev dependencies
+  (`@babel/core` through `@vitejs/plugin-react`, picomatch through vite). Locked with npm 10.9.9 by adding
+  both versions to `overrides` in `package.json`, running `npm install`, then removing the overrides and running
+  `npm install` again, because `npm update @babel/core` goes past 7.29.6. `package.json` is unchanged. The new
+  `@babel/core` needs newer `@babel/*` helpers, so `@babel/code-frame`, `compat-data`, `generator`,
+  `helper-compilation-targets`, `helper-globals`, `helper-module-imports`, `helper-module-transforms`,
+  `helper-string-parser`, `helper-validator-identifier`, `helper-validator-option`, `helpers`, `parser`, `template`,
+  `traverse` and `types` move to 7.29.x, and browserslist (4.29.5), baseline-browser-mapping (2.11.37), caniuse-lite
+  (1.0.30001826), electron-to-chromium (1.5.485), node-releases (2.0.64) and semver (6.3.2) move with them. All of
+  them are dev dependencies.
