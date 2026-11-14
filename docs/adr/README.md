@@ -7,3 +7,4 @@
 | [0003](0003-painter-billing-per-step.md) | Painter billing per step | Accepted |
 | [0004](0004-brclient-from-a-pinned-image-layer.md) | BRClient for lambda-web from a pinned image layer | Superseded by 0005 |
 | [0005](0005-brclient-from-pinned-upstream-source.md) | BRClient built from pinned upstream source | Accepted |
+| [0006](0006-starlette-1-for-fastmcp.md) | Starlette 1.x in the Claude Code Web backend for fastmcp 3.4.10 | Accepted |
