@@ -178,6 +178,8 @@ To give an existing stack the preset `painter` model with storage:
 
 `lambda`, `lambda-web` and `ecs` get the settings as environment variables from the template update. `ec2` reads them from an SSM parameter, so the update does not change or restart its instance.
 
+A stack that had Claude Code Web on and was later updated with it off still has the workspace bucket, outside the stack, because the bucket is retained. If the update then fails because a bucket with that name already exists, update with `EnablePainter` set to `false`, or delete that bucket first if you no longer need its files.
+
 Fill `s3Bucket` and `s3Region` in the `painter` model config where a stack cannot get the settings: `EnablePainter` is `false`, the deployment was not made from this template, or the image is older. See [Where pictures are stored](../providers/painter.md#where-pictures-are-stored).
 
 ## Deleting a stack {#deleting-a-stack}

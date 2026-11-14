@@ -177,6 +177,8 @@ BRConnector 在 `/brclient/` 提供 BRClient 网页版。`ec2`、`ecs`、`lambda
 
 `lambda`、`lambda-web` 和 `ecs` 通过模板更新得到这些环境变量。`ec2` 从一个 SSM 参数读取设置，所以这次更新不会修改或重启它的实例。
 
+如果 stack 曾经开启 Claude Code Web、后来更新时关闭了它，工作区存储桶会保留在 stack 之外。这时如果更新因为同名存储桶已存在而失败，请把 `EnablePainter` 设为 `false` 再更新；如果不再需要桶里的文件，也可以先删除这个存储桶。
+
 stack 拿不到这些设置时（`EnablePainter` 为 `false`、部署不是用这个模板创建的，或者镜像太旧），请在 `painter` 模型的 config 里填写 `s3Bucket` 和 `s3Region`。见[图片存在哪里](../providers/painter.md#where-pictures-are-stored)。
 
 ## 删除 stack {#deleting-a-stack}

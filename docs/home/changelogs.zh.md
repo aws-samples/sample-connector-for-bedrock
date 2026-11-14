@@ -9,6 +9,7 @@
 - 要让 `painter` 有存储和 IAM 权限，请把 stack 更新到新模板（第 3 条），`EnablePainter` 保持 `true`。见[已有 stack 使用 painter](deployment.md#painter-stack-update)。
 - 这次更新不会修改或重启 `ec2` 实例：BRConnector 从一个 SSM 参数读取 painter 的设置（第 3 条）。
 - 已有的名为 `painter` 的模型保持不变。只有名称空闲时才会添加预置模型（第 3 条）。
+- 开启 AutoUpdate 时，预置的 `painter` 会随新镜像出现，即使 stack 还没有更新到新模板。在那之前，它会返回一条说明如何给它配置存储的错误（第 3 条）。
 - 第一次调用每个 Stability 模型时，会在 AWS Marketplace 为账号自动订阅，最多可能需要 15 分钟。订阅生效之前，调用会失败并带一条访问被拒绝的提示（第 3 条）。
 - Claude Code Web 的工作区角色现在只能访问存储桶里的 `user_data/`（第 3 条）。
 

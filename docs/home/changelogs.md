@@ -9,6 +9,7 @@
 - Update the stack to the new template to give `painter` storage and IAM permissions (item 3). Keep `EnablePainter` at `true`. See [painter in existing stacks](deployment.md#painter-stack-update).
 - An `ec2` instance is not changed or restarted by this update: BRConnector reads the painter settings from an SSM parameter (item 3).
 - A model that is already named `painter` stays unchanged. The preset is added only when the name is free (item 3).
+- With AutoUpdate, the preset `painter` arrives with the new image, also before the stack is updated to the new template. Until then it answers with an error that says how to give it storage (item 3).
 - The first call to each Stability model subscribes the account in AWS Marketplace and can take up to 15 minutes. Calls fail with an access-denied hint until the subscription is active (item 3).
 - The Claude Code Web workspace role now reaches only `user_data/` in the bucket (item 3).
 
