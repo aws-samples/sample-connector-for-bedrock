@@ -2723,6 +2723,14 @@ Resources:
         IgnorePublicAcls: true
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
+      # BRClient's download button fetches a picture's presigned URL from the page's own
+      # origin, which the template cannot know. The rule grants no access: a request still
+      # needs a presigned URL or IAM credentials.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
 
   # What the microVM runs as, and a user's shell can use these credentials. So it gets
   # only what AgentCore Runtime needs to pull the image and ship logs, traces and metrics:

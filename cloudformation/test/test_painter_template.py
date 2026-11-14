@@ -107,6 +107,14 @@ def test_the_bucket_keeps_the_claude_code_web_logical_id_and_name():
     assert (bucket['DeletionPolicy'], bucket['UpdateReplacePolicy']) == ('Retain', 'Retain')
 
 
+def test_a_browser_on_any_site_may_read_a_presigned_picture_and_nothing_more():
+    props = RESOURCES[BUCKET]['Properties']
+    assert props['CorsConfiguration'] == {'CorsRules': [
+        {'AllowedMethods': ['GET', 'HEAD'], 'AllowedOrigins': ['*'], 'AllowedHeaders': ['*']},
+    ]}
+    assert set(props['PublicAccessBlockConfiguration'].values()) == {True}
+
+
 @pytest.mark.parametrize('cc', ['false', 'true'])
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)
 def test_only_the_role_that_runs_brconnector_may_paint(compute, cc):
