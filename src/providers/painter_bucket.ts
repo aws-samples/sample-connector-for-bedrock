@@ -13,7 +13,7 @@ type Deps = {
   getParameter?: (name: string, region: string | undefined) => Promise<string | undefined>;
 };
 
-const NO_BUCKET = "painter has no S3 bucket for pictures. Set s3Bucket and s3Region in this model's config, or update the BRConnector stack to a template with painter (EnablePainter true), which sets them.";
+const NO_BUCKET = "painter has no S3 bucket for pictures. Set s3Bucket and s3Region in this model's config, or update the BRConnector stack to the current template, which sets them.";
 const IMDS = "http://169.254.169.254/latest";
 const IMDS_TIMEOUT_MS = 1000;
 const INSTANCE_ID = /^i-[0-9a-f]+$/;

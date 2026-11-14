@@ -7,7 +7,7 @@ const PARAMETER = `/brconnector/instance/${INSTANCE}/painter`;
 const TOKEN_URL = 'http://169.254.169.254/latest/api/token';
 const INSTANCE_ID_URL = 'http://169.254.169.254/latest/meta-data/instance-id';
 const STACK = { PAINTER_S3_BUCKET: 'stack-bucket', PAINTER_S3_REGION: 'us-east-1', PAINTER_S3_PREFIX: 'painter' };
-const NO_BUCKET = /no S3 bucket for pictures.*s3Bucket and s3Region in this model's config.*EnablePainter/s;
+const NO_BUCKET = /no S3 bucket for pictures.*s3Bucket and s3Region in this model's config.*update the BRConnector stack to the current template/s;
 
 function fakeImds(token: 'works' | 'fails' | 'hangs' = 'works') {
     const calls: { method: string; url: string; headers: Record<string, string> }[] = [];

@@ -666,7 +666,7 @@ describe('painter with the S3 bucket of the stack', () => {
         const chat = stubChat([{ text: 'unused' }]);
         const aws = stubAws();
         await expect(paint([{ role: 'user', content: 'a cat' }], { config: noS3 })).rejects.toThrow(
-            "painter has no S3 bucket for pictures. Set s3Bucket and s3Region in this model's config, or update the BRConnector stack to a template with painter (EnablePainter true), which sets them.",
+            "painter has no S3 bucket for pictures. Set s3Bucket and s3Region in this model's config, or update the BRConnector stack to the current template, which sets them.",
         );
         expect(chat).toEqual([]);
         expect(aws.puts).toEqual([]);
