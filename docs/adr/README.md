@@ -9,6 +9,6 @@
 | [0005](0005-brclient-from-pinned-upstream-source.md) | BRClient built from pinned upstream source | Accepted |
 | [0006](0006-starlette-1-for-fastmcp.md) | Starlette 1.x in the Claude Code Web backend for fastmcp 3.4.10 | Accepted |
 | [0007](0007-ui-cache-headers.md) | Cache headers for the served UIs | Accepted |
-| [0006](0006-painter-storage-from-the-stack.md) | Painter storage from the stack | Accepted |
-| [0007](0007-painter-chat-calls-for-painter-only-keys.md) | Painter chat calls for keys granted only painter | Accepted |
-| [0008](0008-claude-code-web-on-by-default.md) | Claude Code Web on by default, skipped when unsupported | Accepted |
+| [0008](0008-painter-storage-from-the-stack.md) | Painter storage from the stack | Accepted |
+| [0009](0009-painter-chat-calls-for-painter-only-keys.md) | Painter chat calls for keys granted only painter | Accepted |
+| [0010](0010-claude-code-web-on-by-default.md) | Claude Code Web on by default, skipped when unsupported | Accepted |

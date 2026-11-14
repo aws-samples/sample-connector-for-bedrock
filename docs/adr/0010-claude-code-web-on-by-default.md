@@ -1,4 +1,4 @@
-# 0008. Claude Code Web on by default, skipped when unsupported
+# 0010. Claude Code Web on by default, skipped when unsupported
 
 Status: Accepted
 

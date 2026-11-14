@@ -1,4 +1,4 @@
-# 0007. Painter chat calls for keys granted only painter
+# 0009. Painter chat calls for keys granted only painter
 
 Status: Accepted
 

@@ -1,4 +1,4 @@
-# 0006. Painter storage from the stack
+# 0008. Painter storage from the stack
 
 Status: Accepted
 
