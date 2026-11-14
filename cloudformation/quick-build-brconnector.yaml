@@ -2744,6 +2744,13 @@ Resources:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: Access logs would need one more retained bucket per stack, and this bucket blocks all public access.
+          - id: CKV_AWS_21
+            comment: With no lifecycle rule, versioning would keep every overwritten workspace file and picture forever.
     Properties:
       BucketName: !Sub brc-cc-workspace-${AWS::AccountId}-${AWS::Region}-${RandomString}
       BucketEncryption:
