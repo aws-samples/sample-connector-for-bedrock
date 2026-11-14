@@ -117,6 +117,8 @@ Uploaded pictures are stored in `<s3Prefix>/uploads/<date>/`. Generated pictures
 
 The generated pictures in a reply are links to S3 presigned URLs. A URL lasts at most 4 hours. A URL signed with temporary credentials stops working when the credentials expire. The credentials of an EC2 instance role last about 6 hours, so older pictures in a conversation can stop loading sooner than 4 hours.
 
+The stack's bucket has a CORS rule that allows `GET` and `HEAD` from any origin, so the BRClient download button can fetch a picture and save it. A bucket you set in the model config needs the same rule for that button; without it, the button opens the picture in a new tab.
+
 ## Regions and data residency
 
 painter picks the Region for each model.

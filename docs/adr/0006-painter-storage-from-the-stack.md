@@ -13,6 +13,7 @@ The preset `painter` model must draw on a new stack with no S3 or IAM work by th
 - `ec2` gets the same three values as JSON in the SSM parameter `/brconnector/instance/<instance id>/painter`. When `PAINTER_S3_BUCKET` is unset, BRConnector reads its instance id from the instance metadata service and then reads that parameter. The template does not change `MyEC2Instance`.
 - The bucket picks the source. When the model config has `s3Bucket`, the config gives all three settings, as before (`s3Region` is required, and `s3Prefix` defaults to empty). Otherwise the stack gives all three. With neither, painter answers with an error that names both fixes.
 - The role that runs BRConnector gets `s3:PutObject` and `s3:GetObject` on `<bucket>/painter/*`, and `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions`, so the first call to a Stability model subscribes the account.
+- The bucket has a CORS rule for `GET` and `HEAD` from any origin, with any header. BRClient's download button fetches a picture's presigned URL from the page's origin, and the template cannot know a deployment's own domain. The rule grants no access: every object, painter's pictures and Claude Code Web's workspace files alike, is still reachable only with a presigned URL or IAM credentials, and the public access block stays on.
 
 ## Consequences
 

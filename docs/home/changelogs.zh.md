@@ -26,7 +26,7 @@
    - 现在浏览器每次加载 `/portal-for-brclient.html`，以及 BRClient（`/brclient/`）和管理后台（`/manager/`）的文件时，都会向 BRConnector 获取最新版本。文件名里带内容哈希的构建文件例外：浏览器会把它们缓存最长一年，和 `/cc` 一样。
 3. **painter 开箱即用** - 新 stack 自带一个可用的 `painter` 模型。管理员只需把它授予某个 key 或 group，不用填写任何 S3 或 IAM 设置。见 [painter](../providers/painter.md#preset-painter-model)。
    - 新增一个 migration，添加预置的 `painter` 模型：用 Stability Image Ultra（`stability.stable-image-ultra-v1:1`）画图，对话模型是 `claude-sonnet-5-5-chat`，价格为 0（图片按内置标价计费），并绑定到 group 1。已有的同名模型不会被修改。
-   - 模板总是让 painter 与 Claude Code Web 共用 stack 的工作区存储桶，painter 使用 `painter/` 前缀，没有对应的参数。这个存储桶总是会创建。删除 stack 时它会保留，也没有生命周期规则。
+   - 模板总是让 painter 与 Claude Code Web 共用 stack 的工作区存储桶，painter 使用 `painter/` 前缀，没有对应的参数。这个存储桶总是会创建。删除 stack 时它会保留，也没有生命周期规则。它带一条 CORS 规则，允许任何来源 `GET` 和 `HEAD`，这样 BRClient 的下载按钮能直接保存图片，而不是在新标签页打开。这条规则不放宽任何权限：请求仍然需要预签名 URL 或 IAM 凭证。
    - 模板给 BRConnector 的角色授予 `<bucket>/painter/*` 上的 `s3:PutObject` 和 `s3:GetObject`，以及 `aws-marketplace:Subscribe` 和 `aws-marketplace:ViewSubscriptions`，所以第一次调用每个 Stability 模型时会自动为账号订阅。账号需要有效的付款方式。
    - `lambda`、`lambda-web` 和 `ecs` 通过环境变量得到 `PAINTER_S3_BUCKET`、`PAINTER_S3_REGION` 和 `PAINTER_S3_PREFIX`。`ec2` 从一个 SSM 参数读取，所以更新不会重启实例。
    - painter config 里的 `s3Bucket`、`s3Region` 和 `s3Prefix` 现在都是可选的。不填 `s3Bucket` 时，painter 使用 stack 的设置；填了就三项都取自 config，和以前一样。两处都没有时，错误信息会写明两种解决办法。见[图片存在哪里](../providers/painter.md#where-pictures-are-stored)。
