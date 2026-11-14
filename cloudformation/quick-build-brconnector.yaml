@@ -61,6 +61,11 @@ Metadata:
           - AutoUpdateBRConnector
 
       - Label:
+          default: "Painter (image generation)"
+        Parameters:
+          - EnablePainter
+
+      - Label:
           default: "Claude Code Web (optional)"
         Parameters:
           - EnableClaudeCodeWeb
@@ -310,6 +315,22 @@ Parameters:
     ConstraintDescription: The Lambda@Edge version ARN must include 'us-east-1'
     Default: ''
 
+  EnablePainter:
+    Description: >-
+      Set up the preset painter model, which draws pictures in BRClient, so an admin only
+      has to grant it to a key or group. BRConnector stores the pictures under painter/ in
+      the Claude Code Web workspace bucket, which is created if it does not exist and kept
+      when the stack is deleted. The role that runs BRConnector gets read and write access
+      to that prefix, and BRConnector gets the bucket settings from this stack. With 'false'
+      the painter model stays in the model list but has no storage until S3 settings are
+      filled into its model config. Bedrock subscribes to the Stability AI image models in
+      AWS Marketplace on first use, billed to this account.
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+
   EnableClaudeCodeWeb:
     Description: >-
       Deploy Claude Code Web: Claude Code in the browser at <BRConnector URL>/cc/, signed
@@ -473,6 +494,8 @@ Conditions:
       - !Equals [!Ref AWS::Region, eu-west-1]
       - !Equals [!Ref AWS::Region, ap-southeast-2]
       - !Equals [!Ref AWS::Region, ap-northeast-1]
+  IsPainter: !Equals [!Ref EnablePainter, 'true']
+  CreateWorkspaceBucket: !Or [!Condition IsClaudeCodeWeb, !Condition IsPainter]
 
 Mappings:
   ArchitectureMapping:
@@ -2690,10 +2713,12 @@ Resources:
       RepositoryName: !Sub brc-claude-code-web-${RandomString}
       EmptyOnDelete: true
 
-  # Users' workspaces, under user_data/<user id>/. Retained for the same reason as
-  # WebFnCodeBucket, and because it holds user files; delete it by hand if unwanted.
+  # Claude Code Web users' workspaces, under user_data/<user id>/, and painter's pictures,
+  # under painter/, kept until deleted by hand (no lifecycle rule). Retained for the same
+  # reason as WebFnCodeBucket, and because it holds user files; delete it by hand if
+  # unwanted. A new name or logical id would replace it on every Claude Code Web stack.
   ClaudeCodeWebWorkspaceBucket:
-    Condition: IsClaudeCodeWeb
+    Condition: CreateWorkspaceBucket
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -2805,7 +2830,8 @@ Resources:
 
   # BRConnector assumes this for each user, always with a session policy that narrows it
   # to user_data/<user id>/, and hands the result to that user's microVM. Only the
-  # current compute type's role may assume it.
+  # current compute type's role may assume it. The role itself reaches only user_data/,
+  # so no session can reach painter's pictures in the same bucket.
   ClaudeCodeWebWorkspaceAccessRole:
     Condition: IsClaudeCodeWeb
     Type: AWS::IAM::Role
@@ -2834,10 +2860,15 @@ Resources:
                   - s3:PutObject
                   - s3:DeleteObject
                   - s3:AbortMultipartUpload
-                Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/*
+                Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/user_data/*
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      - user_data/*
+                      - user_data
 
   ClaudeCodeWebBuildRole:
     Condition: IsClaudeCodeWeb

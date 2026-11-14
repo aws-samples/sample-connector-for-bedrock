@@ -23,6 +23,8 @@ with the template at BASE_REF:
 - resources and outputs whose `Condition` is a gate are dropped;
 - the new parameters, the gate conditions, the new rule and the new parameter group are
   dropped;
+- a condition defined as an `Fn::Or` that holds a gate (CreateWorkspaceBucket) loses its
+  gate operands, and a single operand left stands for the whole condition;
 - every `Fn::If` on a gate takes its false branch, and a false branch of `AWS::NoValue`
   drops the key or list item it sits in;
 - a `Fn::Sub` variable whose value is such an `Fn::If` is inlined into the string, and a
@@ -40,6 +42,13 @@ single line, because the SSM auto-update starts the container from that script, 
 ClaudeCodeWebImageBuildId is used by ClaudeCodeWebImage alone, so changing it rebuilds the
 backend image without touching the BRConnector instance or deployment package.
 
+The resources in SHARED are the exception to the gate rule. Painter keeps its pictures under
+painter/ in ClaudeCodeWebWorkspaceBucket, so the bucket exists while Claude Code Web or
+painter is on, and a new logical id or name would replace the bucket of every Claude Code
+Web stack. A SHARED resource must carry a condition defined as an `Fn::Or` that holds
+IsClaudeCodeWeb, so every Claude Code Web stack still has it. The switch-off render keeps
+it, and nothing in it may reference what that render drops.
+
 A second render covers web search. It evaluates only IsClaudeCodeWebSearch, and the
 conditions built on it, as false, which is what EnableWebSearch=false and a Region without
 AgentCore Web Search (us-west-1) both mean, and leaves IsClaudeCodeWeb unevaluated. It drops
@@ -53,10 +62,11 @@ A third render evaluates IsClaudeCodeWebSearch as true and checks the grants: th
 role may call the gateway (and only on its ARN), the workspace access role holds no
 bedrock-agentcore action, and the SSM config value does not name the gateway.
 
-The structural checks are: gate conditions on every ClaudeCodeWeb* resource and output, the
-ec2 run script's `docker run` line, the image build id, the web-search-on grants, nothing
-referencing what the web-search-off render dropped, and nothing referencing the gated
-resources, gate conditions, new parameters or new rules in the switch-off render.
+The structural checks are: gate conditions on every ClaudeCodeWeb* resource and output (an
+`Fn::Or` that holds IsClaudeCodeWeb on the SHARED ones), the ec2 run script's `docker run`
+line, the image build id, the web-search-on grants, nothing referencing what the
+web-search-off render dropped, and nothing referencing the gated resources, gate
+conditions, new parameters or new rules in the switch-off render.
 """
 import subprocess
 import sys
@@ -69,6 +79,8 @@ TEMPLATE = 'cloudformation/quick-build-brconnector.yaml'
 DEFAULT_BASE_REF = '7ba1548'
 GATE = 'IsClaudeCodeWeb'
 PREFIX = 'ClaudeCodeWeb'
+# ClaudeCodeWeb* resources that painter uses too; see the text at the top.
+SHARED = {'ClaudeCodeWebWorkspaceBucket'}
 NEW_PARAMETERS = {
     'EnableClaudeCodeWeb',
     'ClaudeCodeDefaultModel',
@@ -145,6 +157,25 @@ def gates(template, root=GATE):
         found |= more
 
 
+def shared_conditions(template):
+    """Conditions defined as an Fn::Or that holds IsClaudeCodeWeb: true whenever the switch is on."""
+    return {
+        name
+        for name, body in template.get('Conditions', {}).items()
+        if isinstance(body, dict) and set(body) == {'Fn::Or'} and {'Condition': GATE} in body['Fn::Or']
+    }
+
+
+def switch_off_or(name, body, gate_names):
+    """An Fn::Or condition without its gate operands, which are false while the switch is off."""
+    if not (isinstance(body, dict) and set(body) == {'Fn::Or'}):
+        return body
+    rest = [item for item in body['Fn::Or'] if item not in [{'Condition': g} for g in gate_names]]
+    if not rest:
+        raise SystemExit(f'FAIL: condition {name} is an Fn::Or of gates only; define it as a gate')
+    return rest[0] if len(rest) == 1 else {'Fn::Or': rest}
+
+
 def is_gate_if(node, gate_names=(GATE,)):
     return isinstance(node, dict) and set(node) == {'Fn::If'} and node['Fn::If'][0] in gate_names
 
@@ -198,7 +229,7 @@ def render_off(template, base=None):
     for name in DESCRIPTION_MAY_DIFFER:
         if base and name in t['Parameters'] and name in base.get('Parameters', {}):
             t['Parameters'][name]['Description'] = base['Parameters'][name].get('Description')
-    t['Conditions'] = {k: v for k, v in t['Conditions'].items() if k not in gate_names}
+    t['Conditions'] = {k: switch_off_or(k, v, gate_names) for k, v in t['Conditions'].items() if k not in gate_names}
     if 'Rules' in t:
         rules = {k: v for k, v in t['Rules'].items() if k not in NEW_RULES}
         if rules:
@@ -347,10 +378,16 @@ def first_difference(a, b, path=''):
 
 def check_conditions(template):
     gate_names = gates(template)
+    shared = shared_conditions(template)
     problems = []
     for section in ('Resources', 'Outputs'):
         for name, body in template.get(section, {}).items():
-            if name.startswith(PREFIX) and body.get('Condition') not in gate_names:
+            if not name.startswith(PREFIX):
+                continue
+            if section == 'Resources' and name in SHARED:
+                if body.get('Condition') not in shared:
+                    problems.append(f'{section}.{name} is shared, so its Condition must be an Fn::Or that holds {GATE}')
+            elif body.get('Condition') not in gate_names:
                 problems.append(f'{section}.{name} lacks a gate Condition ({", ".join(sorted(gate_names))})')
     return problems
 
