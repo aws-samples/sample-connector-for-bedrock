@@ -264,6 +264,8 @@ directory must be listed here.
   `@babel/core` needs newer `@babel/*` helpers, so `@babel/code-frame`, `compat-data`, `generator`,
   `helper-compilation-targets`, `helper-globals`, `helper-module-imports`, `helper-module-transforms`,
   `helper-string-parser`, `helper-validator-identifier`, `helper-validator-option`, `helpers`, `parser`, `template`,
-  `traverse` and `types` move to 7.29.x, and browserslist (4.29.5), baseline-browser-mapping (2.11.37), caniuse-lite
-  (1.0.30001826), electron-to-chromium (1.5.485), node-releases (2.0.64) and semver (6.3.2) move with them. All of
-  them are dev dependencies.
+  `traverse` and `types` move to 7.29.x. npm also moves browserslist, baseline-browser-mapping, caniuse-lite,
+  electron-to-chromium, node-releases and semver to newer releases that nothing requires. Their lockfile entries are
+  the previous ones again: the new helpers declare `browserslist ^4.24.0` and `semver ^6.3.1`, which browserslist
+  4.29.4 and semver 6.3.1 satisfy, and `npm ls --all` reports no invalid or missing dependency. All of them are dev
+  dependencies.
