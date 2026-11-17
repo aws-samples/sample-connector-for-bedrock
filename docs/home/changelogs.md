@@ -1,6 +1,6 @@
 # Changelogs
 
-## Unreleased
+## 0.0.46
 
 **Upgrade notes**
 

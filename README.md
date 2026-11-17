@@ -54,6 +54,48 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
+## 0.0.46
+
+**Upgrade notes**
+
+- The Claude Code Web backend image gets item 1 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/#known-limitations).
+- No action is needed (item 2). A browser that cached BRClient before the upgrade keeps that copy for up to 30 days, so it can show the old BRClient until the user refreshes the page once. BRConnector cannot change a copy that the browser already holds.
+- Update the stack to the new template to give `painter` storage and IAM permissions (item 3). See [painter in existing stacks](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#painter-stack-update).
+- An `ec2` instance is not changed or restarted by this update: BRConnector reads the painter settings from an SSM parameter (item 3).
+- A model that is already named `painter` stays unchanged. The preset is added only when the name is free (item 3).
+- With AutoUpdate, the preset `painter` arrives with the new image, also before the stack is updated to the new template. Until then it answers with an error that says how to give it storage (item 3).
+- The first call to each Stability model subscribes the account in AWS Marketplace and can take up to 15 minutes. Calls fail with an access-denied hint until the subscription is active (item 3).
+- The Claude Code Web workspace role now reaches only `user_data/` in the bucket (item 3).
+- Claude Code Web is on by default for new stacks (item 4). A console update keeps the value of `EnableClaudeCodeWeb` the stack has, which is `false` for a stack created before. A stack created from a template that has no `EnableClaudeCodeWeb` parameter, from before Claude Code Web, has no value to keep: the console shows the new default `true`, so set it to `false` when you update that stack. With the AWS CLI, pass `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`. Without it, the update takes the new default, creates Claude Code Web, and on `ec2` changes the UserData, which stops and starts the instance. See [Claude Code Web in existing stacks](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#claude-code-web-stack-update).
+- A new stack takes longer to create and costs more, because Claude Code Web adds a CodeBuild build and AgentCore Runtime charges (item 4). Set `EnableClaudeCodeWeb` to `false` to avoid them.
+- A combination that cannot run Claude Code Web no longer fails the stack. It is skipped, and the `ClaudeCodeWebStatus` output says why (item 4).
+- The template now always creates the workspace bucket. A stack that had Claude Code Web on and was later updated with it off still owns a bucket with that name outside the stack, and the update can fail because it exists. See [painter in existing stacks](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#painter-stack-update) (item 3).
+
+1. **Dependency Updates** - Dependencies move to newer releases. The new releases of dnspython, fast-uri, fastmcp, filelock, mcp, opentelemetry-api, qs and starlette fix known vulnerabilities.
+   - The Claude Code Web backend image installs dnspython 2.9.2, opentelemetry-api 1.45.2, mcp 1.30.0, fastmcp 3.4.10 and filelock 4.2.1. fastmcp 3.4.10 needs Starlette 1.x, so starlette moves from 0.50.0 to 1.10.0 and fastapi from 0.128.0 to 0.162.7. This fixes the known starlette vulnerabilities that 0.0.45 kept.
+   - The BRConnector server dependencies do not change. Each build installs the newest releases that `package.json` allows. The lockfile that the tests use now has qs 6.17.1 and fast-uri 3.1.9.
+   - The Claude Code Web web client is built with @babel/core 7.29.6 and picomatch 4.0.7.
+
+2. **BRClient Updates Without a Refresh** - After an upgrade, the browser now shows the new BRClient without a manual refresh. Before, BRConnector told browsers to keep every BRClient file, `index.html` included, for 30 days, so they kept showing the old BRClient.
+   - On every load, the browser now asks BRConnector for the current version of `/portal-for-brclient.html` and of the BRClient (`/brclient/`) and admin console (`/manager/`) files. Build files whose names contain a content hash are the exception: the browser keeps them for up to a year, as it already does for `/cc`.
+3. **painter Out of the Box** - A new stack with a database ships a ready `painter` model. An admin only grants it to a key or a group, and fills in nothing about S3 or IAM. See [painter](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/#preset-painter-model).
+   - A new migration adds the preset `painter` model: Stability Image Ultra (`stability.stable-image-ultra-v1:1`) with `claude-sonnet-5-5-chat` as the chat model, prices 0 (pictures are billed at the built-in list prices), bound to group 1. An existing model with the same name is not changed.
+   - The template always shares the stack's workspace bucket, the one Claude Code Web uses, with painter, under `painter/`. There is no parameter for it. The bucket is always created. It is retained on stack delete and has no lifecycle rule. It has a CORS rule that allows `GET` and `HEAD` from any origin, so the BRClient download button can save a picture instead of opening it in a new tab. The rule grants no access: a request still needs a presigned URL or IAM credentials.
+   - The template grants the BRConnector role `s3:PutObject` and `s3:GetObject` on `<bucket>/painter/*`, and `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions`, so the first call to each Stability model subscribes the account. The account needs a valid payment method.
+   - `lambda`, `lambda-web` and `ecs` get `PAINTER_S3_BUCKET`, `PAINTER_S3_REGION` and `PAINTER_S3_PREFIX` as environment variables. `ec2` reads them from an SSM parameter, so the update does not restart the instance.
+   - `s3Bucket`, `s3Region` and `s3Prefix` in the painter config are now optional. Without `s3Bucket`, painter uses the stack's settings. With it, the config gives all three, as before. With neither, the error names both fixes. See [Where pictures are stored](https://aws-samples.github.io/sample-connector-for-bedrock/providers/painter/#where-pictures-are-stored).
+   - A key that has only `painter` now works. painter's call to the chat model is billed to the same key. The key still cannot call the chat model directly.
+   - The Claude Code Web workspace role is now limited to `user_data/` in the shared bucket.
+4. **Claude Code Web On by Default** (behaviour change) - `EnableClaudeCodeWeb` now defaults to `true`, so a new stack deploys [Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/) without a switch. A deployment that cannot run it skips it, and the stack is still created.
+   - The `ClaudeCodeWebRequirements` rule is removed. Its three tests are part of the condition that creates Claude Code Web: `ComputeType` is not `lambda`, the stack has a database, and `BRConnectorVersion` is `latest` unless `ComputeType` is `lambda-web`.
+   - The new output `ClaudeCodeWebStatus` is always present. It says `Deployed`, or why Claude Code Web was not deployed: the switch is off, `lambda`, no usable database, or a pinned `BRConnectorVersion`.
+   - A new stack takes longer to create, because the CodeBuild build of the backend image runs during creation. The account pays for AgentCore Runtime. `EnableWebSearch` is also `true` by default, and each search is billed to the account.
+   - A request for Claude Code Web on an unsupported combination used to fail the stack with an error. Now the stack is created without it. Read `ClaudeCodeWebStatus`.
+
+5. **BRClient Download Button on Each Picture** - Each picture in a BRClient message now has its own download button, which saves only that picture. The Download button among the message's actions still saves all of its pictures.
+   - The button appears in the picture's top-right corner when the pointer is over the picture or the button has keyboard focus, and it stays visible on touch screens. Only `http(s)` pictures that have loaded and are at least 48 pixels on each side have it.
+   - This release pins upstream `main` plus the new head of the unmerged upstream pull request [#82](https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82). See [BRClient source](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#brclient-source).
+
 ## 0.0.45
 
 **Upgrade notes**
@@ -182,55 +224,6 @@ Once defined, models can be bound to groups or API Keys.
 14. **lambda Compute Type Fixes**
    - New `lambda` stacks could not be reached: function URLs created since October 2025 also need the `lambda:InvokeFunction` permission. The template now grants it, limited to calls through the function URL, and updating an existing `lambda` stack adds the permission.
    - With `KeepEc2` set to `false`, the helper instance is now terminated after setup.
-
-## 0.0.43
-
-**Upgrade warning** - Take a database snapshot before you upgrade: the upgrade deletes the models of the retired providers (item 4) and adds preset models (item 2). Stacks with `AutoUpdateBRConnector` set to `true` (`ec2` and `lambda` compute types) pick up the new `latest` image automatically at 00:00 UTC.
-
-1. **Claude Code Web** - Claude Code in the browser at `/cc`, served by BRConnector and running on Amazon Bedrock AgentCore Runtime, with one microVM and one S3 workspace per API key. Its model calls go back through `/v1/messages` with the user's key, so quotas and billing apply. Turn it on with `EnableClaudeCodeWeb` in the CloudFormation template; see [Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/). [#155](https://github.com/aws-samples/sample-connector-for-bedrock/pull/155)
-   - `"skipWebFetchPreflight": true` is written into each user's `~/.claude/settings.json` when the key is missing. A value the user has set is kept.
-   - The new parameter `EnableWebSearch` defaults to `true`, also when an existing stack is updated. With Claude Code Web on, in us-east-1, us-east-2, us-west-2, eu-west-1, ap-southeast-2 or ap-northeast-1, it creates an AgentCore Gateway with a Web Search target. Only the runtime role may call the gateway.
-   - Searches are billed by AWS to the account that runs the stack (about USD 7 per 1,000 queries), outside BRConnector quotas. Consider an AWS Budgets alert, or set `EnableWebSearch` to `false`.
-   - While the gateway is configured, Claude Code's built-in WebSearch tool is hidden.
-
-2. **Preset Models on Existing Databases** - At start-up (on every compute type except `lambda-web`, see item 4), BRConnector applies each SQL migration in `src/scripts/migrations/` that the database has not had yet. Preset models that an existing database lacks are added and bound to group 1; a model name that already exists is left unchanged. [#153](https://github.com/aws-samples/sample-connector-for-bedrock/pull/153)
-
-3. **Model Presets** - Seven GPT-6 and GPT-5.6 presets on bedrock-runtime-openai [#152](https://github.com/aws-samples/sample-connector-for-bedrock/pull/152). `claude-opus-5-5-chat`, `claude-sonnet-5-5-chat` and `claude-haiku-5-5-chat` on bedrock-converse, now used by NoDB mode and knowledge-base summaries. The Claude 3.x presets and NoDB defaults are removed; existing models are left as they are. [#154](https://github.com/aws-samples/sample-connector-for-bedrock/pull/154)
-
-4. **Retired Providers** - `aws-executor`, `urls-reader` and `web-miner` are removed; use Claude Code Web (`/cc`) instead.
-   - The upgrade migration deletes the models on these providers and their key and group bindings. History (threads and sessions) is kept.
-   - A request to a model on one of these providers gets HTTP 400 that points to Claude Code Web (`/cc`). Once the model is deleted, the request gets the usual unknown-model answer, and so does a smart-router rule, `localLlmModel` or bot connector that names it.
-   - `lambda-web` stacks are different. Updating the stack does not deliver 0.0.43: the deployment package is built only when the stack is created, and the function does not run migrations at start-up. To run 0.0.43, deploy a new `lambda-web` stack; its database is set up for 0.0.43 when the stack is created. To bring an existing database up to date by hand, take a snapshot, then apply the files in `src/scripts/migrations/` in file-name order: `2026-10-20-preset-models.sql`, `2026-10-20b-claude-chat-presets.sql` and `2026-10-22-retire-providers.sql`. The last one runs:
-
-     ```sql
-     BEGIN;
-     DELETE FROM eiai_key_model WHERE model_id IN (SELECT id FROM eiai_model WHERE provider IN ('aws-executor', 'urls-reader', 'web-miner'));
-     DELETE FROM eiai_group_model WHERE model_id IN (SELECT id FROM eiai_model WHERE provider IN ('aws-executor', 'urls-reader', 'web-miner'));
-     DELETE FROM eiai_model WHERE provider IN ('aws-executor', 'urls-reader', 'web-miner');
-     COMMIT;
-     ```
-
-5. **Model Id Override Removed** - A model string `name/<id>` that is not itself a configured model name now gets HTTP 400, for every key. This also applies to Feishu bot, knowledge-base and smart-router model ids that contain `/`, and to azure-openai models. A `model_id` field in the request body is ignored. To use an upstream model id, configure a model for it; a configured model name may contain `/` ([FAQ](https://aws-samples.github.io/sample-connector-for-bedrock/home/faq/#model-wildcard)).
-
-6. **Billing**
-   - Spend over the monthly quota is now drawn from the balance.
-   - The balance can go below zero by at most the last calls. After that, calls are refused until a recharge, or until the next month when the monthly quota is above 0.
-   - Charges are atomic, and a recharge adds to the stored balance.
-   - A recharge reaches all instances within 60 seconds, through the cache.
-   - The `month_fee` shown for a key keeps last month's value until the key's first charge in the new month.
-
-7. **Session-Id** - A `Session-Id` longer than 128 characters gets HTTP 400 on every route.
-
-8. **User APIs**
-   - `/user/model/list` returns only `name`, `provider`, `price_in`, `price_out`, `multiple` and `group_name`.
-   - `/user/thread/list` returns only the caller's own threads, and `limit` is capped at 100 (on `/admin/thread/list` too).
-   - `orderBy` on the session and payment lists accepts a fixed set of values and falls back to the default order for anything else.
-
-9. **API Keys and Logs**
-   - New API keys are generated from a cryptographic random source.
-   - SQL parameters and whole error objects are no longer logged, outside debug mode.
-
-[More changelogs](https://aws-samples.github.io/sample-connector-for-bedrock/home/changelogs/)
 
 ## Disclaimer
 
