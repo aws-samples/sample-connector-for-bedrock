@@ -19,8 +19,6 @@ ECS_TEMPLATE = gating.load(
 ECS_AUTO_UPDATE = {'ECREventRule', 'UpdateImageLambda', 'UpdateImageLambdaRole', 'EventsRulePermission'}
 ADDED_BY_TRUE = {'ec2': EC2_ONLY, 'lambda': CODEBUILD, 'ecs': set(), 'lambda-web': set()}
 
-DEFAULT = None
-
 
 def parameters(template, **overrides):
     params = {name: p.get('Default', '') for name, p in template['Parameters'].items()}
@@ -29,12 +27,8 @@ def parameters(template, **overrides):
     return params
 
 
-def overrides(auto_update, **rest):
-    return rest if auto_update is DEFAULT else {**rest, 'AutoUpdateBRConnector': auto_update}
-
-
-def truth_for(template, auto_update, **rest):
-    return iam.truth_table(parameters(template, **overrides(auto_update, **rest)), template)
+def truth_for(template, **overrides):
+    return iam.truth_table(parameters(template, **overrides), template)
 
 
 def is_present(body, truth):
@@ -47,12 +41,11 @@ def present(template, truth):
 
 
 def resolved(template, truth):
-    """Every present resource and output, keyed by section and name, with its Condition dropped."""
     out = {}
     for section in ('Resources', 'Outputs'):
         for name, body in template[section].items():
             if is_present(body, truth):
-                out[section, name] = iam.resolve({k: v for k, v in body.items() if k != 'Condition'}, truth)
+                out[section, name] = iam.resolve(body, truth)
     return out
 
 
@@ -66,22 +59,22 @@ def test_auto_update_is_off_by_default():
 
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)
 def test_default_parameters_create_no_auto_update_resources(compute):
-    found = present(TEMPLATE, truth_for(TEMPLATE, DEFAULT, ComputeType=compute))
+    found = present(TEMPLATE, truth_for(TEMPLATE, ComputeType=compute))
     assert not found & (EC2_ONLY | CODEBUILD)
 
 
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)
 def test_turning_auto_update_on_only_adds_its_own_resources(compute):
-    off = present(TEMPLATE, truth_for(TEMPLATE, DEFAULT, ComputeType=compute))
-    on = present(TEMPLATE, truth_for(TEMPLATE, 'true', ComputeType=compute))
+    off = present(TEMPLATE, truth_for(TEMPLATE, ComputeType=compute))
+    on = present(TEMPLATE, truth_for(TEMPLATE, ComputeType=compute, AutoUpdateBRConnector='true'))
     assert off <= on
     assert on - off == ADDED_BY_TRUE[compute]
 
 
 @pytest.mark.parametrize('compute', COMPUTE_TYPES)
 def test_switching_auto_update_leaves_every_other_resource_and_output_unchanged(compute):
-    off = resolved(TEMPLATE, truth_for(TEMPLATE, DEFAULT, ComputeType=compute))
-    on = resolved(TEMPLATE, truth_for(TEMPLATE, 'true', ComputeType=compute))
+    off = resolved(TEMPLATE, truth_for(TEMPLATE, ComputeType=compute))
+    on = resolved(TEMPLATE, truth_for(TEMPLATE, ComputeType=compute, AutoUpdateBRConnector='true'))
     assert {k: on[k] for k in off} == off
 
 
@@ -90,17 +83,17 @@ def test_ecs_auto_update_is_off_by_default():
 
 
 def test_ecs_default_parameters_create_no_auto_update_resources():
-    assert not present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, DEFAULT)) & ECS_AUTO_UPDATE
+    assert not present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE)) & ECS_AUTO_UPDATE
 
 
 def test_ecs_turning_auto_update_on_only_adds_its_own_resources():
-    off = present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, DEFAULT))
-    on = present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, 'true'))
+    off = present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE))
+    on = present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, AutoUpdateBRConnector='true'))
     assert off <= on
     assert on - off == ECS_AUTO_UPDATE
 
 
 def test_ecs_switching_auto_update_leaves_every_other_resource_and_output_unchanged():
-    off = resolved(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, DEFAULT))
-    on = resolved(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, 'true'))
+    off = resolved(ECS_TEMPLATE, truth_for(ECS_TEMPLATE))
+    on = resolved(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, AutoUpdateBRConnector='true'))
     assert {k: on[k] for k in off} == off
