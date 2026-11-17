@@ -277,12 +277,15 @@ Parameters:
     Default: true
 
   AutoUpdateBRConnector:
-    Description: Auto update BRConnector image to newest version on Lambda & EC2
+    Description: >-
+      true moves BRConnector to the latest image every day at 00:00 UTC on the ec2 and
+      lambda compute types, even when BRConnectorVersion is pinned. It replaces only the
+      image and does not update the template. No effect on ecs and lambda-web. Default false.
     Type: String
     AllowedValues:
       - true
       - false
-    Default: true
+    Default: false
 
   # put a parameters to choose version
   BRConnectorVersion:
