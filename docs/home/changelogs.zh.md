@@ -38,6 +38,10 @@
    - 新 stack 的创建时间更长，因为创建期间会运行构建后端镜像的 CodeBuild 构建。账号还要承担 AgentCore Runtime 的费用。`EnableWebSearch` 默认也是 `true`，每次搜索都记在账号上。
    - 以前在不支持的组合上要求部署 Claude Code Web，stack 会创建失败并报错。现在会创建没有它的 stack，请查看 `ClaudeCodeWebStatus`。
 
+5. **BRClient 每张图片都有下载按钮** - BRClient 消息里的每张图片现在都有自己的下载按钮，只保存这一张。消息操作栏里的下载按钮照旧保存消息里的所有图片。
+   - 鼠标移到图片上，或者按钮获得键盘焦点时，按钮出现在图片右上角；在触屏上一直显示。只有已经加载完、每边至少 48 像素的 `http(s)` 图片才有这个按钮。
+   - 本次发版钉住上游 `main` 加上还没合并的上游 pull request [#82](https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82) 的新 head。见 [BRClient 来源](deployment.md#brclient-source)。
+
 ## 0.0.45
 
 **升级提示**

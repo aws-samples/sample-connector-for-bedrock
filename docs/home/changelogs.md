@@ -38,6 +38,10 @@
    - A new stack takes longer to create, because the CodeBuild build of the backend image runs during creation. The account pays for AgentCore Runtime. `EnableWebSearch` is also `true` by default, and each search is billed to the account.
    - A request for Claude Code Web on an unsupported combination used to fail the stack with an error. Now the stack is created without it. Read `ClaudeCodeWebStatus`.
 
+5. **BRClient Download Button on Each Picture** - Each picture in a BRClient message now has its own download button, which saves only that picture. The Download button among the message's actions still saves all of its pictures.
+   - The button appears in the picture's top-right corner when the pointer is over the picture or the button has keyboard focus, and it stays visible on touch screens. Only `http(s)` pictures that have loaded and are at least 48 pixels on each side have it.
+   - This release pins upstream `main` plus the new head of the unmerged upstream pull request [#82](https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82). See [BRClient source](deployment.md#brclient-source).
+
 ## 0.0.45
 
 **Upgrade notes**
