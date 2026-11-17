@@ -12,3 +12,4 @@
 | [0008](0008-painter-storage-from-the-stack.md) | Painter storage from the stack | Accepted |
 | [0009](0009-painter-chat-calls-for-painter-only-keys.md) | Painter chat calls for keys granted only painter | Accepted |
 | [0010](0010-claude-code-web-on-by-default.md) | Claude Code Web on by default, skipped when unsupported | Accepted |
+| [0011](0011-autoupdate-off-by-default.md) | AutoUpdate off by default | Accepted |
