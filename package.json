@@ -76,7 +76,7 @@
     "less": "^4.5.1",
     "less-loader": "^12.3.0",
     "nodemon": "^3.1.11",
-    "rimraf": "^6.1.2",
+    "rimraf": "^6.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "vite": "^6.4.5",
@@ -112,7 +112,6 @@
       "yorkie"
     ],
     "overrides": {
-      "fast-xml-parser": "5.5.6",
       "axios": "1.20.0"
     }
   }
