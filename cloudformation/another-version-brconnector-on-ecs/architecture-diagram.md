@@ -42,7 +42,7 @@ graph TD
 5. **Amazon Bedrock**: AI模型服务，提供基础模型API
 6. **SSM参数存储**: 安全存储配置和API密钥
 7. **CloudWatch Logs**: 集中化日志存储和监控
-8. **Lambda & EventBridge**: 自动化更新组件
+8. **Lambda & EventBridge**: 自动化更新组件，仅在 `AutoUpdateBRConnector` 为 `true` 时创建（默认 `false`）
 
 ## 网络架构
 

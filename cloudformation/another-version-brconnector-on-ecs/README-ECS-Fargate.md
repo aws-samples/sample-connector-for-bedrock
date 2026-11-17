@@ -49,7 +49,7 @@ aws cloudformation deploy \
 - **自动扩缩**：根据CPU使用率自动调整容器数量
 - **安全网络设计**：使用公有/私有子网和安全组隔离
 - **CDN加速**：通过CloudFront提供全球分发和HTTPS支持
-- **自动更新机制**：定期检查并部署新版本
+- **可选的自动更新**：`AutoUpdateBRConnector` 默认为 `false`。设为 `true` 时，每天强制重新部署一次服务，重新拉取 `BRConnectorVersion` 对应的镜像
 
 ## 管理员密钥
 
