@@ -76,7 +76,8 @@ async function requireMainHoldsMerge(pr, mergeSha, mainSha) {
 
 async function main() {
   const pr = requestedPr(process.argv.slice(2));
-  // The PR is read before main, so a merge that lands between the two requests is in the main that gets pinned.
+  // The PR is read before main. A PR open at that read keeps its head pinned, even if it merges before main is read.
+  // For a PR read as merged, the main read can still lack the merge. If so, requireMainHoldsMerge stops the script.
   const pull = pr === null ? null : await get(`pulls/${pr}`);
   const mainSha = (await get('git/ref/heads/main')).object?.sha;
   if (!SHA.test(mainSha ?? '')) throw new Error(`"${mainSha}" is not a 40 character lowercase hex sha`);

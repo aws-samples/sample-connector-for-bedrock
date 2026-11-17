@@ -6,6 +6,8 @@ import WebResponse from "../util/response";
 import AbstractProvider from "./abstract_provider";
 import logger from "../util/logger";
 import { selfBaseUrl } from "../util/self";
+import { PAINTER_CHAT_GRANT_HEADER, issuePainterChatGrant } from "./painter_chat_grant";
+import { pictureBucket } from "./painter_bucket";
 import { PictureBook, S3PictureStore, chatCopy, collectPictures, fitForStability } from "./painter_pictures";
 import {
   FinishReason, PAINT_TOOLS, PaintStepError, accessDeniedMessage, chatTools, finishReasonMessage, imagePrice, invokeRegion, parseToolArgs,
@@ -21,6 +23,14 @@ type PaintConfig = { paintModelId: string; localLlmModel: string; store: S3Pictu
 type MadePicture = { name: string; bytes: Buffer; price: number };
 
 const clientGone = (ctx: any) => !!(ctx.res.destroyed || ctx.res.writableEnded);
+
+const loopbackHeaders = (ctx: any, session_id: string, model: string) => ({
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer ' + ctx.user.api_key,
+  'Session-Id': session_id,
+  [PAINTER_CHAT_GRANT_HEADER]: issuePainterChatGrant(ctx.user.id, model),
+});
 
 // CloudFront closes an origin connection that is silent for 30 seconds. The keep-alive is a normal chunk with
 // empty content, so clients that parse every data line accept it.
@@ -52,7 +62,7 @@ export default class Painter extends AbstractProvider {
   }
 
   async chat(chatRequest: ChatRequest, session_id: string, ctx: any) {
-    let { paintModelId, localLlmModel, s3Bucket, s3Region, s3Prefix } = this.modelData.config;
+    const { paintModelId, localLlmModel } = this.modelData.config;
 
     if (!localLlmModel) {
       throw new Error("You must specify the parameter 'localLlmModel'.")
@@ -60,18 +70,7 @@ export default class Painter extends AbstractProvider {
     if (!paintModelId) {
       throw new Error("You must specify the parameter 'paintModelId'.")
     }
-    if (!s3Bucket) {
-      throw new Error("You must specify the parameter 's3Bucket'.")
-    }
-    if (!s3Region) {
-      throw new Error("You must specify the parameter 's3Region'.")
-    }
-    if (!s3Prefix) {
-      s3Prefix = "";
-    }
-    if (s3Prefix.endsWith("/")) {
-      s3Prefix = s3Prefix.slice(0, -1);
-    }
+    const s3 = await pictureBucket(this.modelData.config);
 
     if (this.modelData.config.regions && !regionsIgnoredLogged.has(this.modelData.name)) {
       regionsIgnoredLogged.add(this.modelData.name);
@@ -82,7 +81,7 @@ export default class Painter extends AbstractProvider {
     ctx.status = 200;
 
     if (chatRequest.stream) {
-      const store = new S3PictureStore(new S3Client({ region: s3Region }), s3Bucket, s3Region, s3Prefix);
+      const store = new S3PictureStore(new S3Client({ region: s3.region }), s3.bucket, s3.region, s3.prefix);
       await this.chatStream(chatRequest, session_id, ctx, { paintModelId, localLlmModel, store });
     } else {
       ctx.set({
@@ -96,12 +95,7 @@ export default class Painter extends AbstractProvider {
 
     const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + ctx.user.api_key,
-        'Session-Id': session_id
-      },
+      headers: loopbackHeaders(ctx, session_id, chatRequest.model),
       body: JSON.stringify(chatRequest)
     });
 
@@ -215,12 +209,7 @@ export default class Painter extends AbstractProvider {
     const jRes: any = await withKeepAlive(ctx, reqId, (async () => {
       const response = await fetch(`${selfBaseUrl}/v1/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + ctx.user.api_key,
-          'Session-Id': session_id
-        },
+        headers: loopbackHeaders(ctx, session_id, model),
         body: JSON.stringify(body)
       });
       if (!response.ok) {

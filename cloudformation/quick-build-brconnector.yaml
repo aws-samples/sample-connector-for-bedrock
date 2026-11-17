@@ -314,15 +314,22 @@ Parameters:
     Description: >-
       Deploy Claude Code Web: Claude Code in the browser at <BRConnector URL>/cc/, signed
       in with a BRConnector API key, with its backend on Amazon Bedrock AgentCore Runtime
-      (one microVM per key, billed to this account). Only takes effect when the stack is
-      created. Needs ComputeType ec2, ecs or lambda-web, a database, and BRConnectorVersion
-      latest unless ComputeType is lambda-web. The backend image is built by CodeBuild
-      from SourceRepoUrl at SourceRef.
+      (one microVM per key). On by default. A deployment that cannot run it skips it, and
+      the stack is still created: ComputeType lambda, DatabaseMode NoDB, ComputeType ecs or
+      lambda-web with DatabaseMode EC2Integrated, or a pinned BRConnectorVersion with
+      ComputeType ec2 or ecs. The ClaudeCodeWebStatus output says whether it was deployed,
+      and why not. When it is deployed, CodeBuild builds the backend image from
+      SourceRepoUrl at SourceRef, which adds to the time the stack takes to create, and
+      AgentCore Runtime is billed to this account. EnableWebSearch is also true by default,
+      and each search is billed. Only takes effect when the stack is created: an update in
+      the console keeps the stack's current value, and with the AWS CLI pass
+      UsePreviousValue=true for it. A stack created from a template without this parameter
+      has no current value, so set it to false when you update that stack.
     Type: String
     AllowedValues:
       - 'true'
       - 'false'
-    Default: 'false'
+    Default: 'true'
 
   ClaudeCodeDefaultModel:
     Description: >-
@@ -380,32 +387,6 @@ Rules:
         AssertDescription: >-
           ComputeType lambda-web is available only in us-east-1, us-east-2, us-west-2,
           ap-northeast-1 and eu-west-1. Use ec2, ecs or lambda in other Regions.
-  # Claude Code Web needs a BRConnector that has /cc and normal (non-admin) keys.
-  ClaudeCodeWebRequirements:
-    RuleCondition: !Equals [!Ref EnableClaudeCodeWeb, 'true']
-    Assertions:
-      - Assert: !Not [!Equals [!Ref ComputeType, 'lambda']]
-        AssertDescription: >-
-          Claude Code Web does not support ComputeType lambda: its 60-second timeout cuts
-          off long streams. Use ec2, ecs or lambda-web.
-      # Same test as the IsNoDB condition: without a database only the admin key exists,
-      # and Claude Code Web refuses the admin key.
-      - Assert: !And
-          - !Not [!Equals [!Ref DatabaseMode, 'NoDB']]
-          - !Not
-            - !And
-              - !Contains [['ecs', 'lambda-web'], !Ref ComputeType]
-              - !Equals [!Ref DatabaseMode, 'EC2Integrated']
-        AssertDescription: >-
-          Claude Code Web needs a database, because it refuses the admin key. Set
-          DatabaseMode to Standalone, or to EC2Integrated with ComputeType ec2.
-      # ec2 and ecs run the published BRConnector image; pinned older versions have no /cc.
-      - Assert: !Or
-          - !Equals [!Ref ComputeType, 'lambda-web']
-          - !Equals [!Ref BRConnectorVersion, 'latest']
-        AssertDescription: >-
-          Claude Code Web needs BRConnectorVersion latest with ComputeType ec2 or ecs;
-          the pinned versions predate /cc.
 
 Conditions:
   UseExistingVpcStack: !Not [!Equals [!Ref VpcStackName, '']]
@@ -461,7 +442,12 @@ Conditions:
   IsPrivateLambdaPermission: !And
     - !Equals [!Ref ComputeType, 'lambda']
     - !Not [!Equals [!Ref LambdaEdgeVersionArn, '']]
-  IsClaudeCodeWeb: !Equals [!Ref EnableClaudeCodeWeb, 'true']
+  ClaudeCodeWebRequested: !Equals [!Ref EnableClaudeCodeWeb, 'true']
+  IsClaudeCodeWeb: !And
+    - !Condition ClaudeCodeWebRequested
+    - !Not [!Condition IsLambda]
+    - !Condition DeployDB
+    - !Or [!Condition IsLambdaWeb, !Equals [!Ref BRConnectorVersion, 'latest']]
   # The Regions where AgentCore Web Search is available; anywhere else it creates nothing.
   IsClaudeCodeWebSearch: !And
     - !Condition IsClaudeCodeWeb
@@ -850,7 +836,7 @@ Resources:
         # nothing here traces commands or prints a key or password. The docker run line
         # lives in the root-only /root/brconnector-run.sh, which the SSM auto-update runs
         # with "latest"; it must stay a single line holding --name brconnector. CcEnvArg is
-        # empty unless EnableClaudeCodeWeb is true and is glued to that line without a space.
+        # empty unless IsClaudeCodeWeb is true and is glued to that line without a space.
         # The script exists twice. A stack created with a PGPassword keeps the second one, the
         # script of earlier templates, unchanged: any edit inside it, even one that renders the
         # same text, makes CloudFormation update the instance. The first one reads a generated
@@ -1436,6 +1422,9 @@ Resources:
           PGSQL_USER: !Ref PGUser
           PGSQL_PASSWORD: !If [ CreatePGSecret, !Ref AWS::NoValue, !Ref PGPassword ]
           PGSQL_PASSWORD_SECRET_ARN: !If [ CreatePGSecret, !Ref PGSecret, !Ref AWS::NoValue ]
+          PAINTER_S3_BUCKET: !Ref ClaudeCodeWebWorkspaceBucket
+          PAINTER_S3_REGION: !Ref AWS::Region
+          PAINTER_S3_PREFIX: painter
       VpcConfig:
         !If
           - IsNoDB
@@ -1717,6 +1706,12 @@ Resources:
               - Name: CC_CONFIG_PARAM
                 Value: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
               - !Ref AWS::NoValue
+            - Name: PAINTER_S3_BUCKET
+              Value: !Ref ClaudeCodeWebWorkspaceBucket
+            - Name: PAINTER_S3_REGION
+              Value: !Ref AWS::Region
+            - Name: PAINTER_S3_PREFIX
+              Value: painter
           # ECS reads the generated password at task start; the task definition holds only the ARN.
           Secrets: !If
             - CreatePGSecret
@@ -2589,6 +2584,9 @@ Resources:
           - IsClaudeCodeWeb
           - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/${AWS::StackName}/claude-code-web
           - !Ref AWS::NoValue
+        PAINTER_S3_BUCKET: !Ref ClaudeCodeWebWorkspaceBucket
+        PAINTER_S3_REGION: !Ref AWS::Region
+        PAINTER_S3_PREFIX: painter
 
 
   # CloudFront is how a browser reaches an IamAuth endpoint: no browser can SigV4-sign,
@@ -2686,17 +2684,34 @@ Resources:
   ClaudeCodeWebRepository:
     Condition: IsClaudeCodeWeb
     Type: AWS::ECR::Repository
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_51
+            comment: Every rebuild pushes the same tag again, which an immutable tag refuses; the runtime runs the image by digest.
+          - id: CKV_AWS_136
+            comment: ECR encrypts images with AES-256 already, and a named repository cannot be replaced, which a KMS key on an existing stack requires.
     Properties:
       RepositoryName: !Sub brc-claude-code-web-${RandomString}
       EmptyOnDelete: true
+      ImageScanningConfiguration:
+        ScanOnPush: true
 
-  # Users' workspaces, under user_data/<user id>/. Retained for the same reason as
-  # WebFnCodeBucket, and because it holds user files; delete it by hand if unwanted.
+  # Claude Code Web users' workspaces, under user_data/<user id>/, and painter's pictures,
+  # under painter/. Retained for the same reason as WebFnCodeBucket, and because it holds
+  # user files; delete it by hand if unwanted. A new name or logical id would replace it on
+  # every stack.
   ClaudeCodeWebWorkspaceBucket:
-    Condition: IsClaudeCodeWeb
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: Access logs would need one more retained bucket per stack, and this bucket blocks all public access.
+          - id: CKV_AWS_21
+            comment: With no lifecycle rule, versioning would keep every overwritten workspace file and picture forever.
     Properties:
       BucketName: !Sub brc-cc-workspace-${AWS::AccountId}-${AWS::Region}-${RandomString}
       BucketEncryption:
@@ -2708,6 +2723,14 @@ Resources:
         IgnorePublicAcls: true
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
+      # BRClient's download button fetches a picture's presigned URL from the page's own
+      # origin, which the template cannot know. The rule grants no access: a request still
+      # needs a presigned URL or IAM credentials.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
 
   # What the microVM runs as, and a user's shell can use these credentials. So it gets
   # only what AgentCore Runtime needs to pull the image and ship logs, traces and metrics:
@@ -2834,10 +2857,15 @@ Resources:
                   - s3:PutObject
                   - s3:DeleteObject
                   - s3:AbortMultipartUpload
-                Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/*
+                Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/user_data/*
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      - user_data/*
+                      - user_data
 
   ClaudeCodeWebBuildRole:
     Condition: IsClaudeCodeWeb
@@ -3016,6 +3044,17 @@ Resources:
   ClaudeCodeWebBuildTrigger:
     Condition: IsClaudeCodeWeb
     Type: AWS::Lambda::Function
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Only CloudFormation calls it, and reserved concurrency fails the stack in an account at its unreserved minimum.
+          - id: CKV_AWS_116
+            comment: Only CloudFormation calls it and waits for the answer, so a failed call already fails the stack operation.
+          - id: CKV_AWS_117
+            comment: It calls only public AWS endpoints, CodeBuild and the CloudFormation response URL, and nothing in the VPC.
+          - id: CKV_AWS_173
+            comment: Its variables hold the build project name and a fixed resource id, no secret; Lambda encrypts them at rest.
     Properties:
       Handler: index.handler
       Runtime: python3.12
@@ -3132,7 +3171,7 @@ Resources:
           - X-Amzn-Bedrock-AgentCore-Runtime-Custom-Brc-Aws-Session-Token
       EnvironmentVariables:
         CLAUDE_CODE_USE_BEDROCK: '0'
-        # Claude Code appends /v1/messages. The Rules exclude lambda, so this is the
+        # Claude Code appends /v1/messages. IsClaudeCodeWeb excludes lambda, so this is the
         # distribution of ecs, lambda-web or ec2.
         ANTHROPIC_BASE_URL: !If
           - IsEcs
@@ -3277,6 +3316,57 @@ Resources:
                 ParameterValues: {}
       CredentialProviderConfigurations:
         - CredentialProviderType: GATEWAY_IAM_ROLE
+
+  PainterComputePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub brconnector-painter-${AWS::StackName}
+      Roles:
+        - !If
+          - IsEcs
+          - !Ref ECSTaskRole
+          - !If
+            - IsLambdaWeb
+            - !Ref BRConnectorWebFnExecRole
+            - !If [IsLambda, !Ref BRConnectorLambdaRole, !Ref EC2Role]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PainterPictures
+            Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/painter/*
+          # The Stability AI models are AWS Marketplace products. The first call to one
+          # subscribes the account, with the caller's permissions.
+          - Sid: SubscribeImageModels
+            Effect: Allow
+            Action:
+              - aws-marketplace:Subscribe
+              - aws-marketplace:ViewSubscriptions
+            Resource: '*'
+          - !If
+            - IsEc2
+            - Sid: ReadPainterEc2Settings
+              Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/brconnector/instance/${MyEC2Instance}/painter
+            - !Ref AWS::NoValue
+
+  # lambda, ecs and lambda-web get the bucket settings as PAINTER_S3_* environment variables.
+  # ec2 reads them from PainterEc2Settings instead: a UserData change would stop and
+  # start MyEC2Instance, and UserData does not rerun on an existing instance.
+  PainterEc2Settings:
+    Condition: IsEc2
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /brconnector/instance/${MyEC2Instance}/painter
+      Type: String
+      Value: !Sub '{"PAINTER_S3_BUCKET":"${ClaudeCodeWebWorkspaceBucket}","PAINTER_S3_REGION":"${AWS::Region}","PAINTER_S3_PREFIX":"painter"}'
+      Description: Painter S3 settings for BRConnector, created by CloudFormation
+      Tier: Standard
+      DataType: text
 
 Outputs:
   PGPasswordSecretArn:
@@ -3441,6 +3531,22 @@ Outputs:
     Condition: IsLambda
     Description: Lambda URL (debug)
     Value: !GetAtt BRConnectorLambdaUrl.FunctionUrl
+
+  ClaudeCodeWebStatus:
+    Description: Whether Claude Code Web was deployed, and if not, why
+    Value: !If
+      - IsClaudeCodeWeb
+      - 'Deployed. Sign in at the ClaudeCodeWebUrl output.'
+      - !If
+        - ClaudeCodeWebRequested
+        - !If
+          - IsLambda
+          - 'Not deployed: ComputeType lambda is not supported, because its 60-second timeout cuts off long streams. Use ec2, ecs or lambda-web.'
+          - !If
+            - IsNoDB
+            - 'Not deployed: Claude Code Web needs a database, because it refuses the admin key. Set DatabaseMode to Standalone, or to EC2Integrated with ComputeType ec2.'
+            - 'Not deployed: Claude Code Web needs BRConnectorVersion latest with ComputeType ec2 or ecs, because the pinned versions predate /cc.'
+        - 'Not deployed: EnableClaudeCodeWeb is false.'
 
   ClaudeCodeWebUrl:
     Condition: IsClaudeCodeWeb

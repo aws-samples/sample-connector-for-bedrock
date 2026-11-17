@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import providers from '../src/providers/provider';
 
@@ -93,5 +93,25 @@ describe('preset-model migration', () => {
         expect(migrationSql.match(/INSERT INTO eiai_model/g)).toHaveLength(1);
         expect(migrationSql).toMatch(/ON CONFLICT \(name\) DO NOTHING\s+RETURNING id/);
         expect(migrationSql).toMatch(/INSERT INTO eiai_group_model \(model_id, group_id\)\s+SELECT id, 1 FROM inserted\s+WHERE EXISTS \(SELECT 1 FROM eiai_group WHERE id = 1\)\s+ON CONFLICT \(model_id, group_id\) DO NOTHING;/);
+    });
+});
+
+describe('painter preset migration', () => {
+    const path = join(scripts, 'migrations/2026-11-14-painter-preset.sql');
+    const sql = existsSync(path) ? readFileSync(path, 'utf8') : '';
+
+    it('seed painter with Stability Image Ultra, the Claude Sonnet 5.5 chat preset, no S3 settings of its own and no token price', () => {
+        expect(parse(sql)).toEqual([{
+            name: 'painter', multiple: 1, provider: 'painter',
+            config: { paintModelId: 'stability.stable-image-ultra-v1:1', localLlmModel: 'claude-sonnet-5-5-chat' }, priceIn: 0, priceOut: 0,
+        }]);
+        expect(sql.match(/^\('/gm)).toHaveLength(1);
+        expect(Object.keys(providers)).toContain('painter');
+        expect([...patchRows, ...rows].map((r) => r.name)).not.toContain('painter');
+    });
+    it('insert painter only when no model has that name and bind only what it inserted to an existing group 1', () => {
+        expect(sql.match(/INSERT INTO eiai_model/g)).toHaveLength(1);
+        expect(sql).toMatch(/ON CONFLICT \(name\) DO NOTHING\s+RETURNING id/);
+        expect(sql).toMatch(/INSERT INTO eiai_group_model \(model_id, group_id\)\s+SELECT id, 1 FROM inserted\s+WHERE EXISTS \(SELECT 1 FROM eiai_group WHERE id = 1\)\s+ON CONFLICT \(model_id, group_id\) DO NOTHING;/);
     });
 });

@@ -246,3 +246,36 @@ directory must be listed here.
   `@types/estree` 1.0.8 -> 1.0.10), locked with `npm update rollup --package-lock-only` (npm 10.9.9). rollup is a
   dependency of vite (`^4.43.0`); the vulnerability known in 4.52.5 is fixed from 4.59.0 on. `package.json` is
   unchanged.
+- `uv.lock`: dnspython 2.9.0 -> 2.9.2, opentelemetry-api 1.45.1 -> 1.45.2, mcp 1.28.1 -> 1.30.0, fastmcp and
+  fastmcp-slim 3.4.0 -> 3.4.10, filelock 3.20.2 -> 4.2.1, locked with `uv lock --upgrade-package <name>==<version>`
+  (uv 0.13.7); `pyproject.toml` is unchanged. fastmcp-slim 3.4.10 requires `starlette>=1.0.1` and fastapi 0.128.0
+  caps starlette below 0.51, so fastapi (0.162.7) and starlette (1.10.0) move too; no other locked version changes.
+  The backend uses none of the APIs that Starlette 1.0 removed (`on_startup`, `on_shutdown`, `on_event()`,
+  `add_event_handler()`, the `route`, `websocket_route`, `exception_handler` and `middleware` decorators, and the
+  `method` argument of `FileResponse`). With Starlette 1.x, a request with an `Origin` header gets that origin back in
+  `access-control-allow-origin` instead of `*`, because `allow_credentials` is on; the gateway reaches this server only
+  through the AgentCore invoke API, so browsers do not see these headers. FastAPI 0.132 and later answer a JSON body
+  without a `Content-Type` header with 422 instead of parsing it, and `POST /invocations` takes a JSON object. The
+  gateway sends `content-type: application/json` on every `InvokeAgentRuntime` request, and the template gives the
+  runtime no session endpoints and no other invoker, so this does not change the deployed path; that AgentCore passes
+  the caller's `Content-Type` on to the container is not checked on a deployed runtime. To restore the old behavior,
+  pass `strict_content_type=False` to the `APIRouter` in `backend/api/invocations.py` (a local test then matches
+  FastAPI 0.128.0), or keep fastmcp on 3.4.0. The other breaking changes from FastAPI 0.129 to 0.162.7 (Python 3.9 and
+  3.10 dropped, `**extra` and `openapi_prefix` removed, `root_path` and `ORJSONResponse` deprecated, `router.routes`
+  as a tree, OpenTelemetry setup as an opt-in, and new handling of defaults, form fields, files and JSON `null`) do
+  not reach the backend: `/invocations` calls the other route functions directly with models it builds. See
+  `docs/adr/0006-starlette-1-for-fastmcp.md`. filelock 4.0 changes only the
+  `SoftReadWriteLock` on-disk protocol; its only user here, huggingface-hub, uses `FileLock`, `SoftFileLock`, `Timeout`
+  and `BaseFileLock`. Every changed package has a `py3-none-any` wheel.
+- `web_client/package-lock.json`: `@babel/core` 7.28.4 -> 7.29.6 and picomatch 4.0.3 -> 4.0.7, both dev dependencies
+  (`@babel/core` through `@vitejs/plugin-react`, picomatch through vite). Locked with npm 10.9.9 by adding
+  both versions to `overrides` in `package.json`, running `npm install`, then removing the overrides and running
+  `npm install` again, because `npm update @babel/core` goes past 7.29.6. `package.json` is unchanged. The new
+  `@babel/core` needs newer `@babel/*` helpers, so `@babel/code-frame`, `compat-data`, `generator`,
+  `helper-compilation-targets`, `helper-globals`, `helper-module-imports`, `helper-module-transforms`,
+  `helper-string-parser`, `helper-validator-identifier`, `helper-validator-option`, `helpers`, `parser`, `template`,
+  `traverse` and `types` move to 7.29.x. npm also moves browserslist, baseline-browser-mapping, caniuse-lite,
+  electron-to-chromium, node-releases and semver to newer releases that nothing requires. Their lockfile entries are
+  the previous ones again: the new helpers declare `browserslist ^4.24.0` and `semver ^6.3.1`, which browserslist
+  4.29.4 and semver 6.3.1 satisfy, and `npm ls --all` reports no invalid or missing dependency. All of them are dev
+  dependencies.

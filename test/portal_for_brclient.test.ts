@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import vm from 'node:vm';
+import Koa from 'koa';
+import type { AddressInfo } from 'net';
 import autoLoginHandler from '../src/middleware/portal_for_brclient';
 import keyService from '../src/service/key';
 
@@ -8,7 +10,7 @@ import keyService from '../src/service/key';
 // localStorage, location and fetch, and check what it stores and where it navigates.
 
 async function portalScript(): Promise<string> {
-    const ctx: any = { path: '/portal-for-brclient.html' };
+    const ctx: any = { path: '/portal-for-brclient.html', set: () => {} };
     await autoLoginHandler(ctx, async () => {});
     const match = /<script>([\s\S]*?)<\/script>/.exec(ctx.body);
     if (!match) throw new Error('portal page has no script');
@@ -52,6 +54,22 @@ describe('portal-for-brclient.html', () => {
         expect(ctx.status).toBe(404);
         expect(ctx.body).toBeUndefined();
         expect(load).not.toHaveBeenCalled();
+    });
+
+    it('is revalidated on every load', async () => {
+        const app = new Koa();
+        app.use(autoLoginHandler);
+        const server = app.listen(0, '127.0.0.1');
+        await new Promise<void>((resolve) => server.once('listening', () => resolve()));
+        try {
+            const r = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/portal-for-brclient.html`);
+            expect(r.status).toBe(200);
+            expect(await r.text()).toContain('<title>Portal for BRClient</title>');
+            expect(r.headers.get('cache-control')).toBe('no-cache');
+        } finally {
+            server.closeAllConnections();
+            await new Promise<void>((resolve) => server.close(() => resolve()));
+        }
     });
 
     it('turns on BRConnector mode and opens settings when there is no API key yet', async () => {

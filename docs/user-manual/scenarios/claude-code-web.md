@@ -15,13 +15,13 @@ Claude Code in the browser, served by BRConnector at `https://<BRConnector URL>/
 - When a session starts, `"skipWebFetchPreflight": true` is written to the user's `~/.claude/settings.json` if the key is missing, so Claude Code does not first check each WebFetch domain with api.anthropic.com; a value the user has set is kept.
 - When a key is deleted or its quota runs out, it can no longer use Claude Code Web.
 
-## Turn it on
+## Turn it on or off
 
-Claude Code Web is part of the CloudFormation template [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) (see [Quick Deployment](../../home/deployment.md)). Turn it on when you **create** the stack; see [Known limitations](#known-limitations).
+Claude Code Web is part of the CloudFormation template [quick-build-brconnector.yaml](https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml) (see [Quick Deployment](../../home/deployment.md)). It is on by default, and takes effect only when you **create** the stack; see [Known limitations](#known-limitations). A deployment that cannot run it skips it, and the stack is still created (see [Where it is skipped](#where-it-is-skipped)).
 
 | Parameter | Value |
 | --- | --- |
-| `EnableClaudeCodeWeb` | `true` (default `false`) |
+| `EnableClaudeCodeWeb` | `true` (default). `false` turns it off. |
 | `ComputeType` | `ec2`, `ecs` or `lambda-web`. `lambda` is not supported. |
 | `DatabaseMode` | `Standalone`, or `EC2Integrated` with `ComputeType` `ec2`. Without a database only the admin key exists, and Claude Code Web refuses the admin key. |
 | `BRConnectorVersion` | `latest` with `ec2` and `ecs`, which run the published image; the pinned versions predate `/cc`. |
@@ -31,13 +31,26 @@ Claude Code Web is part of the CloudFormation template [quick-build-brconnector.
 | `ClaudeCodeWebImageBuildId` | Change it (for example from `1` to `2`) to rebuild the backend image and nothing else; see [Known limitations](#known-limitations). Default `1`. |
 | `EnableWebSearch` | `true` (default) also creates the AgentCore Web Search gateway; see [Web search](#web-search). `false` leaves it out. |
 
-The template's `Rules` reject any other combination before anything is created.
+### Where it is skipped {#where-it-is-skipped}
 
-With the switch on, the stack also creates:
+With any other combination, the stack is still created without Claude Code Web, and none of the Claude Code Web resources below is created. The workspace S3 bucket is the exception: painter keeps its pictures in it too, so every stack creates it and keeps it when the stack is deleted. The stack output `ClaudeCodeWebStatus` says whether it was deployed and, if not, why:
+
+- `EnableClaudeCodeWeb` is `false`.
+- `ComputeType` is `lambda`: its 60-second timeout cuts off long streams. Use `ec2`, `ecs` or `lambda-web`.
+- There is no usable database: Claude Code Web refuses the admin key. Set `DatabaseMode` to `Standalone`, or to `EC2Integrated` with `ComputeType` `ec2`.
+- `BRConnectorVersion` is pinned with `ec2` or `ecs`: the pinned versions predate `/cc`. Use `latest`.
+
+If you turned it on and see no `ClaudeCodeWebUrl`, read `ClaudeCodeWebStatus`. A request for Claude Code Web on an unsupported combination no longer fails the stack.
+
+### Cost and creation time
+
+Because it is on by default, a new stack takes longer to create (the CodeBuild build of the backend image runs during creation) and the account pays for AgentCore Runtime. `EnableWebSearch` is also `true` by default, and each search is billed to the account. Set `EnableClaudeCodeWeb` to `false` to avoid both.
+
+When it is deployed, the stack also creates:
 
 - an ECR repository, and a CodeBuild project that builds the backend image (arm64) from `SourceRepoUrl` at `SourceRef`, smoke-tests it and pushes it; a small Lambda function starts the build during stack creation, and the stack waits for it;
 - the AgentCore Runtime;
-- an S3 bucket for the workspaces, which is **kept** when the stack is deleted;
+- the workspace S3 bucket, which every stack creates for painter as well and which is **kept** when the stack is deleted;
 - an IAM role for the runtime, an IAM role for workspace access, and a policy on BRConnector's role that lets it call the runtime;
 - the SSM parameter `/brconnector/<stack name>/claude-code-web`, from which BRConnector reads the runtime settings (`CC_CONFIG_PARAM`);
 - with `EnableWebSearch` `true`, in a Region with AgentCore Web Search: an AgentCore Gateway with the Web Search connector, and its IAM role; see [Web search](#web-search).
@@ -116,7 +129,7 @@ Logging out stops your microVM. Your files stay in S3 and come back the next tim
 
 ## Known limitations
 
-- The switch only works when the stack is created. Turning it on for an existing stack does not take effect: with ec2, changing the UserData does not run cloud-init again, and the nightly SSM update runs `/root/brconnector-run.sh` (stacks created before 0.0.44 replay the `docker run` line logged at first boot), which was written when the instance was first set up.
+- The switch only takes effect when the stack is created. A console update of a stack created before the default changed keeps its value `false`, and creates nothing. A stack created from a template that has no `EnableClaudeCodeWeb` parameter, from before Claude Code Web, has no value to keep: the console shows the new default `true`, so set it to `false` when you update that stack. With the AWS CLI, pass `UsePreviousValue=true` for `EnableClaudeCodeWeb`: without it the update takes the new default `true`, which creates Claude Code Web, and with `ec2` changes the UserData, so the instance is stopped and started. Turning it on for an existing stack does not take effect: with ec2, changing the UserData does not run cloud-init again, and the nightly SSM update runs `/root/brconnector-run.sh` (stacks created before 0.0.44 replay the `docker run` line logged at first boot), which was written when the instance was first set up.
 - The microVM compute cost is billed to the account that deploys the stack and does not count against the key's quota. The key's quota covers model tokens only. Each key has at most one microVM, reclaimed after 15 minutes idle.
 - With ec2, BRConnector is upgraded to `latest` every night, but the Claude Code Web backend image is rebuilt only by a stack update. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`): the image is built again from `SourceRepoUrl` at `SourceRef`, so a branch picks up its new commits, and nothing else in the stack changes. Changing `SourceRepoUrl` or `SourceRef` also rebuilds the image. With `lambda-web`, the stack update also rebuilds the BRConnector deployment package from the same repository and ref (a failed update rolls back by rebuilding the previous `SourceRef`, so keep it available until the update completes; see [AutoUpdate](../../home/deployment.md#autoupdate)). With `ec2`, `SourceRepoUrl` and `SourceRef` do not touch the instance; changing `BRConnectorVersion` changes the UserData, so the instance is stopped and started once. The contract between BRConnector and the backend (passing invocations through, and the four custom headers) must stay backward compatible.
 - `ec2` and `ecs` cannot use Claude Code Web until a BRConnector release with `/cc` is published upstream and the maintainers push the public image.

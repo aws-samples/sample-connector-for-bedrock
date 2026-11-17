@@ -1,5 +1,47 @@
 # 更新日志
 
+## 0.0.46
+
+**升级提示**
+
+- Claude Code Web 后端镜像要重新构建后才会包含第 1 条。要重新构建，请修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）。见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations)。
+- 不需要任何操作（第 2 条）。升级前已经缓存了 BRClient 的浏览器会把这份副本保留最多 30 天，所以在用户手动刷新一次页面之前，它仍可能显示旧版 BRClient。BRConnector 无法更改浏览器里已有的副本。
+- 要让 `painter` 有存储和 IAM 权限，请把 stack 更新到新模板（第 3 条）。见[已有 stack 使用 painter](deployment.md#painter-stack-update)。
+- 这次更新不会修改或重启 `ec2` 实例：BRConnector 从一个 SSM 参数读取 painter 的设置（第 3 条）。
+- 已有的名为 `painter` 的模型保持不变。只有名称空闲时才会添加预置模型（第 3 条）。
+- 开启 AutoUpdate 时，预置的 `painter` 会随新镜像出现，即使 stack 还没有更新到新模板。在那之前，它会返回一条说明如何给它配置存储的错误（第 3 条）。
+- 第一次调用每个 Stability 模型时，会在 AWS Marketplace 为账号自动订阅，最多可能需要 15 分钟。订阅生效之前，调用会失败并带一条访问被拒绝的提示（第 3 条）。
+- Claude Code Web 的工作区角色现在只能访问存储桶里的 `user_data/`（第 3 条）。
+- 新 stack 默认打开 Claude Code Web（第 4 条）。在控制台更新时，`EnableClaudeCodeWeb` 保持 stack 当前的值，在此之前创建的 stack 是 `false`。用没有 `EnableClaudeCodeWeb` 参数的模板（Claude Code Web 之前的版本）创建的 stack 没有可保持的值：控制台会显示新的默认值 `true`，更新这样的 stack 时请把它设为 `false`。使用 AWS CLI 时传 `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`。不传的话，更新会采用新的默认值，创建 Claude Code Web，在 `ec2` 上还会修改 UserData，从而停止再启动实例。见[已有 stack 使用 Claude Code Web](deployment.md#claude-code-web-stack-update)。
+- 新 stack 的创建时间更长，费用也更高，因为 Claude Code Web 增加了一次 CodeBuild 构建和 AgentCore Runtime 的费用（第 4 条）。要避免这些，把 `EnableClaudeCodeWeb` 设为 `false`。
+- 跑不了 Claude Code Web 的部署组合不会再让 stack 创建失败，而是跳过它，`ClaudeCodeWebStatus` 输出会写明原因（第 4 条）。
+- 模板现在总是创建工作区存储桶。如果 stack 曾经开启 Claude Code Web、后来更新时关闭了它，同名的存储桶仍在 stack 之外，更新可能因为它已存在而失败。见[已有 stack 使用 painter](deployment.md#painter-stack-update)（第 3 条）。
+
+1. **依赖更新** - 依赖升级到更新的版本。dnspython、fast-uri、fastmcp、filelock、mcp、opentelemetry-api、qs 和 starlette 的新版本修复了已知漏洞。
+   - Claude Code Web 后端镜像安装 dnspython 2.9.2、opentelemetry-api 1.45.2、mcp 1.30.0、fastmcp 3.4.10 和 filelock 4.2.1。fastmcp 3.4.10 需要 Starlette 1.x，所以 starlette 从 0.50.0 升级到 1.10.0，fastapi 从 0.128.0 升级到 0.162.7。0.0.45 保留的 starlette 已知漏洞因此得到修复。
+   - BRConnector 服务端依赖不变。每次构建都会安装 `package.json` 允许的最新版本。测试使用的 lockfile 现在是 qs 6.17.1 和 fast-uri 3.1.9。
+   - Claude Code Web 网页客户端改用 @babel/core 7.29.6 和 picomatch 4.0.7 构建。
+
+2. **升级后自动显示新版 BRClient** - 升级以后，浏览器现在不用手动刷新就会显示新版 BRClient。以前 BRConnector 让浏览器把 BRClient 的所有文件（包括 `index.html`）缓存 30 天，所以浏览器一直显示旧版。
+   - 现在浏览器每次加载 `/portal-for-brclient.html`，以及 BRClient（`/brclient/`）和管理后台（`/manager/`）的文件时，都会向 BRConnector 获取最新版本。文件名里带内容哈希的构建文件例外：浏览器会把它们缓存最长一年，和 `/cc` 一样。
+3. **painter 开箱即用** - 带数据库的新 stack 自带一个可用的 `painter` 模型。管理员只需把它授予某个 key 或 group，不用填写任何 S3 或 IAM 设置。见 [painter](../providers/painter.md#preset-painter-model)。
+   - 新增一个 migration，添加预置的 `painter` 模型：用 Stability Image Ultra（`stability.stable-image-ultra-v1:1`）画图，对话模型是 `claude-sonnet-5-5-chat`，价格为 0（图片按内置标价计费），并绑定到 group 1。已有的同名模型不会被修改。
+   - 模板总是让 painter 与 Claude Code Web 共用 stack 的工作区存储桶，painter 使用 `painter/` 前缀，没有对应的参数。这个存储桶总是会创建。删除 stack 时它会保留，也没有生命周期规则。它带一条 CORS 规则，允许任何来源 `GET` 和 `HEAD`，这样 BRClient 的下载按钮能直接保存图片，而不是在新标签页打开。这条规则不放宽任何权限：请求仍然需要预签名 URL 或 IAM 凭证。
+   - 模板给 BRConnector 的角色授予 `<bucket>/painter/*` 上的 `s3:PutObject` 和 `s3:GetObject`，以及 `aws-marketplace:Subscribe` 和 `aws-marketplace:ViewSubscriptions`，所以第一次调用每个 Stability 模型时会自动为账号订阅。账号需要有效的付款方式。
+   - `lambda`、`lambda-web` 和 `ecs` 通过环境变量得到 `PAINTER_S3_BUCKET`、`PAINTER_S3_REGION` 和 `PAINTER_S3_PREFIX`。`ec2` 从一个 SSM 参数读取，所以更新不会重启实例。
+   - painter config 里的 `s3Bucket`、`s3Region` 和 `s3Prefix` 现在都是可选的。不填 `s3Bucket` 时，painter 使用 stack 的设置；填了就三项都取自 config，和以前一样。两处都没有时，错误信息会写明两种解决办法。见[图片存在哪里](../providers/painter.md#where-pictures-are-stored)。
+   - 只被授予 `painter` 的 key 现在可以正常使用。painter 对对话模型的调用记在同一个 key 上，这个 key 仍然不能直接调用对话模型。
+   - Claude Code Web 的工作区角色现在只限于共用存储桶里的 `user_data/`。
+4. **Claude Code Web 默认打开**（行为变更）- `EnableClaudeCodeWeb` 现在默认是 `true`，新 stack 不用打开开关就会部署 [Claude Code Web](../user-manual/scenarios/claude-code-web.md)。部署条件不满足、跑不了它时，它会被跳过，stack 仍然会创建。
+   - 去掉了 `ClaudeCodeWebRequirements` 规则。它的三项检查并入创建 Claude Code Web 的条件：`ComputeType` 不是 `lambda`，stack 有数据库，并且 `BRConnectorVersion` 是 `latest`（`ComputeType` 为 `lambda-web` 时除外）。
+   - 新增输出 `ClaudeCodeWebStatus`，总是存在。它写明 `Deployed`，或者没有部署 Claude Code Web 的原因：开关关闭、`lambda`、没有可用的数据库，或者固定了 `BRConnectorVersion`。
+   - 新 stack 的创建时间更长，因为创建期间会运行构建后端镜像的 CodeBuild 构建。账号还要承担 AgentCore Runtime 的费用。`EnableWebSearch` 默认也是 `true`，每次搜索都记在账号上。
+   - 以前在不支持的组合上要求部署 Claude Code Web，stack 会创建失败并报错。现在会创建没有它的 stack，请查看 `ClaudeCodeWebStatus`。
+
+5. **BRClient 每张图片都有下载按钮** - BRClient 消息里的每张图片现在都有自己的下载按钮，只保存这一张。消息操作栏里的下载按钮照旧保存消息里的所有图片。
+   - 鼠标移到图片上，或者按钮获得键盘焦点时，按钮出现在图片右上角；在触屏上一直显示。只有已经加载完、每边至少 48 像素的 `http(s)` 图片才有这个按钮。
+   - 本次发版钉住上游 `main` 加上还没合并的上游 pull request [#82](https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82) 的新 head。见 [BRClient 来源](deployment.md#brclient-source)。
+
 ## 0.0.45
 
 **升级提示**

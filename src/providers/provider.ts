@@ -4,6 +4,7 @@ import { withAnthropicType } from '../util/anthropic_error';
 import AbstractProvider from "./abstract_provider";
 import { MAX_SESSION_ID_LENGTH, sessionIdTooLong } from "./bedrock_openai/retry";
 import { isEarlierMonth } from "./key_fee";
+import { PAINTER_CHAT_GRANT_HEADER, redeemPainterChatGrant } from "./painter_chat_grant";
 // Providers
 // import BedrockClaude from "./bedrock_claude";
 // import BedrockMixtral from "./bedrock_mixtral";
@@ -177,7 +178,8 @@ class Provider {
 
         if (ctx.db) {
             // If the db parameter is not set, then access permissions will not be verified.
-            const canAccessModel = await this.checkModelAccess(ctx, ctx.user, modelData.id);
+            const canAccessModel = redeemPainterChatGrant(ctx.headers[PAINTER_CHAT_GRANT_HEADER], ctx.user.id, modelData.name)
+                || await this.checkModelAccess(ctx, ctx.user, modelData.id);
             if (!canAccessModel) {
                 throw new Error(`You do not have permission to access the [${modelData.name}] model, please contact the administrator.`);
             }

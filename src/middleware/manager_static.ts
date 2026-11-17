@@ -2,8 +2,10 @@ import type { Middleware } from "koa";
 import fs from "fs";
 import path from "path";
 import { lookup } from "mime-types";
+import { cacheControlFor } from "./static_cache";
 
 const PREFIX = "/manager";
+const HASHED_DIRS = ["js", "css", "img", "fonts", "assets"];
 
 /**
  * Serves the manager UI under /manager from staticDir, with SPA fallback to index.html.
@@ -35,12 +37,14 @@ export function managerStaticHandler(staticDirOpt: string): Middleware {
         fs.statSync(filePath).isFile()
       ) {
         ctx.type = lookup(filePath) || "application/octet-stream";
+        ctx.set("Cache-Control", cacheControlFor(staticDir, filePath, HASHED_DIRS));
         ctx.body = fs.createReadStream(filePath);
         return;
       }
 
       if (!/\.\w+$/.test(ctx.path)) {
         ctx.type = "text/html; charset=utf-8";
+        ctx.set("Cache-Control", "no-cache");
         ctx.body = fs.readFileSync(path.join(staticDir, "index.html"));
         return;
       }

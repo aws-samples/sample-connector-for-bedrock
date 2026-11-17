@@ -643,3 +643,32 @@ describe('painter without stream', () => {
         expect(ctx.db.calls).toEqual([]);
     });
 });
+
+describe('painter with the S3 bucket of the stack', () => {
+    const noS3 = { s3Bucket: undefined, s3Region: undefined, s3Prefix: undefined };
+
+    it('stores and links pictures in the stack bucket under its prefix when the model config names no bucket', async () => {
+        vi.stubEnv('PAINTER_S3_BUCKET', 'stack-bucket');
+        vi.stubEnv('PAINTER_S3_REGION', 'us-east-1');
+        vi.stubEnv('PAINTER_S3_PREFIX', 'painter');
+        stubChat([{ calls: [['txt2img', { prompt: 'a cat' }]] }, { text: 'Here it is.' }]);
+        const aws = stubAws();
+        const { text, ctx } = await paint([{ role: 'user', content: 'a cat' }], { config: noS3 });
+        expect(aws.puts).toHaveLength(1);
+        expect(aws.puts[0].Bucket).toBe('stack-bucket');
+        expect(aws.puts[0].Key).toMatch(/^painter\/\d+-\d+-\d+\/\d+-.+\.jpg$/);
+        expect(text).toContain('![image_1](https://stack-bucket.s3.us-east-1.amazonaws.com/painter/');
+        expect(charges(ctx)).toHaveLength(1);
+    });
+
+    it('tells the admin both fixes when neither the model config nor the stack names a bucket', async () => {
+        for (const name of ['PAINTER_S3_BUCKET', 'PAINTER_S3_REGION', 'PAINTER_S3_PREFIX']) vi.stubEnv(name, undefined);
+        const chat = stubChat([{ text: 'unused' }]);
+        const aws = stubAws();
+        await expect(paint([{ role: 'user', content: 'a cat' }], { config: noS3 })).rejects.toThrow(
+            "painter has no S3 bucket for pictures. Set s3Bucket and s3Region in this model's config, or update the BRConnector stack to the current template, which sets them.",
+        );
+        expect(chat).toEqual([]);
+        expect(aws.puts).toEqual([]);
+    });
+});

@@ -88,6 +88,18 @@
 
 ![attachments/deployment/IMG-deployment-13.png](attachments/deployment/IMG-deployment-13.png)
 
+- painter
+  - 模板总是为预置的 `painter` 模型准备好存储，没有对应的参数。预置模型本身需要数据库：没有数据库的 stack（`DatabaseMode` 为 `NoDB`，或者 `ComputeType` 为 `lambda`、`ecs`、`lambda-web` 且 `DatabaseMode` 为 `EC2Integrated`）没有 `painter` 模型。stack 把图片放进它的工作区存储桶（Claude Code Web 用的那个，名称以 `brc-cc-workspace-` 开头），前缀是 `painter/`；给 BRConnector 的角色授予这个前缀和 AWS Marketplace 的权限，并把设置交给 BRConnector。删除 stack 时这个存储桶会保留，也没有生命周期规则。它允许任何网站跨域 `GET` 和 `HEAD`，这样 BRClient 的下载按钮才能保存图片；请求仍然需要预签名 URL。S3 和 IAM 都不需要您来填。见 [painter](../providers/painter.md#preset-painter-model)。
+
+- Claude Code Web 参数
+  - `EnableClaudeCodeWeb` 默认是 `true`。部署条件不满足、跑不了 [Claude Code Web](../user-manual/scenarios/claude-code-web.md) 时，它会被跳过，stack 仍然会创建。stack 输出 `ClaudeCodeWebStatus` 会写明有没有部署；没有部署时还会写明原因：
+    - `lambda`：60 秒超时会截断长的流式响应。请使用 `ec2`、`ecs` 或 `lambda-web`。
+    - 没有可用的数据库：Claude Code Web 不接受 admin key。请把 `DatabaseMode` 设为 `Standalone`，或者在 `ComputeType` 为 `ec2` 时设为 `EC2Integrated`。
+    - `ec2` 或 `ecs` 上固定了 `BRConnectorVersion`：固定的旧版本里没有 `/cc`。请使用 `latest`。
+    - `EnableClaudeCodeWeb` 设为 `false`。
+  - 它会让创建 stack 的时间增加构建后端镜像的 CodeBuild 构建，并让账号承担 AgentCore Runtime 的费用。`EnableWebSearch` 默认也是 `true`，每次搜索都记在账号上。不需要的话，把 `EnableClaudeCodeWeb` 设为 `false`。
+  - 它只在创建 stack 时生效。见 [已有 stack 使用 Claude Code Web](#claude-code-web-stack-update)。
+
 - 调试参数
   - 如果您选择 Lambda 作为计算类型，可以选择在所有资源部署成功后删除 EC2。此 EC2 用于临时编译和构建 BRConnector 容器。
   - 如果您选择 EC2 作为计算类型，请不要删除 EC2
@@ -163,6 +175,25 @@ BRConnector 在 `/brclient/` 提供 BRClient 网页版。`ec2`、`ecs`、`lambda
 - 更新会为数据库开启删除保护，不会中断服务。见[删除 stack](#deleting-a-stack)。
 - 使用 `brconnector-ecs-fargate.yaml` 时，`PGUser` 也要保持当前值。它现在没有默认值，换一个用户名会替换数据库。
 - 模板现在写明了每个安全组的出站规则，并把数据库设为不可公开访问。这些规则允许所有 IPv4 和所有 IPv6 流量，和安全组不写出站规则时 EC2 自动添加的规则一样。更新会修改这些资源，但出站流量和数据库的访问方式不变。在没有 IPv6 的 VPC 里，IPv6 规则不会匹配任何流量。
+
+## 已有 stack 使用 painter {#painter-stack-update}
+
+要让已有 stack 拥有带存储的预置 `painter` 模型：
+
+1. 用新模板更新 stack。
+2. 运行包含本版本的镜像。开启 AutoUpdate 时，每晚更新会拉取它。
+
+`lambda`、`lambda-web` 和 `ecs` 通过模板更新得到这些环境变量。`ec2` 从一个 SSM 参数读取设置，所以这次更新不会修改或重启它的实例。
+
+模板现在总是创建工作区存储桶。如果 stack 曾经开启 Claude Code Web、后来更新时关闭了它，因为存储桶会保留，同名的存储桶仍在 stack 之外。这种情况很少见，下面的解决办法也没有测试过。更新可能因为存储桶已存在而失败。可以把需要的文件移走、删除这个存储桶，再更新一次；也可以把这个存储桶导入 stack（资源导入，逻辑 ID 为 `ClaudeCodeWebWorkspaceBucket`），再更新一次。
+
+stack 拿不到这些设置时（部署不是用这个模板创建的、模板没有更新，或者镜像太旧），请在 `painter` 模型的 config 里填写 `s3Bucket` 和 `s3Region`。见[图片存在哪里](../providers/painter.md#where-pictures-are-stored)。
+
+## 已有 stack 使用 Claude Code Web {#claude-code-web-stack-update}
+
+`EnableClaudeCodeWeb` 只在创建 stack 时生效。在默认值改变之前创建的 stack，这个参数是 `false`，在控制台更新时也会保持 `false`。值为 `false` 时，更新不会为 Claude Code Web 创建任何东西，`ec2` 实例也不会被修改。用没有 `EnableClaudeCodeWeb` 参数的模板（Claude Code Web 之前的版本）创建的 stack 没有可保持的值：控制台会显示新的默认值 `true`，更新这样的 stack 时请把它设为 `false`。
+
+使用 AWS CLI 时传 `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `true`：它会创建 Claude Code Web，在 `ec2` 上还会修改 UserData，从而停止再启动实例。不支持对已有 stack 打开它，见[已知限制](../user-manual/scenarios/claude-code-web.md#known-limitations)。
 
 ## 删除 stack {#deleting-a-stack}
 

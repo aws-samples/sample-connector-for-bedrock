@@ -6,6 +6,7 @@ import net from 'net';
 import path from 'path';
 import type { AddressInfo } from 'net';
 import { managerStaticHandler } from '../src/middleware/manager_static';
+import viteConfig from '../vite.config.js';
 
 let tmp: string;
 let server: ReturnType<Koa['listen']>;
@@ -14,10 +15,16 @@ let port: number;
 beforeAll(async () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mgr-static-'));
     const staticDir = path.join(tmp, 'frontend');
-    fs.mkdirSync(path.join(staticDir, 'assets'), { recursive: true });
+    for (const dir of ['assets', 'js', 'css', 'img', 'fonts']) {
+        fs.mkdirSync(path.join(staticDir, dir), { recursive: true });
+    }
     fs.mkdirSync(path.join(tmp, 'server'));
     fs.writeFileSync(path.join(staticDir, 'index.html'), '<html>INDEX</html>');
     fs.writeFileSync(path.join(staticDir, 'assets', 'a.js'), 'console.log(1)');
+    fs.writeFileSync(path.join(staticDir, 'js', 'index-B4x9k2Qd.js'), 'console.log(2)');
+    fs.writeFileSync(path.join(staticDir, 'css', 'index-D7f3a1Ce.css'), 'body{}');
+    fs.writeFileSync(path.join(staticDir, 'img', 'logo-C1d2e3f4.png'), 'png');
+    fs.writeFileSync(path.join(staticDir, 'fonts', 'icon-A9b8c7d6.woff2'), 'woff2');
     fs.writeFileSync(path.join(tmp, 'server', 'x'), 'OUTSIDE');
     fs.writeFileSync(path.join(tmp, 'frontend-secret.txt'), 'SECRET');
     const app = new Koa();
@@ -51,6 +58,10 @@ function raw(p: string): Promise<{ status: number; headers: string; body: string
     });
 }
 
+function cacheControl(headers: string): string | undefined {
+    return /^cache-control: (.*)$/im.exec(headers)?.[1];
+}
+
 describe('managerStaticHandler', () => {
     it('serves index.html for /manager and /manager/', async () => {
         for (const p of ['/manager', '/manager/']) {
@@ -79,6 +90,40 @@ describe('managerStaticHandler', () => {
         expect(r.status).toBe(200);
         expect(r.headers.toLowerCase()).toMatch(/content-type: (application|text)\/javascript/);
         expect(r.body).toContain('console.log(1)');
+    });
+
+    it('revalidates index.html on every load', async () => {
+        for (const p of ['/manager', '/manager/', '/manager/index.html', '/manager/js/../index.html', '/manager/keys']) {
+            const r = await raw(p);
+            expect(r.status, p).toBe(200);
+            expect(cacheControl(r.headers), p).toBe('no-cache');
+        }
+    });
+
+    it('caches content-hashed build files for a year', async () => {
+        for (const p of [
+            '/manager/js/index-B4x9k2Qd.js',
+            '/manager/css/index-D7f3a1Ce.css',
+            '/manager/img/logo-C1d2e3f4.png',
+            '/manager/fonts/icon-A9b8c7d6.woff2',
+            '/manager/assets/a.js',
+        ]) {
+            const r = await raw(p);
+            expect(r.status, p).toBe(200);
+            expect(cacheControl(r.headers), p).toBe('public, max-age=31536000, immutable');
+        }
+    });
+
+    it('caches every file the vite build names with a content hash', async () => {
+        const { entryFileNames, chunkFileNames, assetFileNames } = viteConfig.build.rollupOptions.output;
+        const patterns = [entryFileNames, chunkFileNames, ...['a.css', 'a.png', 'a.woff2', 'a.json'].map((name) => assetFileNames({ name }))];
+        for (const pattern of patterns) {
+            expect(pattern).toContain('[hash]');
+            const name = pattern.replace('[name]', 'built').replace('[hash]', 'Q1w2E3r4').replace('[extname]', '.bin');
+            fs.mkdirSync(path.dirname(path.join(tmp, 'frontend', name)), { recursive: true });
+            fs.writeFileSync(path.join(tmp, 'frontend', name), 'built');
+            expect(cacheControl((await raw(`/manager/${name}`)).headers), name).toBe('public, max-age=31536000, immutable');
+        }
     });
 
     it('404 for paths that resolve outside the UI directory', async () => {

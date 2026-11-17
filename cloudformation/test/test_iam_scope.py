@@ -5,9 +5,8 @@ document (EC2Role), and the buildspecs of the CodeBuild projects that run as Cod
 and WebFnPackageBuildRole. Every `aws <service> <operation>` call in them, and every
 `regctl image copy` into the private registry, must appear in CALLS, and each action CALLS
 names must be granted on the resource CALLS names, in every combination of the parameters
-that decide which resources and statements exist. Conversely, each (action, resource,
-Condition) these roles grant must come from CALLS or NOT_A_CALL. Other roles, and other
-commands such as docker push, are not checked here.
+that decide which resources and statements exist. Other roles, and other commands such as
+docker push, are not checked here.
 """
 import fnmatch
 import importlib.util
@@ -32,7 +31,8 @@ ROLES = ['EC2Role', 'DeleteEC2LambdaExecutionRole', 'CodeBuildRole', 'WebFnPacka
 STAR_OK = {'bedrock:ListFoundationModels', 'ecr:GetAuthorizationToken', 'ecr-public:GetAuthorizationToken',
            'sts:GetServiceBearerToken', 'ec2:CreateNetworkInterface', 'ec2:DescribeDhcpOptions',
            'ec2:DescribeNetworkInterfaces', 'ec2:DeleteNetworkInterface', 'ec2:DescribeSubnets',
-           'ec2:DescribeSecurityGroups', 'ec2:DescribeVpcs'}
+           'ec2:DescribeSecurityGroups', 'ec2:DescribeVpcs',
+           'aws-marketplace:Subscribe', 'aws-marketplace:ViewSubscriptions'}
 BROAD_MANAGED = ('FullAccess', 'AdminAccess', 'AdministratorAccess', 'AmazonEC2ReadOnlyAccess')
 
 # The managed policies a call relies on, with the statements it needs, as published in the
@@ -148,6 +148,19 @@ NOT_A_CALL = {
     'WebFnPackageBuildRole': [(LOGS, group, None) for group in build_log_group('${AWS::StackName}-webfn-package')],
 }
 
+PAINTER_ON_EC2 = [
+    (['s3:PutObject', 's3:GetObject'], sub('arn:${AWS::Partition}:s3:::${ClaudeCodeWebWorkspaceBucket}/painter/*'), None),
+    (['aws-marketplace:Subscribe', 'aws-marketplace:ViewSubscriptions'], '*', None),
+    (['ssm:GetParameter'], ssm_parameter('/brconnector/instance/${MyEC2Instance}/painter'), None),
+]
+
+
+def not_a_call(role, truth):
+    if role == 'EC2Role' and truth['IsEc2']:
+        return NOT_A_CALL[role] + PAINTER_ON_EC2
+    return NOT_A_CALL[role]
+
+
 # Managed policies that may sit on a role while S3Bucket exists; none of them writes to S3,
 # per the AWS managed policy reference.
 MANAGED_WITHOUT_S3_WRITE = {'AmazonSSMManagedInstanceCore', 'AmazonElasticContainerRegistryPublicReadOnly',
@@ -188,8 +201,8 @@ def scenarios():
         yield dict(zip(names, values)), truth_table(params)
 
 
-def truth_table(params):
-    conditions = TEMPLATE['Conditions']
+def truth_table(params, template=TEMPLATE):
+    conditions = template['Conditions']
     truth = {}
 
     def value(node):
@@ -481,7 +494,7 @@ def test_no_grant_beyond_the_calls():
     # Every (action, resource, Condition) a role in ROLES grants itself is one that a call
     # of its scripts in this scenario, or NOT_A_CALL, names.
     for scenario, truth, role in every_scenario_role():
-        allowed = triples(NOT_A_CALL[role], truth)
+        allowed = triples(not_a_call(role, truth), truth)
         for key in wanted_calls(role, scenario, truth):
             allowed |= triples(CALLS[key], truth)
         for st in own_statements(role, truth):
