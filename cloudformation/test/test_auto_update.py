@@ -14,6 +14,9 @@ COMPUTE_TYPES = ['ec2', 'lambda', 'ecs', 'lambda-web']
 EC2_ONLY = {'S3Bucket', 'EC2AutoUpdateSSMDocument', 'EC2AutoUpdateAssociation'}
 CODEBUILD = {'CodeBuildSecurityGroup', 'CodeBuildRole', 'CodeBuildProject', 'CodeBuildEventRule',
              'CodeBuildEventRole'}
+ECS_TEMPLATE = gating.load(
+    (HERE.parent / 'another-version-brconnector-on-ecs' / 'brconnector-ecs-fargate.yaml').read_text())
+ECS_AUTO_UPDATE = {'ECREventRule', 'UpdateImageLambda', 'UpdateImageLambdaRole', 'EventsRulePermission'}
 ADDED_BY_TRUE = {'ec2': EC2_ONLY, 'lambda': CODEBUILD, 'ecs': set(), 'lambda-web': set()}
 
 DEFAULT = None
@@ -79,4 +82,25 @@ def test_turning_auto_update_on_only_adds_its_own_resources(compute):
 def test_switching_auto_update_leaves_every_other_resource_and_output_unchanged(compute):
     off = resolved(TEMPLATE, truth_for(TEMPLATE, DEFAULT, ComputeType=compute))
     on = resolved(TEMPLATE, truth_for(TEMPLATE, 'true', ComputeType=compute))
+    assert {k: on[k] for k in off} == off
+
+
+def test_ecs_auto_update_is_off_by_default():
+    assert default_of(ECS_TEMPLATE) == 'false'
+
+
+def test_ecs_default_parameters_create_no_auto_update_resources():
+    assert not present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, DEFAULT)) & ECS_AUTO_UPDATE
+
+
+def test_ecs_turning_auto_update_on_only_adds_its_own_resources():
+    off = present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, DEFAULT))
+    on = present(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, 'true'))
+    assert off <= on
+    assert on - off == ECS_AUTO_UPDATE
+
+
+def test_ecs_switching_auto_update_leaves_every_other_resource_and_output_unchanged():
+    off = resolved(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, DEFAULT))
+    on = resolved(ECS_TEMPLATE, truth_for(ECS_TEMPLATE, 'true'))
     assert {k: on[k] for k in off} == off

@@ -170,12 +170,15 @@ Parameters:
     Default: latest
 
   AutoUpdateBRConnector:
-    Description: Auto update BRConnector image to newest version
+    Description: >-
+      true forces a new deployment of the ECS service once a day, which pulls the
+      BRConnectorVersion image tag again, so latest moves to the newest release. It does
+      not update the template. Default false.
     Type: String
     AllowedValues:
       - true
       - false
-    Default: true
+    Default: false
 
   PerformanceMode:
     Description: If set to true, chat history will not be saved. 
