@@ -549,6 +549,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0046" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.46
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0045" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1740,6 +1751,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0046" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.46
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0045" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1892,6 +1914,54 @@
 
 
 <h1 id="changelogs">Changelogs<a class="headerlink" href="#changelogs" title="Permanent link">¶</a></h1>
+<h2 id="0046">0.0.46<a class="headerlink" href="#0046" title="Permanent link">¶</a></h2>
+<p><strong>Upgrade notes</strong></p>
+<ul>
+<li>The Claude Code Web backend image gets item 1 only when it is rebuilt. To rebuild it, change <code>ClaudeCodeWebImageBuildId</code> (for example from <code>1</code> to <code>2</code>). See <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Claude Code Web</a>.</li>
+<li>No action is needed (item 2). A browser that cached BRClient before the upgrade keeps that copy for up to 30 days, so it can show the old BRClient until the user refreshes the page once. BRConnector cannot change a copy that the browser already holds.</li>
+<li>Update the stack to the new template to give <code>painter</code> storage and IAM permissions (item 3). See <a href="../deployment/#painter-stack-update">painter in existing stacks</a>.</li>
+<li>An <code>ec2</code> instance is not changed or restarted by this update: BRConnector reads the painter settings from an SSM parameter (item 3).</li>
+<li>A model that is already named <code>painter</code> stays unchanged. The preset is added only when the name is free (item 3).</li>
+<li>With AutoUpdate, the preset <code>painter</code> arrives with the new image, also before the stack is updated to the new template. Until then it answers with an error that says how to give it storage (item 3).</li>
+<li>The first call to each Stability model subscribes the account in AWS Marketplace and can take up to 15 minutes. Calls fail with an access-denied hint until the subscription is active (item 3).</li>
+<li>The Claude Code Web workspace role now reaches only <code>user_data/</code> in the bucket (item 3).</li>
+<li>Claude Code Web is on by default for new stacks (item 4). A console update keeps the value of <code>EnableClaudeCodeWeb</code> the stack has, which is <code>false</code> for a stack created before. A stack created from a template that has no <code>EnableClaudeCodeWeb</code> parameter, from before Claude Code Web, has no value to keep: the console shows the new default <code>true</code>, so set it to <code>false</code> when you update that stack. With the AWS CLI, pass <code>ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true</code>. Without it, the update takes the new default, creates Claude Code Web, and on <code>ec2</code> changes the UserData, which stops and starts the instance. See <a href="../deployment/#claude-code-web-stack-update">Claude Code Web in existing stacks</a>.</li>
+<li>A new stack takes longer to create and costs more, because Claude Code Web adds a CodeBuild build and AgentCore Runtime charges (item 4). Set <code>EnableClaudeCodeWeb</code> to <code>false</code> to avoid them.</li>
+<li>A combination that cannot run Claude Code Web no longer fails the stack. It is skipped, and the <code>ClaudeCodeWebStatus</code> output says why (item 4).</li>
+<li>The template now always creates the workspace bucket. A stack that had Claude Code Web on and was later updated with it off still owns a bucket with that name outside the stack, and the update can fail because it exists. See <a href="../deployment/#painter-stack-update">painter in existing stacks</a> (item 3).</li>
+</ul>
+<ol>
+<li>
+<p><strong>Dependency Updates</strong> - Dependencies move to newer releases. The new releases of dnspython, fast-uri, fastmcp, filelock, mcp, opentelemetry-api, qs and starlette fix known vulnerabilities.<br>
+   - The Claude Code Web backend image installs dnspython 2.9.2, opentelemetry-api 1.45.2, mcp 1.30.0, fastmcp 3.4.10 and filelock 4.2.1. fastmcp 3.4.10 needs Starlette 1.x, so starlette moves from 0.50.0 to 1.10.0 and fastapi from 0.128.0 to 0.162.7. This fixes the known starlette vulnerabilities that 0.0.45 kept.<br>
+   - The BRConnector server dependencies do not change. Each build installs the newest releases that <code>package.json</code> allows. The lockfile that the tests use now has qs 6.17.1 and fast-uri 3.1.9.<br>
+   - The Claude Code Web web client is built with @babel/core 7.29.6 and picomatch 4.0.7.</p>
+</li>
+<li>
+<p><strong>BRClient Updates Without a Refresh</strong> - After an upgrade, the browser now shows the new BRClient without a manual refresh. Before, BRConnector told browsers to keep every BRClient file, <code>index.html</code> included, for 30 days, so they kept showing the old BRClient.<br>
+   - On every load, the browser now asks BRConnector for the current version of <code>/portal-for-brclient.html</code> and of the BRClient (<code>/brclient/</code>) and admin console (<code>/manager/</code>) files. Build files whose names contain a content hash are the exception: the browser keeps them for up to a year, as it already does for <code>/cc</code>.</p>
+</li>
+<li><strong>painter Out of the Box</strong> - A new stack with a database ships a ready <code>painter</code> model. An admin only grants it to a key or a group, and fills in nothing about S3 or IAM. See <a href="../../providers/painter/#preset-painter-model">painter</a>.<br>
+   - A new migration adds the preset <code>painter</code> model: Stability Image Ultra (<code>stability.stable-image-ultra-v1:1</code>) with <code>claude-sonnet-5-5-chat</code> as the chat model, prices 0 (pictures are billed at the built-in list prices), bound to group 1. An existing model with the same name is not changed.<br>
+   - The template always shares the stack’s workspace bucket, the one Claude Code Web uses, with painter, under <code>painter/</code>. There is no parameter for it. The bucket is always created. It is retained on stack delete and has no lifecycle rule. It has a CORS rule that allows <code>GET</code> and <code>HEAD</code> from any origin, so the BRClient download button can save a picture instead of opening it in a new tab. The rule grants no access: a request still needs a presigned URL or IAM credentials.<br>
+   - The template grants the BRConnector role <code>s3:PutObject</code> and <code>s3:GetObject</code> on <code>&lt;bucket&gt;/painter/*</code>, and <code>aws-marketplace:Subscribe</code> and <code>aws-marketplace:ViewSubscriptions</code>, so the first call to each Stability model subscribes the account. The account needs a valid payment method.<br>
+   - <code>lambda</code>, <code>lambda-web</code> and <code>ecs</code> get <code>PAINTER_S3_BUCKET</code>, <code>PAINTER_S3_REGION</code> and <code>PAINTER_S3_PREFIX</code> as environment variables. <code>ec2</code> reads them from an SSM parameter, so the update does not restart the instance.<br>
+   - <code>s3Bucket</code>, <code>s3Region</code> and <code>s3Prefix</code> in the painter config are now optional. Without <code>s3Bucket</code>, painter uses the stack’s settings. With it, the config gives all three, as before. With neither, the error names both fixes. See <a href="../../providers/painter/#where-pictures-are-stored">Where pictures are stored</a>.<br>
+   - A key that has only <code>painter</code> now works. painter’s call to the chat model is billed to the same key. The key still cannot call the chat model directly.<br>
+   - The Claude Code Web workspace role is now limited to <code>user_data/</code> in the shared bucket.</li>
+<li>
+<p><strong>Claude Code Web On by Default</strong> (behaviour change) - <code>EnableClaudeCodeWeb</code> now defaults to <code>true</code>, so a new stack deploys <a href="../../user-manual/scenarios/claude-code-web/">Claude Code Web</a> without a switch. A deployment that cannot run it skips it, and the stack is still created.<br>
+   - The <code>ClaudeCodeWebRequirements</code> rule is removed. Its three tests are part of the condition that creates Claude Code Web: <code>ComputeType</code> is not <code>lambda</code>, the stack has a database, and <code>BRConnectorVersion</code> is <code>latest</code> unless <code>ComputeType</code> is <code>lambda-web</code>.<br>
+   - The new output <code>ClaudeCodeWebStatus</code> is always present. It says <code>Deployed</code>, or why Claude Code Web was not deployed: the switch is off, <code>lambda</code>, no usable database, or a pinned <code>BRConnectorVersion</code>.<br>
+   - A new stack takes longer to create, because the CodeBuild build of the backend image runs during creation. The account pays for AgentCore Runtime. <code>EnableWebSearch</code> is also <code>true</code> by default, and each search is billed to the account.<br>
+   - A request for Claude Code Web on an unsupported combination used to fail the stack with an error. Now the stack is created without it. Read <code>ClaudeCodeWebStatus</code>.</p>
+</li>
+<li>
+<p><strong>BRClient Download Button on Each Picture</strong> - Each picture in a BRClient message now has its own download button, which saves only that picture. The Download button among the message’s actions still saves all of its pictures.<br>
+   - The button appears in the picture’s top-right corner when the pointer is over the picture or the button has keyboard focus, and it stays visible on touch screens. Only <code>http(s)</code> pictures that have loaded and are at least 48 pixels on each side have it.<br>
+   - This release pins upstream <code>main</code> plus the new head of the unmerged upstream pull request <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82">#82</a>. See <a href="../deployment/#brclient-source">BRClient source</a>.</p>
+</li>
+</ol>
 <h2 id="0045">0.0.45<a class="headerlink" href="#0045" title="Permanent link">¶</a></h2>
 <p><strong>Upgrade notes</strong></p>
 <ul>
@@ -2253,7 +2323,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 13, 2026 19:23:30 CST"><span class="timeago" datetime="2026-11-13T19:23:30+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 13, 2026 19:23:30 CST">2026-11-13</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 17, 2026 11:52:46 CST"><span class="timeago" datetime="2026-11-17T11:52:46+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 17, 2026 11:52:46 CST">2026-11-17</span>
   </span>
 
     

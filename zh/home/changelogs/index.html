@@ -551,6 +551,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0046" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.46
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0045" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1742,6 +1753,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#0046" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.46
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0045" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1894,6 +1916,54 @@
 
 
 <h1 id="_1">更新日志<a class="headerlink" href="#_1" title="Permanent link">¶</a></h1>
+<h2 id="0046">0.0.46<a class="headerlink" href="#0046" title="Permanent link">¶</a></h2>
+<p><strong>升级提示</strong></p>
+<ul>
+<li>Claude Code Web 后端镜像要重新构建后才会包含第 1 条。要重新构建，请修改 <code>ClaudeCodeWebImageBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）。见 <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Claude Code Web</a>。</li>
+<li>不需要任何操作（第 2 条）。升级前已经缓存了 BRClient 的浏览器会把这份副本保留最多 30 天，所以在用户手动刷新一次页面之前，它仍可能显示旧版 BRClient。BRConnector 无法更改浏览器里已有的副本。</li>
+<li>要让 <code>painter</code> 有存储和 IAM 权限，请把 stack 更新到新模板（第 3 条）。见<a href="../deployment/#painter-stack-update">已有 stack 使用 painter</a>。</li>
+<li>这次更新不会修改或重启 <code>ec2</code> 实例：BRConnector 从一个 SSM 参数读取 painter 的设置（第 3 条）。</li>
+<li>已有的名为 <code>painter</code> 的模型保持不变。只有名称空闲时才会添加预置模型（第 3 条）。</li>
+<li>开启 AutoUpdate 时，预置的 <code>painter</code> 会随新镜像出现，即使 stack 还没有更新到新模板。在那之前，它会返回一条说明如何给它配置存储的错误（第 3 条）。</li>
+<li>第一次调用每个 Stability 模型时，会在 AWS Marketplace 为账号自动订阅，最多可能需要 15 分钟。订阅生效之前，调用会失败并带一条访问被拒绝的提示（第 3 条）。</li>
+<li>Claude Code Web 的工作区角色现在只能访问存储桶里的 <code>user_data/</code>（第 3 条）。</li>
+<li>新 stack 默认打开 Claude Code Web（第 4 条）。在控制台更新时，<code>EnableClaudeCodeWeb</code> 保持 stack 当前的值，在此之前创建的 stack 是 <code>false</code>。用没有 <code>EnableClaudeCodeWeb</code> 参数的模板（Claude Code Web 之前的版本）创建的 stack 没有可保持的值：控制台会显示新的默认值 <code>true</code>，更新这样的 stack 时请把它设为 <code>false</code>。使用 AWS CLI 时传 <code>ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true</code>。不传的话，更新会采用新的默认值，创建 Claude Code Web，在 <code>ec2</code> 上还会修改 UserData，从而停止再启动实例。见<a href="../deployment/#claude-code-web-stack-update">已有 stack 使用 Claude Code Web</a>。</li>
+<li>新 stack 的创建时间更长，费用也更高，因为 Claude Code Web 增加了一次 CodeBuild 构建和 AgentCore Runtime 的费用（第 4 条）。要避免这些，把 <code>EnableClaudeCodeWeb</code> 设为 <code>false</code>。</li>
+<li>跑不了 Claude Code Web 的部署组合不会再让 stack 创建失败，而是跳过它，<code>ClaudeCodeWebStatus</code> 输出会写明原因（第 4 条）。</li>
+<li>模板现在总是创建工作区存储桶。如果 stack 曾经开启 Claude Code Web、后来更新时关闭了它，同名的存储桶仍在 stack 之外，更新可能因为它已存在而失败。见<a href="../deployment/#painter-stack-update">已有 stack 使用 painter</a>（第 3 条）。</li>
+</ul>
+<ol>
+<li>
+<p><strong>依赖更新</strong> - 依赖升级到更新的版本。dnspython、fast-uri、fastmcp、filelock、mcp、opentelemetry-api、qs 和 starlette 的新版本修复了已知漏洞。<br>
+   - Claude Code Web 后端镜像安装 dnspython 2.9.2、opentelemetry-api 1.45.2、mcp 1.30.0、fastmcp 3.4.10 和 filelock 4.2.1。fastmcp 3.4.10 需要 Starlette 1.x，所以 starlette 从 0.50.0 升级到 1.10.0，fastapi 从 0.128.0 升级到 0.162.7。0.0.45 保留的 starlette 已知漏洞因此得到修复。<br>
+   - BRConnector 服务端依赖不变。每次构建都会安装 <code>package.json</code> 允许的最新版本。测试使用的 lockfile 现在是 qs 6.17.1 和 fast-uri 3.1.9。<br>
+   - Claude Code Web 网页客户端改用 @babel/core 7.29.6 和 picomatch 4.0.7 构建。</p>
+</li>
+<li>
+<p><strong>升级后自动显示新版 BRClient</strong> - 升级以后，浏览器现在不用手动刷新就会显示新版 BRClient。以前 BRConnector 让浏览器把 BRClient 的所有文件（包括 <code>index.html</code>）缓存 30 天，所以浏览器一直显示旧版。<br>
+   - 现在浏览器每次加载 <code>/portal-for-brclient.html</code>，以及 BRClient（<code>/brclient/</code>）和管理后台（<code>/manager/</code>）的文件时，都会向 BRConnector 获取最新版本。文件名里带内容哈希的构建文件例外：浏览器会把它们缓存最长一年，和 <code>/cc</code> 一样。</p>
+</li>
+<li><strong>painter 开箱即用</strong> - 带数据库的新 stack 自带一个可用的 <code>painter</code> 模型。管理员只需把它授予某个 key 或 group，不用填写任何 S3 或 IAM 设置。见 <a href="../../providers/painter/#preset-painter-model">painter</a>。<br>
+   - 新增一个 migration，添加预置的 <code>painter</code> 模型：用 Stability Image Ultra（<code>stability.stable-image-ultra-v1:1</code>）画图，对话模型是 <code>claude-sonnet-5-5-chat</code>，价格为 0（图片按内置标价计费），并绑定到 group 1。已有的同名模型不会被修改。<br>
+   - 模板总是让 painter 与 Claude Code Web 共用 stack 的工作区存储桶，painter 使用 <code>painter/</code> 前缀，没有对应的参数。这个存储桶总是会创建。删除 stack 时它会保留，也没有生命周期规则。它带一条 CORS 规则，允许任何来源 <code>GET</code> 和 <code>HEAD</code>，这样 BRClient 的下载按钮能直接保存图片，而不是在新标签页打开。这条规则不放宽任何权限：请求仍然需要预签名 URL 或 IAM 凭证。<br>
+   - 模板给 BRConnector 的角色授予 <code>&lt;bucket&gt;/painter/*</code> 上的 <code>s3:PutObject</code> 和 <code>s3:GetObject</code>，以及 <code>aws-marketplace:Subscribe</code> 和 <code>aws-marketplace:ViewSubscriptions</code>，所以第一次调用每个 Stability 模型时会自动为账号订阅。账号需要有效的付款方式。<br>
+   - <code>lambda</code>、<code>lambda-web</code> 和 <code>ecs</code> 通过环境变量得到 <code>PAINTER_S3_BUCKET</code>、<code>PAINTER_S3_REGION</code> 和 <code>PAINTER_S3_PREFIX</code>。<code>ec2</code> 从一个 SSM 参数读取，所以更新不会重启实例。<br>
+   - painter config 里的 <code>s3Bucket</code>、<code>s3Region</code> 和 <code>s3Prefix</code> 现在都是可选的。不填 <code>s3Bucket</code> 时，painter 使用 stack 的设置；填了就三项都取自 config，和以前一样。两处都没有时，错误信息会写明两种解决办法。见<a href="../../providers/painter/#where-pictures-are-stored">图片存在哪里</a>。<br>
+   - 只被授予 <code>painter</code> 的 key 现在可以正常使用。painter 对对话模型的调用记在同一个 key 上，这个 key 仍然不能直接调用对话模型。<br>
+   - Claude Code Web 的工作区角色现在只限于共用存储桶里的 <code>user_data/</code>。</li>
+<li>
+<p><strong>Claude Code Web 默认打开</strong>（行为变更）- <code>EnableClaudeCodeWeb</code> 现在默认是 <code>true</code>，新 stack 不用打开开关就会部署 <a href="../../user-manual/scenarios/claude-code-web/">Claude Code Web</a>。部署条件不满足、跑不了它时，它会被跳过，stack 仍然会创建。<br>
+   - 去掉了 <code>ClaudeCodeWebRequirements</code> 规则。它的三项检查并入创建 Claude Code Web 的条件：<code>ComputeType</code> 不是 <code>lambda</code>，stack 有数据库，并且 <code>BRConnectorVersion</code> 是 <code>latest</code>（<code>ComputeType</code> 为 <code>lambda-web</code> 时除外）。<br>
+   - 新增输出 <code>ClaudeCodeWebStatus</code>，总是存在。它写明 <code>Deployed</code>，或者没有部署 Claude Code Web 的原因：开关关闭、<code>lambda</code>、没有可用的数据库，或者固定了 <code>BRConnectorVersion</code>。<br>
+   - 新 stack 的创建时间更长，因为创建期间会运行构建后端镜像的 CodeBuild 构建。账号还要承担 AgentCore Runtime 的费用。<code>EnableWebSearch</code> 默认也是 <code>true</code>，每次搜索都记在账号上。<br>
+   - 以前在不支持的组合上要求部署 Claude Code Web，stack 会创建失败并报错。现在会创建没有它的 stack，请查看 <code>ClaudeCodeWebStatus</code>。</p>
+</li>
+<li>
+<p><strong>BRClient 每张图片都有下载按钮</strong> - BRClient 消息里的每张图片现在都有自己的下载按钮，只保存这一张。消息操作栏里的下载按钮照旧保存消息里的所有图片。<br>
+   - 鼠标移到图片上，或者按钮获得键盘焦点时，按钮出现在图片右上角；在触屏上一直显示。只有已经加载完、每边至少 48 像素的 <code>http(s)</code> 图片才有这个按钮。<br>
+   - 本次发版钉住上游 <code>main</code> 加上还没合并的上游 pull request <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock/pull/82">#82</a> 的新 head。见 <a href="../deployment/#brclient-source">BRClient 来源</a>。</p>
+</li>
+</ol>
 <h2 id="0045">0.0.45<a class="headerlink" href="#0045" title="Permanent link">¶</a></h2>
 <p><strong>升级提示</strong></p>
 <ul>
@@ -2255,7 +2325,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月13日 19:23:30 CST"><span class="timeago" datetime="2026-11-13T19:23:30+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月13日 19:23:30 CST">2026-11-13</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月17日 11:52:46 CST"><span class="timeago" datetime="2026-11-17T11:52:46+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月17日 11:52:46 CST">2026-11-17</span>
   </span>
 
     

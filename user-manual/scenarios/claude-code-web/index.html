@@ -775,16 +775,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#turn-it-on" class="md-nav__link">
+  <a href="#turn-it-on-or-off" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Turn it on
+        Turn it on or off
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Turn it on">
+    <nav class="md-nav" aria-label="Turn it on or off">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-it-is-skipped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where it is skipped
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cost-and-creation-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost and creation time
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#without-cloudformation" class="md-nav__link">
@@ -1713,16 +1735,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#turn-it-on" class="md-nav__link">
+  <a href="#turn-it-on-or-off" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Turn it on
+        Turn it on or off
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Turn it on">
+    <nav class="md-nav" aria-label="Turn it on or off">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-it-is-skipped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where it is skipped
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cost-and-creation-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost and creation time
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#without-cloudformation" class="md-nav__link">
@@ -1826,8 +1870,8 @@
 <li>When a session starts, <code>"skipWebFetchPreflight": true</code> is written to the user’s <code>~/.claude/settings.json</code> if the key is missing, so Claude Code does not first check each WebFetch domain with api.anthropic.com; a value the user has set is kept.</li>
 <li>When a key is deleted or its quota runs out, it can no longer use Claude Code Web.</li>
 </ul>
-<h2 id="turn-it-on">Turn it on<a class="headerlink" href="#turn-it-on" title="Permanent link">¶</a></h2>
-<p>Claude Code Web is part of the CloudFormation template <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> (see <a href="../../../home/deployment/">Quick Deployment</a>). Turn it on when you <strong>create</strong> the stack; see <a href="./#known-limitations">Known limitations</a>.</p>
+<h2 id="turn-it-on-or-off">Turn it on or off<a class="headerlink" href="#turn-it-on-or-off" title="Permanent link">¶</a></h2>
+<p>Claude Code Web is part of the CloudFormation template <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> (see <a href="../../../home/deployment/">Quick Deployment</a>). It is on by default, and takes effect only when you <strong>create</strong> the stack; see <a href="./#known-limitations">Known limitations</a>. A deployment that cannot run it skips it, and the stack is still created (see <a href="./#where-it-is-skipped">Where it is skipped</a>).</p>
 <table>
 <thead>
 <tr>
@@ -1838,7 +1882,7 @@
 <tbody>
 <tr>
 <td><code>EnableClaudeCodeWeb</code></td>
-<td><code>true</code> (default <code>false</code>)</td>
+<td><code>true</code> (default). <code>false</code> turns it off.</td>
 </tr>
 <tr>
 <td><code>ComputeType</code></td>
@@ -1874,12 +1918,22 @@
 </tr>
 </tbody>
 </table>
-<p>The template’s <code>Rules</code> reject any other combination before anything is created.</p>
-<p>With the switch on, the stack also creates:</p>
+<h3 id="where-it-is-skipped">Where it is skipped<a class="headerlink" href="#where-it-is-skipped" title="Permanent link">¶</a></h3>
+<p>With any other combination, the stack is still created without Claude Code Web, and none of the Claude Code Web resources below is created. The workspace S3 bucket is the exception: painter keeps its pictures in it too, so every stack creates it and keeps it when the stack is deleted. The stack output <code>ClaudeCodeWebStatus</code> says whether it was deployed and, if not, why:</p>
+<ul>
+<li><code>EnableClaudeCodeWeb</code> is <code>false</code>.</li>
+<li><code>ComputeType</code> is <code>lambda</code>: its 60-second timeout cuts off long streams. Use <code>ec2</code>, <code>ecs</code> or <code>lambda-web</code>.</li>
+<li>There is no usable database: Claude Code Web refuses the admin key. Set <code>DatabaseMode</code> to <code>Standalone</code>, or to <code>EC2Integrated</code> with <code>ComputeType</code> <code>ec2</code>.</li>
+<li><code>BRConnectorVersion</code> is pinned with <code>ec2</code> or <code>ecs</code>: the pinned versions predate <code>/cc</code>. Use <code>latest</code>.</li>
+</ul>
+<p>If you turned it on and see no <code>ClaudeCodeWebUrl</code>, read <code>ClaudeCodeWebStatus</code>. A request for Claude Code Web on an unsupported combination no longer fails the stack.</p>
+<h3 id="cost-and-creation-time">Cost and creation time<a class="headerlink" href="#cost-and-creation-time" title="Permanent link">¶</a></h3>
+<p>Because it is on by default, a new stack takes longer to create (the CodeBuild build of the backend image runs during creation) and the account pays for AgentCore Runtime. <code>EnableWebSearch</code> is also <code>true</code> by default, and each search is billed to the account. Set <code>EnableClaudeCodeWeb</code> to <code>false</code> to avoid both.</p>
+<p>When it is deployed, the stack also creates:</p>
 <ul>
 <li>an ECR repository, and a CodeBuild project that builds the backend image (arm64) from <code>SourceRepoUrl</code> at <code>SourceRef</code>, smoke-tests it and pushes it; a small Lambda function starts the build during stack creation, and the stack waits for it;</li>
 <li>the AgentCore Runtime;</li>
-<li>an S3 bucket for the workspaces, which is <strong>kept</strong> when the stack is deleted;</li>
+<li>the workspace S3 bucket, which every stack creates for painter as well and which is <strong>kept</strong> when the stack is deleted;</li>
 <li>an IAM role for the runtime, an IAM role for workspace access, and a policy on BRConnector’s role that lets it call the runtime;</li>
 <li>the SSM parameter <code>/brconnector/&lt;stack name&gt;/claude-code-web</code>, from which BRConnector reads the runtime settings (<code>CC_CONFIG_PARAM</code>);</li>
 <li>with <code>EnableWebSearch</code> <code>true</code>, in a Region with AgentCore Web Search: an AgentCore Gateway with the Web Search connector, and its IAM role; see <a href="./#web-search">Web search</a>.</li>
@@ -1942,7 +1996,7 @@
 </ul>
 <h2 id="known-limitations">Known limitations<a class="headerlink" href="#known-limitations" title="Permanent link">¶</a></h2>
 <ul>
-<li>The switch only works when the stack is created. Turning it on for an existing stack does not take effect: with ec2, changing the UserData does not run cloud-init again, and the nightly SSM update runs <code>/root/brconnector-run.sh</code> (stacks created before 0.0.44 replay the <code>docker run</code> line logged at first boot), which was written when the instance was first set up.</li>
+<li>The switch only takes effect when the stack is created. A console update of a stack created before the default changed keeps its value <code>false</code>, and creates nothing. A stack created from a template that has no <code>EnableClaudeCodeWeb</code> parameter, from before Claude Code Web, has no value to keep: the console shows the new default <code>true</code>, so set it to <code>false</code> when you update that stack. With the AWS CLI, pass <code>UsePreviousValue=true</code> for <code>EnableClaudeCodeWeb</code>: without it the update takes the new default <code>true</code>, which creates Claude Code Web, and with <code>ec2</code> changes the UserData, so the instance is stopped and started. Turning it on for an existing stack does not take effect: with ec2, changing the UserData does not run cloud-init again, and the nightly SSM update runs <code>/root/brconnector-run.sh</code> (stacks created before 0.0.44 replay the <code>docker run</code> line logged at first boot), which was written when the instance was first set up.</li>
 <li>The microVM compute cost is billed to the account that deploys the stack and does not count against the key’s quota. The key’s quota covers model tokens only. Each key has at most one microVM, reclaimed after 15 minutes idle.</li>
 <li>With ec2, BRConnector is upgraded to <code>latest</code> every night, but the Claude Code Web backend image is rebuilt only by a stack update. To rebuild it, change <code>ClaudeCodeWebImageBuildId</code> (for example from <code>1</code> to <code>2</code>): the image is built again from <code>SourceRepoUrl</code> at <code>SourceRef</code>, so a branch picks up its new commits, and nothing else in the stack changes. Changing <code>SourceRepoUrl</code> or <code>SourceRef</code> also rebuilds the image. With <code>lambda-web</code>, the stack update also rebuilds the BRConnector deployment package from the same repository and ref (a failed update rolls back by rebuilding the previous <code>SourceRef</code>, so keep it available until the update completes; see <a href="../../../home/deployment/#autoupdate">AutoUpdate</a>). With <code>ec2</code>, <code>SourceRepoUrl</code> and <code>SourceRef</code> do not touch the instance; changing <code>BRConnectorVersion</code> changes the UserData, so the instance is stopped and started once. The contract between BRConnector and the backend (passing invocations through, and the four custom headers) must stay backward compatible.</li>
 <li><code>ec2</code> and <code>ecs</code> cannot use Claude Code Web until a BRConnector release with <code>/cc</code> is published upstream and the maintainers push the public image.</li>
@@ -1976,7 +2030,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 23, 2026 13:52:52 CST"><span class="timeago" datetime="2026-10-23T13:52:52+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 23, 2026 13:52:52 CST">2026-10-23</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 15, 2026 05:43:42 CST"><span class="timeago" datetime="2026-11-15T05:43:42+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 15, 2026 05:43:42 CST">2026-11-15</span>
   </span>
 
     

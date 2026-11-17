@@ -570,6 +570,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#painter-stack-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        painter in existing stacks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#claude-code-web-stack-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude Code Web in existing stacks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deleting-a-stack" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1935,6 +1957,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#painter-stack-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        painter in existing stacks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#claude-code-web-stack-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude Code Web in existing stacks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deleting-a-stack" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2162,7 +2206,27 @@
 </ul>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-13.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-13.png" src="../attachments/deployment/IMG-deployment-13.png"></a></p>
 <ul>
-<li>Debugging parameters</li>
+<li>painter</li>
+<li>
+<p>The template always sets up storage for the preset <code>painter</code> model, with no parameter. The preset model itself needs a database: a stack without one (<code>DatabaseMode</code> <code>NoDB</code>, or <code>EC2Integrated</code> with <code>ComputeType</code> <code>lambda</code>, <code>ecs</code> or <code>lambda-web</code>) has no <code>painter</code> model. The stack puts pictures in its workspace bucket (the one Claude Code Web uses, named <code>brc-cc-workspace-...</code>) under the prefix <code>painter/</code>, grants the BRConnector role access to that prefix and to AWS Marketplace, and gives BRConnector the settings. The bucket is retained when you delete the stack and has no lifecycle rule. It allows cross-origin <code>GET</code> and <code>HEAD</code> from any site, so the BRClient download button can save pictures; a request still needs a presigned URL. You fill in nothing about S3 or IAM. See <a href="../../providers/painter/#preset-painter-model">painter</a>.</p>
+</li>
+<li>
+<p>Claude Code Web parameter</p>
+</li>
+<li><code>EnableClaudeCodeWeb</code> defaults to <code>true</code>. A deployment that cannot run <a href="../../user-manual/scenarios/claude-code-web/">Claude Code Web</a> skips it, and the stack is still created. The stack output <code>ClaudeCodeWebStatus</code> says whether it was deployed and, if not, why:<ul>
+<li><code>lambda</code>: the 60-second timeout cuts off long streams. Use <code>ec2</code>, <code>ecs</code> or <code>lambda-web</code>.</li>
+<li>No usable database: Claude Code Web refuses the admin key. Set <code>DatabaseMode</code> to <code>Standalone</code>, or to <code>EC2Integrated</code> with <code>ComputeType</code> <code>ec2</code>.</li>
+<li>A pinned <code>BRConnectorVersion</code> on <code>ec2</code> or <code>ecs</code>: the pinned versions predate <code>/cc</code>. Use <code>latest</code>.</li>
+<li><code>EnableClaudeCodeWeb</code> set to <code>false</code>.</li>
+</ul>
+</li>
+<li>It adds the CodeBuild build of the backend image to the stack creation time, and AgentCore Runtime charges to the account. <code>EnableWebSearch</code> is also <code>true</code> by default, and each search is billed to the account. Set <code>EnableClaudeCodeWeb</code> to <code>false</code> if you do not want them.</li>
+<li>
+<p>It takes effect only when the stack is created. See <a href="./#claude-code-web-stack-update">Claude Code Web in existing stacks</a>.</p>
+</li>
+<li>
+<p>Debugging parameters</p>
+</li>
 <li>If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.</li>
 <li>Don’t delete EC2 if you choose EC2 as ComputeType</li>
 <li>If you set <code>true</code> to AutoUpdateBRConnector, BRConnector is updated every night; see <a href="./#autoupdate">AutoUpdate</a></li>
@@ -2248,6 +2312,18 @@
 <li>On <code>brconnector-ecs-fargate.yaml</code>, keep the current <code>PGUser</code> as well. It has no default now, and a new user name replaces the database.</li>
 <li>The template now lists the outbound rules of each security group and sets the database to not publicly accessible. The rules allow all IPv4 and all IPv6 traffic, which are the rules EC2 adds to a security group that lists none. The update modifies these resources, but outbound traffic and access to the database stay the same. In a VPC without IPv6, the IPv6 rule matches no traffic.</li>
 </ul>
+<h2 id="painter-stack-update">painter in existing stacks<a class="headerlink" href="#painter-stack-update" title="Permanent link">¶</a></h2>
+<p>To give an existing stack the preset <code>painter</code> model with storage:</p>
+<ol>
+<li>Update the stack with the new template.</li>
+<li>Run an image that includes this release. With AutoUpdate, the nightly update pulls it.</li>
+</ol>
+<p><code>lambda</code>, <code>lambda-web</code> and <code>ecs</code> get the settings as environment variables from the template update. <code>ec2</code> reads them from an SSM parameter, so the update does not change or restart its instance.</p>
+<p>The template now always creates the workspace bucket. A stack that had Claude Code Web on and was later updated with it off still owns a bucket with that name outside the stack, because the bucket is retained. This case is rare, and the way out below was not tested. The update can fail because the bucket already exists. Either move the files you need and delete the bucket, then update again, or import the bucket into the stack (a resource import, with the logical ID <code>ClaudeCodeWebWorkspaceBucket</code>) and update again.</p>
+<p>Fill <code>s3Bucket</code> and <code>s3Region</code> in the <code>painter</code> model config where a stack cannot get the settings: the deployment was not made from this template, its template was not updated, or its image is older. See <a href="../../providers/painter/#where-pictures-are-stored">Where pictures are stored</a>.</p>
+<h2 id="claude-code-web-stack-update">Claude Code Web in existing stacks<a class="headerlink" href="#claude-code-web-stack-update" title="Permanent link">¶</a></h2>
+<p><code>EnableClaudeCodeWeb</code> takes effect only when the stack is created. A stack created before the default changed has it set to <code>false</code>, and keeps <code>false</code> when you update it in the console. With <code>false</code>, the update creates nothing for Claude Code Web, and an <code>ec2</code> instance is not changed. A stack created from a template that has no <code>EnableClaudeCodeWeb</code> parameter, from before Claude Code Web, has no value to keep: the console shows the new default <code>true</code>, so set it to <code>false</code> when you update that stack.</p>
+<p>With the AWS CLI, pass <code>ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true</code>. Without it, the update takes the new default <code>true</code>. It then creates Claude Code Web, and on <code>ec2</code> it changes the UserData, which stops and starts the instance. Turning it on for an existing stack is not supported; see <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Known limitations</a>.</p>
 <h2 id="deleting-a-stack">Deleting a stack<a class="headerlink" href="#deleting-a-stack" title="Permanent link">¶</a></h2>
 <p>The RDS database has deletion protection, so a stack deletion stops at the database (<code>MyPG</code> in <code>DELETE_FAILED</code>). To delete the stack:</p>
 <ol>
@@ -2420,7 +2496,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 13, 2026 16:51:03 CST"><span class="timeago" datetime="2026-11-13T16:51:03+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 13, 2026 16:51:03 CST">2026-11-13</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 15, 2026 05:43:42 CST"><span class="timeago" datetime="2026-11-15T05:43:42+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 15, 2026 05:43:42 CST">2026-11-15</span>
   </span>
 
     

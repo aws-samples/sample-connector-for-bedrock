@@ -780,13 +780,35 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        打开开关
+        打开或关闭
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="打开开关">
+    <nav class="md-nav" aria-label="打开或关闭">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-it-is-skipped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        哪些情况会跳过
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        费用和创建时间
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#cloudformation" class="md-nav__link">
@@ -816,7 +838,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         给用户开通
@@ -827,7 +849,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         登录
@@ -838,7 +860,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         费用
@@ -1718,13 +1740,35 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        打开开关
+        打开或关闭
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="打开开关">
+    <nav class="md-nav" aria-label="打开或关闭">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-it-is-skipped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        哪些情况会跳过
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        费用和创建时间
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#cloudformation" class="md-nav__link">
@@ -1754,7 +1798,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         给用户开通
@@ -1765,7 +1809,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         登录
@@ -1776,7 +1820,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         费用
@@ -1828,8 +1872,8 @@
 <li>会话启动时，如果用户的 <code>~/.claude/settings.json</code> 里没有 <code>skipWebFetchPreflight</code>，会写入 <code>"skipWebFetchPreflight": true</code>，这样 Claude Code 在 WebFetch 之前不会先向 api.anthropic.com 检查域名；用户自己设置的值会保留。</li>
 <li>key 被删除或者额度用完，就不能再使用 Claude Code Web。</li>
 </ul>
-<h2 id="_2">打开开关<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
-<p>Claude Code Web 包含在 CloudFormation 模板 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> 中（见 <a href="../../../home/deployment/">快速部署</a>）。请在<strong>新建</strong> stack 时打开开关，原因见下文「已知限制」。</p>
+<h2 id="_2">打开或关闭<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
+<p>Claude Code Web 包含在 CloudFormation 模板 <a href="https://github.com/aws-samples/sample-connector-for-bedrock/raw/main/cloudformation/quick-build-brconnector.yaml">quick-build-brconnector.yaml</a> 中（见 <a href="../../../home/deployment/">快速部署</a>）。它默认打开，并且只在<strong>新建</strong> stack 时生效，原因见下文「已知限制」。部署条件不满足、跑不了它时，它会被跳过，stack 仍然会创建（见<a href="./#where-it-is-skipped">哪些情况会跳过</a>）。</p>
 <table>
 <thead>
 <tr>
@@ -1840,7 +1884,7 @@
 <tbody>
 <tr>
 <td><code>EnableClaudeCodeWeb</code></td>
-<td><code>true</code>（默认 <code>false</code>）</td>
+<td><code>true</code>（默认）。<code>false</code> 表示关闭。</td>
 </tr>
 <tr>
 <td><code>ComputeType</code></td>
@@ -1876,12 +1920,22 @@
 </tr>
 </tbody>
 </table>
-<p>不满足上述组合时，模板的 <code>Rules</code> 会在创建任何资源之前拒绝。</p>
-<p>打开开关后，stack 还会创建：</p>
+<h3 id="where-it-is-skipped">哪些情况会跳过<a class="headerlink" href="#where-it-is-skipped" title="Permanent link">¶</a></h3>
+<p>不满足上述组合时，stack 仍然会创建，只是没有 Claude Code Web，下面这些 Claude Code Web 的资源也都不会创建。存放工作区的 S3 bucket 例外：painter 也把图片放在里面，所以每个 stack 都会创建它，删除 stack 时也会保留。stack 输出 <code>ClaudeCodeWebStatus</code> 会写明有没有部署；没有部署时还会写明原因：</p>
+<ul>
+<li><code>EnableClaudeCodeWeb</code> 为 <code>false</code>。</li>
+<li><code>ComputeType</code> 是 <code>lambda</code>：它的 60 秒超时会截断长的流式响应。请使用 <code>ec2</code>、<code>ecs</code> 或 <code>lambda-web</code>。</li>
+<li>没有可用的数据库：Claude Code Web 不接受 admin key。请把 <code>DatabaseMode</code> 设为 <code>Standalone</code>，或者在 <code>ComputeType</code> 为 <code>ec2</code> 时设为 <code>EC2Integrated</code>。</li>
+<li><code>ec2</code> 或 <code>ecs</code> 上固定了 <code>BRConnectorVersion</code>：固定的旧版本里没有 <code>/cc</code>。请使用 <code>latest</code>。</li>
+</ul>
+<p>如果您打开了它却没有看到 <code>ClaudeCodeWebUrl</code>，请看 <code>ClaudeCodeWebStatus</code>。在不支持的组合上要求部署 Claude Code Web，不会再让 stack 创建失败。</p>
+<h3 id="_3">费用和创建时间<a class="headerlink" href="#_3" title="Permanent link">¶</a></h3>
+<p>因为默认打开，新 stack 的创建时间更长（创建期间会运行构建后端镜像的 CodeBuild 构建），账号还要承担 AgentCore Runtime 的费用。<code>EnableWebSearch</code> 默认也是 <code>true</code>，每次搜索都记在账号上。要避免这两项，把 <code>EnableClaudeCodeWeb</code> 设为 <code>false</code>。</p>
+<p>部署 Claude Code Web 时，stack 还会创建：</p>
 <ul>
 <li>一个 ECR 仓库，以及一个 CodeBuild 项目：从 <code>SourceRepoUrl</code> 的 <code>SourceRef</code> 构建后端镜像（arm64），冒烟检查后推送。建 stack 时由一个小的 Lambda 函数启动构建，stack 会等待构建完成；</li>
 <li>AgentCore Runtime；</li>
-<li>存放工作区的 S3 bucket，删除 stack 时会<strong>保留</strong>；</li>
+<li>存放工作区的 S3 bucket（每个 stack 都会为 painter 创建它），删除 stack 时会<strong>保留</strong>；</li>
 <li>Runtime 的 IAM 角色、访问工作区的 IAM 角色，以及挂在 BRConnector 角色上、允许它调用 Runtime 的策略；</li>
 <li>SSM 参数 <code>/brconnector/&lt;stack 名&gt;/claude-code-web</code>，BRConnector 从这里读取 Runtime 的配置（<code>CC_CONFIG_PARAM</code>）；</li>
 <li><code>EnableWebSearch</code> 为 <code>true</code> 且所在区域提供 AgentCore Web Search 时：一个带 Web Search connector 的 AgentCore Gateway 及其 IAM 角色，见「联网搜索」。</li>
@@ -1918,7 +1972,7 @@
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="s1">  }]'</span>
 </code></pre></div>
 <p><code>USE1-</code> 是 us-east-1 的前缀，其他区域有各自的前缀，可用 <code>aws ce get-dimension-values --dimension USAGE_TYPE --search-string WebSearchTool --time-period Start=&lt;yyyy-mm-01&gt;,End=&lt;today&gt;</code> 列出。预算只负责提醒，不会停止搜索，BRConnector 的额度也不适用于搜索。</p>
-<h2 id="_3">给用户开通<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
+<h2 id="_4">给用户开通<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
 <p>Claude Code Web 只给普通 API key 使用，admin key 会被拒绝。</p>
 <p>key 本身或者它所在的组，至少绑定了一个 <a href="../../../providers/bedrock-runtime-anthropic/">bedrock-runtime-anthropic</a> provider 的模型，这个 key 才能使用 Claude Code Web。请给 key 或它的组绑定以下模型：</p>
 <ul>
@@ -1927,14 +1981,14 @@
 </ul>
 <p>这些模型在 BRConnector 里的名称必须包含 <code>claude</code>（或 <code>anthropic</code>），后台模型也一样。后端按名称判断：名称不含这两个词时，它会切换到 LiteLLM 代理模式，而本部署不支持这种模式，会话会失败。</p>
 <p>key 的月度额度和余额照常生效。用完时，Claude Code Web 返回 402 和原因。</p>
-<h2 id="_4">登录<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
+<h2 id="_5">登录<a class="headerlink" href="#_5" title="Permanent link">¶</a></h2>
 <ol>
 <li>打开 <code>ClaudeCodeWebUrl</code>，例如 <code>https://d111111abcdef8.cloudfront.net/cc/</code>。</li>
 <li>输入自己的 BRConnector API key。页面会用 <code>/v1/models</code> 校验它。</li>
 <li>第一次请求要启动 microVM，可能要等几十秒。</li>
 </ol>
 <p>登出会停止你的 microVM。文件保存在 S3 里，下次登录时会恢复。</p>
-<h2 id="_5">费用<a class="headerlink" href="#_5" title="Permanent link">¶</a></h2>
+<h2 id="_6">费用<a class="headerlink" href="#_6" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>模型 token</strong>：按 BRConnector 里设置的价格计入用户的 key，和其他客户端一样。</li>
 <li><strong>其他费用</strong>都由部署 stack 的 AWS 账号承担，不计入任何 key：microVM 运行期间的 AgentCore Runtime 计算费用、每次构建镜像的 CodeBuild 时长、工作区的 S3 存储、镜像的 ECR 存储，以及 CloudWatch Logs。每个 key 最多一个 microVM，空闲 15 分钟后停止。</li>
@@ -1944,7 +1998,7 @@
 </ul>
 <h2 id="known-limitations">已知限制<a class="headerlink" href="#known-limitations" title="Permanent link">¶</a></h2>
 <ul>
-<li>只支持在新建 stack 时打开开关。对已有 stack 打开开关不会生效：ec2 修改 UserData 不会重跑 cloud-init，每晚的 SSM 升级执行的是 <code>/root/brconnector-run.sh</code>（0.0.44 之前创建的 stack 重放第一次启动时记录的 <code>docker run</code> 行），而这个脚本是实例第一次部署时写下的。</li>
+<li>开关只在新建 stack 时生效。在默认值改变之前创建的 stack，在控制台更新时仍保持 <code>false</code>，什么都不会创建。用没有 <code>EnableClaudeCodeWeb</code> 参数的模板（Claude Code Web 之前的版本）创建的 stack 没有可保持的值：控制台会显示新的默认值 <code>true</code>，更新这样的 stack 时请把它设为 <code>false</code>。使用 AWS CLI 时，给 <code>EnableClaudeCodeWeb</code> 传 <code>UsePreviousValue=true</code>：不传的话，更新会采用新的默认值 <code>true</code>，创建 Claude Code Web，在 <code>ec2</code> 上还会修改 UserData，从而停止再启动实例。对已有 stack 打开它不会生效：ec2 修改 UserData 不会重跑 cloud-init，每晚的 SSM 升级执行的是 <code>/root/brconnector-run.sh</code>（0.0.44 之前创建的 stack 重放第一次启动时记录的 <code>docker run</code> 行），而这个脚本是实例第一次部署时写下的。</li>
 <li>microVM 的计算费用算在部署 stack 的账号上，不计入 key 的额度。key 的额度只管模型 token。每个 key 最多一个 microVM，空闲 15 分钟回收。</li>
 <li>ec2 每晚自动把 BRConnector 升级到 <code>latest</code>，而 Claude Code Web 后端镜像只在更新 stack 时重建。要重建它，修改 <code>ClaudeCodeWebImageBuildId</code>（例如从 <code>1</code> 改成 <code>2</code>）：镜像会从 <code>SourceRepoUrl</code> 的 <code>SourceRef</code> 重新构建，<code>SourceRef</code> 是分支时会带上新提交，stack 里的其他资源不变。修改 <code>SourceRepoUrl</code> 或 <code>SourceRef</code> 也会重建镜像。<code>lambda-web</code> 形态下，更新 stack 还会从同一个仓库和 ref 重新构建 BRConnector 部署包（更新失败时通过重新构建上一个 <code>SourceRef</code> 回滚，所以更新完成前请保留它，见 <a href="../../../home/deployment/#autoupdate">AutoUpdate</a>）。<code>ec2</code> 形态下，<code>SourceRepoUrl</code> 和 <code>SourceRef</code> 不会动实例；修改 <code>BRConnectorVersion</code> 会改变 UserData，实例会停止再启动一次。BRConnector 和后端之间的约定（invocations 透传和 4 个自定义头）必须保持向后兼容。</li>
 <li>在上游发布带 <code>/cc</code> 的 BRConnector 版本、维护者推送公开镜像之前，<code>ec2</code> 和 <code>ecs</code> 形态用不了 Claude Code Web。</li>
@@ -1978,7 +2032,7 @@
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年10月23日 13:52:52 CST"><span class="timeago" datetime="2026-10-23T13:52:52+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年10月23日 13:52:52 CST">2026-10-23</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月15日 05:43:42 CST"><span class="timeago" datetime="2026-11-15T05:43:42+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月15日 05:43:42 CST">2026-11-15</span>
   </span>
 
     

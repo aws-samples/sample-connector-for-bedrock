@@ -1471,6 +1471,34 @@ Updated in Docker image version 0.0.19">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#where-pictures-are-stored" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        图片存在哪里
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preset-painter-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        预置的 painter 模型
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="预置的 painter 模型">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#choose-chat-model" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1736,6 +1764,34 @@ Updated in Docker image version 0.0.19">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#where-pictures-are-stored" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        图片存在哪里
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preset-painter-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        预置的 painter 模型
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="预置的 painter 模型">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#choose-chat-model" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1903,22 +1959,22 @@ Updated in Docker image version 0.0.19</p>
 <tr>
 <td>s3Bucket</td>
 <td>string</td>
-<td>Y</td>
-<td></td>
-<td>保存上传图片和生成图片的存储桶。请按<a href="./#iam">IAM 权限</a>授予访问权限。</td>
+<td>N</td>
+<td>stack 的存储桶</td>
+<td>保存上传图片和生成图片的存储桶。不填就使用 stack 的存储桶，见<a href="./#where-pictures-are-stored">图片存在哪里</a>。填了它，请按<a href="./#iam">IAM 权限</a>授予访问权限。</td>
 </tr>
 <tr>
 <td>s3Prefix</td>
 <td>string</td>
 <td>N</td>
-<td>”“</td>
+<td>”“（用 stack 的存储桶时是 <code>painter</code>）</td>
 <td>S3 key 前缀。生成的图片放在 <code>&lt;s3Prefix&gt;/&lt;date&gt;/</code>，上传的图片放在 <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>。</td>
 </tr>
 <tr>
 <td>s3Region</td>
 <td>string</td>
-<td>Y</td>
-<td></td>
+<td>填了 <code>s3Bucket</code> 时为 Y</td>
+<td>stack 所在的区域</td>
 <td>存储桶所在的区域。</td>
 </tr>
 <tr>
@@ -1946,6 +2002,22 @@ Updated in Docker image version 0.0.19</p>
 <p><code>paintModelId</code> 决定文生图用的模型。它是 Ultra 或 SD3.5 Large 时，也决定图生图用的模型。Core 不能接收图片作为输入，所以选 Core 时，图生图使用 SD3.5 Large。</p>
 <p>painter 现在忽略 <code>regions</code> 字段，设置了它会在日志里记一条消息。painter 为每个模型自己选区域，见<a href="./#regions">区域与数据驻留</a>。请把已有 config 里的 <code>regions</code> 删掉。</p>
 <p>然后将此模型授予组或 api key。</p>
+<h3 id="where-pictures-are-stored">图片存在哪里<a class="headerlink" href="#where-pictures-are-stored" title="Permanent link">¶</a></h3>
+<p>painter 按 config 决定图片存在哪里：</p>
+<ul>
+<li>config 里有 <code>s3Bucket</code> 时，存储桶、区域和前缀三项都取自 config。<code>s3Region</code> 必填，<code>s3Prefix</code> 不设置就是空。不会再读别的设置。</li>
+<li>config 里没有 <code>s3Bucket</code> 时，painter 使用 stack 的存储桶、区域和前缀 <code>painter</code>。BRConnector 从环境变量 <code>PAINTER_S3_BUCKET</code>、<code>PAINTER_S3_REGION</code> 和 <code>PAINTER_S3_PREFIX</code> 读取。<code>ec2</code> 计算类型上，stack 把这些值放在一个 SSM 参数里，BRConnector 从那里读取。</li>
+<li>两处都没有时，painter 会返回错误，同时写明两种解决办法：在模型 config 里填写 S3，或者把 BRConnector 的 stack 更新到当前模板，当前模板会设置这些值。</li>
+</ul>
+<p>用当前模板创建的 stack 一定会设置这些变量。不是用这个模板创建的 stack、模板没有更新的 stack，或者镜像较旧的 stack 拿不到它们，请在模型 config 里填写 <code>s3Bucket</code> 和 <code>s3Region</code>。见<a href="../../home/deployment/#painter-stack-update">快速部署</a>。</p>
+<h2 id="preset-painter-model">预置的 painter 模型<a class="headerlink" href="#preset-painter-model" title="Permanent link">¶</a></h2>
+<p>带数据库的新 stack 里有一个名为 <code>painter</code> 的模型。它用 Stability Image Ultra（<code>stability.stable-image-ultra-v1:1</code>）画图，用 <code>claude-sonnet-5-5-chat</code> 作为对话模型。它的价格是 0，每张图片按内置标价计费（见<a href="./#billing">计费</a>）。</p>
+<p>这个模型由 migration 添加，而 BRConnector 只在有数据库时执行 migration。没有数据库的 stack 没有 <code>painter</code> 模型，也无法添加，因为它的模型列表是固定的。这类 stack 是 <code>DatabaseMode</code> 为 <code>NoDB</code> 的，或者 <code>DatabaseMode</code> 为 <code>EC2Integrated</code> 且 <code>ComputeType</code> 为 <code>lambda</code>、<code>ecs</code>、<code>lambda-web</code> 的。</p>
+<p>要让用户画图，把 <code>painter</code> 授予某个 key 或某个 group 即可。不需要再授予对话模型：painter 对它的调用记在同一个 key 上。只被授予 <code>painter</code> 的 key 仍然不能直接调用这个对话模型。</p>
+<ul>
+<li>数据库里已经有名为 <code>painter</code> 的模型时，保持不变。</li>
+<li>stack 拿不到设置时（见<a href="./#where-pictures-are-stored">图片存在哪里</a>），这个模型仍然存在，调用它会返回错误，说明怎样给它配置存储。</li>
+</ul>
 <h3 id="choose-chat-model">选择对话模型<a class="headerlink" href="#choose-chat-model" title="Permanent link">¶</a></h3>
 <p>请使用 Claude Sonnet 模型作为 <code>localLlmModel</code>，例如 <code>claude-sonnet-5-5-chat</code>。对话模型决定一次请求执行多少步，而每一步都会生成一张要计费的图片。</p>
 <p>测试中，用 Amazon Nova Pro（<code>us.amazon.nova-pro-v1:0</code>）作为 <code>localLlmModel</code> 时，一条只有文字、只要一张图片的请求，执行的步骤比用户要求的多。第一张图片画完后，模型自己对这张图片调用了风格迁移或图生图。多出来的每一步都会计费。Nova Pro 还把它的 <code>&lt;thinking&gt;...&lt;/thinking&gt;</code> 文字写进了回复，用户能看到。</p>
@@ -2028,8 +2100,9 @@ Updated in Docker image version 0.0.19</p>
 <li>图片超出所选模型的限制时，会返回错误，写明违反的规则和图片的实际值。</li>
 <li>Bedrock 过滤了提示词、输入图片或输出图片时，回复会说明是哪一个，不会显示错误堆栈。</li>
 </ul>
-<p>上传的图片保存在 <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>，生成的图片保存在 <code>&lt;s3Prefix&gt;/&lt;date&gt;/</code>。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。</p>
+<p>上传的图片保存在 <code>&lt;s3Prefix&gt;/uploads/&lt;date&gt;/</code>，生成的图片保存在 <code>&lt;s3Prefix&gt;/&lt;date&gt;/</code>。用 stack 的存储桶时，<code>&lt;s3Prefix&gt;</code> 是 <code>painter</code>。BRConnector 不设置生命周期规则，图片会一直保留，直到您删除。</p>
 <p>回复里生成的图片是 S3 预签名 URL 链接。URL 最长有效 4 小时。用临时凭证签名的 URL 在凭证过期时就失效。EC2 实例角色的凭证约 6 小时有效，所以对话里较早的图片可能不到 4 小时就打不开。</p>
+<p>stack 的存储桶带一条 CORS 规则，允许任何来源 <code>GET</code> 和 <code>HEAD</code>，这样 BRClient 的下载按钮可以取回图片并保存。在模型 config 里自己指定的存储桶，也需要同样的规则才能用这个按钮；没有的话，按钮会在新标签页打开图片。</p>
 <h2 id="regions">区域与数据驻留<a class="headerlink" href="#regions" title="Permanent link">¶</a></h2>
 <p>painter 为每个模型选择区域。</p>
 <ul>
@@ -2042,13 +2115,13 @@ Updated in Docker image version 0.0.19</p>
 <p>运行 BRConnector 的角色需要：</p>
 <ul>
 <li>目标区域的 <code>bedrock:InvokeModel</code>，覆盖基础模型和 <code>us.stability.*</code> 推理配置文件。</li>
-<li>存储桶和前缀上的 <code>s3:PutObject</code> 和 <code>s3:GetObject</code>。</li>
+<li>存储桶和前缀上的 <code>s3:PutObject</code> 和 <code>s3:GetObject</code>。stack 会在它自己存储桶的 <code>&lt;bucket&gt;/painter/*</code> 上授予这两个权限。模型 config 里填了自定义存储桶时，角色需要在那个存储桶上有同样的权限。</li>
 </ul>
-<p>Stability 模型是通过 AWS Marketplace 销售的第三方模型。一个 AWS 账号第一次调用某个模型时，会为账号订阅这个模型。这次调用需要 <code>aws-marketplace:Subscribe</code> 和 <code>aws-marketplace:ViewSubscriptions</code> 权限，账号也需要有可用于 AWS Marketplace 的有效付款方式。请把这两个权限授予角色，或者请有这两个权限的人在 Amazon Bedrock 控制台里把每个模型调用一次。订阅完成后，角色只需要 <code>bedrock:InvokeModel</code>。订阅最多可能需要 15 分钟。</p>
+<p>Stability 模型是通过 AWS Marketplace 销售的第三方模型。一个 AWS 账号第一次调用某个模型时，会为账号订阅这个模型。这次调用需要 <code>aws-marketplace:Subscribe</code> 和 <code>aws-marketplace:ViewSubscriptions</code> 权限，账号也需要有可用于 AWS Marketplace 的有效付款方式。stack 会把这两个权限授予角色，所以第一次调用每个 Stability 模型时会自动为账号订阅。订阅最多可能需要 15 分钟，在订阅生效之前，调用会失败并带下面的提示。没有一键订阅的办法。如果没有 stack 授予的权限，请把这两个权限授予角色，或者请有这两个权限的人在 Amazon Bedrock 控制台里把每个模型调用一次。订阅完成后，角色只需要 <code>bedrock:InvokeModel</code>。</p>
 <p>用 <code>aws:RequestedRegion</code> 限制区域的服务控制策略（SCP）会拦截对 us-west-2 的调用。</p>
 <p>调用返回 <code>AccessDeniedException</code> 时，回复会引用 Bedrock 的原始消息，并附一条提示：</p>
 <ul>
-<li>消息里提到 AWS Marketplace 时，说明这个模型的订阅还没有完成。请用上面两种方法之一完成订阅，几分钟后再试。</li>
+<li>消息里提到 AWS Marketplace 时，说明这个模型的订阅还没有完成。请等订阅完成，或者用上面的方法完成订阅，几分钟后再试。</li>
 <li>其他情况下，回复会写明 BRConnector 调用的区域。请确认角色和所有服务控制策略都允许在该区域调用 <code>bedrock:InvokeModel</code>。</li>
 </ul>
 <p>Bedrock 的消息里可能包含运行 BRConnector 的角色的 ARN。日志会记下每次拒绝的模型 ID、区域、错误名称、Bedrock 的消息和请求 ID，不记录提示词和图片。</p>
@@ -2102,7 +2175,7 @@ Updated in Docker image version 0.0.19</p>
     <span class="md-icon" title="最后更新">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月12日 13:26:50 CST"><span class="timeago" datetime="2026-11-12T13:26:50+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月12日 13:26:50 CST">2026-11-12</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年11月15日 05:43:42 CST"><span class="timeago" datetime="2026-11-15T05:43:42+08:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年11月15日 05:43:42 CST">2026-11-15</span>
   </span>
 
     
