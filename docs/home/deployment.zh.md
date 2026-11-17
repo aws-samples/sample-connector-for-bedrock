@@ -103,7 +103,7 @@
 - 调试参数
   - 如果您选择 Lambda 作为计算类型，可以选择在所有资源部署成功后删除 EC2。此 EC2 用于临时编译和构建 BRConnector 容器。
   - 如果您选择 EC2 作为计算类型，请不要删除 EC2
-  - 如果您将 AutoUpdateBRConnector 设置为 `true`，BRConnector 每晚自动更新，见 [AutoUpdate](#autoupdate)
+  - `AutoUpdateBRConnector` 默认为 `false`：BRConnector 保持在创建 stack 时的镜像上。设为 `true` 时 BRConnector 每晚自动更新，见 [AutoUpdate](#autoupdate)
 
 ![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
@@ -115,7 +115,9 @@
 
 ## AutoUpdate
 
-`AutoUpdateBRConnector` 为 `true` 时，stack 每晚 00:00 UTC 把 BRConnector 更新到 `latest`，即使 `BRConnectorVersion` 固定在其他版本也一样。
+`AutoUpdateBRConnector` 默认为 `false`，没有夜间任务。要打开 AutoUpdate，在创建 stack 时或者更新 stack 时把它设为 `true`。要关闭它，用 `false` 更新 stack。这两种更新都只增加或删除夜间任务，见[已有 stack 的 AutoUpdate](#autoupdate-stack-update)。
+
+`AutoUpdateBRConnector` 为 `true` 时，stack 每晚 00:00 UTC 把 BRConnector 更新到 `latest`，即使 `BRConnectorVersion` 固定在其他版本也一样。它只替换镜像，不更新模板。需要修改模板的版本，在您把 stack 更新到新模板之前，会在没有这些修改的情况下运行。例如 0.0.46 的预置 `painter` 模型，在模板给它配置存储之前会返回错误。依赖夜间更新之前，请先阅读每个版本的[更新日志](changelogs.md)。
 
 | ComputeType | 00:00 UTC 执行的内容 |
 | --- | --- |
@@ -123,6 +125,8 @@
 | `lambda` | 一条 EventBridge 规则启动 CodeBuild 项目，项目把 `-lambda:latest` 镜像复制到您的私有 ECR 仓库并更新函数。 |
 | `ecs` | 没有夜间任务。 |
 | `lambda-web` | 没有夜间任务。`SourceRepoUrl`、`SourceRef` 或 `WebFnBuildId` 变化时，以及第一次更新到 0.0.44 模板时，更新 stack 会从 `SourceRepoUrl` 的 `SourceRef` 重新构建部署包并发布。只想重新构建时，修改 `WebFnBuildId`（例如从 `1` 改成 `2`）。 |
+
+`brconnector-ecs-fargate.yaml` 有自己的 `AutoUpdateBRConnector`，默认也是 `false`。设为 `true` 时，一条 EventBridge 规则每天强制重新部署一次 ECS 服务，重新拉取 `BRConnectorVersion` 对应的镜像标签。`BRConnectorVersion` 为 `latest` 时，这会把 BRConnector 更新到最新版本。
 
 `lambda-web` 部署包和镜像一样，在 `/brclient/` 提供 BRClient。构建部署包时，按 `SourceRef` 里 `scripts/brclient.source` 指定的上游提交构建 BRClient。见 [BRClient 来源](#brclient-source)。
 
@@ -132,11 +136,12 @@
 aws cloudformation continue-update-rollback --stack-name <stack name> --resources-to-skip WebFnPackage
 ```
 
-`AutoUpdateBRConnector` 为 `false` 时：
+`AutoUpdateBRConnector` 为 `false` 时，`ec2` 上没有 SSM association 和 SSM 文档，`lambda` 上没有 EventBridge 规则和 CodeBuild 项目。BRConnector 保持在当前运行的镜像上。要更新到新版本，用 `true` 更新 stack，下一次 00:00 UTC 的执行会更新 BRConnector。要立即执行：
 
-- 转到 CodeBuild 页面，可以触发一个项目来手动更新 lambda 映像。单击“开始构建”。
-- 由于没有创建 association，EC2 中的映像不会由 SSM State Manager 自动更新。请用 SSM 文档在 EC2 上手动执行更新。
-- 检查您的 ECR 设置：如果拉取缓存页面中有规则，则已启用用上游仓库自动更新 ECR 映像的功能。
+- `ec2`：在 Systems Manager State Manager 中选择这个 stack 的 association，然后选择 **Apply association now**。
+- `lambda`：在 CodeBuild 中启动项目 `MyCodeBuildProject-<stack name>` 的一次构建。
+
+另外请检查您的 ECR 设置：如果拉取缓存页面中有规则，则已启用用上游仓库自动更新 ECR 映像的功能。
 
 ## BRClient 来源 {#brclient-source}
 
@@ -194,6 +199,20 @@ stack 拿不到这些设置时（部署不是用这个模板创建的、模板�
 `EnableClaudeCodeWeb` 只在创建 stack 时生效。在默认值改变之前创建的 stack，这个参数是 `false`，在控制台更新时也会保持 `false`。值为 `false` 时，更新不会为 Claude Code Web 创建任何东西，`ec2` 实例也不会被修改。用没有 `EnableClaudeCodeWeb` 参数的模板（Claude Code Web 之前的版本）创建的 stack 没有可保持的值：控制台会显示新的默认值 `true`，更新这样的 stack 时请把它设为 `false`。
 
 使用 AWS CLI 时传 `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `true`：它会创建 Claude Code Web，在 `ec2` 上还会修改 UserData，从而停止再启动实例。不支持对已有 stack 打开它，见[已知限制](../user-manual/scenarios/claude-code-web.md#known-limitations)。
+
+## 已有 stack 的 AutoUpdate {#autoupdate-stack-update}
+
+`AutoUpdateBRConnector` 的默认值从 `true` 改成了 `false`。在控制台把 stack 更新到新模板时，控制台保持 stack 当前的值，所以值为 `true` 的 stack 保留夜间更新。
+
+使用 AWS CLI 时传 `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `false`，删除夜间任务：
+
+- `ec2`：SSM association、它的 SSM 文档和日志存储桶。
+- `lambda`：EventBridge 规则、CodeBuild 项目、它的 IAM 角色和安全组。
+- `brconnector-ecs-fargate.yaml`：EventBridge 规则和它的 Lambda 函数。
+
+之后 stack 不再更新 BRConnector。要恢复夜间更新，再用 `true` 更新一次 stack。
+
+在 stack 更新中修改 `AutoUpdateBRConnector` 只会增加或删除这些资源。它不会停止、启动或替换 `ec2` 实例，因为实例的任何属性都不依赖这个参数；也不会更新 `lambda` 函数或 ECS 服务。`ecs` 和 `lambda-web` 上，这个参数不改变任何东西。
 
 ## 删除 stack {#deleting-a-stack}
 

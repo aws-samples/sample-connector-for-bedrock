@@ -1,5 +1,13 @@
 # Changelogs
 
+## Unreleased
+
+**Upgrade notes**
+
+- `AutoUpdateBRConnector` now defaults to `false`, so a new stack no longer updates BRConnector every night (item 1). A console update to the new template keeps the value the stack has. With the AWS CLI, pass `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`. Without it, the update takes the new default `false` and deletes the nightly job: the SSM association on `ec2`, the EventBridge rule and the CodeBuild project on `lambda`, and the daily redeploy of `brconnector-ecs-fargate.yaml`. The stack then no longer updates BRConnector. The update does not change or restart the `ec2` instance, the `lambda` function or the ECS service. See [AutoUpdate in existing stacks](deployment.md#autoupdate-stack-update).
+
+1. **AutoUpdate Off by Default** - `AutoUpdateBRConnector` defaults to `false` in `quick-build-brconnector.yaml` and `brconnector-ecs-fargate.yaml`, so a new stack stays on the release it was created with. Set it to `true` to turn the nightly update on. It replaces only the image and does not update the template. In `quick-build-brconnector.yaml`, it moves `ec2` and `lambda` to `latest` even when `BRConnectorVersion` is pinned. See [AutoUpdate](deployment.md#autoupdate).
+
 ## 0.0.46
 
 **Upgrade notes**
