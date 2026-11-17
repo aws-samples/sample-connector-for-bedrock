@@ -17,7 +17,7 @@ So a stack created with the default parameters took each release on the night it
 ## Consequences
 
 - A new stack stays on the release it was created with until an admin updates it or turns the nightly update on.
-- A console update keeps the value the stack has, because the console fills in the current value of each parameter. With the AWS CLI, an update must pass `UsePreviousValue=true` for `AutoUpdateBRConnector`. Without it, the update takes the new default `false` and deletes the nightly update: on `ec2` the SSM association, its document and its log bucket; on `lambda` the EventBridge rule, the CodeBuild project, its roles and its security group; in `brconnector-ecs-fargate.yaml` the rule and its Lambda function. The stack then no longer updates BRConnector.
+- A console update keeps the value the stack has, because the console fills in the current value of each parameter. `aws cloudformation deploy` also keeps it when `--parameter-overrides` leaves the parameter out. `aws cloudformation update-stack` must pass `UsePreviousValue=true` for `AutoUpdateBRConnector`. Without it, the update takes the new default `false` and deletes the nightly update: on `ec2` the SSM association, its document and its log bucket; on `lambda` the EventBridge rule, the CodeBuild project, its roles and its security group; in `brconnector-ecs-fargate.yaml` the rule and its Lambda function. The stack then no longer updates BRConnector.
 - Changing the value in either direction changes no other resource and no output. The `ec2` instance is not stopped, started or replaced, and the `lambda` function and the ECS service are not updated. The template tests check this for each compute type and for the ECS Fargate template.
 
 ## Alternatives considered

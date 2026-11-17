@@ -4,7 +4,7 @@
 
 **升级提示**
 
-- `AutoUpdateBRConnector` 的默认值改为 `false`，新 stack 不再每晚自动更新 BRConnector（第 1 条）。在控制台把 stack 更新到新模板时，保持 stack 当前的值。使用 AWS CLI 时传 `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `false`，删除夜间任务：`ec2` 上的 SSM association，`lambda` 上的 EventBridge 规则和 CodeBuild 项目，以及 `brconnector-ecs-fargate.yaml` 的每日重新部署。之后 stack 不再更新 BRConnector。这次更新不会修改或重启 `ec2` 实例、`lambda` 函数或 ECS 服务。见[已有 stack 的 AutoUpdate](deployment.md#autoupdate-stack-update)。
+- `AutoUpdateBRConnector` 的默认值改为 `false`，新 stack 不再每晚自动更新 BRConnector（第 1 条）。在控制台把 stack 更新到新模板时，保持 stack 当前的值。使用 `aws cloudformation update-stack` 时，在 `--parameters` 中传 `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `false`，删除夜间任务：`ec2` 上的 SSM association，`lambda` 上的 EventBridge 规则和 CodeBuild 项目，以及 `brconnector-ecs-fargate.yaml` 的每日重新部署。之后 stack 不再更新 BRConnector。`aws cloudformation deploy` 在 `--parameter-overrides` 中没有写这个参数时保持当前的值。这次更新不会修改或重启 `ec2` 实例、`lambda` 函数或 ECS 服务。见[已有 stack 的 AutoUpdate](deployment.md#autoupdate-stack-update)。
 
 1. **AutoUpdate 默认关闭** - `quick-build-brconnector.yaml` 和 `brconnector-ecs-fargate.yaml` 中 `AutoUpdateBRConnector` 的默认值改为 `false`，新 stack 保持在创建时的版本。设为 `true` 打开夜间更新。它只替换镜像，不更新模板。在 `quick-build-brconnector.yaml` 中，即使 `BRConnectorVersion` 固定了版本，它也会把 `ec2` 和 `lambda` 更新到 `latest`。见 [AutoUpdate](deployment.md#autoupdate)。
 

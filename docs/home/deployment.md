@@ -205,13 +205,15 @@ With the AWS CLI, pass `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`.
 
 The default of `AutoUpdateBRConnector` changed from `true` to `false`. When you update a stack to the new template in the console, the console keeps the value the stack has, so a stack with `true` keeps its nightly update.
 
-With the AWS CLI, pass `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`. Without it, the update takes the new default `false` and deletes the nightly job:
+With `aws cloudformation update-stack`, pass `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true` in `--parameters`. Without it, the update takes the new default `false` and deletes the nightly job:
 
 - `ec2`: the SSM association, its SSM document and its log bucket.
 - `lambda`: the EventBridge rule, the CodeBuild project, its IAM roles and its security group.
 - `brconnector-ecs-fargate.yaml`: the EventBridge rule and its Lambda function.
 
 The stack then no longer updates BRConnector. To get the nightly update back, update the stack again with `true`.
+
+`aws cloudformation deploy` keeps the value the stack has for each parameter that `--parameter-overrides` leaves out, so it keeps `AutoUpdateBRConnector` unless you pass it.
 
 Changing `AutoUpdateBRConnector` in a stack update adds or deletes only these resources. It does not stop, start or replace the `ec2` instance, because no property of the instance depends on the parameter. It does not update the `lambda` function or the ECS service either. On `ecs` and `lambda-web`, the parameter changes nothing.
 

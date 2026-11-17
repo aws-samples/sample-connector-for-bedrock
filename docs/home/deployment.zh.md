@@ -204,13 +204,15 @@ stack 拿不到这些设置时（部署不是用这个模板创建的、模板�
 
 `AutoUpdateBRConnector` 的默认值从 `true` 改成了 `false`。在控制台把 stack 更新到新模板时，控制台保持 stack 当前的值，所以值为 `true` 的 stack 保留夜间更新。
 
-使用 AWS CLI 时传 `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `false`，删除夜间任务：
+使用 `aws cloudformation update-stack` 时，在 `--parameters` 中传 `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `false`，删除夜间任务：
 
 - `ec2`：SSM association、它的 SSM 文档和日志存储桶。
 - `lambda`：EventBridge 规则、CodeBuild 项目、它的 IAM 角色和安全组。
 - `brconnector-ecs-fargate.yaml`：EventBridge 规则和它的 Lambda 函数。
 
 之后 stack 不再更新 BRConnector。要恢复夜间更新，再用 `true` 更新一次 stack。
+
+`aws cloudformation deploy` 对 `--parameter-overrides` 中没有写的参数保持 stack 当前的值，所以只要不传 `AutoUpdateBRConnector`，它就保持不变。
 
 在 stack 更新中修改 `AutoUpdateBRConnector` 只会增加或删除这些资源。它不会停止、启动或替换 `ec2` 实例，因为实例的任何属性都不依赖这个参数；也不会更新 `lambda` 函数或 ECS 服务。`ecs` 和 `lambda-web` 上，这个参数不改变任何东西。
 
