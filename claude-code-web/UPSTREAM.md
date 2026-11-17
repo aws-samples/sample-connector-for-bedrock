@@ -279,3 +279,12 @@ directory must be listed here.
   the previous ones again: the new helpers declare `browserslist ^4.24.0` and `semver ^6.3.1`, which browserslist
   4.29.4 and semver 6.3.1 satisfy, and `npm ls --all` reports no invalid or missing dependency. All of them are dev
   dependencies.
+- `uv.lock`: cryptography 46.0.7 -> 50.0.2, pip 25.3 -> 26.3, multidict 6.7.0 -> 6.9.1, idna 3.11 -> 3.20 and
+  requests 2.32.5 -> 2.34.2, locked with `uv lock --upgrade-package <name>` (uv 0.13.7); `pyproject.toml` is
+  unchanged and no other locked version changes. These are the newest releases that the other locked packages allow,
+  and they fix the known vulnerabilities of the previous ones. No locked package caps cryptography below 50: it is a
+  dependency of authlib, joserfc, secretstorage and the `crypto` extra of pyjwt (through `mcp[crypto]`), and the
+  backend does not import it. The breaking changes from cryptography 47 to 50 (OpenSSL 1.1.x, binary curves, the
+  `*_KEY_TYPES` aliases, the `ChaCha20` block counter, x86_64 macOS and 32-bit Windows wheels) do not reach the
+  installed packages: every module that imports cryptography imports as it did with 46.0.7, and RS256 and ES256 JWTs
+  from pyjwt and authlib sign and verify. Every changed package has a `py3-none-any` or `manylinux` aarch64 wheel.
