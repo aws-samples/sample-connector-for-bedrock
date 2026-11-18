@@ -54,6 +54,20 @@ Once defined, models can be bound to groups or API Keys.
 
 ## Changelogs
 
+## 0.0.47
+
+**Upgrade notes**
+
+- `AutoUpdateBRConnector` now defaults to `false`, so a new stack no longer updates BRConnector every night (item 1). A console update to the new template keeps the value the stack has. With `aws cloudformation update-stack`, pass `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true` in `--parameters`. Without it, the update takes the new default `false` and deletes the nightly job: the SSM association on `ec2`, the EventBridge rule and the CodeBuild project on `lambda`, and the daily redeploy of `brconnector-ecs-fargate.yaml`. The stack then no longer updates BRConnector. `aws cloudformation deploy` keeps the value when `--parameter-overrides` leaves the parameter out. The update does not change or restart the `ec2` instance, the `lambda` function or the ECS service. See [AutoUpdate in existing stacks](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#autoupdate-stack-update).
+- The Claude Code Web backend image gets item 2 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/#known-limitations).
+
+1. **AutoUpdate Off by Default** - `AutoUpdateBRConnector` defaults to `false` in `quick-build-brconnector.yaml` and `brconnector-ecs-fargate.yaml`, so a new stack stays on the release it was created with. Set it to `true` to turn the nightly update on. It replaces only the image and does not update the template. In `quick-build-brconnector.yaml`, it moves `ec2` and `lambda` to `latest` even when `BRConnectorVersion` is pinned. See [AutoUpdate](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#autoupdate).
+2. **Dependency Updates** - Dependencies move to newer releases. The new releases of cryptography, pip, multidict, idna, requests, uuid, @humanfs/node and minimatch fix known vulnerabilities.
+   - The Claude Code Web backend image installs cryptography 50.0.2, pip 26.3, multidict 6.9.1, idna 3.20 and requests 2.34.2. cryptography is a major upgrade from 46.0.7. This fixes the known cryptography vulnerabilities that 0.0.45 and 0.0.46 kept.
+   - The BRConnector server dependencies do not change. Each build installs the newest releases that `package.json` allows. These no longer include fast-xml-parser, because @aws-sdk/xml-builder 3.972.43 does not depend on it. The lockfile that the tests use now has the same @aws-sdk/xml-builder, and `package.json` no longer overrides fast-xml-parser.
+   - The lockfile also moves uuid to 13.0.2 (through kui-vue), @humanfs/node to 0.16.8 (through eslint) and minimatch to 11.0.9 (through rimraf 6.1.4). minimatch is a major upgrade from 10.2.6. These are dev dependencies, and the image does not install them.
+   - zod stays on 3.25.76 in the image and in the lockfile, because its fix is only in zod 4. The koa-body and openai releases that BRConnector uses require zod 3, and the server calls zod only on its own settings, not on request data.
+
 ## 0.0.46
 
 **Upgrade notes**
@@ -154,76 +168,6 @@ Once defined, models can be bound to groups or API Keys.
 7. **Database Password from Secrets Manager** - When `PGSQL_PASSWORD_SECRET_ARN` is set, BRConnector reads the database password from that Secrets Manager secret instead of `PGSQL_PASSWORD`. The templates set it for `lambda` and `lambda-web` when they generate the password (item 6). See [Development](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/development/).
 
 8. **Docs** - A GPT-6 Sol example and a note on `reasoning_effort` for GPT reasoning models with tools in [bedrock-runtime-openai](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-runtime-openai/). The left sidebar shows the full navigation tree.
-
-## 0.0.44
-
-**Upgrade notes**
-
-- Take a database snapshot before you upgrade: this release adds a migration (item 9). Stacks with `AutoUpdateBRConnector` set to `true` (`ec2` and `lambda` compute types) pick up the new `latest` image automatically at 00:00 UTC.
-- Updating a stack to the 0.0.44 `quick-build-brconnector.yaml` template changes the UserData: an `ec2` instance is stopped and started once, and `lambda` and `lambda-web` stacks created with `KeepEc2` set to `false` must be recreated. See [Template updates of existing stacks](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#template-updates-of-existing-stacks).
-- `lambda-web` stacks now build the deployment package on a stack update and run the migrations at start-up (item 2), including the 0.0.43 migrations if they were never applied, which delete the models of retired providers (see 0.0.43).
-- The alternative ECS template issues a new admin key on update; read it from the SSM parameter `/brconnector/admin-key-<stack name>`. Direct access to its ALB stops; use `CloudFrontURL` (item 6).
-- The Lambda@Edge ARN changes: set `LambdaEdgeVersionArn` to the new output (item 6).
-- Image models stay unbilled until `price_per_image` is set in their config (item 9).
-- bedrock-converse prompt-cache tokens are now billed (item 9).
-- openai-compatible and azure-openai streams now send `stream_options`. If your upstream or Azure API version rejects it, set `"streamUsage": false` in the model config (item 9).
-- Claude Code Web stacks: the template update does not rebuild the backend image. To get item 11, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`) in the stack update; see [Known limitations](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/#known-limitations).
-
-1. **CI** - Unit tests, the build and the template checks now run on every pull request.
-
-2. **lambda-web Updates** - The deployment package is now built by CodeBuild. A stack update that changes `SourceRepoUrl`, `SourceRef` or the new `WebFnBuildId` parameter rebuilds it and deploys it as a new Web Function revision, and so does the first update to the 0.0.44 template. `SourceRef` may now be a commit. See [AutoUpdate](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#autoupdate).
-   - A failed build fails the update, names the failing step and leaves the running revision in place.
-   - The rollback builds the previous `SourceRef` again, so keep that ref available until the update completes. If the rollback fails too, run `aws cloudformation continue-update-rollback --stack-name <stack name> --resources-to-skip WebFnPackage`.
-   - The Web Function now applies the database migrations at start-up (`SKIP_DB_INSTALL` is no longer set), under one lock that covers the whole install.
-
-3. **EC2 Boot Log and Run Script**
-   - The stack's EC2 instance no longer writes keys or passwords to its boot log or console. New stacks write the BRConnector start command to the root-only `/root/brconnector-run.sh` (mode 0700), and the nightly update runs `bash /root/brconnector-run.sh latest`. Stacks created before 0.0.44 keep updating from the command recorded at first boot.
-   - After the template update, the nightly update on existing ec2 stacks also makes the boot log and the generated key files readable by root only.
-   - Admins of stacks created before 0.0.44 may rotate the admin key, stored in the SSM parameter `/brconnector/admin-key-<stack name>`, if other users can log in to the instance or read its console output. See [Admin key on stacks created before 0.0.44](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#admin-key-before-0-0-44).
-   - The `PGPassword` parameter is now NoEcho.
-
-4. **Regions** - `ec2`, `lambda` and `ecs` now work in 17 Regions: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1, ap-northeast-1, ap-northeast-2, ap-northeast-3, ap-southeast-1, ap-southeast-2 and ap-south-1. `lambda-web` works only where Lambda Web Functions are available: us-east-1, us-east-2, us-west-2, ap-northeast-1 and eu-west-1 (see [AWS Capabilities by Region](https://builder.aws.com/build/capabilities) for the current list), and the template refuses it elsewhere. Claude Code Web needs AgentCore Runtime, so it is not available in ap-northeast-3. See [Supported Region](https://aws-samples.github.io/sample-connector-for-bedrock/home/deployment/#supported-region).
-
-5. **IAM Roles and Security Groups**
-   - The helper EC2 role, the cleanup function's role and the nightly lambda update role now grant only the calls they make. The broad managed policies are removed: ECR, Lambda, ECS and EC2 full access, EC2 read-only, CloudWatch Logs full access and CodeBuild admin.
-   - The cleanup function can terminate only this stack's instances.
-   - The nightly update output is still not written to S3.
-   - The ECS load-balancer security group is created only for the `ecs` compute type.
-
-6. **Alternative ECS Template and Lambda@Edge**
-   - The alternative ECS template generates its admin key from a cryptographic random source (32 characters). A stack update issues a new key; read it with `aws ssm get-parameter --name /brconnector/admin-key-<stack name> --query Parameter.Value --output text`. The `AdminApiKey` output is replaced by `AdminApiKeyParameter`.
-   - Its ALB admits only CloudFront, and the `LoadBalancerURL` output is removed, so direct ALB access stops; use `CloudFrontURL`.
-   - The Lambda@Edge function no longer logs request headers and runs on nodejs24.x. It publishes version `v2` with a new ARN: set `LambdaEdgeVersionArn` of your BRConnector stack to the new `LambdaEdgeVersionArn` output.
-
-7. **Image URLs** - See the [FAQ](https://aws-samples.github.io/sample-connector-for-bedrock/home/faq/#image-urls).
-   - Image URLs in chat requests are fetched directly from the BRConnector host, not through `HTTPS_PROXY` or `HTTP_PROXY`, and only from public addresses. Every redirect is checked again, at most 3. The response must be `image/*`, at most 10 MiB, and arrive within 15 seconds.
-   - Deployments without direct internet egress should send images to chat models as `data:` URLs, which work as before.
-   - Other URLs, and unsupported schemes that used to send an empty image, now get HTTP 400.
-   - Content blocks whose `source` has `s3Location` get HTTP 400; send the content inline.
-   - nova-canvas takes `http(s)` URLs, or `s3://` URLs in the model's own `s3Bucket`, and answers a rejected image URL with HTTP 400.
-
-8. **Shared-key Endpoint Removed** - `/open/get-shared-api-key` is removed, so the BRClient portal no longer fills in a key: BRClient users enter their own key. A key named `__shared-api-key__` is now an ordinary key.
-
-9. **Billing**
-   - bedrock-converse now bills prompt-cache reads and writes at `price_cache_read` and `price_cache_write` from the model config (per token; `price_in` when unset), and counts them in the recorded input tokens. 1-hour cache writes bill at `price_cache_write`. Set both prices on your own converse models that use prompt caching. See [bedrock-converse](https://aws-samples.github.io/sample-connector-for-bedrock/providers/bedrock-converse/#billing).
-   - The migration `2026-10-23-converse-cache-prices.sql` fills in the two prices on the `claude-opus-5-5-chat`, `claude-sonnet-5-5-chat` and `claude-haiku-5-5-chat` presets where they are absent: a cache read at 0.05 of `price_in` for Opus and Sonnet and 0.1 for Haiku, a cache write at 1.25 of it. A price an admin has set is kept.
-   - openai-compatible and azure-openai streams now ask the upstream for usage and are billed once the stream ends, whatever the finish reason. The usage-only chunk reaches only clients that asked for it. The new config key `streamUsage: false` turns this off for an upstream that rejects `stream_options`.
-   - bedrock-agent calls are now billed from the token usage in the agent's trace. The trace is not sent to clients or logged.
-   - Knowledge-base calls with `bedrockModelArn` are now billed from an estimate of 4 characters per token over the question, the answer and the references cited in the answer; references that are not cited are not counted.
-   - painter, nova-canvas and azure-openai-image now record each image generation and bill it at the new config key `price_per_image` (per image). When it is unset the price is 0, so set it to bill image generation.
-   - A recharge amount with more than 2 decimals gets HTTP 400, and a recharge is recorded in one transaction.
-
-10. **Feishu Bots** - Feishu bots now keep a single WebSocket client per connector and close replaced or removed ones.
-
-11. **Claude Code Web** - `/ping` now reports the time of the last real activity, so the AgentCore idle timeout can fire, and `serve` delivers SIGTERM to the server for a clean shutdown. Existing stacks get this once a stack update changes `ClaudeCodeWebImageBuildId` (see the upgrade notes).
-
-12. **Docs** - AutoUpdate per compute type, how to update existing stacks, and a web search budget example in [Claude Code Web](https://aws-samples.github.io/sample-connector-for-bedrock/user-manual/scenarios/claude-code-web/#web-search).
-
-13. **Dependencies** - nodemailer 10.2.1 [#165](https://github.com/aws-samples/sample-connector-for-bedrock/pull/165) and vite 6.4.5 [#166](https://github.com/aws-samples/sample-connector-for-bedrock/pull/166). Claude Code Web: source-map-js 1.2.2 [#156](https://github.com/aws-samples/sample-connector-for-bedrock/pull/156), nanoid 3.3.20 [#157](https://github.com/aws-samples/sample-connector-for-bedrock/pull/157), postcss 8.5.31 [#158](https://github.com/aws-samples/sample-connector-for-bedrock/pull/158), react-router and react-router-dom 7.18.4 [#159](https://github.com/aws-samples/sample-connector-for-bedrock/pull/159), baseline-browser-mapping 2.11.31 [#160](https://github.com/aws-samples/sample-connector-for-bedrock/pull/160), browserslist 4.29.4 [#161](https://github.com/aws-samples/sample-connector-for-bedrock/pull/161), vite 7.3.7 with esbuild 0.28 [#162](https://github.com/aws-samples/sample-connector-for-bedrock/pull/162), aiohttp 3.14.4 [#163](https://github.com/aws-samples/sample-connector-for-bedrock/pull/163) and pyjwt 2.15.0 [#167](https://github.com/aws-samples/sample-connector-for-bedrock/pull/167).
-
-14. **lambda Compute Type Fixes**
-   - New `lambda` stacks could not be reached: function URLs created since October 2025 also need the `lambda:InvokeFunction` permission. The template now grants it, limited to calls through the function URL, and updating an existing `lambda` stack adds the permission.
-   - With `KeepEc2` set to `false`, the helper instance is now terminated after setup.
 
 ## Disclaimer
 
