@@ -13,3 +13,4 @@
 | [0009](0009-painter-chat-calls-for-painter-only-keys.md) | Painter chat calls for keys granted only painter | Accepted |
 | [0010](0010-claude-code-web-on-by-default.md) | Claude Code Web on by default, skipped when unsupported | Accepted |
 | [0011](0011-autoupdate-off-by-default.md) | AutoUpdate off by default | Accepted |
+| [0012](0012-zod-3-until-koa-body-and-openai-move.md) | zod 3 in the gateway until koa-body and openai move | Accepted |
