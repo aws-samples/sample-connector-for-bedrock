@@ -592,6 +592,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#autoupdate-stack-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AutoUpdate in existing stacks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deleting-a-stack" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1979,6 +1990,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#autoupdate-stack-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AutoUpdate in existing stacks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deleting-a-stack" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2229,7 +2251,7 @@
 </li>
 <li>If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.</li>
 <li>Don’t delete EC2 if you choose EC2 as ComputeType</li>
-<li>If you set <code>true</code> to AutoUpdateBRConnector, BRConnector is updated every night; see <a href="./#autoupdate">AutoUpdate</a></li>
+<li><code>AutoUpdateBRConnector</code> defaults to <code>false</code>: BRConnector stays on the image the stack was created with. Set it to <code>true</code> to update BRConnector every night; see <a href="./#autoupdate">AutoUpdate</a></li>
 </ul>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../attachments/deployment/IMG-deployment-14.png" data-desc-position="bottom"><img alt="attachments/deployment/IMG-deployment-14.png" src="../attachments/deployment/IMG-deployment-14.png"></a></p>
 <ul>
@@ -2240,7 +2262,8 @@
 <li>Also you could connect to <code>BRConnector</code> EC2 instance with SSM Session Manager (<a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html#start-ec2-console">docs</a>)</li>
 </ul>
 <h2 id="autoupdate">AutoUpdate<a class="headerlink" href="#autoupdate" title="Permanent link">¶</a></h2>
-<p>With <code>AutoUpdateBRConnector</code> set to <code>true</code>, the stack moves BRConnector to <code>latest</code> every night at 00:00 UTC, even when <code>BRConnectorVersion</code> is pinned to another version.</p>
+<p><code>AutoUpdateBRConnector</code> defaults to <code>false</code>, and no nightly job runs. To turn AutoUpdate on, set it to <code>true</code> when you create the stack or in a stack update. To turn it off, update the stack with <code>false</code>. Either update adds or deletes only the nightly job; see <a href="./#autoupdate-stack-update">AutoUpdate in existing stacks</a>.</p>
+<p>With <code>AutoUpdateBRConnector</code> set to <code>true</code>, the stack moves BRConnector to <code>latest</code> every night at 00:00 UTC, even when <code>BRConnectorVersion</code> is pinned to another version. It replaces only the image and does not update the template. A release that needs a template change runs without it until you update the stack to the new template. For example, the preset <code>painter</code> model of 0.0.46 answers with an error until the template gives it storage. Read the <a href="../changelogs/">changelog</a> of each release before you rely on the nightly update.</p>
 <table>
 <thead>
 <tr>
@@ -2267,16 +2290,17 @@
 </tr>
 </tbody>
 </table>
+<p><code>brconnector-ecs-fargate.yaml</code> has its own <code>AutoUpdateBRConnector</code>, also <code>false</code> by default. With <code>true</code>, an EventBridge rule forces a new deployment of the ECS service once a day, which pulls the <code>BRConnectorVersion</code> image tag again. With <code>latest</code>, this moves BRConnector to the newest release.</p>
 <p>The <code>lambda-web</code> package serves BRClient at <code>/brclient/</code>, like the images. The package build builds it from the upstream commits that <code>scripts/brclient.source</code> at <code>SourceRef</code> names. See <a href="./#brclient-source">BRClient source</a>.</p>
 <p>If the update of a <code>lambda-web</code> stack fails, CloudFormation rolls it back by building the previous <code>SourceRef</code> again, so keep that ref (branch or commit) available in the repository until the update completes. If the rollback build fails too, the stack ends in <code>UPDATE_ROLLBACK_FAILED</code>. Recover with:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aws<span class="w"> </span>cloudformation<span class="w"> </span>continue-update-rollback<span class="w"> </span>--stack-name<span class="w"> </span>&lt;stack<span class="w"> </span>name&gt;<span class="w"> </span>--resources-to-skip<span class="w"> </span>WebFnPackage
 </code></pre></div>
-<p>With <code>AutoUpdateBRConnector</code> set to <code>false</code>:</p>
+<p>With <code>AutoUpdateBRConnector</code> set to <code>false</code>, the stack has no SSM association and no SSM document on <code>ec2</code>, and no EventBridge rule and no CodeBuild project on <code>lambda</code>. BRConnector stays on the image it runs. To move it to a new release, update the stack with <code>true</code>. The next run at 00:00 UTC updates BRConnector. To run it at once:</p>
 <ul>
-<li>Go to the CodeBuild page; one project could be triggered to update your lambda image manually. Click <code>Start build</code>.</li>
-<li>Images in EC2 will NOT be updated by SSM State Manager automatically, because no association is created. Use the SSM document to run the update on EC2 manually.</li>
-<li>Check your ECR settings: if there are rules in the pull through cache page, you have enabled this feature to update the ECR image with the upstream repository automatically.</li>
+<li><code>ec2</code>: in Systems Manager State Manager, select the association of the stack and choose <strong>Apply association now</strong>.</li>
+<li><code>lambda</code>: in CodeBuild, start a build of the project <code>MyCodeBuildProject-&lt;stack name&gt;</code>.</li>
 </ul>
+<p>Check your ECR settings as well: if there are rules in the pull through cache page, you have enabled this feature to update the ECR image with the upstream repository automatically.</p>
 <h2 id="brclient-source">BRClient source<a class="headerlink" href="#brclient-source" title="Permanent link">¶</a></h2>
 <p>BRConnector serves the BRClient web app at <code>/brclient/</code>. The <code>ec2</code>, <code>ecs</code> and <code>lambda</code> images and the <code>lambda-web</code> package build it from the source of <a href="https://github.com/aws-samples/sample-client-for-amazon-bedrock">sample-client-for-amazon-bedrock</a>, at the commits that <code>scripts/brclient.source</code> names:</p>
 <ul>
@@ -2324,6 +2348,17 @@
 <h2 id="claude-code-web-stack-update">Claude Code Web in existing stacks<a class="headerlink" href="#claude-code-web-stack-update" title="Permanent link">¶</a></h2>
 <p><code>EnableClaudeCodeWeb</code> takes effect only when the stack is created. A stack created before the default changed has it set to <code>false</code>, and keeps <code>false</code> when you update it in the console. With <code>false</code>, the update creates nothing for Claude Code Web, and an <code>ec2</code> instance is not changed. A stack created from a template that has no <code>EnableClaudeCodeWeb</code> parameter, from before Claude Code Web, has no value to keep: the console shows the new default <code>true</code>, so set it to <code>false</code> when you update that stack.</p>
 <p>With the AWS CLI, pass <code>ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true</code>. Without it, the update takes the new default <code>true</code>. It then creates Claude Code Web, and on <code>ec2</code> it changes the UserData, which stops and starts the instance. Turning it on for an existing stack is not supported; see <a href="../../user-manual/scenarios/claude-code-web/#known-limitations">Known limitations</a>.</p>
+<h2 id="autoupdate-stack-update">AutoUpdate in existing stacks<a class="headerlink" href="#autoupdate-stack-update" title="Permanent link">¶</a></h2>
+<p>The default of <code>AutoUpdateBRConnector</code> changed from <code>true</code> to <code>false</code>. When you update a stack to the new template in the console, the console keeps the value the stack has, so a stack with <code>true</code> keeps its nightly update.</p>
+<p>With <code>aws cloudformation update-stack</code>, pass <code>ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true</code> in <code>--parameters</code>. Without it, the update takes the new default <code>false</code> and deletes the nightly job:</p>
+<ul>
+<li><code>ec2</code>: the SSM association, its SSM document and its log bucket.</li>
+<li><code>lambda</code>: the EventBridge rule, the CodeBuild project, its IAM roles and its security group.</li>
+<li><code>brconnector-ecs-fargate.yaml</code>: the EventBridge rule and its Lambda function.</li>
+</ul>
+<p>The stack then no longer updates BRConnector. To get the nightly update back, update the stack again with <code>true</code>.</p>
+<p><code>aws cloudformation deploy</code> keeps the value the stack has for each parameter that <code>--parameter-overrides</code> leaves out, so it keeps <code>AutoUpdateBRConnector</code> unless you pass it.</p>
+<p>Changing <code>AutoUpdateBRConnector</code> in a stack update adds or deletes only these resources. It does not stop, start or replace the <code>ec2</code> instance, because no property of the instance depends on the parameter. It does not update the <code>lambda</code> function or the ECS service either. On <code>ecs</code> and <code>lambda-web</code>, the parameter changes nothing.</p>
 <h2 id="deleting-a-stack">Deleting a stack<a class="headerlink" href="#deleting-a-stack" title="Permanent link">¶</a></h2>
 <p>The RDS database has deletion protection, so a stack deletion stops at the database (<code>MyPG</code> in <code>DELETE_FAILED</code>). To delete the stack:</p>
 <ol>
@@ -2496,7 +2531,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 15, 2026 05:43:42 CST"><span class="timeago" datetime="2026-11-15T05:43:42+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 15, 2026 05:43:42 CST">2026-11-15</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="November 17, 2026 15:43:10 CST"><span class="timeago" datetime="2026-11-17T15:43:10+08:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="November 17, 2026 15:43:10 CST">2026-11-17</span>
   </span>
 
     
