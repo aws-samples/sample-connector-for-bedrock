@@ -104,7 +104,7 @@ Here are some recommend deployment patterns:
 - Debugging parameters
   - If you choose Lambda as ComputeType, you could choose to delete EC2 after all resources deploy successfully. This EC2 is used for compiling and building BRConnector container temporarily.
   - Don't delete EC2 if you choose EC2 as ComputeType
-  - If you set `true` to AutoUpdateBRConnector, BRConnector is updated every night; see [AutoUpdate](#autoupdate)
+  - `AutoUpdateBRConnector` defaults to `false`: BRConnector stays on the image the stack was created with. Set it to `true` to update BRConnector every night; see [AutoUpdate](#autoupdate)
 
 ![attachments/deployment/IMG-deployment-14.png](attachments/deployment/IMG-deployment-14.png)
 
@@ -116,7 +116,9 @@ Here are some recommend deployment patterns:
 
 ## AutoUpdate
 
-With `AutoUpdateBRConnector` set to `true`, the stack moves BRConnector to `latest` every night at 00:00 UTC, even when `BRConnectorVersion` is pinned to another version.
+`AutoUpdateBRConnector` defaults to `false`, and no nightly job runs. To turn AutoUpdate on, set it to `true` when you create the stack or in a stack update. To turn it off, update the stack with `false`. Either update adds or deletes only the nightly job; see [AutoUpdate in existing stacks](#autoupdate-stack-update).
+
+With `AutoUpdateBRConnector` set to `true`, the stack moves BRConnector to `latest` every night at 00:00 UTC, even when `BRConnectorVersion` is pinned to another version. It replaces only the image and does not update the template. A release that needs a template change runs without it until you update the stack to the new template. For example, the preset `painter` model of 0.0.46 answers with an error until the template gives it storage. Read the [changelog](changelogs.md) of each release before you rely on the nightly update.
 
 | ComputeType | What runs at 00:00 UTC |
 | --- | --- |
@@ -124,6 +126,8 @@ With `AutoUpdateBRConnector` set to `true`, the stack moves BRConnector to `late
 | `lambda` | An EventBridge rule starts a CodeBuild project, which copies the `-lambda:latest` image to your private ECR repository and updates the function. |
 | `ecs` | No nightly job. |
 | `lambda-web` | No nightly job. A stack update rebuilds the package from `SourceRepoUrl` at `SourceRef` and deploys it when `SourceRepoUrl`, `SourceRef` or `WebFnBuildId` changes, and on the first update to a 0.0.44 template. Change `WebFnBuildId` (for example from `1` to `2`) to rebuild without changing anything else. |
+
+`brconnector-ecs-fargate.yaml` has its own `AutoUpdateBRConnector`, also `false` by default. With `true`, an EventBridge rule forces a new deployment of the ECS service once a day, which pulls the `BRConnectorVersion` image tag again. With `latest`, this moves BRConnector to the newest release.
 
 The `lambda-web` package serves BRClient at `/brclient/`, like the images. The package build builds it from the upstream commits that `scripts/brclient.source` at `SourceRef` names. See [BRClient source](#brclient-source).
 
@@ -133,11 +137,12 @@ If the update of a `lambda-web` stack fails, CloudFormation rolls it back by bui
 aws cloudformation continue-update-rollback --stack-name <stack name> --resources-to-skip WebFnPackage
 ```
 
-With `AutoUpdateBRConnector` set to `false`:
+With `AutoUpdateBRConnector` set to `false`, the stack has no SSM association and no SSM document on `ec2`, and no EventBridge rule and no CodeBuild project on `lambda`. BRConnector stays on the image it runs. To move it to a new release, update the stack with `true`. The next run at 00:00 UTC updates BRConnector. To run it at once:
 
-- Go to the CodeBuild page; one project could be triggered to update your lambda image manually. Click `Start build`.
-- Images in EC2 will NOT be updated by SSM State Manager automatically, because no association is created. Use the SSM document to run the update on EC2 manually.
-- Check your ECR settings: if there are rules in the pull through cache page, you have enabled this feature to update the ECR image with the upstream repository automatically.
+- `ec2`: in Systems Manager State Manager, select the association of the stack and choose **Apply association now**.
+- `lambda`: in CodeBuild, start a build of the project `MyCodeBuildProject-<stack name>`.
+
+Check your ECR settings as well: if there are rules in the pull through cache page, you have enabled this feature to update the ECR image with the upstream repository automatically.
 
 ## BRClient source {#brclient-source}
 
@@ -195,6 +200,22 @@ Fill `s3Bucket` and `s3Region` in the `painter` model config where a stack canno
 `EnableClaudeCodeWeb` takes effect only when the stack is created. A stack created before the default changed has it set to `false`, and keeps `false` when you update it in the console. With `false`, the update creates nothing for Claude Code Web, and an `ec2` instance is not changed. A stack created from a template that has no `EnableClaudeCodeWeb` parameter, from before Claude Code Web, has no value to keep: the console shows the new default `true`, so set it to `false` when you update that stack.
 
 With the AWS CLI, pass `ParameterKey=EnableClaudeCodeWeb,UsePreviousValue=true`. Without it, the update takes the new default `true`. It then creates Claude Code Web, and on `ec2` it changes the UserData, which stops and starts the instance. Turning it on for an existing stack is not supported; see [Known limitations](../user-manual/scenarios/claude-code-web.md#known-limitations).
+
+## AutoUpdate in existing stacks {#autoupdate-stack-update}
+
+The default of `AutoUpdateBRConnector` changed from `true` to `false`. When you update a stack to the new template in the console, the console keeps the value the stack has, so a stack with `true` keeps its nightly update.
+
+With `aws cloudformation update-stack`, pass `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true` in `--parameters`. Without it, the update takes the new default `false` and deletes the nightly job:
+
+- `ec2`: the SSM association, its SSM document and its log bucket.
+- `lambda`: the EventBridge rule, the CodeBuild project, its IAM roles and its security group.
+- `brconnector-ecs-fargate.yaml`: the EventBridge rule and its Lambda function.
+
+The stack then no longer updates BRConnector. To get the nightly update back, update the stack again with `true`.
+
+`aws cloudformation deploy` keeps the value the stack has for each parameter that `--parameter-overrides` leaves out, so it keeps `AutoUpdateBRConnector` unless you pass it.
+
+Changing `AutoUpdateBRConnector` in a stack update adds or deletes only these resources. It does not stop, start or replace the `ec2` instance, because no property of the instance depends on the parameter. It does not update the `lambda` function or the ECS service either. On `ecs` and `lambda-web`, the parameter changes nothing.
 
 ## Deleting a stack {#deleting-a-stack}
 

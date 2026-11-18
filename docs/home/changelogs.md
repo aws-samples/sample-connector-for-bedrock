@@ -1,5 +1,19 @@
 # Changelogs
 
+## 0.0.47
+
+**Upgrade notes**
+
+- `AutoUpdateBRConnector` now defaults to `false`, so a new stack no longer updates BRConnector every night (item 1). A console update to the new template keeps the value the stack has. With `aws cloudformation update-stack`, pass `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true` in `--parameters`. Without it, the update takes the new default `false` and deletes the nightly job: the SSM association on `ec2`, the EventBridge rule and the CodeBuild project on `lambda`, and the daily redeploy of `brconnector-ecs-fargate.yaml`. The stack then no longer updates BRConnector. `aws cloudformation deploy` keeps the value when `--parameter-overrides` leaves the parameter out. The update does not change or restart the `ec2` instance, the `lambda` function or the ECS service. See [AutoUpdate in existing stacks](deployment.md#autoupdate-stack-update).
+- The Claude Code Web backend image gets item 2 only when it is rebuilt. To rebuild it, change `ClaudeCodeWebImageBuildId` (for example from `1` to `2`). See [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations).
+
+1. **AutoUpdate Off by Default** - `AutoUpdateBRConnector` defaults to `false` in `quick-build-brconnector.yaml` and `brconnector-ecs-fargate.yaml`, so a new stack stays on the release it was created with. Set it to `true` to turn the nightly update on. It replaces only the image and does not update the template. In `quick-build-brconnector.yaml`, it moves `ec2` and `lambda` to `latest` even when `BRConnectorVersion` is pinned. See [AutoUpdate](deployment.md#autoupdate).
+2. **Dependency Updates** - Dependencies move to newer releases. The new releases of cryptography, pip, multidict, idna, requests, uuid, @humanfs/node and minimatch fix known vulnerabilities.
+   - The Claude Code Web backend image installs cryptography 50.0.2, pip 26.3, multidict 6.9.1, idna 3.20 and requests 2.34.2. cryptography is a major upgrade from 46.0.7. This fixes the known cryptography vulnerabilities that 0.0.45 and 0.0.46 kept.
+   - The BRConnector server dependencies do not change. Each build installs the newest releases that `package.json` allows. These no longer include fast-xml-parser, because @aws-sdk/xml-builder 3.972.43 does not depend on it. The lockfile that the tests use now has the same @aws-sdk/xml-builder, and `package.json` no longer overrides fast-xml-parser.
+   - The lockfile also moves uuid to 13.0.2 (through kui-vue), @humanfs/node to 0.16.8 (through eslint) and minimatch to 11.0.9 (through rimraf 6.1.4). minimatch is a major upgrade from 10.2.6. These are dev dependencies, and the image does not install them.
+   - zod stays on 3.25.76 in the image and in the lockfile, because its fix is only in zod 4. The koa-body and openai releases that BRConnector uses require zod 3, and the server calls zod only on its own settings, not on request data.
+
 ## 0.0.46
 
 **Upgrade notes**

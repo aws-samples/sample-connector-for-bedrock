@@ -1,5 +1,19 @@
 # 更新日志
 
+## 0.0.47
+
+**升级提示**
+
+- `AutoUpdateBRConnector` 的默认值改为 `false`，新 stack 不再每晚自动更新 BRConnector（第 1 条）。在控制台把 stack 更新到新模板时，保持 stack 当前的值。使用 `aws cloudformation update-stack` 时，在 `--parameters` 中传 `ParameterKey=AutoUpdateBRConnector,UsePreviousValue=true`。不传的话，更新会采用新的默认值 `false`，删除夜间任务：`ec2` 上的 SSM association，`lambda` 上的 EventBridge 规则和 CodeBuild 项目，以及 `brconnector-ecs-fargate.yaml` 的每日重新部署。之后 stack 不再更新 BRConnector。`aws cloudformation deploy` 在 `--parameter-overrides` 中没有写这个参数时保持当前的值。这次更新不会修改或重启 `ec2` 实例、`lambda` 函数或 ECS 服务。见[已有 stack 的 AutoUpdate](deployment.md#autoupdate-stack-update)。
+- Claude Code Web 后端镜像要重新构建后才会包含第 2 条。要重新构建，请修改 `ClaudeCodeWebImageBuildId`（例如从 `1` 改成 `2`）。见 [Claude Code Web](../user-manual/scenarios/claude-code-web.md#known-limitations)。
+
+1. **AutoUpdate 默认关闭** - `quick-build-brconnector.yaml` 和 `brconnector-ecs-fargate.yaml` 中 `AutoUpdateBRConnector` 的默认值改为 `false`，新 stack 保持在创建时的版本。设为 `true` 打开夜间更新。它只替换镜像，不更新模板。在 `quick-build-brconnector.yaml` 中，即使 `BRConnectorVersion` 固定了版本，它也会把 `ec2` 和 `lambda` 更新到 `latest`。见 [AutoUpdate](deployment.md#autoupdate)。
+2. **依赖更新** - 依赖升级到更新的版本。cryptography、pip、multidict、idna、requests、uuid、@humanfs/node 和 minimatch 的新版本修复了已知漏洞。
+   - Claude Code Web 后端镜像安装 cryptography 50.0.2、pip 26.3、multidict 6.9.1、idna 3.20 和 requests 2.34.2。cryptography 从 46.0.7 跨大版本升级。0.0.45 和 0.0.46 保留的 cryptography 已知漏洞因此得到修复。
+   - BRConnector 服务端依赖不变。每次构建都会安装 `package.json` 允许的最新版本。这些版本已经不包含 fast-xml-parser，因为 @aws-sdk/xml-builder 3.972.43 不再依赖它。测试使用的 lockfile 现在也是这个版本的 @aws-sdk/xml-builder，`package.json` 不再强制指定 fast-xml-parser 的版本。
+   - lockfile 中还把 uuid 升级到 13.0.2（经由 kui-vue），@humanfs/node 升级到 0.16.8（经由 eslint），minimatch 升级到 11.0.9（经由 rimraf 6.1.4）。minimatch 从 10.2.6 跨大版本升级。这些都是开发依赖，镜像不会安装它们。
+   - zod 在镜像和 lockfile 中都保留 3.25.76，因为它的修复只在 zod 4 里。BRConnector 使用的 koa-body 和 openai 版本要求 zod 3，而服务端只用 zod 检查自己的设置，不用它处理请求数据。
+
 ## 0.0.46
 
 **升级提示**
